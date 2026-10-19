@@ -1225,6 +1225,8 @@
 								blocksState={blocks}
 								onStructuralChange={handleContentSaved}
 								{paletteDragType}
+								{zoomFactor}
+								canvasHeight={canvasSize.height}
 							/>
 						</div>
 					{/if}

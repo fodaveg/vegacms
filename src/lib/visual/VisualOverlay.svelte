@@ -264,6 +264,9 @@
 		 *  encargo "paleta de bloques arrastrable"): dueño único en `VisualEditorScreen.svelte`,
 		 *  este componente solo LO LEE, nunca lo escribe. */
 		paletteDragType?: ResolvedBlockType | null;
+		/** Escala del escenario, solo para mantener legible el menú de inserción. */
+		zoomFactor?: number;
+		canvasHeight?: number;
 	}
 
 	let {
@@ -275,7 +278,9 @@
 		renderedBlockTypes = null,
 		blocksState,
 		onStructuralChange,
-		paletteDragType = null
+		paletteDragType = null,
+		zoomFactor = 1,
+		canvasHeight
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -545,17 +550,16 @@
 		insertMenuTriggerEl = null;
 	}
 
-	/** Abre hacia ARRIBA cuando el punto cae en la mitad final de la página (donde vive el caso
-	 *  real que motivó el encargo: el punto DESPUÉS del último bloque, "al final de la página") —
-	 *  sin medir el lienzo en tiempo real (evitaría montar un `ResizeObserver` solo para esto). No
-	 *  es exacto para toda altura de bloque posible, pero cubre el caso reportado y generaliza
-	 *  razonablemente a los puntos intermedios de la mitad de abajo; documentado para que se pueda
-	 *  desmentir si algún día hace falta más precisión. */
-	function insertMenuOpensUpward(position: number): boolean {
-		return position * 2 >= blocks.length;
+	/** Abre hacia el lado con más espacio real del lienzo. Sin medida (consumidor aislado),
+	 *  conserva el criterio anterior de mitad de los bloques. No altera los puntos ni su índice. */
+	function insertMenuOpensUpward(point: InsertPoint): boolean {
+		return canvasHeight === undefined
+			? point.position * 2 >= blocks.length
+			: point.top * zoomFactor > canvasHeight / 2;
 	}
 
 	function handleInsertClick(position: number, event: MouseEvent): void {
+		if (structuralGuard) return;
 		if (!blocksState.hasTypeMenu) {
 			void handleInsert(position);
 			return;
@@ -570,6 +574,7 @@
 	}
 
 	function handleInsertMenuSelect(position: number, blockType: ResolvedBlockType): void {
+		if (structuralGuard) return;
 		const trigger = insertMenuTriggerEl;
 		closeInsertMenu();
 		trigger?.focus();
@@ -614,8 +619,12 @@
 	 *  siguiera "abierto" en el estado quedaría anclado a un botón que ya no existe — huérfano en
 	 *  cuanto el gesto terminara y los puntos volvieran a montarse. */
 	$effect(() => {
-		if (structuralGuard || dragState.fromIndex !== null || paletteDragType !== null)
+		if (structuralGuard || dragState.fromIndex !== null || paletteDragType !== null) {
+			const trigger = insertMenuTriggerEl;
+			const restore = structuralGuard && insertMenuEl?.contains(document.activeElement);
 			closeInsertMenu();
+			if (restore) trigger?.focus();
+		}
 	});
 
 	// ————— Caída de la PALETA (ver cabecera, "Soltar una sección de la PALETA...") —————
@@ -690,7 +699,11 @@
      por especificidad, así que ni una clase modificadora futura ni un tema puede reintroducir el
      puntero por accidente — la regla más importante del componente no depende de que nadie
      recuerde no tocarla en el CSS de más abajo. -->
-<div class="vega-visual-overlay-root" style:pointer-events="none">
+<div
+	class="vega-visual-overlay-root"
+	style:pointer-events="none"
+	style:--menu-scale={1 / zoomFactor}
+>
 	<!-- Decorativo (ver cabecera): el propio grupo de cajas, aparte de la región de estados de
 	     abajo. -->
 	<div class="vega-visual-overlay-boxes" aria-hidden="true">
@@ -869,6 +882,8 @@
 	{#if !blocksState.hidden && insertPoints.length > 0 && dragState.fromIndex === null && paletteDragType === null}
 		<div class="vega-visual-overlay-insert-points">
 			{#each insertPoints as point (point.position)}
+				{@const destination = insertionLabel(point.position)}
+				{@const upward = insertMenuOpensUpward(point)}
 				<!-- Con menú de tipos (`hasTypeMenu`), mismo contrato APG que `.vega-tree-add` de
 				     `VisualBlockTree.svelte`: `aria-haspopup`/`aria-expanded`/`aria-controls` en el
 				     disparador. Sin menú (modo homogéneo), ninguno de los tres — igual que el botón
@@ -878,14 +893,14 @@
 					class="vega-visual-overlay-insert"
 					style:top="{point.top}px"
 					style:pointer-events="auto"
-					disabled={structuralGuard}
+					aria-disabled={structuralGuard}
 					aria-haspopup={blocksState.hasTypeMenu ? 'menu' : undefined}
 					aria-expanded={blocksState.hasTypeMenu
 						? insertMenuPosition === point.position
 						: undefined}
 					aria-controls={blocksState.hasTypeMenu ? insertMenuId(point.position) : undefined}
-					aria-label={insertionLabel(point.position)}
-					title={insertionLabel(point.position)}
+					aria-label={destination}
+					title={destination}
 					onclick={(event) => handleInsertClick(point.position, event)}
 				>
 					<Icon id="plus" size={14} />
@@ -903,29 +918,34 @@
 					<div
 						id={insertMenuId(point.position)}
 						class="vega-visual-overlay-insert-menu"
-						class:vega-visual-overlay-insert-menu--up={insertMenuOpensUpward(point.position)}
+						class:vega-visual-overlay-insert-menu--up={upward}
 						role="menu"
 						tabindex="-1"
-						aria-label={insertionLabel(point.position)}
+						aria-label={destination}
+						style:--menu-space={canvasHeight === undefined
+							? undefined
+							: `${upward ? point.top * zoomFactor : canvasHeight - point.top * zoomFactor}px`}
 						style:top="{point.top}px"
 						bind:this={insertMenuEl}
 						onkeydown={handleInsertMenuKeydown}
 						onfocusout={handleInsertMenuFocusOut}
 					>
-						<p class="vega-visual-insert-destination">{insertionLabel(point.position)}</p>
-						{#each blocksState.blockTypes as blockType (blockType.name)}
-							<button
-								type="button"
-								role="menuitem"
-								tabindex="-1"
-								class="vega-visual-overlay-insert-menu-item"
-								style:pointer-events="auto"
-								onclick={() => handleInsertMenuSelect(point.position, blockType)}
-							>
-								{#if blockType.icon}<Icon id={blockType.icon} size={14} />{/if}
-								{blockType.label}
-							</button>
-						{/each}
+						<p class="vega-visual-insert-destination">{destination}</p>
+						<div role="presentation" class="vega-visual-insert-options">
+							{#each blocksState.blockTypes as blockType (blockType.name)}
+								<button
+									type="button"
+									role="menuitem"
+									tabindex="-1"
+									class="vega-visual-overlay-insert-menu-item"
+									style:pointer-events="auto"
+									onclick={() => handleInsertMenuSelect(point.position, blockType)}
+								>
+									{#if blockType.icon}<Icon id={blockType.icon} size={14} />{/if}
+									{blockType.label}
+								</button>
+							{/each}
+						</div>
 					</div>
 				{/if}
 			{/each}
@@ -1186,17 +1206,17 @@
 		transform: translate(-50%, -50%);
 	}
 
-	.vega-visual-overlay-insert:hover:not(:disabled) {
+	.vega-visual-overlay-insert:hover:not([aria-disabled='true']) {
 		border-color: var(--accent);
 		color: var(--accent);
 	}
 
 	.vega-visual-overlay-insert:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 
-	.vega-visual-overlay-insert:disabled {
+	.vega-visual-overlay-insert[aria-disabled='true'] {
 		cursor: not-allowed;
 		opacity: 0.4;
 	}
@@ -1206,19 +1226,21 @@
 	   antes en `VisualBlockTree.svelte` (tarjeta con `--surface`/`--shadow-card`, ítems en columna)
 	   — misma FAMILIA de menú, pero anclado a `point.top` (coordenadas del lienzo) en vez de a
 	   `top: 100%` de un botón en flujo normal, así que necesita su propio
-	   `top`/`left`/`margin`/`transform` en vez de heredar el suyo. Sin `pointer-events` propio (ver
-	   cabecera del componente, "DOS capas nuevas"): solo cada `role="menuitem"` lo activa. */
+	   `top`/`left`/`margin`/`transform` en vez de heredar el suyo. La lista interior recibe el puntero para desplazar sus opciones; el destino permanece fuera
+	   de ese scroll y el resto del overlay sigue sin interceptar la página. */
 	.vega-visual-overlay-insert-menu {
 		position: absolute;
 		left: 50%;
 		z-index: 10;
 		margin-top: 0.9rem;
-		transform: translateX(-50%);
+		transform: translateX(-50%) scale(var(--menu-scale));
+		transform-origin: top center;
 		display: flex;
 		flex-direction: column;
-		width: min(22rem, 90%);
-		max-height: 18rem;
-		overflow-y: auto;
+		box-sizing: border-box;
+		width: min(22rem, calc(90% / var(--menu-scale)));
+		max-height: min(18rem, calc(var(--menu-space, 100vh) - 0.9rem / var(--menu-scale)));
+		overflow: hidden;
 		padding: 0.3rem;
 		border: 1px solid var(--line);
 		border-radius: 8px;
@@ -1232,10 +1254,20 @@
 	   intenta crecer hacia un hueco que ya no existe dentro del `overflow: hidden` del lienzo. */
 	.vega-visual-overlay-insert-menu--up {
 		margin-top: -0.9rem;
-		transform: translate(-50%, -100%);
+		transform: translate(-50%, -100%) scale(var(--menu-scale));
+		transform-origin: bottom center;
+	}
+
+	.vega-visual-insert-options {
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		overflow-y: auto;
+		pointer-events: auto;
 	}
 
 	.vega-visual-insert-destination {
+		flex-shrink: 0;
 		margin: 0;
 		padding: 0.45rem 0.6rem;
 		color: var(--ink-hi);
@@ -1347,6 +1379,10 @@
 	}
 
 	@media (pointer: coarse) {
+		.vega-visual-overlay-insert-menu-item {
+			min-height: 44px;
+		}
+
 		.vega-visual-overlay-toolbar-btn,
 		.vega-visual-overlay-insert {
 			width: 44px;

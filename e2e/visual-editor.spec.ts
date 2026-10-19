@@ -1380,11 +1380,17 @@ test('UX04: el borrador cierra el menú abierto y ningún + crea hasta guardarlo
 	});
 	await expect(page.getByRole('menu')).toHaveCount(0);
 	for (const point of await page.locator('.vega-visual-overlay-insert').all())
-		await expect(point).toBeDisabled();
+		await expect(point).toHaveAttribute('aria-disabled', 'true');
+	await expect(trigger).toBeFocused();
+	const box = (await trigger.boundingBox())!;
+	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+	await trigger.press('Enter');
+	await trigger.press('Space');
+	await expect(page.getByRole('menu')).toHaveCount(0);
 	await expect(page.locator('.vega-tree-list li')).toHaveCount(3);
 	await headingInput(page).focus();
 	await page.keyboard.press('Control+s');
-	await expect(trigger).toBeEnabled();
+	await expect(trigger).toHaveAttribute('aria-disabled', 'false');
 	await expect(headingInput(page)).toHaveValue('Borrador conservado');
 });
 
@@ -1436,14 +1442,18 @@ test('UX11: índice de secciones conserva borrador/error y el formulario respeta
 	await expect(third.getByLabel('Título', { exact: true })).toBeFocused();
 	await third.getByRole('combobox', { name: 'Ir a sección' }).selectOption('seccion_2');
 	await expect(first.getByLabel('Título', { exact: true })).toBeFocused();
+	await expect(first.getByRole('combobox', { name: 'Ir a sección' })).toHaveValue('seccion_2');
+	await expect(third.getByRole('combobox', { name: 'Ir a sección' })).toHaveValue('seccion_3');
 	await expect(first.locator('.vega-field-error').first()).toHaveText(error!);
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await expect(page.locator('.vega-visual-canvas')).toBeVisible();
 	await expect(page.locator('.vega-inspector-body:not([hidden])')).toHaveCount(1);
 	await expect(headingInput(page)).toHaveValue('Borrador con error retenido');
 	await page.setViewportSize({ width: 390, height: 844 });
+	const fullFormLink = first.getByRole('link', { name: 'Abrir formulario completo' });
+	expect((await fullFormLink.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 	page.once('dialog', (dialog) => dialog.dismiss());
-	await first.getByRole('link', { name: 'Abrir formulario completo' }).click();
+	await fullFormLink.click();
 	await expect(page).toHaveURL(/\/visual$/);
 	await expect(first.getByLabel('Título', { exact: true })).toHaveValue(
 		'Borrador con error retenido'
@@ -1459,4 +1469,111 @@ test('UX11: índice de secciones conserva borrador/error y el formulario respeta
 	await expect(page.getByRole('textbox', { name: 'Detalle editorial 1', exact: true })).toHaveValue(
 		'Campo requerido corregido'
 	);
+});
+
+for (const locale of ['es', 'en']) {
+	test(`UX04: menú legible y sin recortes con catálogo largo ${locale}`, async ({
+		page
+	}, testInfo) => {
+		await page.setViewportSize({ width: 1440, height: 900 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+		await page.locator('.vega-visual-back').click();
+		await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
+		const editor = page.getByRole('textbox', { name: 'JSON del manifiesto' });
+		const manifest = JSON.parse(await editor.inputValue());
+		manifest.site.locale = locale;
+		// Fixture explícita y admitida por el esquema: conserva los 3 tipos reales y añade
+		// 20 variantes de texto, sin categorías, ordenaciones ni metadatos inventados.
+		for (let index = 1; index <= 20; index++)
+			manifest.blockTypes[`texto-variante-${index}`] = {
+				...manifest.blockTypes.texto,
+				label:
+					locale === 'es'
+						? `Texto variante ${index} con nombre editorial largo`
+						: `Text variant ${index} with a long editorial name`
+			};
+		await editor.fill(JSON.stringify(manifest, null, 2));
+		await page
+			.locator('.manifest-editor')
+			.getByRole('button', { name: 'Guardar', exact: true })
+			.click();
+		await page.locator('a[href="/c/paginas"]').first().click();
+		await page.locator('a[href="/c/paginas/pagina_1"]').click();
+		await page
+			.getByRole('button', {
+				name: locale === 'es' ? 'Editor visual' : 'Visual editor',
+				exact: true
+			})
+			.click();
+		await expect(page.locator('.vega-visual-status')).toContainText(
+			locale === 'es' ? 'Conectado' : 'Connected'
+		);
+		for (const width of [1440, 901]) {
+			await page.setViewportSize({ width, height: 900 });
+			for (const position of [0, 1, 3]) {
+				const trigger = page.locator('.vega-visual-overlay-insert').nth(position);
+				await trigger.focus();
+				await trigger.press('Enter');
+				const menu = page.getByRole('menu');
+				await expect(menu.getByRole('menuitem')).toHaveCount(23);
+				const measured = await menu.evaluate((el) => {
+					const rect = el.getBoundingClientRect(),
+						canvas = el.closest('.vega-visual-canvas')!.getBoundingClientRect(),
+						stage = el.closest('.vega-visual-stage')!;
+					return {
+						menu: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right },
+						canvas: {
+							top: canvas.top,
+							bottom: canvas.bottom,
+							left: canvas.left,
+							right: canvas.right
+						},
+						font:
+							parseFloat(getComputedStyle(el.querySelector('button')!).fontSize) *
+							new DOMMatrix(getComputedStyle(stage).transform).a *
+							new DOMMatrix(getComputedStyle(el).transform).a
+					};
+				});
+				expect(measured.font).toBeGreaterThanOrEqual(13);
+				expect(measured.menu.top).toBeGreaterThanOrEqual(measured.canvas.top);
+				expect(measured.menu.bottom).toBeLessThanOrEqual(measured.canvas.bottom);
+				expect(measured.menu.left).toBeGreaterThanOrEqual(measured.canvas.left);
+				expect(measured.menu.right).toBeLessThanOrEqual(measured.canvas.right);
+				if (position === 1)
+					await page.screenshot({
+						path: testInfo.outputPath(`ux04-${width}-${locale}-long-catalog.png`)
+					});
+				await page.keyboard.press('End');
+				await expect(menu.getByRole('menuitem').last()).toBeFocused();
+				await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport();
+				await page.keyboard.press('Home');
+				await expect(menu.getByRole('menuitem').first()).toBeFocused();
+				await page.keyboard.press('Escape');
+				await expect(trigger).toBeFocused();
+			}
+		}
+		await expect(page.locator('.vega-tree-list li')).toHaveCount(3);
+	});
+}
+
+test.describe('UX04: objetivos del menú con puntero táctil', () => {
+	test.use({ hasTouch: true });
+	test('las opciones mantienen 44 px reales dentro del escenario escalado', async ({ page }) => {
+		await page.setViewportSize({ width: 1440, height: 900 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+		for (const width of [1440, 901]) {
+			await page.setViewportSize({ width, height: 900 });
+			await page.locator('.vega-visual-overlay-insert').nth(1).click();
+			for (const item of await page.getByRole('menuitem').all()) {
+				const box = (await item.boundingBox())!;
+				expect(box.height).toBeGreaterThanOrEqual(43.99);
+				expect(box.width).toBeGreaterThanOrEqual(43.99);
+			}
+			await page.keyboard.press('Escape');
+		}
+	});
 });

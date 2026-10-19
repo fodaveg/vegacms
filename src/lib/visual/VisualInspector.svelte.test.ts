@@ -691,6 +691,10 @@ describe('VisualInspector.svelte', () => {
 			indexes[0].value = 'b2';
 			indexes[0].dispatchEvent(new Event('change', { bubbles: true }));
 			expect(onSelect).toHaveBeenCalledWith('b2');
+			expect(indexes[0].value).toBe('b1');
+			indexes[1].value = 'b1';
+			indexes[1].dispatchEvent(new Event('change', { bubbles: true }));
+			expect(indexes[1].value).toBe('b2');
 		});
 
 		test('solo los campos de texto; el resto se cuenta y se nombra sin editarse', () => {

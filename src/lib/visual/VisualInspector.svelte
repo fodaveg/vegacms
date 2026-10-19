@@ -141,6 +141,7 @@
 		mode?: 'inspector' | 'texts';
 		/** Solo en `texts`, página sin secciones (lámina 8.5): el botón de vuelta al formulario. */
 		onBack?: () => void;
+		/** El índice pide navegación al dueño de selección/foco de la pantalla. */
 		onSelectBlock?: (id: string) => void;
 		fullFormHref?: string;
 	}
@@ -279,7 +280,12 @@
 					class="vega-texts-index"
 					aria-label={ctx.t('editor.visual.texts.jump')}
 					value={id}
-					onchange={(event) => onSelectBlock?.(event.currentTarget.value)}
+					onchange={(event) => {
+						const destination = event.currentTarget.value;
+						// Es navegación: al volver, esta cabecera sigue describiendo SU sección.
+						event.currentTarget.value = id;
+						onSelectBlock?.(destination);
+					}}
 				>
 					{#each blocks.records as item, index (item.id)}
 						<option value={item.id}

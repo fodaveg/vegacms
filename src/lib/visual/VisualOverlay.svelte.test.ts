@@ -703,13 +703,25 @@ describe('VisualOverlay.svelte', () => {
 		expect(mounted.target.querySelector('[role="menu"]')?.textContent).toContain(
 			'Añadir al principio'
 		);
+		expect(document.activeElement?.getAttribute('role')).toBe('menuitem');
 		state.anyDirty = true;
 		await tick();
+		expect(document.activeElement).toBe(trigger);
 		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
-		expect(trigger.disabled).toBe(true);
+		expect(trigger.getAttribute('aria-disabled')).toBe('true');
 		trigger.click();
 		await settle();
 		expect(handleCreate).not.toHaveBeenCalled();
+		state.anyDirty = false;
+		await tick();
+		trigger.click();
+		await tick();
+		const field = document.createElement('input');
+		mounted.target.append(field);
+		field.focus();
+		state.anyDirty = true;
+		await tick();
+		expect(document.activeElement).toBe(field);
 	});
 
 	test('sin bloques que el sitio reporte: ningún punto de inserción (el árbol sigue siendo la vía)', async () => {

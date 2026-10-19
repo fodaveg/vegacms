@@ -139,7 +139,7 @@ describe('VisualPalette.svelte', () => {
 		// Fixture explícita: veinte variantes del mismo tipo admitido, sin categorías añadidas.
 		const types = Array.from({ length: 20 }, (_, index) => ({
 			...HERO_TYPE,
-			name: `hero_${index}`,
+			name: `hero-${index}`,
 			label: `Portada variante ${index + 1} con nombre editorial largo`
 		}));
 		mounted = mountPalette({ blocks: fakeBlocksState({ hasTypeMenu: true, blockTypes: types }) });

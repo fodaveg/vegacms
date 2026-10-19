@@ -113,10 +113,11 @@
 		textsOnly?: boolean;
 		/** Sin permiso de editar (ver cabecera): campos deshabilitados y sin «Guardar». */
 		locked?: boolean;
+		/** Formulario real del padre; la pantalla conserva su guarda de salida. */
+		fullFormHref?: string;
 		/** Inspector visual: una sola cabecera con nombre/estado y el mismo Guardar, persistente
 		 *  dentro de la ficha. El consumidor aporta presentación, nunca otro dueño del guardado.
 		 *  Sin snippet, el formulario clásico conserva su acción al pie. */
-		fullFormHref?: string;
 		contextualHeader?: Snippet<
 			[name: string, state: string, save: Snippet | undefined, id: string]
 		>;
@@ -877,6 +878,13 @@
 	.vega-block-settings-link:focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
+	}
+
+	.vega-block-full-form {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		color: var(--ink);
 	}
 
 	.vega-block-full-form:focus-visible {
