@@ -1566,6 +1566,16 @@ for (const locale of ['es', 'en']) {
 		await expect(page.locator('.vega-visual-status')).toContainText(
 			locale === 'es' ? 'Conectado' : 'Connected'
 		);
+		const longName =
+			'Guía editorial de una página con un nombre largo para reconocer el bloque al recorrer todos sus campos. ' +
+			'Guía editorial de una página con un nombre largo para reconocer el bloque al recorrer todos sus campos';
+		for (const id of ['seccion_1', 'seccion_2']) {
+			await page.locator(`[data-vega-tree-row="${id}"]`).click();
+			const body = page.locator(`.vega-inspector-body[data-block-id="${id}"]`);
+			await body.locator('[data-field="heading"] input').fill(longName);
+			await body.locator('.vega-block-save-button').click();
+			await expect(body.locator('.vega-block-save-button')).toBeDisabled();
+		}
 		for (const width of [1440, 901]) {
 			await page.setViewportSize({ width, height: 900 });
 			for (const position of [0, 1, 3]) {
@@ -1603,7 +1613,7 @@ for (const locale of ['es', 'en']) {
 					});
 				await page.keyboard.press('End');
 				await expect(menu.getByRole('menuitem').last()).toBeFocused();
-				await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport();
+				await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport({ ratio: 1 });
 				await page.keyboard.press('Home');
 				await expect(menu.getByRole('menuitem').first()).toBeFocused();
 				await page.keyboard.press('Escape');
@@ -1611,6 +1621,41 @@ for (const locale of ['es', 'en']) {
 			}
 		}
 		await expect(page.locator('.vega-tree-list li')).toHaveCount(3);
+		// El nombre completo no debe dejar sin opciones una tarjeta con poco alto disponible.
+		await page.setViewportSize({ width: 901, height: 420 });
+		await page.evaluate(
+			() =>
+				new Promise<void>((resolve) =>
+					requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+				)
+		);
+		await page.locator('.vega-visual-overlay-insert').nth(2).focus();
+		await page.keyboard.press('Enter');
+		const menu = page.getByRole('menu');
+		await expect(menu).toHaveAccessibleName(
+			new RegExp(longName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+		);
+		await expect(menu.locator('.vega-visual-insert-destination')).toHaveAttribute(
+			'title',
+			(await menu.getAttribute('aria-label')) ?? ''
+		);
+		await page.keyboard.press('End');
+		const last = menu.getByRole('menuitem').last();
+		await expect(last).toBeFocused();
+		const options = (await menu.locator('.vega-visual-insert-options').boundingBox())!;
+		const option = (await last.boundingBox())!;
+		expect(option.y).toBeGreaterThanOrEqual(options.y - 1);
+		expect(option.y + option.height).toBeLessThanOrEqual(options.y + options.height + 1);
+		await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport({ ratio: 1 });
+		await page.screenshot({
+			path: testInfo.outputPath(`ux04-901x420-${locale}-long-destination.png`)
+		});
+		await page.keyboard.press('Enter');
+		await expect(page.locator('.vega-tree-list li')).toHaveCount(4);
+		await page.locator('.vega-visual-back').click();
+		await expect(page.locator('.vega-block-type').nth(2)).toHaveText(
+			manifest.blockTypes['texto-variante-20'].label
+		);
 	});
 }
 
