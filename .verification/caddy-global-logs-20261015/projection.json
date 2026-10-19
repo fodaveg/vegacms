@@ -1,0 +1,33 @@
+{
+  "adaptExit": null,
+  "closureVerified": false,
+  "commandVerified": true,
+  "composeGuards": {
+    "edge": "c6c47d481ff63296d8818680e6b20d351a73b34d00b9339b2654df7679abbee2",
+    "fodaveg": "eb62c0447d4cce8a8af1ceedeeabb11602770d48d6bf952618ef19e7b8a1008b",
+    "lumbre": "56caa1a1273feaa3c56b34db7724177c448190d1c28d723d53a5b62fbe110ae9",
+    "vega": "11593d1da51e580f988058bfac8288194eaeb7697ac7db2f6926815f8d14dcde"
+  },
+  "diskAfter": 2000019456,
+  "diskBefore": 2000015360,
+  "failureClass": "SYNTAX_UNSUPPORTED",
+  "globalLogFilterVerified": false,
+  "globalLogMerged": false,
+  "imageId": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+  "knownGuards": {
+    "fodaveg": "0bdaa9f5ef1af907f7a4746ad2be5af22c7553457af8871563de00fe56e171f0",
+    "lumbre": "9a3322ce14562e20bfb5bdc10eac6a63c077120a327aafcf4a222492cc0c1f53",
+    "root": "ff093f30330f8a7fa536bffcafb12cc316b096e4210142461889da66eaabb09b",
+    "vega": "772440180332741a8716b440cc699dfe117f1fe716ab7a38458a9e7eea9c7b06"
+  },
+  "nativePatchChecks": 0,
+  "policyRestored": false,
+  "presentCount": 0,
+  "referencedCount": 0,
+  "scratchRemoved": true,
+  "sourceFiles": 0,
+  "status": "STOPPED",
+  "storageExplicit": 0,
+  "validateExit": null,
+  "writersRemapped": 0
+}

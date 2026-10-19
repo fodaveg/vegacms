@@ -1,0 +1,21 @@
+{
+  "containers": {
+    "edge-caddy": {
+      "id": "ae97fc0c57fbe4c3a97f5dce15dfc9da92f33f527b60d95c3f74de9d2a160a7a",
+      "imageId": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648"
+    },
+    "fodaveg": {
+      "id": "6bddffa88de1c2738bf9aee711425f512deac30365f6183bb3d2ad008a2ff452",
+      "imageId": "sha256:0e0ef56341d677366cfc00d91e2ead83da0ebcc4372f7ba627f575be682ee51f"
+    },
+    "lumbre-admin-pb": {
+      "id": "6241f7d6b8d1a2dda326770a318a1d3b94d84b032cc5df050527f9631e75f7d6",
+      "imageId": "sha256:40df6a9bbcfd4edbc93680b0f45946d0be7c50c4e5c470167e33646fe499c1b7"
+    },
+    "vega-pb": {
+      "id": "5f8fed3402b9be46851f6909ad0bb59b4d21ca27be1e385711e6c0985c6aaef7",
+      "imageId": "sha256:dd978b8d23081d2e3c69ebf6ef8ff4599a1acdd3f38dc559ae6fa379e46449b4"
+    }
+  },
+  "sourceProjectionSHA256": "417a46ee93a374b8f64ad86a280650df92f863deacbbc35bed86a85da5914090"
+}

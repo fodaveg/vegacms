@@ -1,0 +1,13 @@
+test_no_approval_causes_zero_connections_and_no_marker (__main__.ClassifierTests.test_no_approval_causes_zero_connections_and_no_marker) ... ok
+test_ordinary_bare_backslash_is_not_blindly_rejected (__main__.ClassifierTests.test_ordinary_bare_backslash_is_not_blindly_rejected) ... ok
+test_projection_rejects_private_or_unknown_output (__main__.ClassifierTests.test_projection_rejects_private_or_unknown_output) ... ok
+test_reproduces_blanket_quoted_brace_even_in_comment (__main__.ClassifierTests.test_reproduces_blanket_quoted_brace_even_in_comment) ... ok
+test_reproduces_inline_braces (__main__.ClassifierTests.test_reproduces_inline_braces) ... ok
+test_reproduces_token_quoted_backslash_without_value (__main__.ClassifierTests.test_reproduces_token_quoted_backslash_without_value) ... ok
+test_seal_accepts_only_exact_artifacts_in_isolated_fixture (__main__.ClassifierTests.test_seal_accepts_only_exact_artifacts_in_isolated_fixture) ... ok
+test_stage_classifier_handles_lexical_subclasses (__main__.ClassifierTests.test_stage_classifier_handles_lexical_subclasses) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.172s
+
+OK

@@ -1,0 +1,19 @@
+{
+  "HTTPReceiptSHA256": "96e168eac437897cdeef136ddb365794337b2b67718c4c2a957dc4847eee7ac5",
+  "authenticatedPreviewProved": false,
+  "cleanupConfirmed": true,
+  "diffCheckExit": 0,
+  "diskAfter": 129312059392,
+  "diskBefore": 129656950784,
+  "httpPassed": 5,
+  "nativeExits": {
+    "adapt": 0,
+    "validate": 0,
+    "version": 0
+  },
+  "nativeReceiptSHA256": "d3c34cf9dc26c568a137e15def77af542d880b1f451f7f507c1a316fade11807",
+  "productionApplied": false,
+  "sourceSHA256": "d909f78a737b7970fae80468bb895cd8ac9ee035b1c5892273e73f8f10536d17",
+  "sourceTree": "b3125bb6bd8ed56f5ccd77dbf763bfdf8127787c",
+  "status": "LOCAL_ONLY_CANDIDATE_READY_FOR_ROOT_REVIEW"
+}

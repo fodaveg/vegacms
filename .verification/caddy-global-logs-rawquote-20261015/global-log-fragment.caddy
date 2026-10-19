@@ -1,0 +1,8 @@
+# Insert only inside the selected existing global `log default` block.
+# Keep its output, level, include/exclude, other filters and log consumers.
+# The previous default encoder was omitted; omitting `wrap` here preserves
+# v2.11.4's JSON/console choice based on the actual stderr FD.
+format filter {
+	request>uri regexp (?s)[?].* "?REDACTED"
+	request>headers>Referer delete
+}

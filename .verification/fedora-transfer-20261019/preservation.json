@@ -1,0 +1,609 @@
+{
+  "branch": "wip/fedora-caddy-20261019",
+  "sourceBranch": "codex/caddy-referenced-env-20261008",
+  "baseCommit": "a51b8521e1eeef52a522d2a065b36a03578c0c3a",
+  "sourceWorktree": "/Users/david/code/vegacms/.verification/worktrees/caddy-referenced-env-20261008",
+  "copiedFiles": [
+    {
+      "path": ".verification/caddy-active-apply-20261015/apply-tests.log",
+      "sha256": "33fc9c2aecdbf3498aa3c1732e826d56fefd7ad539c04ee83aa2f3da2b3ab051"
+    },
+    {
+      "path": ".verification/caddy-active-apply-20261015/apply_engine.py",
+      "sha256": "ac808abbb2473c7520eb723d49cbd884362967d7aa97d1d3fd8392fbc42cffba"
+    },
+    {
+      "path": ".verification/caddy-active-apply-20261015/candidate.json",
+      "sha256": "2002ee902be3ce4073655f44f6448239ab7748a0900389849ca2b69a86e23efa"
+    },
+    {
+      "path": ".verification/caddy-active-apply-20261015/manifest.json",
+      "sha256": "01ac60f2612dff53061d8e6991840911d17567751afea7edc907155844e10f2c"
+    },
+    {
+      "path": ".verification/caddy-active-apply-20261015/preflight.py",
+      "sha256": "21f35e69d0b2837f8fe9b8461aa8fed41b8ff3c3840f8defe2ce08903307c7c4"
+    },
+    {
+      "path": ".verification/caddy-active-apply-20261015/procedure.md",
+      "sha256": "a99f62e7937f0fd1f083498bf88ebb0e39bc2aa97a9f26aad3a3b56583712d0f"
+    },
+    {
+      "path": ".verification/caddy-active-apply-20261015/test_apply_engine.py",
+      "sha256": "a4e26c9d9c70e41ad2d3fad474b2c1b3d983646e6555697fe90a6836ac4d661b"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/apply-tests.log",
+      "sha256": "3a760212c78790e1fc17314d2e7a01900fed3aa31acef3622850630b8dc6e009"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/apply_engine.py",
+      "sha256": "4df0e52939dc46b1dbae69df25c2b51e7c4c04686bf0c27bbee553dbf7f060d5"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/backend-tests.log",
+      "sha256": "020cb14d885328cb6803f6a5188f69e30a6f01643889de225fba5aa85ebd814d"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/manifest.json",
+      "sha256": "43c22c3fcba697c7f1a3d2ac0fefea8bb513280e4591ac0fd611c0a7db6b5e57"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/probe.log",
+      "sha256": "569fa086261b544c4e9fef154884bbcc6c683e9b11f110ab68c83596633c25dc"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/probe.py",
+      "sha256": "9d053db28c053a62cacb43da07909e05386d99877981f988621a7c76f9ea5f8e"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/projection.py",
+      "sha256": "2f7132bd1ddda1bcb2e389e89c9d175dafe5543e98786944e652d15458b72008"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/proposal.md",
+      "sha256": "0ce09cc6f2598f65b32ec11de00fa0c8f545153997b6b92d30be6d7fb7f0be87"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/remote_apply.py",
+      "sha256": "6d4e79e42910ef1e1887826f89d16a13b62ac8343fedbe90c58d86ba7cbb7f31"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/remote_probe.py",
+      "sha256": "f5bb4b5a55024e724a62abd5587feaae8f779e1157c647ba68c8149cd66cc521"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/run_apply_once.py",
+      "sha256": "873021d1917eed3f38549605dc2c5ad2377255d88efb3e4a0e34cc5400d4f24e"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/run_once.py",
+      "sha256": "dd444b035ec9554e7fe4c3f9222a1caf61c8cca2ba201eac24b847cb72f63263"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/runtime_backend.py",
+      "sha256": "9f66c905ef062bf24a74980ffd7b868406dbcd381fd9f24751b014f3b32841f9"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/test_apply_engine.py",
+      "sha256": "78cb554312b09d5131d60ed1ec5841dc23f99784c3251277fd292e1e3b1059a2"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/test_runtime_backend.py",
+      "sha256": "f5ae75b2f32dda74133979b55ffb3c3b4a1c08b881507079ab8fb5e8fc416cf1"
+    },
+    {
+      "path": ".verification/caddy-active-backend-20261015/verification.md",
+      "sha256": "1e21391ff32dc857afba739bb3ae9a9beae8e7354a96ebc3413d805689545b87"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/execution-approval.json",
+      "sha256": "ec618de23d55d34c00fd7bf6d708debb3c70ccffa2895fd8e96f52d3f3eade80"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/execution-receipt.json",
+      "sha256": "01ab3688d3d8e929c829aa46d6f7bb287673848646949e728341b9db89bddc32"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/global-log-fragment.caddy",
+      "sha256": "79cb9a1ac82ef4dda07c822794a8ca3e9091f3a0cab1a854ea8a20941492c441"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/manifest.json",
+      "sha256": "6714b66cf757b22fae420e75f2b0135e9358d239f01d0b6c1f4d151458998646"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/patch-inputs.json",
+      "sha256": "6ff2eb3a8b8ea3eb249271eec63fb10c1a1c50a1951cae2a595810182a47ad40"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/probe.log",
+      "sha256": "6484e7b0199148a37ea9a9b0f94a28cec89d1ece83ef02a82f1b04b64270d3d0"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/probe.py",
+      "sha256": "2c4d956f2e671555450911d8226f79b1be1d86a01905e2cf0f99f65bcdd9961d"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/procedure.md",
+      "sha256": "098e5cc34fc59c749b4749e46558c94913d58fe8fd6ffc564cc4dd23cc1b791d"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/projection.json",
+      "sha256": "da0e68b207adf43cd35df570158ce4d2039ac20325a94cf31ea6b548ab96e090"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/projection.py",
+      "sha256": "e44fb9628814fbd5e827663842907f25756efe28466918eefc918c6752d8c995"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/proposal.md",
+      "sha256": "db51f1a04ecb3697eebd36d95bb3137c4f015700e45bc077da21f5cd3c04dca6"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/remote_validate.py",
+      "sha256": "d980095b44a9d5c53940fea86dc4863619273bafed8c64798247516c5e37503f"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/request-started.json",
+      "sha256": "858d02367880a1c9237c2056a87f621637ad9d5bdc7ce3bcb30086f439151784"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/run_once.py",
+      "sha256": "004640d10de47bcecddfb95b890623aeb8cfc3e0298d1bd18bf52dbc3db52a56"
+    },
+    {
+      "path": ".verification/caddy-global-logs-20261015/verification.md",
+      "sha256": "0b114cca0364ae0414aa49bde2f0171f613796340d587bfc10601db6f36d587b"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/execution-approval.json",
+      "sha256": "dfac327f9eb8769259001da2008ccf0b50c5c39c8b66cee6e4287e69c47a36d5"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/execution-receipt.json",
+      "sha256": "c1cea32bc274afe63a7340046db17f6f7976058b46b3d8aede9a4a07efd43457"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/global-log-fragment.caddy",
+      "sha256": "79cb9a1ac82ef4dda07c822794a8ca3e9091f3a0cab1a854ea8a20941492c441"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/manifest.json",
+      "sha256": "408622ec1ec392404ab2ce57f24b416f0dc7d22e6de61e8147525b2c81a537b7"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/patch-inputs.json",
+      "sha256": "6ff2eb3a8b8ea3eb249271eec63fb10c1a1c50a1951cae2a595810182a47ad40"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/probe.log",
+      "sha256": "2d241929d1aaefa9732d950ea892db9cd106a0559ce6f5a26304c4ece5a9c682"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/probe.py",
+      "sha256": "343f26ba410fbe7ccd8b3f0882db0c9f8a1e32116726c8ac62169aaf9415bec5"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/procedure.md",
+      "sha256": "053a2b64627346c73f74062450fd801308d37ae72f0841224b12a57083e9dde5"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/projection.json",
+      "sha256": "e8df5e61bc67e249e47c6650ab0f608b52d923992e342d79ffa922a8609c3881"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/projection.py",
+      "sha256": "e44fb9628814fbd5e827663842907f25756efe28466918eefc918c6752d8c995"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/proposal.md",
+      "sha256": "9d5c95ef92b85edba6152fa3264ea60865a2474bed706215f5fd47c64fff2897"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/remote_validate.py",
+      "sha256": "b9a4cc3ef38919409348509d0b6af8312655a795a3ec1caf0ffe4372cf032b6e"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/request-started.json",
+      "sha256": "4d66373008cc69770c3dd83a7f786b31656f3daf99a01cee7d40b0c970084cce"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/run_once.py",
+      "sha256": "004640d10de47bcecddfb95b890623aeb8cfc3e0298d1bd18bf52dbc3db52a56"
+    },
+    {
+      "path": ".verification/caddy-global-logs-rawquote-20261015/verification.md",
+      "sha256": "c8df18386f2a1e588c92e5705637000a70da3487f0eb4b6356e2bccfd6fb66b5"
+    },
+    {
+      "path": ".verification/caddy-referenced-env-validation-20261008/auto-review-rejection-20261008.json",
+      "sha256": "cc86a230a9693675699ebbacd7a511ff8cf055aade2c002250b5b6b95ca614ef"
+    },
+    {
+      "path": ".verification/caddy-referenced-env-validation-20261008/manifest.json",
+      "sha256": "f9298943a88e024a0ed95ae6b4d2d243e033c1da5e21c7b883105e5d63073184"
+    },
+    {
+      "path": ".verification/caddy-referenced-env-validation-20261008/patch-inputs.json",
+      "sha256": "6ff2eb3a8b8ea3eb249271eec63fb10c1a1c50a1951cae2a595810182a47ad40"
+    },
+    {
+      "path": ".verification/caddy-referenced-env-validation-20261008/probe.log",
+      "sha256": "1e1f15a6ff9e9d0b573683b3aaa40522604f2f45c7d974578d8d1f25f3486c70"
+    },
+    {
+      "path": ".verification/caddy-referenced-env-validation-20261008/probe.py",
+      "sha256": "e98be3c47200dcff7b4e852fc35094ec29004c3179f010101655700dd69649f0"
+    },
+    {
+      "path": ".verification/caddy-referenced-env-validation-20261008/projection.py",
+      "sha256": "51604bea1a37e4ee0d4603e48e4810c5e3023c9455c8f880ef0616afe2f37222"
+    },
+    {
+      "path": ".verification/caddy-referenced-env-validation-20261008/proposal.md",
+      "sha256": "b110c0e6deab818a5d79ae73ca86f24efd1a2e14f64e7220e1cedf593fb077ce"
+    },
+    {
+      "path": ".verification/caddy-referenced-env-validation-20261008/remote_validate.py",
+      "sha256": "8e09af37e0ba42015c15f50f65e00b818323eac059276e8cee5a4ee80fcb9d6e"
+    },
+    {
+      "path": ".verification/caddy-referenced-env-validation-20261008/run_once.py",
+      "sha256": "05edebe999a9007f23e20b688cc55e8b7e88515508c2e33598a8dd70d5b392c6"
+    },
+    {
+      "path": ".verification/caddy-referenced-env-validation-20261008/verification.md",
+      "sha256": "30c6173085af1ffd67751fa1a858c0f799248d6c3e55224ddf49cae7075ce934"
+    },
+    {
+      "path": ".verification/caddy-root-global-log-shape-20261015/execution-approval.json",
+      "sha256": "bf97337f5a4c16a9f4ad68d277e30936cbe689a9b66c0d0fdcb11523fabfdb35"
+    },
+    {
+      "path": ".verification/caddy-root-global-log-shape-20261015/execution-receipt.json",
+      "sha256": "e3c3e3a714e016095d994858942820e8d075b5be3f7b0ee848a1bfe38d4d98bb"
+    },
+    {
+      "path": ".verification/caddy-root-global-log-shape-20261015/manifest.json",
+      "sha256": "4b535b820b12e97ffc6ed2f31ba56a9a67965d15f1886e9e30e1b05948ad1d91"
+    },
+    {
+      "path": ".verification/caddy-root-global-log-shape-20261015/probe.log",
+      "sha256": "250161b812b2a27f9e6292a2ffd6693a37a47b6ccf862c6d655a3e6c6287c596"
+    },
+    {
+      "path": ".verification/caddy-root-global-log-shape-20261015/probe.py",
+      "sha256": "2bb8bbc870ca147caca8e9026604418b0385e1b942519116566d7407340ca6d5"
+    },
+    {
+      "path": ".verification/caddy-root-global-log-shape-20261015/projection.json",
+      "sha256": "cd24e182f62e5c587069af42f4695e0ebd7b7124a192601f5a7e9e0f41f65970"
+    },
+    {
+      "path": ".verification/caddy-root-global-log-shape-20261015/projection.py",
+      "sha256": "240bb9943d7a398d4866c5f33e6d0b7f70aa0cd34f1aa7235821f97cd152c03e"
+    },
+    {
+      "path": ".verification/caddy-root-global-log-shape-20261015/proposal.md",
+      "sha256": "e064118a1938d416f7fa2fde918ba892a25ae6a58d44cd9b9607662c467bc83b"
+    },
+    {
+      "path": ".verification/caddy-root-global-log-shape-20261015/remote_probe.py",
+      "sha256": "ff19332337523dd3f2ffe6b92da2b20be3f8f546174a6434f11f7f041d644a6e"
+    },
+    {
+      "path": ".verification/caddy-root-global-log-shape-20261015/request-started.json",
+      "sha256": "0fc722ca9007daba0bd0932203e202761c1128b9afb2fe134f60b0fbed281e7f"
+    },
+    {
+      "path": ".verification/caddy-root-global-log-shape-20261015/run_once.py",
+      "sha256": "94f4a49087cfed9e66d4a4ece38280130361aacaa7487d94645da64623fbbf0d"
+    },
+    {
+      "path": ".verification/caddy-root-global-log-shape-20261015/verification.md",
+      "sha256": "03a978582d6ae3edd41c480693db0e6a1a5e20e08a7bebbe9ff74e104d449ef1"
+    },
+    {
+      "path": ".verification/caddy-root-log-syntax-20261015/execution-approval.json",
+      "sha256": "31aa023bf511e81839a6a5b3645e5f142e1ab10b58703a6691c45e58b50a1b3d"
+    },
+    {
+      "path": ".verification/caddy-root-log-syntax-20261015/execution-receipt.json",
+      "sha256": "319dcf42efa516602ef703b67d9a831bfd2222522c4b21dc00c82c050e013a91"
+    },
+    {
+      "path": ".verification/caddy-root-log-syntax-20261015/manifest.json",
+      "sha256": "5941f854303a5139026c17c2008bbf8e11cd6a6b500a838627bfcb3c55086977"
+    },
+    {
+      "path": ".verification/caddy-root-log-syntax-20261015/probe.log",
+      "sha256": "25cb182c4fae2e74c846f543c7092b2079f6b7c47e9d9328e5b2554b833e4f6e"
+    },
+    {
+      "path": ".verification/caddy-root-log-syntax-20261015/probe.py",
+      "sha256": "e65f2817f0cb3bf15a3c2119d0a53833e98b558322c5d6b5eb9b227d92147b63"
+    },
+    {
+      "path": ".verification/caddy-root-log-syntax-20261015/projection.json",
+      "sha256": "9f5c941803aa49cbf7690b88aeaa47d7333294d0b44e1dd4773cc27040510516"
+    },
+    {
+      "path": ".verification/caddy-root-log-syntax-20261015/projection.py",
+      "sha256": "c35bd7ad74dca53b91cf185df76c79b0d52e21fcae6e185cdab00a8516c9f28f"
+    },
+    {
+      "path": ".verification/caddy-root-log-syntax-20261015/proposal.md",
+      "sha256": "6ad63ba89024481f7827f0a3156eecf0f94bc63e5e2bdf8d6a1d3909cdea242b"
+    },
+    {
+      "path": ".verification/caddy-root-log-syntax-20261015/remote_probe.py",
+      "sha256": "15b929c3a95000f67ea5e327ecf8829b123b794b483fa333f5286eac9b00e30c"
+    },
+    {
+      "path": ".verification/caddy-root-log-syntax-20261015/request-started.json",
+      "sha256": "5ad7b2c3aa406ff486cfe2dd1f29210dfaec4acdf1aefc3951712927098f514e"
+    },
+    {
+      "path": ".verification/caddy-root-log-syntax-20261015/run_once.py",
+      "sha256": "b5a88bacbbb821c6d0f0d4855f1cedae7f44b06c20aa1017c6e8334912cf9c6f"
+    },
+    {
+      "path": ".verification/caddy-root-log-syntax-20261015/verification.md",
+      "sha256": "8a2bff2d9bb2df60daea2ca3949dbc4b6777fccefe2faefd984736fd73836271"
+    },
+    {
+      "path": ".verification/caddy-root-marker-form-20261015/execution-approval.json",
+      "sha256": "1d93b5fd2a8792779a6944ba3e082d7907ddb3f0de429f375854b58ce76959cc"
+    },
+    {
+      "path": ".verification/caddy-root-marker-form-20261015/execution-receipt.json",
+      "sha256": "67ff4fa7f92d55f7d56a5f21971ec44c846c70f5c724e770a39eec0b21fe8220"
+    },
+    {
+      "path": ".verification/caddy-root-marker-form-20261015/manifest.json",
+      "sha256": "2d13b328559be92b21b9e797e612cd2141bc2302875c6add8377665496ef09ec"
+    },
+    {
+      "path": ".verification/caddy-root-marker-form-20261015/probe.log",
+      "sha256": "4f8311e33b3d2f919e95dc00a73ef5c3c825a88da9f0818b3437c39f9d801980"
+    },
+    {
+      "path": ".verification/caddy-root-marker-form-20261015/probe.py",
+      "sha256": "af606d0f28ad05edd43d5828814af77d8d1956bb7d998f1588fa03ae557e4e8a"
+    },
+    {
+      "path": ".verification/caddy-root-marker-form-20261015/projection.json",
+      "sha256": "822d3193f080f7d2cb262e3a7439c499dd17c42170c60cdc51efb176576476ab"
+    },
+    {
+      "path": ".verification/caddy-root-marker-form-20261015/projection.py",
+      "sha256": "0bb69e52c3edc85376e6aec35bebaac5bbc926ed5a5f75603ec09e5ea9f21648"
+    },
+    {
+      "path": ".verification/caddy-root-marker-form-20261015/proposal.md",
+      "sha256": "53908ff7eae9c9dd5b8a78da5725c064da183cd1ea9c09037344b697d6d7cf9f"
+    },
+    {
+      "path": ".verification/caddy-root-marker-form-20261015/remote_probe.py",
+      "sha256": "2a0c99d6433f1eed3e1136513906932bdf5934bae566e6e7b0966ff0854e0d5f"
+    },
+    {
+      "path": ".verification/caddy-root-marker-form-20261015/request-started.json",
+      "sha256": "ae7c147b9259109cbab2cde54751be2cf96269eac0e6aa78672452a2d36fe261"
+    },
+    {
+      "path": ".verification/caddy-root-marker-form-20261015/run_once.py",
+      "sha256": "cb5cc3961640f7935b9684d3fd4659d0d9e2814bf10b7300b37e1027a0d2d4ce"
+    },
+    {
+      "path": ".verification/caddy-root-marker-form-20261015/verification.md",
+      "sha256": "89808384410939968278e49c90ef6a9a95a9391dc26bc5dbde381360951ecb60"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/README.md",
+      "sha256": "1c90c2a76abaee0b6a11bbd3c8da4a711ea097af6833e4ec1e3a9b590f41e2d0"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/checks.json",
+      "sha256": "bfad4abd4e64dd06def30190a27b2ae393aa1c742658521ea63be146ba19799e"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/diagnose_discovery.py",
+      "sha256": "d0930ba984e6e92c870cbf218d32f1a33f6e4a8991eeab5d8d3509c9bf60fbee"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/diagnostic-seal.json",
+      "sha256": "b74cf7262bb4d1789b96197b4dacd259931bb20b885c0a53ea138898214822cd"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/discovery-mime-receipt.json",
+      "sha256": "b9577c1176aa6afb1e97876672dbc5e3d923cafcc79d79b3bcbe1549ac51fc5b"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/commit-message.txt",
+      "sha256": "0b70220a07fabd5371e1fdab4334bfb508ae5ccd0821414741557b432f87983d"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/evidence.json",
+      "sha256": "7f84138095031406bc6f500ed351c4ed00963fd920c4c32bafdf3e991387bba3"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/local-caddy-receipt-attempt1.json",
+      "sha256": "d3c34cf9dc26c568a137e15def77af542d880b1f451f7f507c1a316fade11807"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/local-caddy-receipt-attempt2.json",
+      "sha256": "a55f9cc26093221a189025c4fe5bfc6e9cbb8389a55f362acd13253340719f3f"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/local-caddy-receipt-attempt3.json",
+      "sha256": "96e168eac437897cdeef136ddb365794337b2b67718c4c2a957dc4847eee7ac5"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/local-caddy-receipt.json",
+      "sha256": "d3c34cf9dc26c568a137e15def77af542d880b1f451f7f507c1a316fade11807"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/manifest.json",
+      "sha256": "a1111320111af181088c3c2e6177d5f39e62403a39c3449cf393cad25c90ec62"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/ops-apply/candidate.Caddyfile",
+      "sha256": "d909f78a737b7970fae80468bb895cd8ac9ee035b1c5892273e73f8f10536d17"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/ops-apply/capture.py",
+      "sha256": "d48e4a2705ebaac2d32720b38ebab1040fde26b3348a2aeeeb906702af4e9b01"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/ops-apply/checks.json",
+      "sha256": "d68f54069b7ca5fc3f9391e7c48102f5feb27f44471a870b127e471373afa57b"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/ops-apply/execution-approval.json",
+      "sha256": "728597cf6e371814c1851d0bf40aa2b8dbf8b7ad84ac2291c3e79d49ec8c226a"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/ops-apply/execution-receipt.json",
+      "sha256": "dfae286ea540ecf073b3c965d703718d6517e601dd2ca4fdc3ad4eb3b1f9daa9"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/ops-apply/manifest.json",
+      "sha256": "9b0b5401e2cf6a4bde2c39b546d22815fddaa3387127c63d6cf9b33ea1dbc204"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/ops-apply/proposal.md",
+      "sha256": "c7aecfc565ad112f1a61a42e0e5317721fc8ffd3ca57d95d051c98435157ac35"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/ops-apply/remote_apply.py",
+      "sha256": "62ef7df57a6b4c605a6e38fed0b60e6ae9e50c452e4a87eb250afb28f8f84fff"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/ops-apply/request-started.json",
+      "sha256": "9bc685fad2fed7b4665eb58a99ca3c55c8c78e4179059a83c8539db1b2930f2b"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/ops-apply/run_once.py",
+      "sha256": "568e7387174ce1a01782bfded1c3d03506c8a34c40bff5c715c396900e29cda5"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/ops-apply/test_ops.py",
+      "sha256": "37fe73e33bbcd6d6727fc97029e0f6093d62bd97a4d108dc6b53c66d531f04bd"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/proposal.md",
+      "sha256": "ee93e6a036dda4ccb729422f22a918adab0ef25024c27bf0a42e3f4a69235f1a"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/verify_local_caddy.executed-attempt1.py",
+      "sha256": "d23fa86c85f91a2d95d0d8a1716ddaedf59f2b05d30597876042279ec191a4fb"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/verify_local_caddy.executed-attempt2.py",
+      "sha256": "bcbde8926f4742dcbdcdc0e0b49bafb6c3092dc72a1c838e14f5db1f5ae684dc"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/verify_local_caddy.py",
+      "sha256": "21acba5bb707fc3b9f237c6e0e1c2bdfa1f7eed5bfaf6e673e7886ff1b1e626a"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/web-Caddyfile.candidate",
+      "sha256": "d909f78a737b7970fae80468bb895cd8ac9ee035b1c5892273e73f8f10536d17"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/mime-fix/web-Caddyfile.patch",
+      "sha256": "ac2efe30109bd64d28f393d63c9ffe5be2b62027fb57b865c5215f01eb788fe4"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/public-serving-after-mime-preview-20261008.json",
+      "sha256": "3524501355ce96637d33994e6781b991b5060c3b91eec73a0a1ef68f74e088e6"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/public-serving-receipt.json",
+      "sha256": "f6e00adb850cbbba0e942873ca0ac18a9547a9abb101313cbd5108af0a4b533c"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/seal.json",
+      "sha256": "d8a3826819aae3b9394f43f5d0112f8d88435c252cee55399f06d4af4b02a47d"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/test_verify_served.py",
+      "sha256": "f64ff23435a8405b4f21ec94d7993d66be97c3a6fc9d15c2e9e72eda9e40e059"
+    },
+    {
+      "path": ".verification/lumbre-astro-production-20261008/serving-verification/verify_served.py",
+      "sha256": "480e9056248b0eb161a84427d866c0c5cd3670a7745db67a8e88f5349a7c9396"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/capture.py",
+      "sha256": "d48e4a2705ebaac2d32720b38ebab1040fde26b3348a2aeeeb906702af4e9b01"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/checks.json",
+      "sha256": "a57371607bdb0d01cf2c1efc74d9be79da8b7dc11c74e0555866ae63787a74b1"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/execution-approval.json",
+      "sha256": "dc8e1692a0a8210a811064a0005bce6aab160225085a17c684a947165b0ccb57"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/execution-receipt.json",
+      "sha256": "22d29022f57bbe18d03f978d79fd80c1c18cd9fc0be10f5d94d735c541197d78"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/manifest.json",
+      "sha256": "b052a02e9077a665890936b5fddb7d3504b092d6a6cc3791132a02509eacb4af"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/pins.json",
+      "sha256": "ebeaff189ea269454d976b9b64fe246f8a24b779c7db6838399e4fa55d5d7d45"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/project_metadata.py",
+      "sha256": "365ef90796abf30359b3210026b0918e9e263a3f00f6560df31ac6b35bb7eacf"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/proposal.md",
+      "sha256": "b51211ebe1704b781262ba0682ad28365918a55a8a95ed6c20deda186873e8f9"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/receipt.json",
+      "sha256": "adfbc1868f17a800f1ec98d04520df92c6e995e232b3830fac01d78db6b49d09"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/remote_read.py",
+      "sha256": "8ec7e275959aca8f0bb5cfb29e7336ad273b28a26ba715fa48b4cabcd74b8d00"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/request-started.json",
+      "sha256": "3a8dccf945ac723e8a146efdec268006d26c909783517187c0bd9f63b37ab209"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/run_once.py",
+      "sha256": "5cf220bc2894b68ce4a9014a63a2b3f42cbbb767760da98ab1b0f4a2863fc43f"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/test_executor.py",
+      "sha256": "6e87d343d02fe260c2d0f48c9415f3143e349c93374f283106c63cf5f9cf4f62"
+    },
+    {
+      "path": ".verification/release-adoption-plan-20261008/logs-selective-next-step/test_projection.py",
+      "sha256": "80e1dcbf3eeba4b7bcd26356283676996d71af8fb76cfb39688498afeddaf077"
+    },
+    {
+      "path": "infra/production/README.md",
+      "sha256": "afbf82dcf612bace81e6315bc54015e14715d757f8e3eb684b8035c4fb767362"
+    }
+  ],
+  "checks": {
+    "sha256CopyComparison": "PASS",
+    "credentialPatternReview": "PASS; only synthetic fixture credential detected in root handoff selection"
+  },
+  "limits": [
+    "WIP checkpoint for Fedora continuation; no product tests, gate or deployment run.",
+    "Original source worktree/index preserved.",
+    "Python bytecode excluded."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "files": {
+    "capture.py": "d48e4a2705ebaac2d32720b38ebab1040fde26b3348a2aeeeb906702af4e9b01",
+    "checks.json": "a57371607bdb0d01cf2c1efc74d9be79da8b7dc11c74e0555866ae63787a74b1",
+    "pins.json": "ebeaff189ea269454d976b9b64fe246f8a24b779c7db6838399e4fa55d5d7d45",
+    "project_metadata.py": "365ef90796abf30359b3210026b0918e9e263a3f00f6560df31ac6b35bb7eacf",
+    "proposal.md": "b51211ebe1704b781262ba0682ad28365918a55a8a95ed6c20deda186873e8f9",
+    "receipt.json": "adfbc1868f17a800f1ec98d04520df92c6e995e232b3830fac01d78db6b49d09",
+    "remote_read.py": "8ec7e275959aca8f0bb5cfb29e7336ad273b28a26ba715fa48b4cabcd74b8d00",
+    "run_once.py": "5cf220bc2894b68ce4a9014a63a2b3f42cbbb767760da98ab1b0f4a2863fc43f",
+    "test_executor.py": "6e87d343d02fe260c2d0f48c9415f3143e349c93374f283106c63cf5f9cf4f62",
+    "test_projection.py": "80e1dcbf3eeba4b7bcd26356283676996d71af8fb76cfb39688498afeddaf077"
+  },
+  "operationId": "47071b83-5d63-45af-9d32-b74edb89bfef"
+}

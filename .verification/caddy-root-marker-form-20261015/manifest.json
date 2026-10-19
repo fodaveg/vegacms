@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "global-log-fragment.caddy": "79cb9a1ac82ef4dda07c822794a8ca3e9091f3a0cab1a854ea8a20941492c441",
+    "remote_validate.py": "d980095b44a9d5c53940fea86dc4863619273bafed8c64798247516c5e37503f"
+  },
+  "files": {
+    "probe.log": "4f8311e33b3d2f919e95dc00a73ef5c3c825a88da9f0818b3437c39f9d801980",
+    "probe.py": "af606d0f28ad05edd43d5828814af77d8d1956bb7d998f1588fa03ae557e4e8a",
+    "projection.py": "0bb69e52c3edc85376e6aec35bebaac5bbc926ed5a5f75603ec09e5ea9f21648",
+    "proposal.md": "53908ff7eae9c9dd5b8a78da5725c064da183cd1ea9c09037344b697d6d7cf9f",
+    "remote_probe.py": "2a0c99d6433f1eed3e1136513906932bdf5934bae566e6e7b0966ff0854e0d5f",
+    "run_once.py": "cb5cc3961640f7935b9684d3fd4659d0d9e2814bf10b7300b37e1027a0d2d4ce",
+    "verification.md": "89808384410939968278e49c90ef6a9a95a9391dc26bc5dbde381360951ecb60"
+  },
+  "operationId": "fcbaf292-d28f-4a15-bcd2-84fd047123bb"
+}

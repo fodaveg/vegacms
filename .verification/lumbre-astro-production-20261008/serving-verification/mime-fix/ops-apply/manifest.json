@@ -1,0 +1,12 @@
+{
+  "files": {
+    "candidate.Caddyfile": "d909f78a737b7970fae80468bb895cd8ac9ee035b1c5892273e73f8f10536d17",
+    "capture.py": "d48e4a2705ebaac2d32720b38ebab1040fde26b3348a2aeeeb906702af4e9b01",
+    "checks.json": "d68f54069b7ca5fc3f9391e7c48102f5feb27f44471a870b127e471373afa57b",
+    "proposal.md": "c7aecfc565ad112f1a61a42e0e5317721fc8ffd3ca57d95d051c98435157ac35",
+    "remote_apply.py": "62ef7df57a6b4c605a6e38fed0b60e6ae9e50c452e4a87eb250afb28f8f84fff",
+    "run_once.py": "568e7387174ce1a01782bfded1c3d03506c8a34c40bff5c715c396900e29cda5",
+    "test_ops.py": "37fe73e33bbcd6d6727fc97029e0f6093d62bd97a4d108dc6b53c66d531f04bd"
+  },
+  "operationId": "56321639-b882-4caa-869b-f9a48877b9a7"
+}

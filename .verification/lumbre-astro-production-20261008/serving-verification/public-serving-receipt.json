@@ -1,0 +1,678 @@
+{
+  "SSH": false,
+  "archiveSHA256": "53dab75dddae4478fe7c02ef937ac5bea3dd9bdc6af9e258fd789aa1705c45ac",
+  "authenticatedPreviewProved": false,
+  "candidate": "a598bfeee0b7ee072cdf26a5196ac534a07ebc49",
+  "checked": 55,
+  "cookiesSent": false,
+  "credentialsSent": false,
+  "files": [
+    {
+      "bytes": 5334,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/VegaVisualBridgeScript.astro_astro_type_script_index_0_lang.Bs5LV-G0.js",
+      "mime": "text/javascript",
+      "mimeCorrect": true,
+      "path": "/_astro/VegaVisualBridgeScript.astro_astro_type_script_index_0_lang.Bs5LV-G0.js",
+      "sha256": "fd37b713f8d41247b19d86977de6167a3217a92f954bba8643e910d6fe155f18",
+      "status": 200
+    },
+    {
+      "bytes": 21863,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/_..DVsQOHOo.css",
+      "mime": "text/css",
+      "mimeCorrect": true,
+      "path": "/_astro/_..DVsQOHOo.css",
+      "sha256": "83f2e6804695fa7a5c442223afb5ed1b8fef5b98a2a76d0f214f8f9958073d88",
+      "status": 200
+    },
+    {
+      "bytes": 414738,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/atajos.B4cqphwa.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/atajos.B4cqphwa.jpg",
+      "sha256": "63acf353d58f35264ef2cd1522d98f7f9a95f2ba65e122cbeb8105be9d9034c8",
+      "status": 200
+    },
+    {
+      "bytes": 135332,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/atajos.B4cqphwa_Z2nnmL.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/atajos.B4cqphwa_Z2nnmL.webp",
+      "sha256": "fa37bd9504f77e37f11052dad13b08c06f7e5394ca34cedb86d99a86cd1817c5",
+      "status": 200
+    },
+    {
+      "bytes": 10856,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/blocks.C19hg0_8.css",
+      "mime": "text/css",
+      "mimeCorrect": true,
+      "path": "/_astro/blocks.C19hg0_8.css",
+      "sha256": "29ea79841d235caafe217914f1eb79c05f94d045239baf6f074321919986f709",
+      "status": 200
+    },
+    {
+      "bytes": 26701,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/captura-global-plegada.Dt6EQYAB.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/captura-global-plegada.Dt6EQYAB.jpg",
+      "sha256": "2dd62db5345afc099a0a69f80ef871468c5f73adf31e6b5b1d299084ad20adc3",
+      "status": 200
+    },
+    {
+      "bytes": 47990,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/captura-global.BTBJm4z3.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/captura-global.BTBJm4z3.jpg",
+      "sha256": "2bd9afa8964fe03edd795f599a6572a22e39133350489a8d2918fa92d1c90e9f",
+      "status": 200
+    },
+    {
+      "bytes": 11668,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/captura-global.BTBJm4z3_2gfDod.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/captura-global.BTBJm4z3_2gfDod.webp",
+      "sha256": "1b37b0c625062dc8d4da0b6225ddaf31521c8f2195d87350b94f429d5c20b332",
+      "status": 200
+    },
+    {
+      "bytes": 51467,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/detalle-tarea-crop.qCAdYUCb.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/detalle-tarea-crop.qCAdYUCb.jpg",
+      "sha256": "2c92bb74ee0a1919e7d3b8b4a6e7bff768767a050a518bfdb7c3992d2beb5af3",
+      "status": 200
+    },
+    {
+      "bytes": 16294,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/detalle-tarea-crop.qCAdYUCb_ZR1QkF.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/detalle-tarea-crop.qCAdYUCb_ZR1QkF.webp",
+      "sha256": "9f93b089e34aee5e540a4d88e6245bd015da763bcdc7aa95953c011a64678256",
+      "status": 200
+    },
+    {
+      "bytes": 63350,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/dia-movil.BTOJcRY9.png",
+      "mime": "image/png",
+      "mimeCorrect": true,
+      "path": "/_astro/dia-movil.BTOJcRY9.png",
+      "sha256": "cfb12ee8c25a03495be51d3ccdde820dcceeead9c51a6fb7debb1853f71a0026",
+      "status": 200
+    },
+    {
+      "bytes": 19518,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/dia-movil.BTOJcRY9_UEmx4.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/dia-movil.BTOJcRY9_UEmx4.webp",
+      "sha256": "fe9a82360c4140a7d999861431f42e5c0bd9aa5c97b23ab67d55949de1049d49",
+      "status": 200
+    },
+    {
+      "bytes": 32931,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/lista-ideas-crop.yiuysg9q.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/lista-ideas-crop.yiuysg9q.jpg",
+      "sha256": "89ea0c23fa4a1b3c4eee1373bad5ec80559d4807778ceb50623db5152069b026",
+      "status": 200
+    },
+    {
+      "bytes": 12072,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/lista-ideas-crop.yiuysg9q_1GA4zW.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/lista-ideas-crop.yiuysg9q_1GA4zW.webp",
+      "sha256": "0753d06b3265700abc9b083d968ec33916a518d8861855125ce8eaf12a71f6f7",
+      "status": 200
+    },
+    {
+      "bytes": 257546,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/mes-agenda.ZK-dzY7u.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/mes-agenda.ZK-dzY7u.jpg",
+      "sha256": "7cfb46986922ce6b7799893f270870e2c630c08d51ebdbe82190f23ef0c36979",
+      "status": 200
+    },
+    {
+      "bytes": 84490,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/mes-agenda.ZK-dzY7u_6U5Ol.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/mes-agenda.ZK-dzY7u_6U5Ol.webp",
+      "sha256": "556191ffd9caacc2f6405e0002e1e79529ec86b36e30a246f67c12cbacdebb5e",
+      "status": 200
+    },
+    {
+      "bytes": 215804,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/pwa-instalada.DPtqTlxG.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/pwa-instalada.DPtqTlxG.jpg",
+      "sha256": "d8d929e35722436ac52b806ae4f1c9f9786b3677d0d2188a109194cd33104624",
+      "status": 200
+    },
+    {
+      "bytes": 56752,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/pwa-instalada.DPtqTlxG_Z1t0nsg.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/pwa-instalada.DPtqTlxG_Z1t0nsg.webp",
+      "sha256": "28ed6179b3542ba1147545f6a9919012a8165650f969a648d9f76b8514bcb5e2",
+      "status": 200
+    },
+    {
+      "bytes": 226534,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/quickadd-escritorio.CM84Q_7K.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/quickadd-escritorio.CM84Q_7K.jpg",
+      "sha256": "b9471463716207bd8674f36e62d840af82c0422568031bc2757e3705fcc49d51",
+      "status": 200
+    },
+    {
+      "bytes": 58532,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/quickadd-escritorio.CM84Q_7K_Z2byEOs.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/quickadd-escritorio.CM84Q_7K_Z2byEOs.webp",
+      "sha256": "15b1f5ac979c7f50fb9cc66cf76b4e9d0e2c547ef2af005436c9b42d9e278a39",
+      "status": 200
+    },
+    {
+      "bytes": 77095,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/semana-apilada-crop.2hR1s-0V.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/semana-apilada-crop.2hR1s-0V.jpg",
+      "sha256": "bf72a3b23772c35c60e1afec37660d77cfdfff342567a4c6ccc3d6919659eddb",
+      "status": 200
+    },
+    {
+      "bytes": 26998,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/semana-apilada-crop.2hR1s-0V_ZUt3cx.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/semana-apilada-crop.2hR1s-0V_ZUt3cx.webp",
+      "sha256": "818cd30faf74021b56ca96ffab220e3311f43908bd32408b7d07f7732bf3e7e6",
+      "status": 200
+    },
+    {
+      "bytes": 27309,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/semana-apilada-movil.DjGrqHJy.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/semana-apilada-movil.DjGrqHJy.jpg",
+      "sha256": "e96b655b261f09311af51acad23896478723392dfc8ef03f59f722c5511cc03d",
+      "status": 200
+    },
+    {
+      "bytes": 9752,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/semana-apilada-movil.DjGrqHJy_ZfxvhQ.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/semana-apilada-movil.DjGrqHJy_ZfxvhQ.webp",
+      "sha256": "fff45899daaca836af4071d9e2306e8b703d1a083a0b633f3e6e6dae51538c3f",
+      "status": 200
+    },
+    {
+      "bytes": 90011,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/semana-apilada-tinta.BqZ-3k6Y.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/semana-apilada-tinta.BqZ-3k6Y.jpg",
+      "sha256": "ce6e37349c027a14437d100dced588deedb6810d4509bd419b9e75f20f6fc7b1",
+      "status": 200
+    },
+    {
+      "bytes": 29372,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/semana-apilada-tinta.BqZ-3k6Y_gadQK.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/semana-apilada-tinta.BqZ-3k6Y_gadQK.webp",
+      "sha256": "799bdfe20de869abef28523de8d75ece4ea16e9a11d395d444fe8d73453ae2ac",
+      "status": 200
+    },
+    {
+      "bytes": 91340,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/semana-apilada.Dj6m9A1J.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/semana-apilada.Dj6m9A1J.jpg",
+      "sha256": "3be77c93a737e049c482cc3391e43c56ab81c9107d6232b267d00a34f9b8d2f5",
+      "status": 200
+    },
+    {
+      "bytes": 29230,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/semana-apilada.Dj6m9A1J_DdHnV.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/semana-apilada.Dj6m9A1J_DdHnV.webp",
+      "sha256": "6f22d17a25074b784f111d9b200be1bc47179ee21f7341902a56f92235e1dc2d",
+      "status": 200
+    },
+    {
+      "bytes": 36936,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/semana-columnas-movil.BMVm6GE-.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/semana-columnas-movil.BMVm6GE-.jpg",
+      "sha256": "e95da5c2e20d6e4b7ace0c47f30f608e6982b34e78fb28ca256306983fd4b141",
+      "status": 200
+    },
+    {
+      "bytes": 11434,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/semana-columnas-movil.BMVm6GE-_1P3QYp.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/semana-columnas-movil.BMVm6GE-_1P3QYp.webp",
+      "sha256": "a1e5993630cca8a34048bc64c8ccfeffbf0f6d6b7851d38d9ec1d143e27bcaef",
+      "status": 200
+    },
+    {
+      "bytes": 85623,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/semana-columnas.DAsLGOfS.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/semana-columnas.DAsLGOfS.jpg",
+      "sha256": "0e9619a8cf2cb14fecbe7e22d1abc4a3e01e5ef54262279cac72f3f080aeb664",
+      "status": 200
+    },
+    {
+      "bytes": 24612,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/semana-columnas.DAsLGOfS_ZfQhUe.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/semana-columnas.DAsLGOfS_ZfQhUe.webp",
+      "sha256": "da6c30104bb8fc77ec7dff6db2f4498f8f5eadd9af861517302c4321bc5cd32f",
+      "status": 200
+    },
+    {
+      "bytes": 253303,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/soplo-plan.pLHPOpPD.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/soplo-plan.pLHPOpPD.jpg",
+      "sha256": "eabfdcfb95cb4c52dceffd4559695753147d6b881ac769f790f0a3cdc84dd1a4",
+      "status": 200
+    },
+    {
+      "bytes": 73234,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/soplo-plan.pLHPOpPD_1n9T7Y.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/soplo-plan.pLHPOpPD_1n9T7Y.webp",
+      "sha256": "013eafbf1165056302fbbfe8dec0c7a85ba3efe47da65534f4cf6b03157d6ece",
+      "status": 200
+    },
+    {
+      "bytes": 135149,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/widget-ios.DKGC4WDE.jpg",
+      "mime": "image/jpeg",
+      "mimeCorrect": true,
+      "path": "/_astro/widget-ios.DKGC4WDE.jpg",
+      "sha256": "0c9a7167ebc3a5e48239bae93125ddd18d402a105fd18ca92eabfb0f0985a851",
+      "status": 200
+    },
+    {
+      "bytes": 48854,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "_astro/widget-ios.DKGC4WDE_1wEx7N.webp",
+      "mime": "image/webp",
+      "mimeCorrect": true,
+      "path": "/_astro/widget-ios.DKGC4WDE_1wEx7N.webp",
+      "sha256": "ab1d9bf227e596ee293aece6ca60a684f5f963a2b023b71e7ba2a05bcf857e38",
+      "status": 200
+    },
+    {
+      "bytes": 13282,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "acceso/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/acceso/",
+      "sha256": "a459fe93ebc5ad3993df2cb22091f07db128d4274fd15b496f0c9ede9340a121",
+      "status": 200
+    },
+    {
+      "bytes": 315,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "api/vega/discovery",
+      "mime": "OTHER",
+      "mimeCorrect": false,
+      "path": "/api/vega/discovery",
+      "sha256": "1877b6183ea38980bd5891bb4acf13b889c66654793fb30ced57d320ed12273d",
+      "status": 200
+    },
+    {
+      "bytes": 16539,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "apps/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/apps/",
+      "sha256": "7d0034a4716b1989edcde839a693d1fde7a71ee7145f3550911d87dc2836ffb3",
+      "status": 200
+    },
+    {
+      "bytes": 27968,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "ayuda/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/ayuda/",
+      "sha256": "9e3cfce734392e2409e17aed76868d9a2fe3d38bdfc8d1920b2c1d492d8b637b",
+      "status": 200
+    },
+    {
+      "bytes": 20722,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "condiciones/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/condiciones/",
+      "sha256": "977727f427a1c727f9f07ba7586cf42b0c27d790b524400836313d936f328894",
+      "status": 200
+    },
+    {
+      "bytes": 17078,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "de/apps/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/de/apps/",
+      "sha256": "b5150545fa01fde0919c4041d5235312c0b22bd39f25654ecce361bd8b508f23",
+      "status": 200
+    },
+    {
+      "bytes": 29533,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "de/ayuda/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/de/ayuda/",
+      "sha256": "ecd9ecbcb08251c0fb1f18db48eb6bd3dc4581f1dbf3225d3c9a65626b1ed1bc",
+      "status": 200
+    },
+    {
+      "bytes": 34655,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "de/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/de/",
+      "sha256": "a1f531778e3a8f6d79ccfa5ebb296d3a6c79de55988bf775168813676fe0b201",
+      "status": 200
+    },
+    {
+      "bytes": 13673,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "de/zugang/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/de/zugang/",
+      "sha256": "52eb4364d2be5588f42654f3de849e5c2432dd2809cd455e0ad5f9ebe7425e14",
+      "status": 200
+    },
+    {
+      "bytes": 13307,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "en/access/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/en/access/",
+      "sha256": "ae5bf01e2e42c02975b64242aa27cc8bcfdd0e7b54c75862ccaeeb410e2f20e5",
+      "status": 200
+    },
+    {
+      "bytes": 16475,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "en/apps/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/en/apps/",
+      "sha256": "b7bd19c9850b2a05169d19e2bd3524ff011576dde5d50435c6c9400fd9720c83",
+      "status": 200
+    },
+    {
+      "bytes": 27653,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "en/ayuda/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/en/ayuda/",
+      "sha256": "7e04067efefef47db2a758a3919784c7708f3dca65f6321af13ebf9b860899d6",
+      "status": 200
+    },
+    {
+      "bytes": 33332,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "en/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/en/",
+      "sha256": "c90e5325c0e3e6473a7fec66635389666b316688d519411f0041220b29aa670e",
+      "status": 200
+    },
+    {
+      "bytes": 34704,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "fonts/hanken-grotesk-latin-wght-normal.woff2",
+      "mime": "font/woff2",
+      "mimeCorrect": true,
+      "path": "/fonts/hanken-grotesk-latin-wght-normal.woff2",
+      "sha256": "e9201eddf1d41d0b62253295d869ce3cf65768f7102b797f02c7f8c876b4a9d5",
+      "status": 200
+    },
+    {
+      "bytes": 12888,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "fonts/spline-sans-mono-latin-400-normal.woff2",
+      "mime": "font/woff2",
+      "mimeCorrect": true,
+      "path": "/fonts/spline-sans-mono-latin-400-normal.woff2",
+      "sha256": "af7360e11effa088510c57bd6c327cacd1e53ce8b0f3ef1e2445284df777e5d6",
+      "status": 200
+    },
+    {
+      "bytes": 12784,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "fonts/spline-sans-mono-latin-500-normal.woff2",
+      "mime": "font/woff2",
+      "mimeCorrect": true,
+      "path": "/fonts/spline-sans-mono-latin-500-normal.woff2",
+      "sha256": "9179bba9265604145aefeea0ae786db5190893e0862c4b8236d90fa3fc2a4bcc",
+      "status": 200
+    },
+    {
+      "bytes": 33449,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/",
+      "sha256": "cd29b2f48814ea10c509072be30ec3372804bf063d18fe48dac4962fd6e8916f",
+      "status": 200
+    },
+    {
+      "bytes": 42490,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "privacidad/index.html",
+      "mime": "text/html",
+      "mimeCorrect": true,
+      "path": "/privacidad/",
+      "sha256": "eb10eabac751905b74ba725b67deca668245ce9636b297a34e104b52750bf7c5",
+      "status": 200
+    },
+    {
+      "bytes": 1416,
+      "bytesShaEqual": true,
+      "error": null,
+      "file": "sitemap.xml",
+      "mime": "text/xml",
+      "mimeCorrect": true,
+      "path": "/sitemap.xml",
+      "sha256": "53177129b5ccd05a44f8eae0356e98a3ac7b3d1828226fcbc7d62273b88703f6",
+      "status": 200
+    }
+  ],
+  "limits": [
+    "Public asset bytes/MIME and negative preview only; no real CMS/admin token proof.",
+    "Health200 does not certify authenticated workflows, CORS/CSP, UI or native behavior.",
+    "No production container/image identity or private process state inspected."
+  ],
+  "manifestSHA256": "f551461cc7b96af6ab8da8d575eca11eba4f386d5abc4ba3a963c2c0ee1e3ac0",
+  "matched": 54,
+  "observedUTC": "2026-10-08T20:56:18.883932+00:00",
+  "peerHealth": [
+    {
+      "error": null,
+      "host": "admin.vegacms.com",
+      "status": 200
+    },
+    {
+      "error": null,
+      "host": "admin.lumbre.pro",
+      "status": 200
+    },
+    {
+      "error": null,
+      "host": "admin.fodaveg.net",
+      "status": 200
+    }
+  ],
+  "previewWithoutToken": [
+    {
+      "blocksPresent": false,
+      "case": "root",
+      "error": null,
+      "expected404": true,
+      "status": 404
+    },
+    {
+      "blocksPresent": false,
+      "case": "es",
+      "error": null,
+      "expected404": true,
+      "status": 404
+    },
+    {
+      "blocksPresent": false,
+      "case": "en",
+      "error": null,
+      "expected404": true,
+      "status": 404
+    },
+    {
+      "blocksPresent": false,
+      "case": "de",
+      "error": null,
+      "expected404": true,
+      "status": 404
+    }
+  ],
+  "privateLogsOrEnvironmentRead": false,
+  "publicHomeResolved": true,
+  "rawBodiesOrHeadersStored": false,
+  "redirectsFollowed": false,
+  "requestCount": 63,
+  "scriptSHA256": "480e9056248b0eb161a84427d866c0c5cd3670a7745db67a8e88f5349a7c9396",
+  "status": "PUBLIC_DELIVERY_PARTIAL_OR_MISMATCH"
+}

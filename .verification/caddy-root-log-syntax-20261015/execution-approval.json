@@ -1,0 +1,21 @@
+{
+  "manifestSHA256": "5941f854303a5139026c17c2008bbf8e11cd6a6b500a838627bfcb3c55086977",
+  "mode": "caddy-root-log-merge-syntax-classifier-read-only",
+  "operationId": "728f92f0-4623-4a74-9324-8873f78da905",
+  "reviewStatus": "APPROVED",
+  "runtimeApprovalReference": "Current require_escalated exec_command approved by runtime; same current user authorization Autorizar esta validacion questionItemId call_791a5c29f4ec4e48b9a15afa72c66f5e; strictly smaller scope one approved root source RAM, no Env/Docker/write",
+  "scope": {
+    "activeWrites": false,
+    "container": null,
+    "docker": false,
+    "environmentReads": false,
+    "expectedRootSHA256": "ff093f30330f8a7fa536bffcafb12cc316b096e4210142461889da66eaabb09b",
+    "lineNumbersExport": false,
+    "rawSourceExport": false,
+    "readPaths": [
+      "/srv/edge/Caddyfile"
+    ],
+    "remoteScratch": null
+  },
+  "status": "APPROVED"
+}

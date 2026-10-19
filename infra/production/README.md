@@ -176,37 +176,40 @@ La imagen de referencia copia el hook. En otras imágenes copia explícitamente 
 no lo instala. Se mantiene la descarga nativa por URL: PB requiere el token en query y no se carga
 la copia completa en memoria del navegador.
 
-### Caddy: modificar el encoder del destino existente
+### Caddy: filtrar el logger global `default` existente
 
-El fragmento de este repo no declara ningún `log`. Antes de aplicarlo, inventaría la configuración
-adaptada de Caddy, su versión, sus access logs, logs de runtime (incluidos errores del proxy),
-stdout/stderr y recolectores. No añadas un segundo access log dejando el primero sin sanear.
-Dentro del `log` **ya existente**, conserva el `output` y fusiona este encoder con sus filtros:
+El fragmento de este repo no declara un logger. La lectura dirigida del
+`logging.logs.default` efectivo de Caddy 2.11.4 observó encoder y writer omitidos y ninguna regla
+de filtro para el token; no acreditó la cobertura de loggers nombrados ni de recolectores. La
+propuesta vigente se fusiona únicamente en el bloque global `log default` existente de la fuente
+real. Conserva `output`, nivel, `include`/`exclude`, `sampling`, otros filtros y routing. Si el
+bloque falta, hay varios, ya tiene `format` o no se puede demostrar esa conservación, detén la
+fusión y revisa la fuente. No crees otro destino.
 
 ```caddyfile
 format filter {
-  request>uri query {
-    delete token
-  }
+  request>uri regexp (?s)[?].* "?REDACTED"
   request>headers>Referer delete
-  wrap json
 }
 ```
 
-La sintaxis está documentada por [Caddy, `log` y filtro `query`](https://caddyserver.com/docs/caddyfile/directives/log#query).
-El filtro opera al serializar el log; no elimina el token que necesita el upstream. Quitar
-`Referer` entero cubre sus valores múltiples. Debe aplicarse a **cada destino que serialice la
-petición**, incluido un logger global de runtime si recibe errores del proxy. El mismo destino
-puede recibir varias categorías: inspecciona `include`/`exclude` y no supongas cobertura global
-por tener un filtro en el bloque del sitio. Conserva los filtros y formato requeridos por sus
-consumidores; el ejemplo usa JSON.
+El `regexp` elimina toda la query desde el primer `?`, incluso cuando contiene `%zz` o saltos de
+línea; conserva la ruta. Elimina por completo Referer, incluidos valores múltiples. Al omitir
+`wrap`, el filtro conserva la elección condicional JSON/console del formato predeterminado de
+Caddy 2.11.4. El filtro opera al serializar el log y deja intacta la petición que recibe el
+upstream. La propuesta y pruebas sintéticas locales de
+`.verification/release-adoption-plan-20261008/logs-runtime-next/` acreditan cinco errores 502
+sin marcador en el logger `default` y dos respuestas ZIP 200 cuyos
+bytes y query llegaron íntegros al upstream instrumental; usaron otra imagen Caddy 2.11.4 y no
+acreditan la configuración privada servida.
 
-**Pendiente del entorno real:** no se conoce aquí la versión de Caddy instalada ni su configuración
-global. No se ha validado este encoder contra el binario fijado en `validate.sh`. Antes de aplicar,
-ejecuta `caddy version`, adapta/valida con ese mismo binario y prueba el destino real con un marcador
-artificial (nunca una credencial). El filtro `query` usa el parser de URLs: una URL mal formada puede
-no sanearse; comprueba ese caso. Si el destino debe cubrirlas también, reemplaza `request>uri` entero
-(`request>uri replace REDACTED`) en ese encoder, aceptando perder la ruta en ese destino.
+La fusión productiva requiere leer sólo la fuente real autorizada en RAM, comprobar el bloque y
+los cuatro Caddyfiles/imports ya acotados, aplicar los tres patches de sitio y este cuarto delta
+con CAS de fuente, adaptar y validar una copia aislada con la imagen seleccionada y obtener una
+autorización de aplicación separada. No exportes valores de entorno, la fuente privada ni logs
+brutos. Comprueba con un marcador artificial el destino servido y todos sus consumidores. Los
+loggers nombrados, mensajes `msg` que incrusten URL, URI con marcador antes del primer `?`,
+colectores y logs históricos quedan fuera de este filtro y exigen comprobación propia.
 
 Prueba una copia sintética pequeña: bytes íntegros al descargar y marcador artificial ausente de
 los logs PB (mensaje, `data.url`, Referer y errores), Caddy y sus recolectores. Incluye 200, 403,

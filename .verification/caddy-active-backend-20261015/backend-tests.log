@@ -1,0 +1,10 @@
+test_admin_and_sink_fail_closed_without_grants (__main__.RuntimeTests.test_admin_and_sink_fail_closed_without_grants) ... ok
+test_one_shot_draft_before_any_files_or_ssh (__main__.RuntimeTests.test_one_shot_draft_before_any_files_or_ssh) ... ok
+test_public_smoke_does_not_invent_logger_proof (__main__.RuntimeTests.test_public_smoke_does_not_invent_logger_proof) ... ok
+test_rollback_smoke_checks_served (__main__.RuntimeTests.test_rollback_smoke_checks_served) ... ok
+test_validator_seal_before_runtime (__main__.RuntimeTests.test_validator_seal_before_runtime) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.000s
+
+OK

@@ -1,0 +1,15 @@
+{
+  "files": {
+    "global-log-fragment.caddy": "79cb9a1ac82ef4dda07c822794a8ca3e9091f3a0cab1a854ea8a20941492c441",
+    "patch-inputs.json": "6ff2eb3a8b8ea3eb249271eec63fb10c1a1c50a1951cae2a595810182a47ad40",
+    "probe.log": "6484e7b0199148a37ea9a9b0f94a28cec89d1ece83ef02a82f1b04b64270d3d0",
+    "probe.py": "2c4d956f2e671555450911d8226f79b1be1d86a01905e2cf0f99f65bcdd9961d",
+    "procedure.md": "098e5cc34fc59c749b4749e46558c94913d58fe8fd6ffc564cc4dd23cc1b791d",
+    "projection.py": "e44fb9628814fbd5e827663842907f25756efe28466918eefc918c6752d8c995",
+    "proposal.md": "db51f1a04ecb3697eebd36d95bb3137c4f015700e45bc077da21f5cd3c04dca6",
+    "remote_validate.py": "d980095b44a9d5c53940fea86dc4863619273bafed8c64798247516c5e37503f",
+    "run_once.py": "004640d10de47bcecddfb95b890623aeb8cfc3e0298d1bd18bf52dbc3db52a56",
+    "verification.md": "0b114cca0364ae0414aa49bde2f0171f613796340d587bfc10601db6f36d587b"
+  },
+  "operationId": "12925dcb-b2eb-4b74-9e58-0d81ca692ba4"
+}

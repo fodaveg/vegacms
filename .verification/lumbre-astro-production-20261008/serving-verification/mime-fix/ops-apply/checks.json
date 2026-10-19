@@ -1,0 +1,23 @@
+{
+  "approvalInstalled": false,
+  "buildPullInstall": false,
+  "candidateSHA256": "d909f78a737b7970fae80468bb895cd8ac9ee035b1c5892273e73f8f10536d17",
+  "nativeAndHTTPReceipt": "../evidence.json",
+  "newNegatives": [
+    "ALIEN_AFTER_INSTALL_ZERO_RECREATE",
+    "ALIEN_AFTER_RESTORE_NO_ROLLBACK_RECREATE",
+    "COMPOSE_AFTER_RESTORE_NO_ROLLBACK_RECREATE"
+  ],
+  "observedAt": "2026-10-08T21:27:05.640218+00:00",
+  "payloadCompilationExit": 0,
+  "pythonCompilationExit": 0,
+  "remoteExecuted": false,
+  "reviewP1ImmediatePreRecreateGate": "FIXED_FORWARD_AND_ROLLBACK",
+  "sourceCommit": "4047607258fb890d54cc7be418061ccfa59b4e29",
+  "sourceTree": "b3125bb6bd8ed56f5ccd77dbf763bfdf8127787c",
+  "status": "LOCAL_OFFLINE_CHECKS_PASSED_RUNTIME_APPROVAL_ABSENT",
+  "testExit": 0,
+  "tests": 20,
+  "unapprovedWrapperExit": 1,
+  "unapprovedWrapperZeroConnections": true
+}

@@ -1,0 +1,17 @@
+test_absent_global (__main__.ShapeTests.test_absent_global) ... ok
+test_duplicate (__main__.ShapeTests.test_duplicate) ... ok
+test_explicit_default (__main__.ShapeTests.test_explicit_default) ... ok
+test_import (__main__.ShapeTests.test_import) ... ok
+test_merge_guard_and_projection (__main__.ShapeTests.test_merge_guard_and_projection) ... ok
+test_multiple_global (__main__.ShapeTests.test_multiple_global) ... ok
+test_no_approval_means_zero_connections (__main__.ShapeTests.test_no_approval_means_zero_connections) ... ok
+test_no_log (__main__.ShapeTests.test_no_log) ... ok
+test_other_named (__main__.ShapeTests.test_other_named) ... ok
+test_projection_rejects_extra_and_private_data (__main__.ShapeTests.test_projection_rejects_extra_and_private_data) ... ok
+test_rawquote_braces_are_data (__main__.ShapeTests.test_rawquote_braces_are_data) ... ok
+test_unnamed_default (__main__.ShapeTests.test_unnamed_default) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.027s
+
+OK

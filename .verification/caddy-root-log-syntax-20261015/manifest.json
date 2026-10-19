@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "global-log-fragment.caddy": "79cb9a1ac82ef4dda07c822794a8ca3e9091f3a0cab1a854ea8a20941492c441",
+    "remote_validate.py": "d980095b44a9d5c53940fea86dc4863619273bafed8c64798247516c5e37503f"
+  },
+  "files": {
+    "probe.log": "25cb182c4fae2e74c846f543c7092b2079f6b7c47e9d9328e5b2554b833e4f6e",
+    "probe.py": "e65f2817f0cb3bf15a3c2119d0a53833e98b558322c5d6b5eb9b227d92147b63",
+    "projection.py": "c35bd7ad74dca53b91cf185df76c79b0d52e21fcae6e185cdab00a8516c9f28f",
+    "proposal.md": "6ad63ba89024481f7827f0a3156eecf0f94bc63e5e2bdf8d6a1d3909cdea242b",
+    "remote_probe.py": "15b929c3a95000f67ea5e327ecf8829b123b794b483fa333f5286eac9b00e30c",
+    "run_once.py": "b5a88bacbbb821c6d0f0d4855f1cedae7f44b06c20aa1017c6e8334912cf9c6f",
+    "verification.md": "8a2bff2d9bb2df60daea2ca3949dbc4b6777fccefe2faefd984736fd73836271"
+  },
+  "operationId": "728f92f0-4623-4a74-9324-8873f78da905"
+}

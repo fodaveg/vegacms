@@ -1,0 +1,28 @@
+{
+  "CaddyReaderChanged": false,
+  "astCompile": true,
+  "heavyBuildSuiteInstall": false,
+  "limits": [
+    "Discovery MIME is not application/json; public verification is partial.",
+    "No authenticated positive preview proof."
+  ],
+  "local": {
+    "GETs": 0,
+    "command": "python3 -B verify_served.py --check-local --source-dir /Users/david/code/vegacms/.verification/lumbre-astro-production-20261008",
+    "exit": 0,
+    "files": 55
+  },
+  "public": {
+    "bytesShaMatched": 55,
+    "command": "python3 -B verify_served.py --source-dir /Users/david/code/vegacms/.verification/lumbre-astro-production-20261008",
+    "exit": 1,
+    "mimeMatched": 54,
+    "receiptSHA256": "f6e00adb850cbbba0e942873ca0ac18a9547a9abb101313cbd5108af0a4b533c"
+  },
+  "sealExact": true,
+  "tests": {
+    "command": "python3 -B test_verify_served.py",
+    "exit": 0,
+    "tests": 5
+  }
+}

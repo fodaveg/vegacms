@@ -1,0 +1,80 @@
+{
+  "operationId": "47071b83-5d63-45af-9d32-b74edb89bfef",
+  "result": {
+    "commands": 20,
+    "configEnvRead": false,
+    "containers": {
+      "edge-caddy": {
+        "bufferBytes": null,
+        "collectorPolicy": "NOT_OBSERVED",
+        "compressed": "UNSET_NO_DEFAULT_INFERRED",
+        "delivery": "UNSET_NO_DEFAULT_INFERRED",
+        "driver": "JSON_FILE",
+        "effectiveTokenSafetyProved": false,
+        "filterPolicy": "NOT_OBSERVED",
+        "maxBytes": 10485760,
+        "maxFiles": 3,
+        "readerPolicy": "NOT_OBSERVED",
+        "retentionDays": null,
+        "status": "CONFIGURED_SIZE_COUNT_ONLY_OTHER_SINKS_UNKNOWN"
+      },
+      "fodaveg": {
+        "bufferBytes": null,
+        "collectorPolicy": "NOT_OBSERVED",
+        "compressed": "UNSET_NO_DEFAULT_INFERRED",
+        "delivery": "UNSET_NO_DEFAULT_INFERRED",
+        "driver": "JSON_FILE",
+        "effectiveTokenSafetyProved": false,
+        "filterPolicy": "NOT_OBSERVED",
+        "maxBytes": 10485760,
+        "maxFiles": 3,
+        "readerPolicy": "NOT_OBSERVED",
+        "retentionDays": null,
+        "status": "CONFIGURED_SIZE_COUNT_ONLY_OTHER_SINKS_UNKNOWN"
+      },
+      "lumbre-admin-pb": {
+        "bufferBytes": null,
+        "collectorPolicy": "NOT_OBSERVED",
+        "compressed": "UNSET_NO_DEFAULT_INFERRED",
+        "delivery": "UNSET_NO_DEFAULT_INFERRED",
+        "driver": "JSON_FILE",
+        "effectiveTokenSafetyProved": false,
+        "filterPolicy": "NOT_OBSERVED",
+        "maxBytes": 10485760,
+        "maxFiles": 3,
+        "readerPolicy": "NOT_OBSERVED",
+        "retentionDays": null,
+        "status": "CONFIGURED_SIZE_COUNT_ONLY_OTHER_SINKS_UNKNOWN"
+      },
+      "vega-pb": {
+        "bufferBytes": null,
+        "collectorPolicy": "NOT_OBSERVED",
+        "compressed": "UNSET_NO_DEFAULT_INFERRED",
+        "delivery": "UNSET_NO_DEFAULT_INFERRED",
+        "driver": "JSON_FILE",
+        "effectiveTokenSafetyProved": false,
+        "filterPolicy": "NOT_OBSERVED",
+        "maxBytes": 10485760,
+        "maxFiles": 3,
+        "readerPolicy": "NOT_OBSERVED",
+        "retentionDays": null,
+        "status": "CONFIGURED_SIZE_COUNT_ONLY_OTHER_SINKS_UNKNOWN"
+      }
+    },
+    "globalTokenAbsenceClaimed": false,
+    "identitiesPreserved": true,
+    "identityRecheckPassed": true,
+    "logsRead": false,
+    "operationId": "47071b83-5d63-45af-9d32-b74edb89bfef",
+    "remoteWrites": false,
+    "status": "DOCKER_ONLY_PARTIAL_IDENTITIES_PRESERVED",
+    "taskClosureProved": false,
+    "unresolved": [
+      "PB_EFFECTIVE_SETTINGS_UNRESOLVED",
+      "CADDY_DEFAULT_RUNTIME_FILTER_UNRESOLVED",
+      "NAMED_CUSTOM_CHANNELS_UNRESOLVED"
+    ]
+  },
+  "status": "DOCKER_ONLY_PARTIAL_IDENTITIES_PRESERVED",
+  "transportExit": 0
+}

@@ -1,0 +1,12 @@
+{
+  "context": "ROOT_NESTED",
+  "failureClass": "SYNTAX_UNSUPPORTED",
+  "form": "RAW_QUOTE_SINGLE_LINE",
+  "fragmentMatched": true,
+  "kind": "BACKTICK",
+  "position": "TOKEN_INITIAL",
+  "rootGuardMatched": true,
+  "stage": "TOKEN",
+  "status": "STOPPED",
+  "validatorMatched": true
+}

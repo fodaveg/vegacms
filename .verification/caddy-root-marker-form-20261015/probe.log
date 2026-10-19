@@ -1,0 +1,13 @@
+test_backtick_bare_and_double_quoted (__main__.MarkerFormTests.test_backtick_bare_and_double_quoted) ... ok
+test_bom_prefix_and_token_interior (__main__.MarkerFormTests.test_bom_prefix_and_token_interior) ... ok
+test_exact_seal_fixture_and_dependency_mutation (__main__.MarkerFormTests.test_exact_seal_fixture_and_dependency_mutation) ... ok
+test_markers_in_comment_are_inactive (__main__.MarkerFormTests.test_markers_in_comment_are_inactive) ... ok
+test_no_approval_zero_connections (__main__.MarkerFormTests.test_no_approval_zero_connections) ... ok
+test_projection_excludes_content_and_unknown_fields (__main__.MarkerFormTests.test_projection_excludes_content_and_unknown_fields) ... ok
+test_raw_backtick_multiline (__main__.MarkerFormTests.test_raw_backtick_multiline) ... ok
+test_raw_backtick_single_line (__main__.MarkerFormTests.test_raw_backtick_single_line) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.152s
+
+OK

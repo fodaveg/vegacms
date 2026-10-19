@@ -1,0 +1,11 @@
+{
+  "GETs": 1,
+  "SSH": false,
+  "bodySHAStillExpected": true,
+  "credentials": false,
+  "error": null,
+  "mimeClass": "TEXT_PLAIN",
+  "rawHeadersOrBodiesStored": false,
+  "scriptSHA256": "d0930ba984e6e92c870cbf218d32f1a33f6e4a8991eeab5d8d3509c9bf60fbee",
+  "status": 200
+}

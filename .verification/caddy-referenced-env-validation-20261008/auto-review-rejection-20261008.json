@@ -1,0 +1,14 @@
+{
+  "executionArtifactsPresent": {
+    "execution-approval.json": false,
+    "execution-receipt.json": false,
+    "projection.json": false,
+    "request-started.json": false
+  },
+  "noRetryOrIndirectExecution": true,
+  "operationId": "a3e67d46-29dc-46c1-a521-bed46b8f3be3",
+  "priorWholeEnvironmentRejectionStillBinding": true,
+  "reason": "Explicit user approval absent for potentially secret referenced variable values; constructing approval file with sensitiveValueAccessExplicitlyApproved=true was rejected.",
+  "status": "AUTO_REVIEW_REJECTED_BEFORE_PROCESS_OR_SSH",
+  "userSpecificApprovalQuestionPending": true
+}

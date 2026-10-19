@@ -1,0 +1,51 @@
+{
+  "compileExit": 0,
+  "credentialsRead": false,
+  "currentCaddyRuntimeFiltersObserved": false,
+  "currentCollectorPoliciesObserved": false,
+  "currentCorsPins": "pins.json",
+  "currentDockerDriversObserved": false,
+  "currentPocketBaseSettingsObserved": false,
+  "dockerTemplateNativeExecuted": false,
+  "envRead": false,
+  "executorObservedProduction": false,
+  "executorPrepared": true,
+  "executorRuntimeApproved": false,
+  "limits": [
+    "DOCKER_ROTATION_PROPOSAL_ONLY",
+    "PB_CADDY_COLLECTOR_UNKNOWN_STOP",
+    "NO_TOKEN_ABSENCE_CLAIM",
+    "NO_PRODUCTION_WRITES"
+  ],
+  "logsRead": false,
+  "newRuntimeGrantInstalled": false,
+  "observedAt": "2026-10-08T21:34:30.278534+00:00",
+  "offlineTests": 10,
+  "remoteExecuted": false,
+  "reusedCaddyMappingObservedAt": "2026-10-08T08:45:57.847877+00:00",
+  "reusedEdgeUnchangedFileCount": 5,
+  "reusedHostsSkipped": {
+    "admin.fodaveg.net": true,
+    "admin.lumbre.pro": true,
+    "admin.vegacms.com": true
+  },
+  "reusedImageDeliveryStatus": "THREE_ADMINS_IMAGE_ONLY_PRODUCTION_VERIFIED",
+  "reusedServedAssets": {
+    "fodaveg": 155,
+    "lumbre-admin-pb": 153,
+    "vega-pb": 153
+  },
+  "sourceReceipts": {
+    "caddy-approved-logger-mapping-20261008/projection.json": "748054e034d3af1df062833732ad24e1336df8e873f30fc463049942b58e2b98",
+    "image-only-delivery-20261008/edge-hashes-after-fodaveg-20261008.json": "543ff530d8967768bbf22dc7de57af8682460e315d45eecb0f96388ccc32ff1f",
+    "image-only-delivery-20261008/image-identities-20261008.json": "8108bc21cc678c9337b2c6147143ba2e3790f8aa67792bd4485cf6a96cf0c0d8",
+    "image-only-delivery-20261008/production-image-delivery-receipt-20261008.json": "1e95d47cf47e3ea9578054b1be42a108b5125b72628de9ae466f9c0b1c640543",
+    "production-security-real-20261007/receipt.json": "0ef24d597958f9e08da18145a50b53d017fdc1586f784f6b7ae06afd4fc3a05d",
+    "release-adoption-plan-20261008/consumer-native-review.md": "d6ac17ec043b8d8a2607345e4107ee32861a98f8422aa78239d873f38a034b7e",
+    "release-adoption-plan-20261008/contact-logs-next-actions.md": "9676a3ae70e34cc0d0b428803c6229875c3081c7a0f0aff7ce7177b39661ae1a"
+  },
+  "status": "PARTIAL_OFFLINE_PROPOSAL_EFFECTIVE_LOGS_NOT_CERTIFIED",
+  "taskClosureProved": false,
+  "taskId": "8ce56224-4787-4bf1-9ba4-6537a6ee3a2b",
+  "testExit": 0
+}

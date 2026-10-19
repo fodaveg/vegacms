@@ -1,0 +1,60 @@
+{
+  "SSH": false,
+  "beforeSHA256": "fb32709db7dfdf999a41e44cdee6669c141de2ffc067168931a051c9bbad92ba",
+  "buildPullInstall": false,
+  "cases": [
+    {
+      "case": "discovery",
+      "mimeClass": "application/json",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "case": "discoveryQuery",
+      "mimeClass": "application/json",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "case": "home",
+      "mimeClass": "text/html",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "case": "asset",
+      "mimeClass": "text/css",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "case": "subpathNegative",
+      "mimeClass": "",
+      "passed": false,
+      "status": 400
+    }
+  ],
+  "diskAfter": 129334411264,
+  "diskBefore": 129336029184,
+  "image": "sha256:6b08c1b9858ca9a7d99c1da13c3695081e0e604c6cf214ca26a7ce0e2c4fd9b4",
+  "nativeEvidenceReceiptSHA256": "d3c34cf9dc26c568a137e15def77af542d880b1f451f7f507c1a316fade11807",
+  "nativeExits": {
+    "absence-serve": 0,
+    "cleanup-serve": 0,
+    "networkAbsent": 0,
+    "networkCreate": 0,
+    "networkRemove": 0,
+    "port": 0,
+    "serveStart": 0,
+    "serveState": 0
+  },
+  "nativeReused": true,
+  "observedUTC": "2026-10-08T21:06:33.060739+00:00",
+  "owner": "lumbre-discovery-mime-20261008-2c9465c0188f",
+  "rawLogsOrHeadersStored": false,
+  "resourcesRemoved": true,
+  "scriptSHA256": "bcbde8926f4742dcbdcdc0e0b49bafb6c3092dc72a1c838e14f5db1f5ae684dc",
+  "serveState": "running",
+  "sourceSHA256": "d909f78a737b7970fae80468bb895cd8ac9ee035b1c5892273e73f8f10536d17",
+  "status": "LOCAL_CHECK_FAILED"
+}

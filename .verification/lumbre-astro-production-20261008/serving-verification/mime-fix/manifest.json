@@ -1,0 +1,15 @@
+{
+  "files": {
+    "evidence.json": "7f84138095031406bc6f500ed351c4ed00963fd920c4c32bafdf3e991387bba3",
+    "local-caddy-receipt-attempt1.json": "d3c34cf9dc26c568a137e15def77af542d880b1f451f7f507c1a316fade11807",
+    "local-caddy-receipt-attempt2.json": "a55f9cc26093221a189025c4fe5bfc6e9cbb8389a55f362acd13253340719f3f",
+    "local-caddy-receipt-attempt3.json": "96e168eac437897cdeef136ddb365794337b2b67718c4c2a957dc4847eee7ac5",
+    "local-caddy-receipt.json": "d3c34cf9dc26c568a137e15def77af542d880b1f451f7f507c1a316fade11807",
+    "proposal.md": "ee93e6a036dda4ccb729422f22a918adab0ef25024c27bf0a42e3f4a69235f1a",
+    "verify_local_caddy.executed-attempt1.py": "d23fa86c85f91a2d95d0d8a1716ddaedf59f2b05d30597876042279ec191a4fb",
+    "verify_local_caddy.executed-attempt2.py": "bcbde8926f4742dcbdcdc0e0b49bafb6c3092dc72a1c838e14f5db1f5ae684dc",
+    "verify_local_caddy.py": "21acba5bb707fc3b9f237c6e0e1c2bdfa1f7eed5bfaf6e673e7886ff1b1e626a",
+    "web-Caddyfile.candidate": "d909f78a737b7970fae80468bb895cd8ac9ee035b1c5892273e73f8f10536d17",
+    "web-Caddyfile.patch": "ac2efe30109bd64d28f393d63c9ffe5be2b62027fb57b865c5215f01eb788fe4"
+  }
+}

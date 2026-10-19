@@ -1,0 +1,14 @@
+--- a/Caddyfile
++++ b/Caddyfile
+@@ -11,6 +11,11 @@
+ :8080 {
+ 	root * /srv/site
+ 	encode zstd gzip
++
++	# Astro genera discovery sin extensión; su contenido sigue siendo JSON.
++	@vegaDiscovery path /api/vega/discovery
++	header @vegaDiscovery Content-Type application/json
++
+ 	file_server
+ 
+ 	# El build de Astro pone un hash en el nombre de todo lo de `/_astro/`, así

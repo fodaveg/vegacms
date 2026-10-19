@@ -1,0 +1,12 @@
+{
+  "files": {
+    "apply-tests.log": "33fc9c2aecdbf3498aa3c1732e826d56fefd7ad539c04ee83aa2f3da2b3ab051",
+    "apply_engine.py": "ac808abbb2473c7520eb723d49cbd884362967d7aa97d1d3fd8392fbc42cffba",
+    "candidate.json": "2002ee902be3ce4073655f44f6448239ab7748a0900389849ca2b69a86e23efa",
+    "preflight.py": "21f35e69d0b2837f8fe9b8461aa8fed41b8ff3c3840f8defe2ce08903307c7c4",
+    "procedure.md": "a99f62e7937f0fd1f083498bf88ebb0e39bc2aa97a9f26aad3a3b56583712d0f",
+    "test_apply_engine.py": "a4e26c9d9c70e41ad2d3fad474b2c1b3d983646e6555697fe90a6836ac4d661b"
+  },
+  "operationId": "7a2f1dce-315c-4861-b35d-0c82e38c3231",
+  "status": "DRAFT_SEAL_NO_RUNTIME_AUTHORITY"
+}

@@ -1,0 +1,18 @@
+{
+  "operationId": "56321639-b882-4caa-869b-f9a48877b9a7",
+  "result": {
+    "afterSHA256": "d909f78a737b7970fae80468bb895cd8ac9ee035b1c5892273e73f8f10536d17",
+    "backupCreated": true,
+    "beforeSHA256": "fb32709db7dfdf999a41e44cdee6669c141de2ffc067168931a051c9bbad92ba",
+    "composeSHA256": "680d04d18b7707fba2e7b377609c70e4f78f7067bb5e4e68e0f19972fd989ef5",
+    "operationId": "56321639-b882-4caa-869b-f9a48877b9a7",
+    "publisherQuiescent": true,
+    "recreateExit": 0,
+    "rollbackExit": null,
+    "runtimeChecked": true,
+    "sameImage": true,
+    "status": "APPLIED_RUNTIME_VERIFIED"
+  },
+  "status": "APPLIED_RUNTIME_VERIFIED",
+  "transportExit": 0
+}

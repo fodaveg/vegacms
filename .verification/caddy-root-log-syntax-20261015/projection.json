@@ -1,0 +1,16 @@
+{
+  "blanketFlags": {
+    "cr": false,
+    "nul": false,
+    "quotedCloseBrace": false,
+    "quotedOpenBrace": false
+  },
+  "category": "TOKEN_FORBIDDEN_MARKER",
+  "context": "ROOT_NESTED",
+  "failureClass": "SYNTAX_UNSUPPORTED",
+  "fragmentMatched": true,
+  "rootGuardMatched": true,
+  "stage": "TOKEN",
+  "status": "STOPPED",
+  "validatorMatched": true
+}

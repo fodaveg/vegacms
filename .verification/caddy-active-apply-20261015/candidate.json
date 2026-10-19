@@ -1,0 +1,51 @@
+{
+  "composeSHA256": {
+    "/root/fodaveg/compose.yml": "eb62c0447d4cce8a8af1ceedeeabb11602770d48d6bf952618ef19e7b8a1008b",
+    "/srv/edge/compose.yml": "c6c47d481ff63296d8818680e6b20d351a73b34d00b9339b2654df7679abbee2",
+    "/srv/lumbre-admin/compose.yml": "56caa1a1273feaa3c56b34db7724177c448190d1c28d723d53a5b62fbe110ae9",
+    "/srv/vega/infra/production/compose.yml": "11593d1da51e580f988058bfac8288194eaeb7697ac7db2f6926815f8d14dcde"
+  },
+  "operationId": "7a2f1dce-315c-4861-b35d-0c82e38c3231",
+  "originalSources": {
+    "/srv/edge/Caddyfile": "ff093f30330f8a7fa536bffcafb12cc316b096e4210142461889da66eaabb09b",
+    "/srv/edge/conf.d/admin-lumbre-pro.caddy": "9a3322ce14562e20bfb5bdc10eac6a63c077120a327aafcf4a222492cc0c1f53",
+    "/srv/edge/conf.d/fodaveg.caddy": "0bdaa9f5ef1af907f7a4746ad2be5af22c7553457af8871563de00fe56e171f0",
+    "/srv/edge/conf.d/vega.caddy": "772440180332741a8716b440cc699dfe117f1fe716ab7a38458a9e7eea9c7b06"
+  },
+  "runtime": {
+    "caddyContainerId": "ae97fc0c57fbe4c3a97f5dce15dfc9da92f33f527b60d95c3f74de9d2a160a7a",
+    "caddyImageDigest": "caddy@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+    "caddyImageId": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5da4cf95ab7c14d58648",
+    "fodavegContainerId": "c25a7858f2692b395925d5b7f8d80512378dccbaa58ec55e432d8c5f186b73e6",
+    "fodavegImageId": "sha256:22cf0983980e3bf9562a0a518f258e6e69cdd58cb3d23a19516f1da60a6d403e",
+    "lumbreContainerId": "3774856bc7cbb6aa193b3db9ad2d0545d25bd4a66a35ef53c398b786d89ca9ca",
+    "lumbreImageId": "sha256:40df6a9bbcfd4edbc93680b0f45946d0be7c50c4e5c470167e33646fe499c1b7",
+    "vegaContainerId": "007b755b8de76195d857181ce985a9522fe71c5d2941a2c1597b310d12d56881",
+    "vegaImageId": "sha256:dd978b8d23081d2e3c69ebf6ef8ff4599a1acdd3f38dc559ae6fa379e46449b4"
+  },
+  "scope": {
+    "applicationAuthorized": false,
+    "backup": "PRIVATE_SERVER_ONLY_EXACT_FOUR_SOURCES",
+    "environment": "ONLY_REFERENCED_VALUES_IN_RAM_NO_EXPORT",
+    "imports": "SAME_CLOSURE_AS_VALIDATION_NO_WRITES",
+    "rawDataExport": false,
+    "reload": "SAME_RUNNING_CADDY_VIA_CADDY_RELOAD_NO_RECREATE",
+    "rollback": "ONLY_OWN_FOUR_FILES_AND_SAME_CADDY_ID",
+    "sourceWritePaths": [
+      "/srv/edge/Caddyfile",
+      "/srv/edge/conf.d/vega.caddy",
+      "/srv/edge/conf.d/admin-lumbre-pro.caddy",
+      "/srv/edge/conf.d/fodaveg.caddy"
+    ],
+    "sshAuthorized": false
+  },
+  "status": "DRAFT_ENGINE_LOCAL_ONLY_DEPENDS_ON_FINAL_VALIDATION",
+  "validation": {
+    "manifestSHA256": null,
+    "operationId": null,
+    "projectionSHA256": null,
+    "receiptSHA256": null,
+    "status": "PENDING",
+    "transformerSHA256": null
+  }
+}

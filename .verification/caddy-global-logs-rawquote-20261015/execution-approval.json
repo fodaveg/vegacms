@@ -1,0 +1,67 @@
+{
+  "fullEnvironmentReadRejectedStill": true,
+  "manifestSHA256": "408622ec1ec392404ab2ce57f24b416f0dc7d22e6de61e8147525b2c81a537b7",
+  "mode": "caddy-referenced-values-only-private-isolated",
+  "operationId": "9a4f3ec9-8816-46a8-b69b-9a5e9ca37dc3",
+  "reviewStatus": "APPROVED",
+  "runtimeApprovalReference": "Current require_escalated exec_command approved by runtime; same explicit CURRENT user authorization Autorizar esta validacion questionItemId call_791a5c29f4ec4e48b9a15afa72c66f5e; same four deltas/sources/RAM values, corrected conservative single-line rawquote lexer identified by finite probes",
+  "scope": {
+    "activeConfigWrites": false,
+    "adaptation": "ISOLATED_SAME_IMAGE_RESOLVED_BYTES",
+    "container": "edge-caddy",
+    "environmentInventory": false,
+    "expectedComposeSha256": {
+      "edge": "c6c47d481ff63296d8818680e6b20d351a73b34d00b9339b2654df7679abbee2",
+      "fodaveg": "eb62c0447d4cce8a8af1ceedeeabb11602770d48d6bf952618ef19e7b8a1008b",
+      "lumbre": "56caa1a1273feaa3c56b34db7724177c448190d1c28d723d53a5b62fbe110ae9",
+      "vega": "11593d1da51e580f988058bfac8288194eaeb7697ac7db2f6926815f8d14dcde"
+    },
+    "expectedContainerIds": {
+      "edge-caddy": "ae97fc0c57fbe4c3a97f5dce15dfc9da92f33f527b60d95c3f74de9d2a160a7a",
+      "fodaveg": "c25a7858f2692b395925d5b7f8d80512378dccbaa58ec55e432d8c5f186b73e6",
+      "lumbre-admin-pb": "3774856bc7cbb6aa193b3db9ad2d0545d25bd4a66a35ef53c398b786d89ca9ca",
+      "vega-pb": "007b755b8de76195d857181ce985a9522fe71c5d2941a2c1597b310d12d56881"
+    },
+    "files": [
+      "/srv/edge/Caddyfile",
+      "/srv/edge/conf.d/vega.caddy",
+      "/srv/edge/conf.d/admin-lumbre-pro.caddy",
+      "/srv/edge/conf.d/fodaveg.caddy",
+      "/srv/edge/compose.yml",
+      "/srv/vega/infra/production/compose.yml",
+      "/srv/lumbre-admin/compose.yml",
+      "/root/fodaveg/compose.yml"
+    ],
+    "globalLogFragmentSHA256": "79cb9a1ac82ef4dda07c822794a8ca3e9091f3a0cab1a854ea8a20941492c441",
+    "globalLogMerge": "SOLE_EXISTING_LOG_DEFAULT_EXACT_FORMAT_ABSENT_OR_STOP",
+    "importPrefix": "/srv/edge/conf.d/",
+    "importSuffix": ".caddy",
+    "isolatedNetwork": "none",
+    "newRuntimeApprovalRequired": true,
+    "pidCommandOnly": "/proc/1/cmdline",
+    "rawDataExport": false,
+    "remoteScratch": "/dev/shm",
+    "selectedConsumerContainers": [
+      "vega-pb",
+      "lumbre-admin-pb",
+      "fodaveg"
+    ],
+    "selectedDockerFields": [
+      "Id",
+      "Name",
+      "Image",
+      "Config.Entrypoint",
+      "Config.Cmd",
+      "Config.WorkingDir",
+      "Mounts.Source",
+      "Mounts.Destination",
+      "Mounts.Type",
+      "RepoDigests"
+    ],
+    "unexpandedRootSource": "PRIVATE_RAM_ONLY",
+    "validation": "ISOLATED_RESOURCE_TEST_COPY",
+    "variableValues": "ONLY_NAMES_REFERENCED_IN_APPROVED_CADDYFILES_ONE_NAME_PER_EXEC"
+  },
+  "sensitiveValueAccessExplicitlyApproved": true,
+  "status": "APPROVED"
+}

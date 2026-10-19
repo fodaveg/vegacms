@@ -1,0 +1,15 @@
+fix(site): serve Vega discovery as JSON
+
+Set Content-Type application/json only for /api/vega/discovery in the
+internal static Caddy server, preserving the extensionless JSON bytes.
+
+Verification: cached Caddy v2.11.4 version/adapt/validate exit 0; five
+localhost HTTP fixture checks passed (discovery, query, HTML, CSS and
+subpath 400 without JSON header). Owned Docker resources/scratch removed.
+git diff --cached --check passed. No build, pull, install or production apply.
+Verified tree: b3125bb6bd8ed56f5ccd77dbf763bfdf8127787c.
+
+Evidence: /Users/david/code/vegacms/.verification/worktrees/caddy-referenced-env-20261008/.verification/lumbre-astro-production-20261008/serving-verification/mime-fix/evidence.json
+Details/sources/seal: same directory proposal.md and manifest.json.
+Local evidence is preserved for root handoff; another machine may not have it.
+Limit: no production serving check or authenticated CMS preview token proof.

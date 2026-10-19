@@ -1,0 +1,14 @@
+{
+  "diagnosis": "MULTIPLE_ROOT_LOGS",
+  "explicitDefaultLogs": "ZERO",
+  "firstBlock": "GLOBAL",
+  "fragmentMatched": true,
+  "globalBlocks": "ONE",
+  "globalImport": false,
+  "mergeReproduced": true,
+  "otherLogs": "MANY",
+  "rootGuardMatched": true,
+  "status": "STOPPED",
+  "unnamedLogs": "ZERO",
+  "validatorMatched": true
+}

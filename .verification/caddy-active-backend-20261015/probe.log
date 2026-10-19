@@ -1,0 +1,17 @@
+test_approval_absent (__main__.ProbeTests.test_approval_absent) ... ok
+test_bad_schema (__main__.ProbeTests.test_bad_schema) ... ok
+test_conf_directory_shadow (__main__.ProbeTests.test_conf_directory_shadow) ... ok
+test_config_uses_file_bind_outside_root_directory (__main__.ProbeTests.test_config_uses_file_bind_outside_root_directory) ... ok
+test_directory (__main__.ProbeTests.test_directory) ... ok
+test_file_shadow (__main__.ProbeTests.test_file_shadow) ... ok
+test_foreign_source_runtime_shadow (__main__.ProbeTests.test_foreign_source_runtime_shadow) ... ok
+test_missing_root (__main__.ProbeTests.test_missing_root) ... ok
+test_nonbind (__main__.ProbeTests.test_nonbind) ... ok
+test_projection_rejects_private (__main__.ProbeTests.test_projection_rejects_private) ... ok
+test_unrelated_foreign_destination (__main__.ProbeTests.test_unrelated_foreign_destination) ... ok
+test_validator_guard_before_docker (__main__.ProbeTests.test_validator_guard_before_docker) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.020s
+
+OK
