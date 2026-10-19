@@ -221,7 +221,7 @@ Abre [http://localhost:4173/](http://localhost:4173/). **Nota**: `pnpm preview` 
 
 ### El bundle es muy grande
 
-Vega comprueba tres presupuestos de JavaScript y CSS comprimidos con gzip: 200 KB de carga inicial, 80 KB de coste adicional para la pantalla más pesada y 1024 KB para el build completo. Para medirlos:
+Vega comprueba tres presupuestos de JavaScript y CSS comprimidos con gzip: 200 KiB de carga inicial, 82 KiB de coste adicional para la pantalla más pesada y 1024 KiB para el build completo. Para medirlos:
 
 ```sh
 pnpm build
@@ -229,6 +229,8 @@ pnpm check-bundle-budget
 ```
 
 El comando falla si se supera cualquiera de los tres límites y también informa de la carga diferida al usar una función. El CI lo ejecuta después de `pnpm gate`, reutilizando su build; superar un límite hace fallar el job.
+
+El techo incremental pasó de 80 a 82 KiB el 19 de octubre de 2026 como revisión técnica de Codex dentro del encargo de modernización, comunicada a David antes de aplicarla. El candidato UX04/UX11 medido ocupaba 82 754 bytes (80,81 KiB): 834 bytes sobre el techo anterior. Se conservan el cálculo, las tres métricas y los topes inicial y total; el historial del script distingue esta revisión de los límites originales firmados por David.
 
 ## Pruebas
 
