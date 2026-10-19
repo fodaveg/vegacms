@@ -510,6 +510,12 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.blocks.moveDownLabel': 'Move down «{label}»',
 	'editor.visual.overlay.toolbar.label': 'Actions for «{label}»',
 	'editor.visual.overlay.insertLabel': 'Insert block at position {position} of {total}',
+	'editor.visual.pending.title': 'Unsaved changes',
+	'editor.visual.pending.body':
+		'Save the pending blocks before inserting or reordering. Open each block and select Save.',
+	'editor.visual.pending.open': 'Open block: {label}',
+	'editor.visual.pending.palette':
+		'Insertion is blocked by unsaved changes. Open the pending blocks in the notice to save them.',
 	'editor.visual.inspector.title': 'Inspector',
 	'editor.visual.inspector.empty': 'Select a block in the tree or on the canvas to edit it here.',
 	'editor.visual.inspector.unknownBlock':

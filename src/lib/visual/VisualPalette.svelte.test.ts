@@ -182,6 +182,17 @@ describe('VisualPalette.svelte', () => {
 		expect(document.getElementById(labelledBy!)).not.toBeNull();
 	});
 
+	test('explica por qué un borrador bloquea la inserción y describe los botones', () => {
+		const blocks = fakeBlocksState({ hasTypeMenu: true, blockTypes: [HERO_TYPE], anyDirty: true });
+		mounted = mountPalette({ blocks });
+		const item = mounted.target.querySelector<HTMLButtonElement>('.vega-palette-item')!;
+		expect(item.disabled).toBe(true);
+		expect(item.draggable).toBe(false);
+		const description = document.getElementById(item.getAttribute('aria-describedby')!);
+		expect(description?.textContent).toContain('Inserción bloqueada por cambios sin guardar');
+		expect(description?.textContent).toContain('Abre los bloques pendientes');
+	});
+
 	test('dragstart: fija `dataTransfer` (`setData`+`effectAllowed`) y avisa con el tipo', () => {
 		const onDragStart = vi.fn();
 		const blocks = fakeBlocksState({ hasTypeMenu: true, blockTypes: [HERO_TYPE, GALLERY_TYPE] });

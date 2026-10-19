@@ -563,6 +563,12 @@ export const es = {
 	'editor.blocks.moveDownLabel': 'Bajar «{label}»',
 	'editor.visual.overlay.toolbar.label': 'Acciones de «{label}»',
 	'editor.visual.overlay.insertLabel': 'Insertar bloque en la posición {position} de {total}',
+	'editor.visual.pending.title': 'Cambios sin guardar',
+	'editor.visual.pending.body':
+		'Guarda los bloques pendientes antes de insertar o reordenar. Abre cada bloque y pulsa Guardar.',
+	'editor.visual.pending.open': 'Abrir bloque: {label}',
+	'editor.visual.pending.palette':
+		'Inserción bloqueada por cambios sin guardar. Abre los bloques pendientes en el aviso para guardarlos.',
 	'editor.visual.inspector.title': 'Inspector',
 	'editor.visual.inspector.empty':
 		'Selecciona un bloque en el árbol o en el lienzo para editarlo aquí.',
