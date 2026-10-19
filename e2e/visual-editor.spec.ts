@@ -817,8 +817,11 @@ test('UX03: abrir y guardar el bloque pendiente desbloquea la paleta', async ({
 	await headingInput(page).fill('Segundo borrador pendiente');
 	await page.setViewportSize({ width: 390, height: 844 });
 	await expect(page.locator('iframe.vega-visual-frame')).toHaveCount(0);
-	const closeNav = page.locator('.vega-sidebar-close');
-	if (await closeNav.isVisible()) await closeNav.click();
+	const closeNav = page.locator('.vega-sidebar-open .vega-sidebar-close');
+	if (await closeNav.count()) await closeNav.click();
+	await expect
+		.poll(() => page.locator('#vega-sidebar').evaluate((el) => el.getBoundingClientRect().right))
+		.toBeLessThanOrEqual(0);
 	await page.screenshot({ path: testInfo.outputPath('ux03-after-390-es-light.png') });
 	const narrowOpen = notice.getByRole('button', {
 		name: 'Abrir bloque: Borrador A pendiente',
