@@ -101,6 +101,28 @@ describe('parseCreatedPreviewShareLink', () => {
 		expect(parseCreatedPreviewShareLink(CREATED)).toEqual(CREATED);
 	});
 
+	test.each([
+		'javascript:alert(1)',
+		'JaVaScRiPt:alert(1)',
+		'java\tscript:alert(1)',
+		'data:text/html,<script>alert(1)</script>',
+		'vbscript:msgbox(1)',
+		'file:///etc/passwd',
+		'about:blank',
+		'/preview/posts/abc123',
+		'//example.test/preview/posts/abc123',
+		'not a URL'
+	])('rechaza una URL que no sea HTTP(S) absoluta: %s', (url) => {
+		expect(parseCreatedPreviewShareLink({ ...CREATED, url })).toBeNull();
+	});
+
+	test.each([
+		'http://localhost:4321/preview/posts/abc123?token=signed%2Fvalue#page',
+		'HTTPS://EXAMPLE.TEST/preview/%2F?token=a%2Bb&next=%26'
+	])('conserva la URL HTTP(S) opaca sin reescribir: %s', (url) => {
+		expect(parseCreatedPreviewShareLink({ ...CREATED, url })).toEqual({ ...CREATED, url });
+	});
+
 	test('sin "url" utilizable no hay nada que compartir', () => {
 		expect(parseCreatedPreviewShareLink(LINK)).toBeNull();
 		expect(parseCreatedPreviewShareLink({ ...CREATED, url: '' })).toBeNull();
@@ -164,6 +186,17 @@ describe('createPreviewShareClient', () => {
 			id: 'abc123',
 			ttlSeconds: 3600
 		});
+	});
+
+	test('createLink(): un destino ejecutable nunca sale del cliente para abrirse o copiarse', async () => {
+		const { client } = clientWith(
+			() =>
+				new Response(JSON.stringify({ ...CREATED, url: 'javascript:alert(1)' }), { status: 201 })
+		);
+
+		await expect(client.createLink('posts', 'abc123', { ttlSeconds: 3600 })).rejects.toThrow(
+			/forma válida/
+		);
 	});
 
 	test('createLink(): un 2xx sin URL rechaza en vez de inventar un enlace', async () => {

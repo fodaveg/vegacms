@@ -20,7 +20,15 @@ describe('safeUri — esquemas peligrosos → cadena vacía', () => {
 		'DATA:text/html,x',
 		'data:image/svg+xml;base64,PHN2Zz4=',
 		'vbscript:msgbox(1)',
-		'file:///etc/passwd'
+		'file:///etc/passwd',
+		'javascript&colon;alert(1)',
+		'java&Tab;script:alert(1)',
+		'java&NewLine;script:alert(1)',
+		'java&Tab;script&colon;alert(1)',
+		'java&NewLine;script&colon;alert(1)',
+		'javascript&#x26;colon;alert(1)',
+		'java\t&NewLine;scri&#112;t&colon;alert(1)',
+		'javascript&amp;colon;alert(1)'
 	])('safeUri(%j) === ""', (input) => {
 		expect(safeUri(input)).toBe('');
 	});
@@ -32,6 +40,10 @@ describe('safeUri — esquemas y formas legítimas → intactos', () => {
 		['https://example.com/x?y=1#z', 'https://example.com/x?y=1#z'],
 		['HTTPS://EXAMPLE.COM', 'HTTPS://EXAMPLE.COM'],
 		['mailto:x@example.com', 'mailto:x@example.com'],
+		['mailto:a&b@example.com', 'mailto:a&b@example.com'],
+		['https://example.com/?a=1&amp;b=2', 'https://example.com/?a=1&amp;b=2'],
+		['/images/a&b.png', '/images/a&b.png'],
+		['./a&b', './a&b'],
 		['/relative/path', '/relative/path'],
 		['relative/path', 'relative/path'],
 		['./relative/path', './relative/path'],

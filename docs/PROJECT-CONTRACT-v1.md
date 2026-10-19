@@ -206,9 +206,9 @@ Returns `200` with:
 
 - `collection`/`id` identify the record Vega wants a preview of — the same collection
   name and record id the rest of the API already uses.
-- `url`: an absolute URL Vega embeds in an `<iframe>` as-is. Vega treats it as fully
-  opaque: it never parses, rewrites, decodes, or stores it beyond the lifetime of the
-  open panel.
+- `url`: an absolute HTTP(S) URL Vega embeds in an `<iframe>` as-is. Vega validates only
+  its protocol; its path and tokens stay opaque. Vega never rewrites, decodes, or stores it
+  beyond the lifetime of the open panel.
 - `expiresAt`: ISO 8601 UTC. Vega uses it only to know when to request a fresh token
   while the panel stays open (a silent renewal, scheduled a little ahead of the
   deadline); it never extends, shortens, or otherwise second-guesses the token's
@@ -709,7 +709,8 @@ Returns `201` with:
 
 `url` is returned **by this response only**. The server keeps a hash of the secret inside it
 and cannot produce the URL again; an editor who loses it creates a new link and revokes the
-old one. Vega treats `url` as opaque and never stores it beyond the dialog that shows it.
+old one. `url` must be absolute HTTP(S); Vega validates only its protocol, keeps the original
+string opaque, and never stores it beyond the dialog that shows it.
 
 A record may hold at most **20 live links**. Creating one more is refused with `409`:
 

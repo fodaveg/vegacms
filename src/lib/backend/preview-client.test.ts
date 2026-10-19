@@ -32,6 +32,28 @@ describe('parsePreviewToken', () => {
 		expect(parsePreviewToken({ ...TOKEN, postToken: 42 })).toEqual(TOKEN);
 	});
 
+	test.each([
+		'javascript:alert(1)',
+		'JaVaScRiPt:alert(1)',
+		'java\tscript:alert(1)',
+		'data:text/html,<script>alert(1)</script>',
+		'vbscript:msgbox(1)',
+		'file:///etc/passwd',
+		'about:blank',
+		'/preview/posts/abc123',
+		'//example.test/preview/posts/abc123',
+		'not a URL'
+	])('rechaza una URL que no sea HTTP(S) absoluta: %s', (url) => {
+		expect(parsePreviewToken({ ...TOKEN, url })).toBeNull();
+	});
+
+	test.each([
+		'http://localhost:4321/preview/posts/abc123?token=signed%2Fvalue#page',
+		'HTTPS://EXAMPLE.TEST/preview/%2F?token=a%2Bb&next=%26'
+	])('conserva la URL HTTP(S) opaca sin reescribir: %s', (url) => {
+		expect(parsePreviewToken({ ...TOKEN, url })).toEqual({ ...TOKEN, url });
+	});
+
 	test('sin "url" o sin "expiresAt" (o de tipo inesperado) invalida el documento entero', () => {
 		expect(parsePreviewToken({ expiresAt: TOKEN.expiresAt })).toBeNull();
 		expect(parsePreviewToken({ url: TOKEN.url })).toBeNull();
@@ -120,6 +142,19 @@ describe('createPreviewClient', () => {
 		expect(err).toBeInstanceOf(PreviewRequestError);
 		expect((err as PreviewRequestError).status).toBe(403);
 		expect((err as Error).message).toMatch(/403/);
+	});
+
+	test('requestPreview(): un destino ejecutable nunca sale del cliente para embeberse', async () => {
+		const fetcher = fakeFetch(
+			() => new Response(JSON.stringify({ ...TOKEN, url: 'javascript:alert(1)' }), { status: 200 })
+		);
+		const client = createPreviewClient({
+			apiUrl: 'https://pb.test/api/vega-preview',
+			token: 'tok',
+			fetcher
+		});
+
+		await expect(client.requestPreview('posts', 'abc123')).rejects.toThrow(/forma válida/);
 	});
 
 	test('respuesta 2xx con forma inesperada rechaza en vez de inventar una URL', async () => {
