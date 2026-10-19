@@ -61,8 +61,8 @@ function decodeNumericEntities(input: string): string {
  *   `https:` o `mailto:` (case-insensitive).
  *
  * Devuelve `''` en cualquier otro caso (`javascript:`, `data:`, `vbscript:`, esquemas ofuscados
- * con entidades/espacios, o cualquier otro no listado) — L11 del contrato ("degradar sin
- * crashear"): un enlace/imagen peligroso simplemente pierde su destino, nunca lanza.
+ * con entidades/espacios, prefijos ambiguos con `&`, o cualquier otro no listado) — L11 del
+ * contrato ("degradar sin crashear"): un enlace/imagen peligroso simplemente pierde su destino, nunca lanza.
  */
 export function safeUri(raw: string | null | undefined): string {
 	if (!raw) return '';
@@ -70,6 +70,12 @@ export function safeUri(raw: string | null | undefined): string {
 	if (trimmed === '') return '';
 
 	const stripped = stripControlAndWhitespace(decodeNumericEntities(trimmed));
+
+	// No dependemos del DOM para decodificar entidades con nombre: rechazamos un prefijo
+	// ambiguo antes de que otro consumidor convierta `&colon;`, `&Tab;` o `&NewLine;` en
+	// parte de un esquema. Tras el primer `:`, `/`, `?` o `#`, `&` sigue siendo legítimo.
+	const schemePrefix = stripped.split(/[:/?#]/, 1)[0];
+	if (schemePrefix.includes('&')) return '';
 
 	const schemeMatch = /^([a-z][a-z0-9+.-]*):/i.exec(stripped);
 	if (!schemeMatch) return trimmed;

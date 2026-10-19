@@ -15,6 +15,8 @@
  * un navegador, así que no tiene sitio aquí.
  */
 
+import { httpUrlOrNull } from './http-url';
+
 // ————— Contrato de las rutas (§"Share links" del contrato de proyecto) —————
 
 /** Un enlace vivo tal como lo describe el servidor. No lleva el secreto ni su hash. */
@@ -35,7 +37,8 @@ export interface PreviewShareLink {
 
 /** Respuesta de crear: el enlace más su URL. La URL lleva el secreto y el servidor la devuelve
  *  UNA sola vez: no se puede volver a pedir, ni aparece al listar. Es opaca para Vega: se copia o
- *  se muestra tal cual, nunca se parsea ni se reescribe. */
+ *  se muestra tal cual tras comprobar que sea absoluta HTTP(S), sin interpretar su ruta ni
+ *  sus tokens o reescribirla. */
 export interface CreatedPreviewShareLink extends PreviewShareLink {
 	url: string;
 }
@@ -130,12 +133,12 @@ export function parsePreviewShareLink(raw: unknown): PreviewShareLink | null {
 	return { id, label: record.label, createdAt, expiresAt, createdBy, createdByCollection };
 }
 
-/** Respuesta de crear: un enlace válido más una `url` no vacía. Sin `url` no hay nada que
+/** Respuesta de crear: un enlace válido más una `url` absoluta HTTP(S). Sin `url` no hay nada que
  *  compartir, y no se puede pedir otra vez. */
 export function parseCreatedPreviewShareLink(raw: unknown): CreatedPreviewShareLink | null {
 	const link = parsePreviewShareLink(raw);
 	if (!link) return null;
-	const url = nonEmptyString((raw as Record<string, unknown>).url);
+	const url = httpUrlOrNull((raw as Record<string, unknown>).url);
 	return url ? { ...link, url } : null;
 }
 

@@ -19,11 +19,13 @@
  * propio criterio, sin fingir un `VegaError.kind` que no le corresponde.
  */
 
+import { httpUrlOrNull } from './http-url';
+
 // ————— Contrato del endpoint (§"Preview endpoint" del contrato de proyecto) —————
 
 /** `POST {apiBasePath}/token` → `200` + este cuerpo (§contrato). `url` es SIEMPRE opaca para
- *  Vega: se embebe tal cual en un `<iframe src>` (`PreviewPanel.svelte`), nunca se parsea, se
- *  reescribe ni se decodifica. */
+ *  Vega: solo se comprueba que sea absoluta HTTP(S); se embebe tal cual en un `<iframe src>`
+ *  (`PreviewPanel.svelte`), sin interpretar su ruta ni sus tokens, reescribirla o decodificarla. */
 export interface PreviewToken {
 	url: string;
 	/** ISO 8601 UTC. Solo se usa para programar una renovación SILENCIOSA un poco antes de que
@@ -89,14 +91,14 @@ function stringOrNull(value: unknown): string | null {
 /**
  * Valida la forma de `POST .../token` (§contrato). A diferencia de `parseBuildStatus`
  * (`build-client.ts`, que degrada campo a campo porque casi todos son opcionales), aquí NO hay
- * nada que degradar: sin una `url` no hay nada que embeber, y una `expiresAt` inventada rompería
- * la renovación silenciosa en vez de solo perder un dato cosmético — así que cualquiera de los
- * dos ausente o de tipo inesperado invalida el documento entero.
+ * nada que degradar: sin una `url` absoluta HTTP(S) no hay nada seguro que embeber. Una
+ * `expiresAt` inventada rompería la renovación silenciosa en vez de solo perder un dato cosmético:
+ * cualquiera de los dos ausente o de tipo inesperado invalida el documento entero.
  */
 export function parsePreviewToken(raw: unknown): PreviewToken | null {
 	if (typeof raw !== 'object' || raw === null) return null;
 	const record = raw as Record<string, unknown>;
-	const url = stringOrNull(record.url);
+	const url = httpUrlOrNull(record.url);
 	const expiresAt = stringOrNull(record.expiresAt);
 	if (!url || !expiresAt) return null;
 	const postToken = stringOrNull(record.postToken);
