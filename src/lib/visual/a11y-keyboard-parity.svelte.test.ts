@@ -439,12 +439,15 @@ function handleOf(target: HTMLElement): HTMLButtonElement {
 describe('Paridad de teclado — lienzo (VisualOverlay.svelte)', () => {
 	let mounted: ReturnType<typeof mountOverlay> | null = null;
 
+	beforeEach(stubResizeObserver);
+
 	afterEach(async () => {
 		if (mounted) {
 			await unmount(mounted.instance);
 			mounted.target.remove();
 			mounted = null;
 		}
+		vi.unstubAllGlobals();
 		vi.restoreAllMocks();
 	});
 
@@ -754,9 +757,30 @@ function stubMatchMediaWide(): void {
 	}));
 }
 
-function stubResizeObserverNoop(): void {
-	class ResizeObserverStub {
-		observe(): void {}
+/** jsdom no implementa ResizeObserver; el binding de Svelte necesita una entrada cuyo
+ *  target sea el elemento observado. Estas medidas no acreditan geometría de navegador. */
+function stubResizeObserver(): void {
+	class ResizeObserverStub implements ResizeObserver {
+		#callback: ResizeObserverCallback;
+		constructor(callback: ResizeObserverCallback) {
+			this.#callback = callback;
+		}
+		observe(target: Element): void {
+			const contentRect = target.getBoundingClientRect();
+			const size = { inlineSize: contentRect.width, blockSize: contentRect.height };
+			this.#callback(
+				[
+					{
+						target,
+						contentRect,
+						borderBoxSize: [size],
+						contentBoxSize: [size],
+						devicePixelContentBoxSize: [size]
+					}
+				],
+				this
+			);
+		}
 		unobserve(): void {}
 		disconnect(): void {}
 	}
@@ -787,7 +811,7 @@ describe('Paridad de teclado — pantalla (VisualEditorScreen.svelte, atajos)', 
 
 	beforeEach(() => {
 		stubMatchMediaWide();
-		stubResizeObserverNoop();
+		stubResizeObserver();
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 	});
 

@@ -14,7 +14,7 @@
  * ver la cabecera del componente.
  */
 import { mount, tick, unmount } from 'svelte';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import VisualOverlay from './VisualOverlay.svelte';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { BlocksState, BlocksStatus } from '$lib/form/blocks-state.svelte';
@@ -159,8 +159,40 @@ async function settle(): Promise<void> {
 	await tick();
 }
 
+/** jsdom no implementa ResizeObserver; el binding de Svelte necesita una entrada cuyo
+ *  target sea el elemento observado. Estas medidas no acreditan geometría de navegador. */
+function stubResizeObserver(): void {
+	class ResizeObserverStub implements ResizeObserver {
+		#callback: ResizeObserverCallback;
+		constructor(callback: ResizeObserverCallback) {
+			this.#callback = callback;
+		}
+		observe(target: Element): void {
+			const contentRect = target.getBoundingClientRect();
+			const size = { inlineSize: contentRect.width, blockSize: contentRect.height };
+			this.#callback(
+				[
+					{
+						target,
+						contentRect,
+						borderBoxSize: [size],
+						contentBoxSize: [size],
+						devicePixelContentBoxSize: [size]
+					}
+				],
+				this
+			);
+		}
+		unobserve(): void {}
+		disconnect(): void {}
+	}
+	vi.stubGlobal('ResizeObserver', ResizeObserverStub);
+}
+
 describe('VisualOverlay.svelte', () => {
 	let mounted: ReturnType<typeof mountOverlay> | null = null;
+
+	beforeEach(stubResizeObserver);
 
 	afterEach(async () => {
 		if (mounted) {
@@ -168,6 +200,7 @@ describe('VisualOverlay.svelte', () => {
 			mounted.target.remove();
 			mounted = null;
 		}
+		vi.unstubAllGlobals();
 		vi.restoreAllMocks();
 	});
 
@@ -654,9 +687,9 @@ describe('VisualOverlay.svelte', () => {
 		);
 		expect(points[2].getAttribute('aria-label')).toBe(translate('es', 'editor.visual.insert.end'));
 		// Antes del primero, entre los dos, y después del segundo — mismo orden Y creciente.
-		expect(points[0].style.top).toBe('0px');
-		expect(points[1].style.top).toBe('75px'); // punto medio entre 50 (fin de b1) y 100 (inicio de b2)
-		expect(points[2].style.top).toBe('150px');
+		expect(points[0].style.getPropertyValue('--insert-top')).toBe('0px');
+		expect(points[1].style.getPropertyValue('--insert-top')).toBe('75px'); // punto medio entre 50 (fin de b1) y 100 (inicio de b2)
+		expect(points[2].style.getPropertyValue('--insert-top')).toBe('150px');
 	});
 
 	test.each(['dirty', 'saving', 'busy'])(
