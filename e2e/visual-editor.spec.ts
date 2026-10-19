@@ -983,7 +983,9 @@ test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo
 	await page.locator('[data-vega-tree-row="seccion_1"]').click();
 	const first = page.locator('.vega-inspector-body[data-block-id="seccion_1"]');
 	const heading = first.locator('[data-field="heading"] input');
+	// El aviso debe dejar sitio al foco también cuando un nombre ocupa otra línea al hacer reflow.
 	const longName =
+		'Guía editorial de una página con un nombre largo para reconocer el bloque al recorrer todos sus campos. ' +
 		'Guía editorial de una página con un nombre largo para reconocer el bloque al recorrer todos sus campos';
 	await heading.fill(longName);
 	for (const [index, field] of (await first.locator('textarea').all()).entries()) {

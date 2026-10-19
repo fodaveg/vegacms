@@ -1342,11 +1342,13 @@
 		font-size: 0.85rem;
 	}
 
+	/* Con poca altura, los nombres largos siguen accesibles por scroll y dejan sitio al campo
+	   enfocado y su cabecera; desplazar el inspector no basta si ambos ya no caben en el panel. */
 	.vega-visual-pending-list {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.25rem 0.5rem;
-		max-height: 8rem;
+		max-height: min(8rem, 16vh);
 		margin: 0.5rem 0 0;
 		padding: 0.25rem;
 		overflow-y: auto;
