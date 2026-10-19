@@ -1305,9 +1305,10 @@
 	/* A sangre (mismo criterio que `.vega-record-form` de `RecordForm.svelte`, ver su cabecera):
 	   cancela el padding de `.vega-main` (`AppShell.svelte`) con márgenes negativos y ocupa el alto
 	   ENTERO del hueco de contenido — la topbar de la app y el rail se quedan (son la salida, ver
-	   cabecera), solo el `<main>` de `AppShell` desaparece bajo esta pantalla. Altura calculada, no
-	   heredada de `.vega-main` (que scrollearía si el contenido se saliera): el iframe llena el
-	   hueco exacto y el scroll que importa es el del SITIO, dentro del propio marco. */
+	   cabecera), solo el `<main>` de `AppShell` desaparece bajo esta pantalla. Altura calculada
+	   desde el contenido de `.vega-main`: así descuenta también una topbar de varias filas o
+	   banners reales. Se recupera solo el padding inferior cancelado por el margen; el iframe
+	   conserva su propio viewport y el scroll del sitio queda dentro del marco. */
 	.vega-visual-screen {
 		display: flex;
 		flex-direction: column;
@@ -1320,8 +1321,7 @@
 		   invisible. Cancelar el padding lateral e inferior no tiene ese problema porque ahí no
 		   hay nada pegajoso. */
 		margin: 0 -2rem -2.5rem;
-		height: calc(100vh - var(--topbar-h) - 1.75rem);
-		height: calc(100dvh - var(--topbar-h) - 1.75rem);
+		height: calc(100% + 2.5rem);
 	}
 
 	/* Un único scroll conserva todo el aviso, también si su guía crece al cambiar de tipografía.

@@ -585,7 +585,7 @@
 								? 'editor.blocks.form.reviewFields'
 								: dirty
 									? 'editor.visual.pending.title'
-									: 'topbar.publish.noChanges'
+									: 'editor.noLocalChanges'
 			),
 			hasTexts && !locked && (!typed || blockType !== null) ? saveButton : undefined,
 			record.id

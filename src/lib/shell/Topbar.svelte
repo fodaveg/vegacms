@@ -363,6 +363,7 @@
 	   desaparece del todo, solo pierde intensidad. `--sheen` = trazo/resalte (nunca relleno, ver
 	   `--accent-fill` del botón primario), coherente con la barra de fila activa de `RecordTable`. */
 	.vega-topbar--build {
+		box-sizing: border-box;
 		height: auto;
 		min-height: var(--topbar-h);
 		padding-block: 0.35rem;
@@ -461,6 +462,11 @@
 		   igual que en el mockup (`.topbar-right`, sin margen propio). Si esto vuelve a llevar
 		   `margin-left:auto`, el buscador deja de quedar centrado (el hueco se repartiría entre
 		   TRES márgenes en vez de dos). */
+	}
+
+	.vega-topbar--build .vega-topbar-actions {
+		min-width: 0;
+		flex-shrink: 1;
 	}
 
 	.vega-topbar-publication {

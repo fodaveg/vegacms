@@ -229,7 +229,7 @@ function stubResizeObserver(): { triggerResize: () => void } {
 			const entry = { el, cb: this.#cb };
 			observers.add(entry);
 			this.#cb(
-				[{ contentRect: el.getBoundingClientRect() } as ResizeObserverEntry],
+				[{ target: el, contentRect: el.getBoundingClientRect() } as ResizeObserverEntry],
 				this as unknown as ResizeObserver
 			);
 		}
@@ -245,7 +245,7 @@ function stubResizeObserver(): { triggerResize: () => void } {
 		triggerResize: () => {
 			for (const { el, cb } of observers) {
 				cb(
-					[{ contentRect: el.getBoundingClientRect() } as ResizeObserverEntry],
+					[{ target: el, contentRect: el.getBoundingClientRect() } as ResizeObserverEntry],
 					undefined as unknown as ResizeObserver
 				);
 			}
