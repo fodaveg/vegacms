@@ -1146,7 +1146,13 @@
 	   reactiva (ver cabecera, "DOS capas nuevas"). */
 	.vega-visual-overlay-toolbar {
 		position: absolute;
-		left: var(--toolbar-right);
+		left: clamp(
+			calc((var(--toolbar-width) + 4px) * var(--menu-scale)),
+			var(--toolbar-right),
+			calc(100% - 4px * var(--menu-scale))
+		);
+		max-width: calc(100% / var(--menu-scale) - 8px);
+		flex-wrap: wrap;
 		/* `left` viene con el borde DERECHO del bloque (ver el marcado): esto la trae de vuelta su
 		   propio ancho, que es lo que la deja pegada a la derecha DENTRO del contorno sin tener
 		   que medir la barra en JS. La esquina izquierda ya la ocupa la etiqueta del tipo de
@@ -1435,18 +1441,6 @@
 
 	@media (pointer: coarse) {
 		/* El zoom pertenece al sitio; los controles conservan su caja y glifo en pantalla. */
-		.vega-visual-overlay-toolbar {
-			left: clamp(
-				calc((var(--toolbar-width) + 4px) * var(--menu-scale)),
-				var(--toolbar-right),
-				calc(100% - 4px * var(--menu-scale))
-			);
-			max-width: calc(100% / var(--menu-scale) - 8px);
-			flex-wrap: wrap;
-			transform: translateX(-100%) scale(var(--menu-scale));
-			transform-origin: top right;
-		}
-
 		.vega-visual-overlay-insert {
 			top: var(--insert-touch-top);
 			transform: translate(-50%, -50%) scale(var(--menu-scale));

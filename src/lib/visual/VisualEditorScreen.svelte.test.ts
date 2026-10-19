@@ -138,7 +138,7 @@ async function setup(blocks: BlockSeed[] = []): Promise<Fixture> {
 		session: { token: 'tok-123', user: { id: 'u1', email: 'a@b.test' }, expiresAt: null },
 		locale: 'es',
 		t: (key: string, params?: Record<string, string | number>) => translate('es', key, params),
-		nav: { toRecord: vi.fn(), toSettings: vi.fn() },
+		nav: { toList: vi.fn(), toRecord: vi.fn(), toSettings: vi.fn() },
 		feedback: { toast: vi.fn(), reportError: vi.fn() },
 		// Se deja declarado aunque esta pantalla NO lo use (ver su cabecera): el shell lo publica
 		// siempre, y omitirlo del doble escondería que el guard va por otro camino.
@@ -357,6 +357,21 @@ describe('VisualEditorScreen.svelte', () => {
 
 		const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame');
 		expect(iframe?.src).toBe(TOKEN_URL);
+	});
+
+	test('la cabecera vuelve al listado y ofrece Campos de página con enlaces reales', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type } = await setup();
+		mounted = mountScreen(ctx, type);
+		await flush();
+		const back = mounted.target.querySelector<HTMLAnchorElement>('.vega-visual-back')!;
+		const fields = mounted.target.querySelector<HTMLAnchorElement>('.vega-visual-fields-link')!;
+		expect(back.getAttribute('href')).toBe('/c/post');
+		expect(fields.getAttribute('href')).toBe('/c/post/rec-1');
+		back.click();
+		fields.click();
+		expect(ctx.nav.toList).toHaveBeenCalledWith('post');
+		expect(ctx.nav.toRecord).toHaveBeenCalledWith('post', 'rec-1');
 	});
 
 	test('un fallo de RED (fetch rechazado) muestra un mensaje genérico, nunca el crudo del motor (hallazgo p3)', async () => {
@@ -2072,18 +2087,63 @@ describe('VisualEditorScreen.svelte — borrador en el lienzo', () => {
 		expect(draft.draft.blocks).toHaveLength(2);
 		expect(draft.draft.blocks[0].fields.heading).toBe('Hero sin guardar');
 		expect((await port.get('post_block', 'b1')).values.heading).toBe('Hero');
+		// jsdom no navega por el POST; hasta el load del renderer el aviso sigue pendiente.
 		expect(mounted.target.querySelector('.vega-visual-status')?.textContent).toContain(
-			'Vista previa del borrador · Sin guardar'
+			'Actualizando vista previa… · Sin guardar'
 		);
 		expect(mounted.target.querySelector('form[target="vega-visual-draft-frame"]')).not.toBeNull();
 
 		mounted.target.querySelector<HTMLButtonElement>('.vega-inspector-close')!.click();
 		await tick();
 		expect(mounted.target.querySelector('.vega-visual-inspector-shell--hidden')).not.toBeNull();
-		mounted.target.querySelector<HTMLButtonElement>('.vega-visual-panel-toggle')!.click();
+		const reopen = Array.from(
+			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-visual-panel-toggle')
+		).find((button) => button.textContent?.includes('Editar bloque'))!;
+		expect(document.activeElement).toBe(reopen);
+		reopen.click();
 		await tick();
+		expect(mounted.target.querySelector('.vega-visual-inspector-shell--hidden')).toBeNull();
 		expect(input.isConnected).toBe(true);
 		expect(input.value).toBe('Hero sin guardar');
+		expect(document.activeElement).toBe(input);
+	});
+
+	test('un layout viejo no confirma el borrador; solo ready del puente actualiza el estado', async () => {
+		let requests = 0;
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () =>
+				jsonResponse({ ...tokenBody(), ...(++requests > 1 ? { postToken: 'cifrado' } : {}) })
+			)
+		);
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }], true);
+		await editHeading(mounted.target, 'Nuevo');
+		await vi.advanceTimersByTimeAsync(400);
+		await flush();
+		const layout = {
+			vega: 'vega-visual-1',
+			type: 'layout',
+			blocks: [{ id: 'b1', type: 'hero', rect: { top: 0, left: 0, width: 100, height: 50 } }]
+		};
+		sendSiteMessage(layout);
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-status')?.textContent).toContain(
+			'Actualizando vista previa…'
+		);
+		sendSiteMessage({
+			...layout,
+			type: 'ready',
+			collection: 'post',
+			id: 'rec-1',
+			liveRefresh: true
+		});
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-status')?.textContent).toContain(
+			'Vista previa del borrador · Sin guardar'
+		);
 	});
 
 	test('un fallo de red conserva el iframe y el borrador, con error y reintento visibles', async () => {
@@ -2133,6 +2193,57 @@ describe('VisualEditorScreen.svelte — borrador en el lienzo', () => {
 				?.value
 		).toBe('nuevo');
 		expect(fetchMock).toHaveBeenCalledTimes(3);
+	});
+
+	test('volver al valor guardado refresca el lienzo aunque ya no haya cambios pendientes', async () => {
+		const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
+			jsonResponse({ ...tokenBody(), postToken: 'cifrado' })
+		);
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type, port } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		const input = await editHeading(mounted.target, 'Temporal');
+		await vi.advanceTimersByTimeAsync(400);
+		await flush();
+		input.value = 'Hero';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		await vi.advanceTimersByTimeAsync(400);
+		await flush();
+		const last = JSON.parse(String(fetchMock.mock.calls.at(-1)![1]?.body));
+		expect(fetchMock).toHaveBeenCalledTimes(3);
+		expect(last.draft.blocks[0].fields.heading).toBe('Hero');
+		expect((await port.get('post_block', 'b1')).values.heading).toBe('Hero');
+		expect(mounted.target.querySelector('.vega-visual-dirty')).toBeNull();
+	});
+
+	test('un 403 temporal muestra lo guardado pero el siguiente cambio vuelve a intentar draft', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(jsonResponse(tokenBody()))
+			.mockResolvedValueOnce(new Response('denied', { status: 403 }))
+			.mockResolvedValueOnce(jsonResponse(tokenBody()))
+			.mockResolvedValueOnce(jsonResponse({ ...tokenBody(), postToken: 'cifrado' }));
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		const input = await editHeading(mounted.target, 'Temporal');
+		await vi.advanceTimersByTimeAsync(400);
+		await flush();
+		input.value = 'Válido';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		await vi.advanceTimersByTimeAsync(400);
+		await flush();
+		expect(fetchMock).toHaveBeenCalledTimes(4);
+		expect(
+			JSON.parse(String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body))
+		).not.toHaveProperty('draft');
+		expect(
+			JSON.parse(String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body))
+		).toHaveProperty('draft');
 	});
 });
 

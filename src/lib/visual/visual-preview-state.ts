@@ -42,19 +42,16 @@ export function createVisualPreviewState(options: VisualPreviewOptions) {
 	let refreshGeneration = 0;
 	let destroyed = false;
 	let draftRevision = 0;
-	let savedOnly = false;
 
-	/** Misma degradación que `PreviewPanel`: un 403 del draft permite seguir viendo lo guardado. */
+	/** Un 403 del snapshot permite seguir viendo lo guardado. La siguiente edición vuelve a
+	 *  intentar el draft: un valor temporal no desactiva la vista en vivo para toda la sesión. */
 	async function fetchPreview(draft: PreviewDraft | undefined): Promise<PreviewToken> {
-		if (savedOnly || !draft)
-			return options.client.requestPreview(options.typeName, options.recordId);
+		if (!draft) return options.client.requestPreview(options.typeName, options.recordId);
 		try {
 			return await options.client.requestPreview(options.typeName, options.recordId, draft);
 		} catch (err) {
 			if (!(err instanceof PreviewRequestError) || err.status !== 403) throw err;
-			const token = await options.client.requestPreview(options.typeName, options.recordId);
-			savedOnly = true;
-			return token;
+			return options.client.requestPreview(options.typeName, options.recordId);
 		}
 	}
 

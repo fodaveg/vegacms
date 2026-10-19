@@ -325,7 +325,9 @@
 			{texts ? ctx.t('editor.visual.texts.title') : ctx.t('editor.visual.inspector.title')}
 		</h2>
 		{#if !texts && onClose}
-			<button type="button" class="vega-inspector-close" onclick={onClose}>Cerrar inspector</button>
+			<button type="button" class="vega-inspector-close" onclick={onClose}
+				>{ctx.t('editor.visual.closeInspector')}</button
+			>
 		{/if}
 		{#if texts}
 			<p class="vega-inspector-intro">{ctx.t('editor.visual.texts.intro')}</p>

@@ -307,7 +307,7 @@
 	import { createVisualPreviewState, type TokenState } from './visual-preview-state';
 	import { createBlocksState } from '$lib/form/blocks-state.svelte';
 	import { requestFieldFocus, type FieldFocusRequest } from '$lib/form/focus-request';
-	import { recordRoute } from '$lib/nav/routes';
+	import { listRoute, recordRoute } from '$lib/nav/routes';
 	import type { ReviewFinding } from '$lib/publish-review/publish-review';
 	import { createReviewState } from '$lib/publish-review/review-state.svelte';
 	import ReviewMediaLoader from '$lib/publish-review/ReviewMediaLoader.svelte';
@@ -350,6 +350,15 @@
 
 	const ctx = getVegaContext();
 
+	/** Un clic normal usa `NavApi` y su guard de salida; los clics modificados conservan el href. */
+	function openDestination(event: MouseEvent, destination: 'list' | 'form'): void {
+		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+			return;
+		event.preventDefault();
+		if (destination === 'list') ctx.nav.toList(type.name);
+		else ctx.nav.toRecord(type.name, record.id);
+	}
+
 	// Único `createBlocksState` de esta pantalla (§encargo): árbol e inspector lo reciben como PROP,
 	// ninguno de los dos instancia la fábrica por su cuenta (ver sus cabeceras). `resolveVisualGate`
 	// ya garantiza `type.blocks` no-nulo para que esta ruta exista (`visual-gate.ts`), así que
@@ -369,13 +378,15 @@
 			const snapshot = JSON.stringify(drafts);
 			if (snapshot === lastDraftSnapshot) return;
 			lastDraftSnapshot = snapshot;
-			if (blocks.anyDirty) {
+			if (blocks.anyDirty || draftPreviewStarted) {
+				draftPreviewStarted = blocks.anyDirty;
 				previewUpdating = true;
 				preview.scheduleCanvasRefresh({ draftEdit: true });
 			}
 		}
 	});
 	let lastDraftSnapshot = '';
+	let draftPreviewStarted = false;
 
 	// ————— Revisión antes de publicar (ver cabecera) —————
 
@@ -492,6 +503,21 @@
 	/** Los paneles se cierran sin desmontar los editores, que conservan el borrador de cada bloque. */
 	let treeVisible = $state(false);
 	let inspectorVisible = $state(false);
+	let editBlockButtonEl = $state<HTMLButtonElement | undefined>(undefined);
+
+	/** Cerrar conserva el editor montado y devuelve el foco a su disparador recién mostrado. */
+	async function closeInspector(): Promise<void> {
+		inspectorVisible = false;
+		await tick();
+		editBlockButtonEl?.focus();
+	}
+
+	/** El autor vuelve al mismo campo y al mismo borrador, sin cambiar la selección. */
+	async function reopenInspector(): Promise<void> {
+		inspectorVisible = true;
+		await tick();
+		if (selectedBlockId) inspectorRef?.focusBlock(selectedBlockId);
+	}
 	// Las dos fuentes del resalte al pasar (ver cabecera, "El resalte al pasar tiene DOS fuentes").
 	// Página: bloque bajo el puntero DENTRO del marco; `null` si no hay ninguno o el sitio no
 	// implementa `hover`. Árbol: fila bajo el puntero o con el foco. `hoverSource`: cuál de las dos
@@ -611,6 +637,7 @@
 	 *  refresco no cambia ni una coma, esta función solo le añade el reloj por delante. */
 	function handleContentSaved(): void {
 		savedAt = new Date();
+		draftPreviewStarted = false;
 		previewUpdating = false;
 		contentSavedCount += 1; // la revisión relee páginas, redirecciones y medios (ver cabecera)
 		// Sin lienzo (modo «solo textos», ver cabecera) no hay marco que refrescar: pedir un token
@@ -686,7 +713,6 @@
 			frame: () => iframeEl?.contentWindow ?? null,
 			onState: (state) => {
 				bridgeState = state;
-				if (state.status === 'connected') previewUpdating = false;
 				// Si el bloque seleccionado ya no está en lo que reporta el sitio (lo borró otra
 				// pestaña, cambió la plantilla, o el saludo trae otra página), la selección se
 				// LIMPIA aquí mismo. Dejarla apuntando a un id que ya no existe no se nota hoy —el
@@ -727,15 +753,25 @@
 	 *  también en cada recarga entera (renovación de token de respaldo, sin puente o sin
 	 *  `liveRefresh`), que es justo cuando hay que volver a saludar. */
 	function handleFrameLoad(): void {
-		// El marco vacío que recibe el POST inicial no representa una página del sitio.
-		if (tokenState.kind === 'ready' && tokenState.token.postToken && !postForm) return;
+		// `about:blank` es el documento local previo al POST, no el renderer del sitio. Su `load`
+		// puede llegar incluso después de montar el formulario; solo el documento real saluda.
+		if (tokenState.kind === 'ready' && tokenState.token.postToken) {
+			try {
+				if (iframeEl?.contentWindow?.location.href === 'about:blank') return;
+			} catch {
+				// El renderer cross-origin sí es opaco: su `load` es el que esperamos.
+			}
+		}
 		frameLoaded = true;
 		if (tokenState.kind !== 'ready') return;
 		ensureBridgeClient(tokenState.token.url).start();
 	}
 
 	function handleMessage(event: MessageEvent): void {
-		bridgeClient?.handleMessage(event);
+		const verdict = bridgeClient?.handleMessage(event);
+		// `layout` del documento anterior también devuelve `accepted` y actualiza `onState`:
+		// solo el `ready` validado por el puente confirma que el nuevo draft se está viendo.
+		if (verdict === 'accepted' && event.data?.type === 'ready') previewUpdating = false;
 	}
 
 	function retryBridge(): void {
@@ -1032,18 +1068,21 @@
 {/snippet}
 
 <div class="vega-visual-screen">
+	<!-- Las rutas canónicas (`listRoute`/`recordRoute`) ya incluyen el base path; este repo
+	     desactiva la regla de `resolve()` en los otros consumidores del mismo `NavApi`. -->
+	<!-- eslint-disable svelte/no-navigation-without-resolve -->
 	<EditTopBar bleed>
 		{#snippet crumb()}
 			<div class="vega-visual-document">
-				<button
-					type="button"
+				<a
+					href={listRoute(type.name)}
 					class="vega-visual-back"
-					aria-label={ctx.t('editor.visual.back')}
-					title={ctx.t('editor.visual.back')}
-					onclick={() => ctx.nav.toRecord(type.name, record.id)}
+					aria-label={ctx.t('editor.visual.backToList', { label: type.label })}
+					title={ctx.t('editor.visual.backToList', { label: type.label })}
+					onclick={(event) => openDestination(event, 'list')}
 				>
 					<Icon id="chevron" size={16} />
-				</button>
+				</a>
 				<div class="vega-visual-document-name">
 					<h1 title={docName}>{docName}</h1>
 					<nav
@@ -1062,6 +1101,11 @@
 		{/snippet}
 		{#snippet actions()}
 			<div class="vega-visual-document-actions">
+				<a
+					href={recordRoute(type.name, record.id)}
+					class="vega-visual-fields-link"
+					onclick={(event) => openDestination(event, 'form')}>{ctx.t('editor.visual.pageFields')}</a
+				>
 				{#if blocks.anySaving || blocks.structuralBusy}
 					<span class="vega-visual-saved-at vega-visual-saved-at--saving">
 						{ctx.t('editor.saving')}
@@ -1088,6 +1132,7 @@
 			</div>
 		{/snippet}
 	</EditTopBar>
+	<!-- eslint-enable svelte/no-navigation-without-resolve -->
 
 	{#if pendingBlocks.length > 0}
 		<section class="vega-visual-pending" aria-labelledby="vega-visual-pending-title">
@@ -1168,13 +1213,14 @@
 						class:vega-visual-panel-toggle--tree={true}
 						aria-expanded={treeVisible}
 						aria-controls="vega-block-tree-panel"
-						onclick={() => (treeVisible = !treeVisible)}>Estructura</button
+						onclick={() => (treeVisible = !treeVisible)}>{ctx.t('editor.visual.structure')}</button
 					>
 					{#if selectedBlockId && !inspectorVisible}
 						<button
 							type="button"
 							class="vega-visual-panel-toggle"
-							onclick={() => (inspectorVisible = true)}>Editar bloque</button
+							bind:this={editBlockButtonEl}
+							onclick={() => void reopenInspector()}>{ctx.t('editor.visual.editBlock')}</button
 						>
 					{/if}
 					<label class="vega-visual-view-control">
@@ -1228,7 +1274,7 @@
 					<div class="vega-visual-status" aria-live="polite">
 						{#if previewError !== null}
 							<span class="vega-visual-status-text vega-visual-status-text--error" role="alert">
-								No se pudo actualizar la vista previa: {previewError}
+								{ctx.t('editor.visual.previewRefreshError', { message: previewError })}
 							</span>
 							<button
 								type="button"
@@ -1238,13 +1284,11 @@
 								{ctx.t('common.retry')}
 							</button>
 						{:else if blocks.anyDirty && (previewUpdating || !frameLoaded)}
-							<span class="vega-visual-status-text">Actualizando vista previa… · Sin guardar</span>
+							<span class="vega-visual-status-text">{ctx.t('editor.visual.previewUpdating')}</span>
 						{:else if blocks.anyDirty && previewDraftAccepted}
-							<span class="vega-visual-status-text">Vista previa del borrador · Sin guardar</span>
+							<span class="vega-visual-status-text">{ctx.t('editor.visual.previewDraft')}</span>
 						{:else if blocks.anyDirty}
-							<span class="vega-visual-status-text"
-								>Vista previa guardada · Guarda para ver los cambios</span
-							>
+							<span class="vega-visual-status-text">{ctx.t('editor.visual.previewSavedOnly')}</span>
 						{:else}
 							{#if bridgeState.status === 'connected'}
 								{@const connectedText = ctx.t(
@@ -1377,7 +1421,7 @@
 				onBlockSaved={handleContentSaved}
 				onBack={() => ctx.nav.toRecord(type.name, record.id)}
 				onSelectBlock={openPendingBlock}
-				onClose={() => (inspectorVisible = false)}
+				onClose={() => void closeInspector()}
 				fullFormHref={recordRoute(type.name, record.id)}
 			/>
 		</div>
@@ -1525,6 +1569,25 @@
 		flex-wrap: wrap;
 		gap: 0.75rem;
 		margin-left: auto;
+	}
+
+	.vega-visual-fields-link {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 0 0.7rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		color: var(--ink);
+		font-size: 0.85rem;
+		font-weight: 550;
+		text-decoration: none;
+	}
+
+	.vega-visual-fields-link:hover,
+	.vega-visual-fields-link:focus-visible {
+		border-color: var(--accent);
+		color: var(--accent-text);
 	}
 
 	.vega-visual-back {
