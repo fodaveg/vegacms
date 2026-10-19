@@ -496,8 +496,8 @@ export function resolveComponentTokens(theme, mode) {
 
 /**
  * Pares TEXTO/FONDO (nombres de `resolveComponentTokens`) que el gate exige a ≥4.5:1 (§5.3, L2
- * "AA MEDIDO, sin excepciones"). `ink-3` NO aparece a propósito (exento por diseño, muted/
- * placeholder). Los 4 semánticos (`danger` incluido desde el día 1) se añaden programáticamente:
+ * "AA MEDIDO, sin excepciones"). `ink-3` se limita a decoración redundante y controles realmente
+ * deshabilitados. Los placeholders habilitados usan `ink-2`, sin exención. Los 4 semánticos (`danger` incluido desde el día 1) se añaden programáticamente:
  * cada uno sobre su propia `-soft` y sobre `paper`/`surface`. `ink-2` también se lee sobre
  * `bg`/`sidebar` en los rótulos y metadatos del lienzo y del rail.
  */
@@ -506,12 +506,15 @@ export const COMPONENT_CONTRAST_PAIRS = [
 	['accentText', 'paper'],
 	['accentText', 'surface'],
 	['accentText', 'surface-2'],
+	['ink', 'bg'],
+	['ink', 'sidebar'],
 	['ink', 'paper'],
 	['ink', 'surface'],
 	['ink', 'surface-2'],
 	['ink', 'btn'],
 	['ink', 'active'],
 	['ink', 'accent-soft'],
+	['ink-2', 'btn'],
 	['ink-2', 'paper'],
 	['ink-2', 'surface'],
 	['ink-2', 'surface-2'],

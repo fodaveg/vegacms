@@ -656,7 +656,7 @@
 		border: 0;
 		border-radius: 6px;
 		background: transparent;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		cursor: grab;
 		touch-action: none;
 	}
@@ -667,7 +667,7 @@
 	}
 
 	.vega-block-handle:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 
@@ -692,7 +692,7 @@
 	}
 
 	.vega-block-toggle:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 

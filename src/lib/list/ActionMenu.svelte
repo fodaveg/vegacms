@@ -327,7 +327,7 @@
 	}
 
 	.vega-action-menu-trigger:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--ink);
 		outline-offset: 1px;
 	}
 

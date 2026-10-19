@@ -287,6 +287,7 @@
 	}
 
 	.vega-media-cell {
+		position: relative;
 		display: block;
 		width: 100%;
 		padding: 0;
@@ -300,7 +301,7 @@
 	/* El foco se recorta contra el `overflow: hidden` de la tarjeta, así que el anillo va HACIA
 	   DENTRO (offset negativo) en vez de por fuera. */
 	.vega-media-cell:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--paper);
 		outline-offset: -2px;
 	}
 
@@ -468,7 +469,8 @@
 	}
 
 	.vega-media-check--control:focus-visible {
-		outline-color: var(--ink);
+		outline-color: var(--paper);
+		box-shadow: inset 0 0 0 4px var(--ink-hi);
 		outline-offset: -2px;
 	}
 
@@ -522,5 +524,14 @@
 	.vega-media-inspected {
 		outline: 2px solid var(--ink);
 		outline-offset: -2px;
+	}
+
+	/* Doble trazo sobre imágenes: ambos se pintan por encima del contenido. */
+	.vega-media-cell:focus-visible::after {
+		content: '';
+		position: absolute;
+		inset: 2px;
+		border: 2px solid var(--ink-hi);
+		pointer-events: none;
 	}
 </style>

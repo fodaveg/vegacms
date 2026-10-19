@@ -353,6 +353,8 @@
 	 *  propia altura por debajo, y de paso desaparece el recorte del bloque pegado al borde de
 	 *  arriba, que es lo que obligaba al `Math.max(0, …)`. */
 	const TOOLBAR_INSET = 8;
+	/** Ancho de la barra, independiente del zoom, para mantener todas las acciones en el lienzo. */
+	let toolbarWidth = $state(0);
 
 	async function handleDuplicateSelected(): Promise<void> {
 		if (!selectedRecord) return;
@@ -746,10 +748,12 @@
 		{@const label = blocksState.blockTitle(selectedRecord)}
 		<div
 			class="vega-visual-overlay-toolbar"
+			bind:offsetWidth={toolbarWidth}
+			style:--toolbar-width="{toolbarWidth}px"
 			role="group"
 			aria-label={ctx.t('editor.visual.overlay.toolbar.label', { label })}
 			style:top="{selectedBridgeBlock.rect.top + TOOLBAR_INSET}px"
-			style:left="{selectedBridgeBlock.rect.left +
+			style:--toolbar-right="{selectedBridgeBlock.rect.left +
 				selectedBridgeBlock.rect.width -
 				TOOLBAR_INSET}px"
 		>
@@ -1119,6 +1123,7 @@
 	   reactiva (ver cabecera, "DOS capas nuevas"). */
 	.vega-visual-overlay-toolbar {
 		position: absolute;
+		left: var(--toolbar-right);
 		/* `left` viene con el borde DERECHO del bloque (ver el marcado): esto la trae de vuelta su
 		   propio ancho, que es lo que la deja pegada a la derecha DENTRO del contorno sin tener
 		   que medir la barra en JS. La esquina izquierda ya la ocupa la etiqueta del tipo de
@@ -1152,7 +1157,7 @@
 	}
 
 	.vega-visual-overlay-toolbar-btn:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 
@@ -1401,14 +1406,34 @@
 	}
 
 	@media (pointer: coarse) {
+		/* El zoom pertenece al sitio; los controles conservan su caja y glifo en pantalla. */
+		.vega-visual-overlay-toolbar {
+			left: clamp(
+				calc((var(--toolbar-width) + 4px) * var(--menu-scale)),
+				var(--toolbar-right),
+				calc(100% - 4px * var(--menu-scale))
+			);
+			max-width: calc(100% / var(--menu-scale) - 8px);
+			flex-wrap: wrap;
+			transform: translateX(-100%) scale(var(--menu-scale));
+			transform-origin: top right;
+		}
+
+		.vega-visual-overlay-insert {
+			transform: translate(-50%, -50%) scale(var(--menu-scale));
+		}
+
 		.vega-visual-overlay-insert-menu-item {
 			min-height: 44px;
 		}
 
 		.vega-visual-overlay-toolbar-btn,
 		.vega-visual-overlay-insert {
+			min-width: 44px;
+			min-height: 44px;
 			width: 44px;
 			height: 44px;
+			flex-shrink: 0;
 		}
 	}
 </style>

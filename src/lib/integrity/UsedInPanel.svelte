@@ -199,4 +199,12 @@
 		font-size: 0.8rem;
 		cursor: pointer;
 	}
+
+	@media (pointer: coarse) {
+		.vega-used-in-toggle,
+		.vega-used-in-error button {
+			min-width: 44px;
+			min-height: 44px;
+		}
+	}
 </style>

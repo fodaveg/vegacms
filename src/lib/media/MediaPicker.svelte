@@ -657,7 +657,7 @@
 		min-width: 0;
 		min-height: 44px;
 		padding: 0.5rem 0.6rem;
-		border: 1px solid var(--line);
+		border: 1px solid var(--ink-2);
 		border-radius: var(--r);
 		background: var(--surface);
 		color: var(--ink);

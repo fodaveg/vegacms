@@ -430,4 +430,8 @@
 		font-size: 0.78rem;
 		overflow-wrap: anywhere;
 	}
+
+	.vega-revisions-item:hover .vega-revisions-item-author {
+		color: var(--ink);
+	}
 </style>

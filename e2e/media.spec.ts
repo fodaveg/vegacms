@@ -1065,3 +1065,248 @@ test.describe('biblioteca contextual de medios (UX C)', () => {
 		});
 	}
 });
+
+/** Mide cada acción de estos estados; las ocultas y deshabilitadas no se cuentan como medidas. */
+test.describe('UX12: denominador táctil de medios', () => {
+	test.use({ hasTouch: true });
+
+	for (const density of ['comfortable', 'compact']) {
+		test(`biblioteca, ficha y picker a 390px, densidad ${density}`, async ({ page }, testInfo) => {
+			test.setTimeout(60_000);
+			await page.emulateMedia({ reducedMotion: 'reduce' });
+			await page.setViewportSize({ width: 1440, height: 844 });
+			await loginAsDemo(page, { seedMedia: true });
+			await waitForHome(page);
+			await page.evaluate((value) => {
+				document.documentElement.dataset.density = value;
+				localStorage.setItem('vega.density', value);
+			}, density);
+			await goToMedia(page);
+			await page.setViewportSize({ width: 390, height: 844 });
+			await page.locator('#vega-sidebar').evaluate(async (el) => {
+				await Promise.all(el.getAnimations().map((animation) => animation.finished));
+			});
+			await expect(page.locator('[data-media-item]')).toHaveCount(3);
+			expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+
+			const reports: unknown[] = [];
+			async function measure(scope: import('@playwright/test').Locator, state: string) {
+				const controls = scope.locator('button, a[href], input, select, textarea');
+				const discovered = await controls.count();
+				const measured: {
+					name: string;
+					width: number;
+					height: number;
+					outside: boolean;
+					overlap: string[];
+				}[] = [];
+				const exclusions: { name: string; reason: string }[] = [];
+				for (const control of await controls.all()) {
+					const name = await control.evaluate(
+						(el) => el.getAttribute('aria-label') || el.textContent?.trim() || el.className
+					);
+					if ((await control.getAttribute('type')) === 'file') {
+						exclusions.push({
+							name,
+							reason:
+								'input file oculto visualmente; los botones visibles Subir/Reemplazar sí se miden'
+						});
+						continue;
+					}
+					if (
+						!(await control.isVisible()) ||
+						!(await control.isEnabled()) ||
+						(await control.getAttribute('aria-disabled')) === 'true'
+					) {
+						exclusions.push({ name, reason: 'oculto o realmente deshabilitado en este estado' });
+						continue;
+					}
+					await control.scrollIntoViewIfNeeded();
+					const item = await control.evaluate((node, label) => {
+						// La etiqueta activa el checkbox nativo en toda su caja.
+						const el = node.matches('input[type=checkbox]')
+							? (node.closest('label') ?? node)
+							: node;
+						const r = el.getBoundingClientRect();
+						let left = Math.max(0, r.left),
+							right = Math.min(innerWidth, r.right),
+							top = Math.max(0, r.top),
+							bottom = Math.min(innerHeight, r.bottom);
+						for (let parent = el.parentElement; parent; parent = parent.parentElement) {
+							const css = getComputedStyle(parent),
+								box = parent.getBoundingClientRect();
+							if (/(hidden|clip|auto|scroll)/.test(css.overflowX)) {
+								left = Math.max(left, box.left);
+								right = Math.min(right, box.right);
+							}
+							if (/(hidden|clip|auto|scroll)/.test(css.overflowY)) {
+								top = Math.max(top, box.top);
+								bottom = Math.min(bottom, box.bottom);
+							}
+							if (css.position === 'fixed') {
+								let viewportAnchored = true;
+								for (
+									let ancestor = parent.parentElement;
+									ancestor;
+									ancestor = ancestor.parentElement
+								) {
+									const style = getComputedStyle(ancestor);
+									if (
+										style.transform !== 'none' ||
+										style.filter !== 'none' ||
+										style.perspective !== 'none' ||
+										/(paint|layout|strict|content)/.test(style.contain)
+									)
+										viewportAnchored = false;
+								}
+								if (viewportAnchored) break;
+							}
+						}
+						const hit = [
+							[r.left + r.width / 2, r.top + r.height / 2],
+							[left + 2, (top + bottom) / 2],
+							[right - 2, (top + bottom) / 2],
+							[(left + right) / 2, top + 2],
+							[(left + right) / 2, bottom - 2]
+						].every(([x, y]) => {
+							const target = document.elementFromPoint(x, y);
+							return target === el || (target !== null && el.contains(target));
+						});
+						const peers = [
+							...el
+								.closest('.vega-media-page, [role=dialog]')!
+								.querySelectorAll<HTMLElement>('button, a[href], input, select, textarea')
+						];
+						return {
+							name: label,
+							hitArea: el === node ? 'control' : 'label nativo del checkbox',
+							width: r.width,
+							height: r.height,
+							outside: right - left < r.width - 0.5 || bottom - top < r.height - 0.5 || !hit,
+							visibleWidth: right - left,
+							visibleHeight: bottom - top,
+							hit,
+							overlap: peers
+								.filter((other) => {
+									if (
+										other === el ||
+										other.contains(el) ||
+										el.contains(other) ||
+										other.matches(':disabled,[aria-disabled=true]')
+									)
+										return false;
+									const style = getComputedStyle(other),
+										b = other.getBoundingClientRect();
+									if (
+										!b.width ||
+										!b.height ||
+										style.visibility === 'hidden' ||
+										other.closest('[hidden]')
+									)
+										return false;
+									// El selector hermano de la tarjeta intercepta SU esquina, probado aparte mediante hit-testing.
+									if (
+										el.closest('.vega-media-card') === other.closest('.vega-media-card') &&
+										el.closest('.vega-media-card')
+									)
+										return false;
+									return (
+										Math.min(r.right, b.right) - Math.max(r.left, b.left) > 0.5 &&
+										Math.min(r.bottom, b.bottom) - Math.max(r.top, b.top) > 0.5
+									);
+								})
+								.map(
+									(other) =>
+										other.getAttribute('aria-label') || other.textContent?.trim() || other.className
+								)
+						};
+					}, name);
+					measured.push(item);
+				}
+				const failed = measured.filter(
+					(r) => r.width < 43.99 || r.height < 43.99 || r.outside || r.overlap.length
+				);
+				const report = {
+					state,
+					density,
+					discovered,
+					measured: measured.length,
+					passed: measured.length - failed.length,
+					failed,
+					notMeasurable: 0,
+					exclusions,
+					controls: measured,
+					geometryExclusion:
+						'Celda y selector hermano de la misma tarjeta: esquina delegada al selector; hit-testing cubierto por área44.'
+				};
+				reports.push(report);
+				return failed;
+			}
+
+			const failures: unknown[] = [];
+			failures.push(...(await measure(page.locator('.vega-media-page'), 'biblioteca')));
+			await page.locator('[data-media-item="media_2"]').click();
+			const detail = page.getByRole('dialog', { name: 'Editar medio' });
+			await expect(detail).toBeVisible();
+			failures.push(...(await measure(detail, 'ficha con etiquetas')));
+			const focal = detail.locator('[data-media-focal]');
+			await focal.scrollIntoViewIfNeeded();
+			const focalBox = (await focal.boundingBox())!;
+			const source = await focal.locator('img').getAttribute('src');
+			await page.touchscreen.tap(focalBox.x + 3, focalBox.y + 3);
+			expect(
+				await detail
+					.locator('[data-media-focal-mark]')
+					.evaluate((el) => [(el as HTMLElement).style.left, (el as HTMLElement).style.top])
+			).toEqual(['0%', '0%']);
+			await page.touchscreen.tap(focalBox.x + focalBox.width - 3, focalBox.y + focalBox.height - 3);
+			expect(
+				await detail
+					.locator('[data-media-focal-mark]')
+					.evaluate((el) => [(el as HTMLElement).style.left, (el as HTMLElement).style.top])
+			).toEqual(['100%', '100%']);
+			expect(await focal.locator('img').getAttribute('src')).toBe(source);
+			await detail.getByRole('button', { name: 'Centrar', exact: true }).click();
+			await detail.locator('.vega-media-detail-tag-input input').fill('nueva');
+			failures.push(...(await measure(detail, 'añadir etiqueta habilitado')));
+			await detail.getByRole('button', { name: 'Añadir', exact: true }).click();
+			await detail.getByRole('button', { name: 'Guardar', exact: true }).click();
+			await expect(detail).toHaveCount(0);
+			await page.goto('/c/posts/new');
+			await page
+				.locator('[data-field="coverImage"]')
+				.getByRole('button', { name: 'Elegir de la biblioteca', exact: true })
+				.click();
+			const picker = page.getByRole('dialog', { name: 'Elegir de la biblioteca' });
+			await expect(picker.locator('[data-media-item]')).toHaveCount(2);
+			failures.push(...(await measure(picker, 'picker biblioteca')));
+			await pickerToggle(picker, 'media_2').click();
+			failures.push(...(await measure(picker, 'picker con selección')));
+			await picker.locator('[data-media-item="media_2"]').click();
+			failures.push(...(await measure(picker, 'picker ficha contextual')));
+			await picker.evaluate((root) => {
+				const clip = document.createElement('div');
+				clip.dataset.touchClipProbe = 'true';
+				clip.style.cssText =
+					'position:fixed;top:100px;left:5px;width:20px;height:20px;overflow:hidden;z-index:10000';
+				const button = document.createElement('button');
+				button.textContent = 'Sonda de recorte';
+				button.style.cssText = 'width:44px;height:44px;min-width:44px;min-height:44px';
+				clip.append(button);
+				root.append(clip);
+			});
+			const negative = await measure(picker, 'negativo44 recortado20');
+			expect(negative.some((row) => row.name === 'Sonda de recorte' && row.outside)).toBe(true);
+			await picker.locator('[data-touch-clip-probe]').evaluate((el) => el.remove());
+			await testInfo.attach('media-touch-denominator.json', {
+				body: JSON.stringify(reports, null, 2),
+				contentType: 'application/json'
+			});
+			await page.screenshot({
+				path: testInfo.outputPath(`media-touch-${density}.png`),
+				fullPage: true
+			});
+			expect(failures).toEqual([]);
+		});
+	}
+});

@@ -2,6 +2,9 @@
  * Suite B.16 (§7 del contrato P3, §4.3): humo de a11y del chrome — foco visible, `aria-current`
  * en el item activo, navegación por teclado de la sidebar, y el overlay móvil con foco atrapado.
  */
+import type { Page } from '@playwright/test';
+import { THEMES } from '../src/lib/themes/themes.generated';
+import { createVisualSite } from './visual-site';
 import { expect, loginAsDemo, openSiteInfoFromSidebar, test, waitForHome } from './fixtures';
 
 test('la sidebar es navegable por teclado y el item activo lleva aria-current', async ({
@@ -271,4 +274,647 @@ test('el primer Guardado actualiza la región polite preexistente sin crear un a
 	await expect(polite).not.toHaveAttribute('role', 'alert');
 	await expect(page.locator('.vega-toast-region[role="alert"]')).toHaveCount(0);
 	await mounted?.dispose();
+});
+
+type ContrastCase = {
+	selector: string;
+	kind: 'text' | 'placeholder' | 'border' | 'outline' | 'icon';
+	state: string;
+};
+
+/** Lee la cascada del consumidor y compone transparencias en sRGB; los fondos arbitrarios no se inventan. */
+async function contrastMatrix(page: Page, cases: ContrastCase[]) {
+	const rows = await page.evaluate(
+		({ themes, cases }) => {
+			const canvas = document.createElement('canvas');
+			canvas.width = canvas.height = 1;
+			const context = canvas.getContext('2d', { willReadFrequently: true })!;
+			function rgba(css: string): number[] {
+				context.clearRect(0, 0, 1, 1);
+				context.fillStyle = css;
+				context.fillRect(0, 0, 1, 1);
+				return [...context.getImageData(0, 0, 1, 1).data].map((v, i) => (i === 3 ? v / 255 : v));
+			}
+			function over(front: number[], back: number[]): number[] {
+				const alpha = front[3] + back[3] * (1 - front[3]);
+				return [
+					...front
+						.slice(0, 3)
+						.map((v, i) => (v * front[3] + back[i] * back[3] * (1 - front[3])) / alpha),
+					alpha
+				];
+			}
+			function background(start: Element | null): number[] {
+				for (let node = start; node; node = node.parentElement) {
+					if (Number(getComputedStyle(node).opacity) !== 1)
+						throw new Error(`opacidad de grupo en ${node.className}`);
+				}
+				const layers: number[][] = [];
+				for (let node = start; node; node = node.parentElement) {
+					const style = getComputedStyle(node);
+					if (style.backgroundImage !== 'none')
+						throw new Error(`fondo con imagen/gradiente en ${node.className}`);
+					if (Number(style.opacity) !== 1)
+						throw new Error(`opacidad de grupo en ${node.className}`);
+					const color = rgba(style.backgroundColor);
+					layers.push(color);
+					if (color[3] === 1) break;
+				}
+				return layers.reverse().reduce((back, front) => over(front, back), [255, 255, 255, 1]);
+			}
+			function luminance(rgb: number[]) {
+				const linear = rgb.slice(0, 3).map((value) => {
+					const c = value / 255;
+					return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+				});
+				return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+			}
+			function ratio(a: number[], b: number[]) {
+				const x = luminance(a),
+					y = luminance(b);
+				return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+			}
+			const before = { ...document.documentElement.dataset };
+			const settle = document.createElement('style');
+			settle.textContent =
+				'*,*::before,*::after{transition:none!important;animation:none!important}';
+			document.head.append(settle);
+			const rows = [];
+			for (const theme of themes)
+				for (const mode of ['light', 'dark'])
+					for (const density of ['comfortable', 'compact']) {
+						Object.assign(document.documentElement.dataset, {
+							theme,
+							mode,
+							density
+						});
+						for (const sample of cases) {
+							const base = {
+								route: location.pathname,
+								...sample,
+								theme,
+								mode,
+								density,
+								threshold: ['text', 'placeholder'].includes(sample.kind) ? 4.5 : 3
+							};
+							try {
+								const el = [...document.querySelectorAll<HTMLElement>(sample.selector)].find(
+									(node) =>
+										node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden'
+								);
+								if (!el) throw new Error('consumidor no visible');
+								el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+								const style = getComputedStyle(el);
+								const pseudo =
+									sample.kind === 'placeholder' ? getComputedStyle(el, '::placeholder') : style;
+								if (
+									sample.kind === 'placeholder' &&
+									(!el.matches(':placeholder-shown') || !el.getAttribute('placeholder')?.trim())
+								)
+									throw new Error('placeholder no visible');
+								if (Number(style.opacity) !== 1 || Number(pseudo.opacity) !== 1)
+									throw new Error('opacidad efectiva distinta de 1');
+								const own =
+										sample.kind === 'outline' && parseFloat(style.outlineOffset) >= 0
+											? background(el.parentElement)
+											: background(el),
+									outer = ['outline', 'border'].includes(sample.kind)
+										? background(el.parentElement)
+										: own;
+								let foreground = rgba(pseudo.color),
+									backgrounds = [own];
+								let clipped = false;
+								if (sample.kind === 'border') {
+									const edge = ['Top', 'Right', 'Bottom', 'Left'].find(
+										(edge) =>
+											parseFloat(style.getPropertyValue(`border-${edge.toLowerCase()}-width`)) >=
+												1 && style.getPropertyValue(`border-${edge.toLowerCase()}-style`) !== 'none'
+									);
+									if (!edge) throw new Error('borde ausente');
+									foreground = rgba(style.getPropertyValue(`border-${edge.toLowerCase()}-color`));
+									backgrounds = [own, outer];
+								}
+								if (sample.kind === 'outline') {
+									if (parseFloat(style.outlineWidth) < 2 || style.outlineStyle === 'none')
+										throw new Error('foco de 2px ausente');
+									foreground = rgba(style.outlineColor);
+									backgrounds = [parseFloat(style.outlineOffset) < 0 ? own : outer];
+									const rect = el.getBoundingClientRect(),
+										gap = Math.max(
+											0,
+											parseFloat(style.outlineOffset) + parseFloat(style.outlineWidth)
+										);
+									for (
+										let ancestor = el.parentElement;
+										ancestor;
+										ancestor = ancestor.parentElement
+									) {
+										const a = ancestor.getBoundingClientRect(),
+											css = getComputedStyle(ancestor);
+										if (
+											/(hidden|clip|auto|scroll)/.test(css.overflowX) &&
+											(rect.left - gap < a.left - 0.5 || rect.right + gap > a.right + 0.5)
+										)
+											clipped = true;
+										if (
+											/(hidden|clip|auto|scroll)/.test(css.overflowY) &&
+											(rect.top - gap < a.top - 0.5 || rect.bottom + gap > a.bottom + 0.5)
+										)
+											clipped = true;
+									}
+								}
+								const ratios = backgrounds.map((bg) => ratio(over(foreground, bg), bg));
+								rows.push({
+									...base,
+									foreground,
+									backgrounds,
+									ratios,
+									ratio: Math.min(...ratios),
+									clipped,
+									outlineWidth: style.outlineWidth,
+									outlineOffset: style.outlineOffset,
+									unresolved: null
+								});
+							} catch (error) {
+								rows.push({ ...base, ratio: null, unresolved: String(error) });
+							}
+						}
+					}
+			Object.assign(document.documentElement.dataset, before);
+			settle.remove();
+			return rows;
+		},
+		{ themes: THEMES.map((theme) => theme.id), cases }
+	);
+	// El halo del lienzo es un gradiente real: muestreamos el raster contiguo, no sus tokens.
+	const original = await page.evaluate(() => {
+		const style = document.createElement('style');
+		style.id = 'vega-contrast-raster-settle';
+		style.textContent = '*,*::before,*::after{transition:none!important;animation:none!important}';
+		document.head.append(style);
+		return { ...document.documentElement.dataset };
+	});
+	for (const row of rows.filter((row) => row.unresolved?.includes('imagen/gradiente'))) {
+		await page.evaluate(
+			({ theme, mode, density }) =>
+				Object.assign(document.documentElement.dataset, { theme, mode, density }),
+			row
+		);
+		const control = page.locator(row.selector).first();
+		await control.scrollIntoViewIfNeeded();
+		const paint = await control.evaluate((el, kind) => {
+			const css = getComputedStyle(el),
+				rect = el.getBoundingClientRect();
+			const canvas = document.createElement('canvas');
+			canvas.width = canvas.height = 1;
+			const context = canvas.getContext('2d')!;
+			context.fillStyle = kind === 'outline' ? css.outlineColor : css.borderTopColor;
+			context.fillRect(0, 0, 1, 1);
+			const foreground = [...context.getImageData(0, 0, 1, 1).data];
+			foreground[3] /= 255;
+			if (foreground[3] !== 1) throw new Error('el caso raster requiere tinta opaca');
+			let clipped = false;
+			if (kind === 'outline') {
+				if (parseFloat(css.outlineWidth) < 2 || css.outlineStyle === 'none')
+					throw new Error('foco ausente en caso raster');
+				const gap = Math.max(0, parseFloat(css.outlineWidth) + parseFloat(css.outlineOffset));
+				for (let ancestor = el.parentElement; ancestor; ancestor = ancestor.parentElement) {
+					const a = ancestor.getBoundingClientRect(),
+						style = getComputedStyle(ancestor);
+					if (
+						/(hidden|clip|auto|scroll)/.test(style.overflowX) &&
+						(rect.left - gap < a.left - 0.5 || rect.right + gap > a.right + 0.5)
+					)
+						clipped = true;
+					if (
+						/(hidden|clip|auto|scroll)/.test(style.overflowY) &&
+						(rect.top - gap < a.top - 0.5 || rect.bottom + gap > a.bottom + 0.5)
+					)
+						clipped = true;
+				}
+			}
+			return {
+				foreground,
+				clipped,
+				points:
+					kind === 'outline'
+						? [
+								[
+									rect.left + rect.width / 2,
+									rect.top - parseFloat(css.outlineOffset) - parseFloat(css.outlineWidth) - 2
+								]
+							]
+						: [
+								[rect.left + rect.width / 2, rect.top + 3],
+								[rect.left + rect.width / 2, rect.top - 6]
+							]
+			};
+		}, row.kind);
+		const screenshot = await page.screenshot({ animations: 'disabled' });
+		const backgrounds = await page.evaluate(
+			async ({ png, points }) => {
+				const image = new Image();
+				image.src = `data:image/png;base64,${png}`;
+				await image.decode();
+				const canvas = document.createElement('canvas');
+				canvas.width = image.width;
+				canvas.height = image.height;
+				const context = canvas.getContext('2d', { willReadFrequently: true })!;
+				context.drawImage(image, 0, 0);
+				return points.map(([x, y]) => {
+					const pixel = [...context.getImageData(Math.floor(x), Math.floor(y), 1, 1).data];
+					pixel[3] /= 255;
+					return pixel;
+				});
+			},
+			{ png: screenshot.toString('base64'), points: paint.points }
+		);
+		const luminance = (rgb: number[]) =>
+			rgb
+				.slice(0, 3)
+				.map((v) => {
+					const c = v / 255;
+					return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+				})
+				.reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+		const ratios = backgrounds.map((background) => {
+			const a = luminance(paint.foreground),
+				b = luminance(background);
+			return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+		});
+		Object.assign(row, {
+			foreground: paint.foreground,
+			clipped: paint.clipped,
+			backgrounds,
+			ratios,
+			ratio: Math.min(...ratios),
+			unresolved: null,
+			rasterized: true,
+			points: paint.points
+		});
+	}
+	await page.evaluate(
+		(dataset) => Object.assign(document.documentElement.dataset, dataset),
+		original
+	);
+	return rows;
+}
+
+/** Matriz del DOM sobre las 42 combinaciones, ambas densidades y estados con teclado real. */
+test('UX12: foco, placeholders, campos, iconos y texto activo conservan contraste en contexto', async ({
+	page
+}, testInfo) => {
+	test.setTimeout(120_000);
+	const rows: Awaited<ReturnType<typeof contrastMatrix>> = [];
+	const measure = async (cases: ContrastCase[]) =>
+		rows.push(...(await contrastMatrix(page, cases)));
+	async function tabTo(selector: string) {
+		const control = page.locator(selector).first();
+		await control.focus();
+		await page.keyboard.press('Shift+Tab');
+		await page.keyboard.press('Tab');
+		await expect(control).toBeFocused();
+	}
+
+	await page.goto('/login');
+	await tabTo('#login-email');
+	await measure([
+		{ selector: '#login-email', kind: 'border', state: 'habilitado' },
+		{ selector: '#login-email', kind: 'outline', state: 'Tab' }
+	]);
+	await loginAsDemo(page, { seedMedia: true });
+	await waitForHome(page);
+	await tabTo('.vega-search input');
+	await measure([
+		{
+			selector: '.vega-search input',
+			kind: 'placeholder',
+			state: 'vacío habilitado'
+		},
+		{ selector: '.vega-search', kind: 'border', state: 'habilitado' },
+		{ selector: '.vega-search', kind: 'outline', state: 'Tab en input' },
+		{ selector: '.vega-search > svg', kind: 'icon', state: 'habilitado' }
+	]);
+	await page.locator('.vega-search input').fill('Vega');
+	await expect(page.locator('.vega-search-hit').first()).toBeVisible();
+	await page.keyboard.press('ArrowDown');
+	await measure([
+		{
+			selector: '.vega-search-hit[aria-selected=true]',
+			kind: 'text',
+			state: 'ArrowDown seleccionado'
+		},
+		{
+			selector: '.vega-search-hit[aria-selected=true] .vega-search-hit-status',
+			kind: 'text',
+			state: 'metadatos seleccionados'
+		}
+	]);
+	await page.keyboard.press('Escape');
+
+	await page
+		.getByRole('navigation', { name: 'Navegación principal' })
+		.getByRole('link', { name: 'Entradas' })
+		.click();
+	await tabTo('.vega-list-search input');
+	await measure([
+		{
+			selector: '.vega-list-search input',
+			kind: 'placeholder',
+			state: 'vacío habilitado'
+		},
+		{ selector: '.vega-list-search', kind: 'border', state: 'habilitado' },
+		{ selector: '.vega-list-search', kind: 'outline', state: 'Tab en input' },
+		{ selector: '.vega-list-search > svg', kind: 'icon', state: 'habilitado' }
+	]);
+
+	// Fixture mediante el editor admitido por el producto, con placeholders realmente visibles.
+	await page.locator('a[href="/settings"]').first().click();
+	const manifestEditor = page.getByRole('textbox', {
+		name: 'JSON del manifiesto'
+	});
+	const manifest = JSON.parse(await manifestEditor.inputValue());
+	manifest.collections.posts.editorRail = true;
+	for (const field of ['title', 'website', 'contactEmail', 'body', 'summary']) {
+		manifest.collections.posts.fields[field] = {
+			...manifest.collections.posts.fields[field],
+			placeholder: `Ejemplo de ${field}`
+		};
+	}
+	await manifestEditor.fill(JSON.stringify(manifest, null, 2));
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page.getByRole('status')).toContainText('Guardado.');
+	await page
+		.getByRole('navigation', { name: 'Navegación principal' })
+		.getByRole('link', { name: 'Entradas' })
+		.click();
+	await page.getByRole('link', { name: 'Bienvenido a Vega' }).click();
+	await page.locator('.vega-rail a').first().hover();
+	await measure([
+		{ selector: '.vega-rail a:hover .vega-rail-meta', kind: 'text', state: 'hover active' }
+	]);
+	await page.locator('a[href="/c/posts"]').first().click();
+	await page.locator('.vega-list-new-button').click();
+	await expect(page.locator('.vega-widget-richtext .tiptap')).toBeVisible();
+	await page.locator('.vega-widget-text').evaluate((el) => el.blur());
+	await measure([
+		...['Text', 'Email', 'Url', 'Datetime', 'Textarea', 'Select'].map((widget) => ({
+			selector: `.vega-widget-${widget.toLowerCase()}`,
+			kind: 'border' as const,
+			state: 'habilitado'
+		})),
+		{
+			selector: '.vega-markdown-workbench',
+			kind: 'border',
+			state: 'habilitado'
+		},
+		{ selector: '.vega-widget-richtext', kind: 'border', state: 'habilitado' },
+		...['title', 'website', 'contactEmail', 'body', 'summary'].map((field) => ({
+			selector: `[data-field=${field}] :is(input,textarea)`,
+			kind: 'placeholder' as const,
+			state: 'vacío habilitado'
+		}))
+	]);
+	await tabTo('.vega-widget-text');
+	await measure([{ selector: '.vega-widget-text', kind: 'outline', state: 'Tab' }]);
+	await tabTo('.vega-widget-richtext .tiptap');
+	await measure([
+		{
+			selector: '.vega-widget-richtext',
+			kind: 'outline',
+			state: 'Tab en contenteditable'
+		}
+	]);
+
+	await page.getByRole('link', { name: 'Medios', exact: false }).click();
+	await expect(page.locator('[data-media-item]')).toHaveCount(3);
+	await tabTo('.vega-media-search input');
+	await measure([
+		{
+			selector: '.vega-media-search input',
+			kind: 'placeholder',
+			state: 'vacío habilitado'
+		},
+		{ selector: '.vega-media-search', kind: 'border', state: 'habilitado' },
+		{ selector: '.vega-media-search', kind: 'outline', state: 'Tab en input' },
+		{ selector: '.vega-media-search > svg', kind: 'icon', state: 'habilitado' },
+		{
+			selector: '.vega-media-type-chip[aria-pressed=true]',
+			kind: 'text',
+			state: 'filtro seleccionado'
+		}
+	]);
+	await page.locator('[data-media-item=media_2]').click();
+	await tabTo('.vega-media-detail-field input[type=text]');
+	await measure([
+		{
+			selector: '.vega-media-detail-field input[type=text]',
+			kind: 'border',
+			state: 'habilitado'
+		},
+		{
+			selector: '.vega-media-detail-field input[type=text]',
+			kind: 'outline',
+			state: 'Tab'
+		},
+		{
+			selector: '.vega-media-tag button',
+			kind: 'icon',
+			state: 'quitar etiqueta habilitado'
+		}
+	]);
+	await page.locator('.vega-media-detail-dialog').evaluate((root) => {
+		const grand = document.createElement('div');
+		grand.id = 'contrast-opacity-probe';
+		grand.style.opacity = '0.5';
+		const wrapper = document.createElement('div');
+		wrapper.style.background = 'white';
+		const input = document.createElement('input');
+		input.id = 'contrast-opacity-input';
+		input.value = 'Prueba';
+		input.style.background = 'white';
+		wrapper.append(input);
+		grand.append(wrapper);
+		root.append(grand);
+	});
+	const negative = await contrastMatrix(page, [
+		{ selector: '#contrast-opacity-input', kind: 'text', state: 'negativo abuelo opacity .5' }
+	]);
+	expect(negative.every((row) => row.unresolved?.includes('opacidad de grupo'))).toBe(true);
+	await page.locator('#contrast-opacity-probe').evaluate((el) => el.remove());
+	await testInfo.attach('contrast-instrument-negative.json', {
+		body: JSON.stringify(negative, null, 2),
+		contentType: 'application/json'
+	});
+	await testInfo.attach('contrast-dom-21x2x2.json', {
+		body: JSON.stringify(rows, null, 2),
+		contentType: 'application/json'
+	});
+	await page.screenshot({
+		path: testInfo.outputPath('contrast-media-light.png')
+	});
+	await page.evaluate(() => (document.documentElement.dataset.mode = 'dark'));
+	await page.screenshot({
+		path: testInfo.outputPath('contrast-media-dark.png')
+	});
+	const failures = rows.filter(
+		(row) => row.unresolved || row.ratio! < row.threshold || ('clipped' in row && row.clipped)
+	);
+	expect(failures).toEqual([]);
+});
+
+test('UX12: árbol, inspector y overlay miden los 21 temas en ambos modos y densidades', async ({
+	page
+}, testInfo) => {
+	const site = createVisualSite({
+		collection: 'paginas',
+		id: 'pagina_1',
+		blocks: [
+			{
+				id: 'seccion_1',
+				type: 'seccion',
+				text: 'Escribe. Publica. Olvídate del resto.'
+			},
+			{
+				id: 'seccion_2',
+				type: 'seccion',
+				text: 'Tu contenido, en tu servidor'
+			},
+			{ id: 'seccion_3', type: 'seccion', text: 'Se adapta a tu modelo' }
+		]
+	});
+	await site.install(page);
+	await page.addInitScript((url) => {
+		(window as unknown as { __VEGA_PREVIEW_API_URL__: string }).__VEGA_PREVIEW_API_URL__ = url;
+	}, site.previewApiUrl);
+	await loginAsDemo(page, { seedShowcase: true });
+	await page.goto('/c/paginas/pagina_1/visual');
+	await expect(page.locator('.vega-visual-status-text')).toContainText('Conectado');
+	await page.locator('.vega-tree-row').first().click();
+	const selected = page.locator('.vega-tree-row--selected');
+	await selected.focus();
+	await page.keyboard.press('Tab');
+	await page.keyboard.press('Shift+Tab');
+	await expect(selected).toBeFocused();
+	const rows = await contrastMatrix(page, [
+		{
+			selector: '.vega-tree-row--selected',
+			kind: 'text',
+			state: 'seleccionado accent-soft'
+		},
+		{
+			selector: '.vega-tree-row--selected',
+			kind: 'outline',
+			state: 'Tab seleccionado'
+		},
+		{
+			selector: '.vega-tree-action:not(:disabled)',
+			kind: 'icon',
+			state: 'habilitado'
+		},
+		{
+			selector: '.vega-inspector-body:not([hidden]) .vega-widget-text',
+			kind: 'border',
+			state: 'inspector habilitado'
+		},
+		{
+			selector: '.vega-visual-overlay-toolbar-btn:not(:disabled)',
+			kind: 'icon',
+			state: 'overlay sobre fondo opaco'
+		}
+	]);
+	await page.locator('.vega-tree-row').nth(1).hover();
+	rows.push(
+		...(await contrastMatrix(page, [
+			{ selector: '.vega-tree-row:hover', kind: 'text', state: 'hover active' }
+		]))
+	);
+	await testInfo.attach('contrast-visual-21x2x2.json', {
+		body: JSON.stringify(rows, null, 2),
+		contentType: 'application/json'
+	});
+	expect(
+		rows.filter(
+			(row) => row.unresolved || row.ratio! < row.threshold || ('clipped' in row && row.clipped)
+		)
+	).toEqual([]);
+});
+
+/** La barra pertenece a Vega aunque el bloque del sitio sea más estrecho que sus acciones. */
+test.describe('UX12: toolbar táctil sobre bloque estrecho', () => {
+	test.use({ hasTouch: true });
+	test('conserva objetivos44 alcanzables a 901px y zoom50/75/100', async ({ page }, testInfo) => {
+		await page.setViewportSize({ width: 901, height: 900 });
+		const site = createVisualSite({
+			collection: 'paginas',
+			id: 'pagina_1',
+			blocks: [
+				{ id: 'seccion_1', type: 'seccion', text: 'Bloque estrecho' },
+				{ id: 'seccion_2', type: 'seccion', text: 'Segundo bloque' },
+				{ id: 'seccion_3', type: 'seccion', text: 'Tercer bloque' }
+			]
+		});
+		await site.install(page);
+		await page.addInitScript((url) => {
+			(window as unknown as { __VEGA_PREVIEW_API_URL__: string }).__VEGA_PREVIEW_API_URL__ = url;
+		}, site.previewApiUrl);
+		await loginAsDemo(page, { seedShowcase: true });
+		await page.goto('/c/paginas/pagina_1/visual');
+		await expect(page.locator('.vega-visual-status-text')).toContainText('Conectado');
+		expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+		const frame = page
+			.frames()
+			.find((frame) => frame.url().includes('vega-visual-site.example/preview'))!;
+		await frame.evaluate(() => {
+			document.body.style.padding = '0';
+			const block = document.querySelector<HTMLElement>('[data-vega-block-id]')!;
+			block.style.cssText = 'width:100px;min-height:280px;box-sizing:border-box;margin:0';
+			window.dispatchEvent(new Event('resize'));
+		});
+		await frame.locator('[data-vega-block-id=seccion_1]').click();
+		const reports = [];
+		for (const zoom of ['50', '75', '100']) {
+			await page.locator('.vega-visual-zoom-select').selectOption(zoom);
+			const toolbar = page.locator('.vega-visual-overlay-toolbar');
+			await expect(toolbar).toBeVisible();
+			const report = await toolbar.evaluate((el) => {
+				const root = el.closest('.vega-visual-overlay-root')!.getBoundingClientRect();
+				return [...el.querySelectorAll<HTMLButtonElement>('button')].map((button) => {
+					const r = button.getBoundingClientRect();
+					const target = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+					return {
+						name: button.getAttribute('aria-label'),
+						disabled: button.disabled,
+						width: r.width,
+						height: r.height,
+						clipped:
+							r.left < root.left - 0.5 ||
+							r.right > Math.min(root.right, innerWidth) + 0.5 ||
+							r.top < root.top - 0.5 ||
+							r.bottom > Math.min(root.bottom, innerHeight) + 0.5,
+						hit: target === button || (target !== null && button.contains(target))
+					};
+				});
+			});
+			reports.push({
+				zoom,
+				discovered: report.length,
+				measured: report.filter((row) => !row.disabled).length,
+				exclusions: report.filter((row) => row.disabled),
+				controls: report
+			});
+		}
+		await testInfo.attach('overlay-narrow-touch.json', {
+			body: JSON.stringify(reports, null, 2),
+			contentType: 'application/json'
+		});
+		expect(
+			reports.flatMap((state) =>
+				state.controls.filter(
+					(row) =>
+						!row.disabled && (row.width < 43.99 || row.height < 43.99 || row.clipped || !row.hit)
+				)
+			)
+		).toEqual([]);
+	});
 });

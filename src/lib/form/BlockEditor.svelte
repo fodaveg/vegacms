@@ -876,7 +876,7 @@
 
 	.vega-block-save-button:focus-visible,
 	.vega-block-settings-link:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 

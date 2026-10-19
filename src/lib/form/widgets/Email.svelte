@@ -48,23 +48,23 @@
 		   `--r` y superficie `--surface` (los CONTROLES; la tarjeta que los contiene es
 		   `--paper`). Hover y foco viven abajo. */
 		padding: calc(var(--pad-field) * 0.55) calc(var(--pad-field) * 0.7);
-		border: 1px solid var(--line);
+		border: 1px solid var(--ink-2);
 		border-radius: var(--r);
 		background: var(--surface);
 		color: var(--ink);
 		font: inherit;
 	}
 
-	/* Hover/foco del mockup: el borde se marca al pasar por encima y el anillo `--ring` sube
-	   al control (nunca `outline: none` sin sustituto). */
+	/* El borde `--ink-2` identifica el campo también en reposo; el foco añade un anillo
+	   `--ink` de 2px (nunca `outline: none` sin sustituto). */
 	.vega-widget-email:hover:not(:disabled) {
-		border-color: var(--line-strong);
+		border-color: var(--ink-2);
 	}
 
 	.vega-widget-email:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 1px;
-		border-color: var(--line-strong);
+		border-color: var(--ink-2);
 	}
 
 	.vega-widget-email:disabled {

@@ -300,7 +300,7 @@
 <style>
 	.vega-markdown-workbench {
 		min-width: 0;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--ink-2);
 		border-radius: var(--r);
 		background: var(--surface);
 		overflow: hidden;
@@ -441,11 +441,12 @@
 	}
 
 	.vega-markdown-write textarea::placeholder {
-		color: var(--ink-3);
+		color: var(--ink-2);
+		opacity: 1;
 	}
 
 	.vega-markdown-write:focus-within {
-		box-shadow: inset 0 0 0 2px var(--ring);
+		box-shadow: inset 0 0 0 2px var(--ink);
 	}
 
 	.vega-markdown-preview {

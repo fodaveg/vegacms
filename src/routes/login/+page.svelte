@@ -403,7 +403,7 @@
 		min-height: 46px;
 		box-sizing: border-box;
 		padding: 0.65rem 0.75rem;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--ink-2);
 		border-radius: var(--r);
 		background: var(--paper);
 		color: var(--ink);
@@ -415,16 +415,17 @@
 	}
 
 	input::placeholder {
-		color: var(--ink-3);
+		color: var(--ink-2);
+		opacity: 1;
 	}
 
 	input:hover {
-		border-color: var(--accent-line);
+		border-color: var(--ink-2);
 	}
 
 	input:focus-visible {
-		border-color: var(--accent);
-		outline: 2px solid var(--ring);
+		border-color: var(--ink-2);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 

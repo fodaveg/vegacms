@@ -496,7 +496,7 @@
 		font-size: 0.85rem;
 		line-height: 1.4;
 		padding: 0.75rem;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--ink-2);
 		border-radius: var(--r);
 		background: var(--surface);
 		color: var(--ink);
@@ -506,10 +506,10 @@
 
 	/* El mockup añade un halo `color-mix(...)` alrededor del borde: prohibido fuera de
 	   `src/lib/themes/` por `check-theme-coverage.mjs` (mismo motivo que `GlobalSearch.svelte`) —
-	   el cambio de `border-color` + el `:focus-visible` global (`--ring`, `theme/base.css`) ya
+	   el cambio de `border-color` + el `:focus-visible` global (`--ink`, `theme/base.css`) ya
 	   dan foco visible, sin reconstruir el halo. */
 	.manif-textarea:focus {
-		border-color: var(--accent);
+		border-color: var(--ink-2);
 	}
 
 	.manif-textarea:disabled {

@@ -568,28 +568,30 @@
 							onblur={() => (focalPending = null)}
 							data-media-focal
 						>
-							<img
-								src={fullSrc}
-								alt={mediaImgAlt(item)}
-								class="vega-media-detail-image"
-								bind:this={focalImageEl}
-							/>
-							<span
-								class="vega-media-focal-mark"
-								style:left="{focalMarkPercent.x}%"
-								style:top="{focalMarkPercent.y}%"
-								data-media-focal-mark
-								aria-hidden="true"
-							></span>
-							{#if focalPendingPercent}
+							<span class="vega-media-focal-image">
+								<img
+									src={fullSrc}
+									alt={mediaImgAlt(item)}
+									class="vega-media-detail-image"
+									bind:this={focalImageEl}
+								/>
 								<span
-									class="vega-media-focal-mark vega-media-focal-mark--pending"
-									style:left="{focalPendingPercent.x}%"
-									style:top="{focalPendingPercent.y}%"
-									data-media-focal-pending
+									class="vega-media-focal-mark"
+									style:left="{focalMarkPercent.x}%"
+									style:top="{focalMarkPercent.y}%"
+									data-media-focal-mark
 									aria-hidden="true"
 								></span>
-							{/if}
+								{#if focalPendingPercent}
+									<span
+										class="vega-media-focal-mark vega-media-focal-mark--pending"
+										style:left="{focalPendingPercent.x}%"
+										style:top="{focalPendingPercent.y}%"
+										data-media-focal-pending
+										aria-hidden="true"
+									></span>
+								{/if}
+							</span>
 						</button>
 					{:else if fullSrc}
 						<img src={fullSrc} alt={mediaImgAlt(item)} class="vega-media-detail-image" />
@@ -942,6 +944,11 @@
 		cursor: crosshair;
 	}
 
+	.vega-media-focal-image {
+		position: relative;
+		display: block;
+	}
+
 	.vega-media-focal:disabled {
 		cursor: default;
 	}
@@ -949,7 +956,7 @@
 	/* Hacia DENTRO: la vista previa recorta (`overflow: hidden`) y una imagen a todo lo ancho se
 	   comería un anillo exterior — mismo criterio que la celda de `MediaGrid`. */
 	.vega-media-focal:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--paper);
 		outline-offset: -2px;
 	}
 
@@ -1075,7 +1082,7 @@
 
 	.vega-media-detail-field input[type='text'] {
 		padding: 0.45rem 0.6rem;
-		border: 1px solid var(--line);
+		border: 1px solid var(--ink-2);
 		border-radius: 6px;
 		background: var(--surface);
 		color: var(--ink);
@@ -1221,7 +1228,7 @@
 		font-size: 0.95rem;
 	}
 
-	.vega-media-detail-dialog :is(input, button):focus-visible {
+	.vega-media-detail-dialog :is(input, button:not(.vega-media-focal)):focus-visible {
 		outline-color: var(--ink);
 	}
 
@@ -1239,5 +1246,36 @@
 		.vega-media-detail-image {
 			max-height: 8rem;
 		}
+	}
+
+	@media (pointer: coarse) {
+		.vega-media-focal {
+			display: inline-grid;
+			place-items: center;
+			min-width: 44px;
+			min-height: 44px;
+		}
+
+		.vega-media-detail-field input[type='text'],
+		.vega-media-tag button {
+			min-width: 44px;
+			min-height: 44px;
+		}
+
+		.vega-media-focal-reset,
+		.vega-media-detail-replace button,
+		.vega-media-detail-tag-input button {
+			min-width: 44px;
+			min-height: 44px;
+		}
+	}
+
+	/* Doble trazo sobre imágenes: ambos se pintan por encima del contenido. */
+	.vega-media-focal:focus-visible::after {
+		content: '';
+		position: absolute;
+		inset: 2px;
+		border: 2px solid var(--ink-hi);
+		pointer-events: none;
 	}
 </style>

@@ -800,7 +800,7 @@
 		gap: 0.5rem;
 		width: 100%;
 		padding: 0.6rem 0.8rem;
-		border: 1px dashed var(--line-strong);
+		border: 1px dashed var(--ink-2);
 		border-radius: var(--r);
 		background: var(--surface);
 		/* `--ink-3` es el mismo 2,20:1 (medido) bajo AA que `.vega-field-help`: esta es la única
@@ -825,7 +825,7 @@
 
 	.vega-file-dropzone:hover:not(:disabled),
 	.vega-file-dropzone--dragging {
-		border-color: var(--accent-line);
+		border-color: var(--ink-2);
 		background: var(--accent-soft);
 		color: var(--accent-text);
 	}

@@ -310,18 +310,23 @@
 		align-items: center;
 		gap: 0.6rem;
 		background: var(--surface);
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--ink-2);
 		border-radius: var(--r);
 		padding: 0.42rem 0.75rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	/* El mockup añade un halo `color-mix(...)` sobre el borde: `check-theme-coverage.mjs`
 	   prohíbe `color-mix(`/color crudo fuera de `src/lib/themes/` (§5.4 del contrato P7, L1) —
 	   ningún widget del formulario reconstruye ese halo tampoco, todos se apoyan en el mismo
-	   cambio de `border-color` + el `:focus-visible` global (`--ring`, `theme/base.css`). */
+	   contorno del wrapper, porque el input interior no pinta outline propio. */
 	.vega-search:focus-within {
-		border-color: var(--accent);
+		border-color: var(--ink-2);
+	}
+
+	.vega-search:has(input:focus-visible) {
+		outline: 2px solid var(--ink);
+		outline-offset: 1px;
 	}
 
 	.vega-search input {
@@ -334,7 +339,8 @@
 	}
 
 	.vega-search input::placeholder {
-		color: var(--ink-3);
+		color: var(--ink-2);
+		opacity: 1;
 	}
 
 	.vega-search input:focus {
@@ -515,5 +521,10 @@
 		.vega-search-root {
 			display: none;
 		}
+	}
+
+	.vega-search-hit:hover .vega-search-hit-status,
+	.vega-search-hit[aria-selected='true'] .vega-search-hit-status {
+		color: var(--ink);
 	}
 </style>

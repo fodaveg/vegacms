@@ -18,7 +18,8 @@ import {
 	contrastRatio,
 	validateComponentContrast,
 	validateContrast,
-	validateOverlayBracketContrast
+	validateOverlayBracketContrast,
+	resolveComponentTokens
 } from '../../scripts/build-themes.mjs';
 import { makeTheme } from './fixture';
 
@@ -78,6 +79,34 @@ describe('1. El catálogo completo pasa el gate AA en claro y oscuro', () => {
 		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['ink-2', 'sidebar']);
 	});
 
+	test('los consumidores de foco, búsqueda y botones conservan sus pares de texto', () => {
+		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['ink', 'bg']);
+		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['ink', 'sidebar']);
+		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['ink-2', 'btn']);
+	});
+
+	test.each(themes.map((t) => [t.id, t] as const))(
+		'%s: foco ink y campos/iconos ink-2 contrastan ≥3:1 con ambos lados controlados',
+		(_id, theme) => {
+			for (const mode of ['light', 'dark']) {
+				const tokens = resolveComponentTokens(theme, mode);
+				for (const surface of [
+					'bg',
+					'sidebar',
+					'paper',
+					'surface',
+					'surface-2',
+					'btn',
+					'active',
+					'accent-soft'
+				] as const) {
+					expect(contrastRatio(tokens.ink, tokens[surface])).toBeGreaterThanOrEqual(3);
+					expect(contrastRatio(tokens['ink-2'], tokens[surface])).toBeGreaterThanOrEqual(3);
+				}
+			}
+		}
+	);
+
 	test('COMPONENT_CONTRAST_PAIRS cubre success/warning/info igual que danger', () => {
 		for (const key of ['success', 'warning', 'info']) {
 			expect(COMPONENT_CONTRAST_PAIRS).toContainEqual([key, `${key}-soft`]);
@@ -86,7 +115,7 @@ describe('1. El catálogo completo pasa el gate AA en claro y oscuro', () => {
 		}
 	});
 
-	test('ink-3 NO aparece en ningún par (exento a propósito, §5.3)', () => {
+	test('ink-3 queda fuera de texto informativo y placeholders habilitados', () => {
 		const involvesInk3 = COMPONENT_CONTRAST_PAIRS.some(([a, b]) => a === 'ink-3' || b === 'ink-3');
 		expect(involvesInk3).toBe(false);
 	});
@@ -98,7 +127,7 @@ describe('2. El gate MUERDE (fixtures sub-AA)', () => {
 		(surface) => {
 			const theme = makeTheme({
 				id: `sub-aa-ink-2-${surface}`,
-				modes: { light: { neutrals: { [surface]: '#666666' } } }
+				modes: { light: { neutrals: { [surface]: '#999999' } } }
 			});
 			const errors: string[] = [];
 			validateComponentContrast(theme, errors);

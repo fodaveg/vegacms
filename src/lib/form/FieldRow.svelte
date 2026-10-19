@@ -318,18 +318,19 @@
 		font-weight: 650;
 		color: var(--ink-hi);
 		border: 0;
-		border-bottom: 1px solid var(--line-soft);
+		border-bottom: 1px solid var(--ink-2);
 		border-radius: 0;
 		padding-inline: 0;
 		background: transparent;
 	}
 
 	.vega-field-row--title :global(.vega-widget-text:hover) {
-		border-bottom-color: var(--line-strong);
+		border-bottom-color: var(--ink-2);
 	}
 
 	.vega-field-row--title :global(.vega-widget-text:focus-visible) {
-		outline: none;
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
 		border-bottom: 2px solid transparent;
 		border-image: var(--sheen) 1;
 	}

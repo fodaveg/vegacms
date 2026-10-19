@@ -477,4 +477,8 @@
 		width: 2.5px;
 		background: var(--sheen);
 	}
+
+	.vega-rail a:hover .vega-rail-meta {
+		color: var(--ink);
+	}
 </style>

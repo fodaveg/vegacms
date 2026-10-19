@@ -52,16 +52,31 @@ export const THEME_TOKENS: readonly ThemeToken[] = [
 	{ name: 'line', family: 'lineas', description: 'Hairline.', themeWritable: false },
 	{ name: 'line-soft', family: 'lineas', description: 'Hairline interna.', themeWritable: false },
 	{ name: 'line-strong', family: 'lineas', description: 'Borde marcado.', themeWritable: false },
-	{ name: 'ring', family: 'lineas', description: 'Anillo de foco.', themeWritable: false },
+	{
+		name: 'ring',
+		family: 'lineas',
+		description: 'Anillo legado; el foco funcional usa ink sobre fondos controlados.',
+		themeWritable: false
+	},
 
 	// ————— Tinta —————
 	{ name: 'ink-hi', family: 'tinta', description: 'Título.', themeWritable: false },
-	{ name: 'ink', family: 'tinta', description: 'Cuerpo.', themeWritable: true },
-	{ name: 'ink-2', family: 'tinta', description: 'Secundario/label.', themeWritable: false },
+	{
+		name: 'ink',
+		family: 'tinta',
+		description: 'Cuerpo, texto sobre active y foco funcional sobre fondos controlados.',
+		themeWritable: true
+	},
+	{
+		name: 'ink-2',
+		family: 'tinta',
+		description: 'Secundario/label, placeholder habilitado, borde de campo e icono funcional.',
+		themeWritable: false
+	},
 	{
 		name: 'ink-3',
 		family: 'tinta',
-		description: 'Muted/placeholder (sub-AA por diseño, exento del gate §5.3).',
+		description: 'Decoración redundante y controles deshabilitados; no texto informativo.',
 		themeWritable: false
 	},
 
