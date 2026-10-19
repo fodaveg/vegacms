@@ -141,6 +141,8 @@
 		mode?: 'inspector' | 'texts';
 		/** Solo en `texts`, página sin secciones (lámina 8.5): el botón de vuelta al formulario. */
 		onBack?: () => void;
+		/** Cierra solo la ficha visual; esta instancia y sus borradores siguen montados. */
+		onClose?: () => void;
 		/** El índice pide navegación al dueño de selección/foco de la pantalla. */
 		onSelectBlock?: (id: string) => void;
 		fullFormHref?: string;
@@ -152,6 +154,7 @@
 		onBlockSaved,
 		mode = 'inspector',
 		onBack,
+		onClose,
 		onSelectBlock,
 		fullFormHref
 	}: Props = $props();
@@ -321,6 +324,9 @@
 		<h2 id="vega-inspector-heading" bind:this={headingEl} tabindex="-1">
 			{texts ? ctx.t('editor.visual.texts.title') : ctx.t('editor.visual.inspector.title')}
 		</h2>
+		{#if !texts && onClose}
+			<button type="button" class="vega-inspector-close" onclick={onClose}>Cerrar inspector</button>
+		{/if}
 		{#if texts}
 			<p class="vega-inspector-intro">{ctx.t('editor.visual.texts.intro')}</p>
 		{/if}
@@ -491,6 +497,27 @@
 		flex-shrink: 0;
 		padding: 0.75rem 0.9rem;
 		border-bottom: 1px solid var(--line);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.vega-inspector-close {
+		min-height: 2.5rem;
+		padding: 0.4rem 0.5rem;
+		border: 0;
+		border-radius: var(--r);
+		background: transparent;
+		color: var(--ink-2);
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.vega-inspector-close:hover,
+	.vega-inspector-close:focus-visible {
+		background: var(--surface);
+		color: var(--ink);
 	}
 
 	.vega-inspector-head h2 {

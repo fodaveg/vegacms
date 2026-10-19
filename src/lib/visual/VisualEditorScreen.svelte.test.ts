@@ -1526,6 +1526,14 @@ describe('VisualEditorScreen.svelte — acciones estructurales (árbol + lienzo)
 
 describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
 	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
+	async function openPanels(target: HTMLElement, narrowTree = false): Promise<void> {
+		target.querySelector<HTMLButtonElement>('.vega-tree-row')!.click();
+		await tick();
+		if (!narrowTree) {
+			target.querySelector<HTMLButtonElement>('.vega-visual-panel-toggle--tree')!.click();
+			await tick();
+		}
+	}
 
 	beforeEach(() => {
 		localStorage.clear();
@@ -1544,11 +1552,13 @@ describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
 		localStorage.clear();
 	});
 
-	test('ventana ancha: las DOS manillas se montan, cada una con su etiqueta', async () => {
+	test('ventana ancha: las manillas aparecen al abrir ambos paneles', async () => {
 		stubMatchMedia(false, false);
-		const { ctx, type } = await setup();
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);
 		await flush();
+		expect(mounted.target.querySelectorAll('.vega-col-resizer')).toHaveLength(0);
+		await openPanels(mounted.target);
 
 		const handles = mounted.target.querySelectorAll('.vega-col-resizer');
 		expect(handles).toHaveLength(2);
@@ -1562,9 +1572,10 @@ describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
 
 	test('por debajo de 1180px NO se monta la manilla del árbol (la del inspector sigue)', async () => {
 		stubMatchMedia(false, true); // lienzo ancho (>900px), pero por debajo de los 1180px del árbol
-		const { ctx, type } = await setup();
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);
 		await flush();
+		await openPanels(mounted.target, true);
 
 		const handles = mounted.target.querySelectorAll('.vega-col-resizer');
 		expect(handles).toHaveLength(1);
@@ -1575,21 +1586,25 @@ describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
 
 	test('al ensancharse por encima de 1180px, la manilla del árbol vuelve a montarse', async () => {
 		const { setTreeNarrow } = stubMatchMedia(false, true);
-		const { ctx, type } = await setup();
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);
 		await flush();
+		await openPanels(mounted.target, true);
 		expect(mounted.target.querySelectorAll('.vega-col-resizer')).toHaveLength(1);
 
 		setTreeNarrow(false);
+		await tick();
+		mounted.target.querySelector<HTMLButtonElement>('.vega-visual-panel-toggle--tree')!.click();
 		await tick();
 		expect(mounted.target.querySelectorAll('.vega-col-resizer')).toHaveLength(2);
 	});
 
 	test('sin preferencia guardada: los anchos de partida de siempre (280/320)', async () => {
 		stubMatchMedia(false, false);
-		const { ctx, type } = await setup();
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);
 		await flush();
+		await openPanels(mounted.target);
 
 		const [treeHandle, inspectorHandle] = mounted.target.querySelectorAll('.vega-col-resizer');
 		expect(treeHandle.getAttribute('aria-valuenow')).toBe(String(TREE_DEFAULT_WIDTH));
@@ -1599,9 +1614,10 @@ describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
 	test('con una preferencia ya guardada: el grid arranca con ESE ancho, no con el de siempre', async () => {
 		localStorage.setItem('vega.visual.columns.v1', JSON.stringify({ tree: 340, inspector: 380 }));
 		stubMatchMedia(false, false);
-		const { ctx, type } = await setup();
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);
 		await flush();
+		await openPanels(mounted.target);
 
 		const [treeHandle, inspectorHandle] = mounted.target.querySelectorAll('.vega-col-resizer');
 		expect(treeHandle.getAttribute('aria-valuenow')).toBe('340');
@@ -1610,9 +1626,10 @@ describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
 
 	test('arrastrar la manilla del árbol persiste el ancho nuevo entre sesiones', async () => {
 		stubMatchMedia(false, false);
-		const { ctx, type } = await setup();
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);
 		await flush();
+		await openPanels(mounted.target);
 
 		const [treeHandle] = mounted.target.querySelectorAll('.vega-col-resizer');
 		treeHandle.dispatchEvent(
@@ -1629,9 +1646,10 @@ describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
 	test('doble clic en una manilla la devuelve a su ancho por defecto', async () => {
 		localStorage.setItem('vega.visual.columns.v1', JSON.stringify({ tree: 450, inspector: 320 }));
 		stubMatchMedia(false, false);
-		const { ctx, type } = await setup();
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);
 		await flush();
+		await openPanels(mounted.target);
 
 		const [treeHandle] = mounted.target.querySelectorAll('.vega-col-resizer');
 		expect(treeHandle.getAttribute('aria-valuenow')).toBe('450');
@@ -1714,7 +1732,7 @@ describe('VisualEditorScreen.svelte — refresco en vivo del lienzo', () => {
 		expect(iframeAfter).toBe(iframeBefore);
 	});
 
-	test('con "liveRefresh" falso: guardar un bloque recarga el marco entero, camino de siempre', async () => {
+	test('con "liveRefresh" falso: guardar pide otro token sin desmontar el lienzo', async () => {
 		const fetchMock = freshTokenFetch();
 		vi.stubGlobal('fetch', fetchMock);
 		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
@@ -1727,11 +1745,10 @@ describe('VisualEditorScreen.svelte — refresco en vivo del lienzo', () => {
 		await saveHeading(mounted.target, 'Hero editado');
 		await flushRefreshDebounce(); // por si acaso: no hay rebote en este camino, pero no debe fallar
 
-		// Nodo NUEVO: `requestPreview()` pone `tokenState` en `loading` (desmonta el `<iframe>`) y
-		// luego en `ready` con el token nuevo (lo vuelve a montar).
+		// El lienzo sigue visible durante la petición; una respuesta fallida no borra la vista anterior.
 		const iframeAfter = mounted.target.querySelector('.vega-visual-frame');
 		expect(iframeAfter).not.toBeNull();
-		expect(iframeAfter).not.toBe(iframeBefore);
+		expect(iframeAfter).toBe(iframeBefore);
 		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
 	});
 
@@ -1995,6 +2012,127 @@ describe('VisualEditorScreen.svelte — refresco en vivo del lienzo', () => {
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+});
+
+describe('VisualEditorScreen.svelte — borrador en el lienzo', () => {
+	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
+
+	beforeEach(() => {
+		stubMatchMedia(false);
+		stubResizeObserver();
+		vi.spyOn(HTMLFormElement.prototype, 'requestSubmit').mockImplementation(() => {});
+	});
+
+	afterEach(async () => {
+		if (mounted) {
+			await unmount(mounted.instance);
+			mounted.target.remove();
+			mounted = null;
+		}
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+	});
+
+	async function editHeading(target: HTMLElement, value: string): Promise<HTMLInputElement> {
+		target.querySelector<HTMLButtonElement>('.vega-tree-row')!.click();
+		await tick();
+		const input = target.querySelector<HTMLInputElement>(
+			'.vega-inspector-body:not([hidden]) input[type="text"]'
+		)!;
+		input.value = value;
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		return input;
+	}
+
+	test('al escribir pide draft de todos los bloques sin persistir; cerrar y reabrir conserva el campo', async () => {
+		let requests = 0;
+		const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
+			jsonResponse({ ...tokenBody(), ...(++requests > 1 ? { postToken: 'cifrado' } : {}) })
+		);
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		expect(mounted.target.querySelectorAll('.vega-col-resizer')).toHaveLength(0);
+
+		const input = await editHeading(mounted.target, 'Hero sin guardar');
+		await vi.advanceTimersByTimeAsync(400);
+		await flush();
+		mounted.target
+			.querySelector<HTMLIFrameElement>('.vega-visual-frame')!
+			.dispatchEvent(new Event('load'));
+		await tick();
+		const draft = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
+		expect(draft.draft.record).toEqual({ id: 'rec-1', fields: { title: 'Hola mundo' } });
+		expect(draft.draft.blocks).toHaveLength(2);
+		expect(draft.draft.blocks[0].fields.heading).toBe('Hero sin guardar');
+		expect((await port.get('post_block', 'b1')).values.heading).toBe('Hero');
+		expect(mounted.target.querySelector('.vega-visual-status')?.textContent).toContain(
+			'Vista previa del borrador · Sin guardar'
+		);
+		expect(mounted.target.querySelector('form[target="vega-visual-draft-frame"]')).not.toBeNull();
+
+		mounted.target.querySelector<HTMLButtonElement>('.vega-inspector-close')!.click();
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-inspector-shell--hidden')).not.toBeNull();
+		mounted.target.querySelector<HTMLButtonElement>('.vega-visual-panel-toggle')!.click();
+		await tick();
+		expect(input.isConnected).toBe(true);
+		expect(input.value).toBe('Hero sin guardar');
+	});
+
+	test('un fallo de red conserva el iframe y el borrador, con error y reintento visibles', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(jsonResponse(tokenBody()))
+			.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type, port } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		const iframe = mounted.target.querySelector('.vega-visual-frame');
+		const input = await editHeading(mounted.target, 'Texto local');
+		await vi.advanceTimersByTimeAsync(400);
+		await flush();
+		expect(mounted.target.querySelector('.vega-visual-frame')).toBe(iframe);
+		expect(mounted.target.querySelector('.vega-visual-status')?.textContent).toContain(
+			'No se pudo actualizar la vista previa'
+		);
+		expect(input.value).toBe('Texto local');
+		expect((await port.get('post_block', 'b1')).values.heading).toBe('Hero');
+	});
+
+	test('una respuesta de preview anterior nunca sustituye el último borrador', async () => {
+		let resolveOld!: (response: Response) => void;
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(jsonResponse(tokenBody()))
+			.mockImplementationOnce(() => new Promise<Response>((resolve) => (resolveOld = resolve)))
+			.mockResolvedValueOnce(jsonResponse({ ...tokenBody(), postToken: 'nuevo' }));
+		vi.stubGlobal('fetch', fetchMock);
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		const input = await editHeading(mounted.target, 'Primera versión');
+		await vi.advanceTimersByTimeAsync(400);
+		await flush();
+		input.value = 'Segunda versión';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		await vi.advanceTimersByTimeAsync(400);
+		await flush();
+		resolveOld(jsonResponse({ ...tokenBody(), postToken: 'viejo' }));
+		await flush();
+		expect(
+			mounted.target.querySelector<HTMLInputElement>('form[target="vega-visual-draft-frame"] input')
+				?.value
+		).toBe('nuevo');
+		expect(fetchMock).toHaveBeenCalledTimes(3);
 	});
 });
 

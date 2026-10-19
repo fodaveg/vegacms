@@ -119,11 +119,10 @@
 	 * cuarta. `window.confirm` es deliberado por la misma razón que allí: `beforeNavigate` necesita
 	 * una respuesta SÍNCRONA en el mismo tick para poder cancelar.
 	 *
-	 * **Sin borrador, a propósito**: pide el token con `createPreviewClient` para
-	 * `{collection, id}` SIN `draft` (a diferencia de `PreviewPanel.svelte`, que sí lo manda porque
-	 * vive DENTRO de un formulario con cambios sin guardar). Esta pantalla no tiene formulario, así
-	 * que enseña el registro guardado — la MISMA razón por la que el registro llega ya cargado
-	 * desde la ruta (`ctx.port.get`), no como un `FormModel` editable.
+	 * **Borrador sin escritura**: el snapshot de `blocks.currentDraftRecords()` contiene los campos
+	 * de todos los `BlockEditor` montados, incluidos los no seleccionados. El token recibe ese
+	 * snapshot y el registro padre; si el sitio devuelve `postToken`, el iframe recibe un POST de
+	 * formulario. Ni el refresco ni la selección llaman a `port.update`.
 	 *
 	 * **Disciplina del token, copiada de `PreviewPanel.svelte` (no reinventada, ver su cabecera)**:
 	 * contador de generación para peticiones solapadas (`requestGeneration`), renovación programada
@@ -363,8 +362,20 @@
 		parentType: untrack(() => type),
 		getParentId: () => record.id,
 		getDisabled: () => false,
-		onDirtyChange: () => {} // el guard de salida lee `blocks.anyDirty` directo, ver más abajo
+		onDirtyChange: () => {}, // el guard de salida lee `blocks.anyDirty` directo, ver más abajo
+		onDraftChange: (drafts) => {
+			// La fábrica emite un snapshot por cambio de campo; el token se pide tras el debounce.
+			if (blocks.status.kind !== 'ready' || !canvasActive) return;
+			const snapshot = JSON.stringify(drafts);
+			if (snapshot === lastDraftSnapshot) return;
+			lastDraftSnapshot = snapshot;
+			if (blocks.anyDirty) {
+				previewUpdating = true;
+				preview.scheduleCanvasRefresh({ draftEdit: true });
+			}
+		}
 	});
+	let lastDraftSnapshot = '';
 
 	// ————— Revisión antes de publicar (ver cabecera) —————
 
@@ -466,12 +477,21 @@
 	// `true` tras el evento `load` del documento ACTUAL del iframe (ver cabecera de
 	// `PreviewPanel.svelte`, "Qué NO hace"): se resetea en cada petición nueva.
 	let tokenState = $state<TokenState>({ kind: 'loading' });
+	let previewError = $state<string | null>(null);
+	let previewUpdating = $state(false);
+	let previewDraftAccepted = $state(false);
 	let frameLoaded = $state(false);
+	let postForm = $state<HTMLFormElement | undefined>(undefined);
+	let postGeneration = 0;
+	const frameName = 'vega-visual-draft-frame';
 	let bridgeState = $state<VisualBridgeState>({ status: 'idle' });
 	let iframeEl = $state<HTMLIFrameElement | undefined>(undefined);
 	// Único dueño del bloque seleccionado (ver cabecera, "La selección tiene un solo dueño").
 	// `null` = nada seleccionado, el estado inicial hasta el primer `select` del sitio.
 	let selectedBlockId = $state<string | null>(null);
+	/** Los paneles se cierran sin desmontar los editores, que conservan el borrador de cada bloque. */
+	let treeVisible = $state(false);
+	let inspectorVisible = $state(false);
 	// Las dos fuentes del resalte al pasar (ver cabecera, "El resalte al pasar tiene DOS fuentes").
 	// Página: bloque bajo el puntero DENTRO del marco; `null` si no hay ninguno o el sitio no
 	// implementa `hover`. Árbol: fila bajo el puntero o con el foco. `hoverSource`: cuál de las dos
@@ -551,7 +571,32 @@
 		typeName: untrack(() => type.name),
 		recordId: untrack(() => String(record.id)),
 		bridge: () => bridgeClient,
-		setTokenState: (state) => (tokenState = state),
+		hasCanvas: () => tokenState.kind === 'ready',
+		getDraft: () =>
+			blocks.status.kind === 'ready'
+				? {
+						record: { id: record.id, fields: { ...record.values } },
+						blocks: blocks.currentDraftRecords()
+					}
+				: undefined,
+		setTokenState: (state) => {
+			tokenState = state;
+			if (state.kind === 'ready' && state.token.postToken) {
+				const generation = ++postGeneration;
+				void tick().then(() => {
+					if (generation === postGeneration) postForm?.requestSubmit();
+				});
+			}
+		},
+		onPreviewToken: (token) => {
+			previewDraftAccepted = token.postToken !== undefined;
+			if (bridgeClient?.state.status !== 'connected' || !bridgeClient.state.liveRefresh)
+				previewUpdating = false;
+		},
+		onRefreshError: (message) => {
+			previewError = message;
+			if (message !== null) previewUpdating = false;
+		},
 		resetFrameLoaded: () => (frameLoaded = false),
 		t: ctx.t
 	});
@@ -566,6 +611,7 @@
 	 *  refresco no cambia ni una coma, esta función solo le añade el reloj por delante. */
 	function handleContentSaved(): void {
 		savedAt = new Date();
+		previewUpdating = false;
 		contentSavedCount += 1; // la revisión relee páginas, redirecciones y medios (ver cabecera)
 		// Sin lienzo (modo «solo textos», ver cabecera) no hay marco que refrescar: pedir un token
 		// aquí lo descargaría para nadie y rearmaría su renovación en un móvil. Al ensanchar,
@@ -593,6 +639,8 @@
 	 */
 	function handleBlockSelect(blockId: string): void {
 		selectedBlockId = blockId;
+		inspectorVisible = true;
+		if (treeResizerActive) treeVisible = false;
 		bridgeClient?.highlight(blockId);
 		bridgeClient?.scrollTo(blockId);
 		announceSelection(blockId);
@@ -638,6 +686,7 @@
 			frame: () => iframeEl?.contentWindow ?? null,
 			onState: (state) => {
 				bridgeState = state;
+				if (state.status === 'connected') previewUpdating = false;
 				// Si el bloque seleccionado ya no está en lo que reporta el sitio (lo borró otra
 				// pestaña, cambió la plantilla, o el saludo trae otra página), la selección se
 				// LIMPIA aquí mismo. Dejarla apuntando a un id que ya no existe no se nota hoy —el
@@ -669,7 +718,7 @@
 			// El plazo interno de `refresh()` venció, o el propio puente avisó con
 			// `error/refresh-failed` (ver `bridge-client.ts`): en los dos casos el cambio no aterrizó
 			// y el único camino honesto que queda es la recarga entera de siempre.
-			onRefreshFailed: () => void requestPreview()
+			onRefreshFailed: () => void requestPreview(true)
 		});
 		return bridgeClient;
 	}
@@ -678,6 +727,8 @@
 	 *  también en cada recarga entera (renovación de token de respaldo, sin puente o sin
 	 *  `liveRefresh`), que es justo cuando hay que volver a saludar. */
 	function handleFrameLoad(): void {
+		// El marco vacío que recibe el POST inicial no representa una página del sitio.
+		if (tokenState.kind === 'ready' && tokenState.token.postToken && !postForm) return;
 		frameLoaded = true;
 		if (tokenState.kind !== 'ready') return;
 		ensureBridgeClient(tokenState.token.url).start();
@@ -1066,8 +1117,8 @@
 	     modo «solo textos» la ocupa entera. -->
 	<div
 		class="vega-visual-grid"
-		class:vega-visual-grid--tree={canvasActive}
-		class:vega-visual-grid--inspector={canvasActive}
+		class:vega-visual-grid--tree={canvasActive && treeVisible && treeResizerActive}
+		class:vega-visual-grid--inspector={canvasActive && inspectorVisible}
 		class:vega-visual-grid--texts={!canvasActive}
 		style:--vega-visual-tree-w="{columnWidths.tree}px"
 		style:--vega-visual-inspector-w="{columnWidths.inspector}px"
@@ -1081,17 +1132,19 @@
 			     sea un aviso ("todavía no hay bloques", "elige uno"). Las manillas (ver cabecera,
 			     "Anchos de columna ajustables") son celdas del MISMO grid, a propósito: su orden en
 			     el marcado tiene que casar con el de `grid-template-columns` del CSS. -->
-			<VisualBlockTree
-				{blocks}
-				selectedId={selectedBlockId}
-				unpublishedIds={unpublishedBlockIds}
-				onHover={handleTreeHover}
-				onSelect={handleBlockSelect}
-				onStructuralChange={handleContentSaved}
-				onPaletteDragStart={handlePaletteDragStart}
-				onPaletteDragEnd={handlePaletteDragEnd}
-			/>
-			{#if treeResizerActive}
+			<div class="vega-visual-tree-shell" class:vega-visual-tree-shell--hidden={!treeVisible}>
+				<VisualBlockTree
+					{blocks}
+					selectedId={selectedBlockId}
+					unpublishedIds={unpublishedBlockIds}
+					onHover={handleTreeHover}
+					onSelect={handleBlockSelect}
+					onStructuralChange={handleContentSaved}
+					onPaletteDragStart={handlePaletteDragStart}
+					onPaletteDragEnd={handlePaletteDragEnd}
+				/>
+			</div>
+			{#if treeResizerActive && treeVisible}
 				<VisualColumnResizer
 					value={columnWidths.tree}
 					min={TREE_MIN_WIDTH}
@@ -1109,6 +1162,21 @@
 				aria-label={ctx.t('editor.visual.preview.label')}
 			>
 				<div class="vega-visual-preview-tools">
+					<button
+						type="button"
+						class="vega-visual-panel-toggle"
+						class:vega-visual-panel-toggle--tree={true}
+						aria-expanded={treeVisible}
+						aria-controls="vega-block-tree-panel"
+						onclick={() => (treeVisible = !treeVisible)}>Estructura</button
+					>
+					{#if selectedBlockId && !inspectorVisible}
+						<button
+							type="button"
+							class="vega-visual-panel-toggle"
+							onclick={() => (inspectorVisible = true)}>Editar bloque</button
+						>
+					{/if}
 					<label class="vega-visual-view-control">
 						<span>{ctx.t('editor.visual.view.label')}</span>
 						<select
@@ -1158,39 +1226,70 @@
 						onclick={toggleHelp}>?</button
 					>
 					<div class="vega-visual-status" aria-live="polite">
-						{#if bridgeState.status === 'connected'}
-							{@const connectedText = ctx.t(
-								bridgeState.blocks.length === 1
-									? 'editor.visual.connected.one'
-									: 'editor.visual.connected.many',
-								{ count: bridgeState.blocks.length }
-							)}
-							<span class="vega-visual-status-short" title={connectedText} aria-hidden="true"
-								>{ctx.t('topbar.connection.connected')}</span
-							>
-							<span class="vega-visual-status-text vega-visually-hidden">{connectedText}</span>
-						{:else if bridgeState.status === 'error'}
-							{@const errorText = bridgeErrorText(bridgeState.kind, bridgeState, ctx.t)}
-							<span class="vega-visual-status-text vega-visual-status-text--error">
-								{errorText.title}
+						{#if previewError !== null}
+							<span class="vega-visual-status-text vega-visual-status-text--error" role="alert">
+								No se pudo actualizar la vista previa: {previewError}
 							</span>
-							<span class="vega-visual-status-detail">{errorText.body}</span>
-							{#if errorText.canRetry}
-								<button type="button" class="vega-visual-retry" onclick={retryBridge}>
-									{ctx.t('common.retry')}
-								</button>
-							{/if}
-						{:else if canvasActive && tokenState.kind !== 'error'}
-							<!-- "Conectando" SOLO mientras la conexión sigue viva. Con el token caído no hay
+							<button
+								type="button"
+								class="vega-visual-retry"
+								onclick={() => scheduleCanvasRefresh()}
+							>
+								{ctx.t('common.retry')}
+							</button>
+						{:else if blocks.anyDirty && (previewUpdating || !frameLoaded)}
+							<span class="vega-visual-status-text">Actualizando vista previa… · Sin guardar</span>
+						{:else if blocks.anyDirty && previewDraftAccepted}
+							<span class="vega-visual-status-text">Vista previa del borrador · Sin guardar</span>
+						{:else if blocks.anyDirty}
+							<span class="vega-visual-status-text"
+								>Vista previa guardada · Guarda para ver los cambios</span
+							>
+						{:else}
+							{#if bridgeState.status === 'connected'}
+								{@const connectedText = ctx.t(
+									bridgeState.blocks.length === 1
+										? 'editor.visual.connected.one'
+										: 'editor.visual.connected.many',
+									{ count: bridgeState.blocks.length }
+								)}
+								<span class="vega-visual-status-short" title={connectedText} aria-hidden="true"
+									>{ctx.t('topbar.connection.connected')}</span
+								>
+								<span class="vega-visual-status-text vega-visually-hidden">{connectedText}</span>
+							{:else if bridgeState.status === 'error'}
+								{@const errorText = bridgeErrorText(bridgeState.kind, bridgeState, ctx.t)}
+								<span class="vega-visual-status-text vega-visual-status-text--error">
+									{errorText.title}
+								</span>
+								<span class="vega-visual-status-detail">{errorText.body}</span>
+								{#if errorText.canRetry}
+									<button type="button" class="vega-visual-retry" onclick={retryBridge}>
+										{ctx.t('common.retry')}
+									</button>
+								{/if}
+							{:else if canvasActive && tokenState.kind !== 'error'}
+								<!-- "Conectando" SOLO mientras la conexión sigue viva. Con el token caído no hay
 					     marco con el que saludar, y decir aquí que se está conectando mientras el lienzo
 					     enseña el error del token sería contar dos historias distintas del mismo fallo:
 					     el mensaje lo da el lienzo, que es quien lo sabe. -->
-							<span class="vega-visual-status-text">{ctx.t('editor.visual.connecting')}</span>
+								<span class="vega-visual-status-text">{ctx.t('editor.visual.connecting')}</span>
+							{/if}
 						{/if}
 					</div>
 				</div>
 				<div class="vega-visual-canvas" bind:this={canvasEl}>
 					{#if tokenState.kind === 'ready'}
+						{#if tokenState.token.postToken}
+							<form
+								method="post"
+								action={tokenState.token.url}
+								target={frameName}
+								bind:this={postForm}
+							>
+								<input type="hidden" name="token" value={tokenState.token.postToken} />
+							</form>
+						{/if}
 						<!-- Escenario del zoom (ver cabecera, "Tamaño de pantalla + zoom del lienzo"):
 					     iframe + overlay viven dentro de la MISMA caja escalada, así que los
 					     contornos siguen casando con las coordenadas del puente sin tocar ni un
@@ -1205,7 +1304,8 @@
 							<iframe
 								class="vega-visual-frame"
 								bind:this={iframeEl}
-								src={tokenState.token.url}
+								name={frameName}
+								src={tokenState.token.postToken ? 'about:blank' : tokenState.token.url}
 								title={ctx.t('editor.visual.frameTitle')}
 								referrerpolicy="no-referrer"
 								onload={handleFrameLoad}
@@ -1250,31 +1350,37 @@
 					{/if}
 				</div>
 			</div>
-			<VisualColumnResizer
-				value={columnWidths.inspector}
-				min={INSPECTOR_MIN_WIDTH}
-				max={INSPECTOR_MAX_WIDTH}
-				defaultValue={INSPECTOR_DEFAULT_WIDTH}
-				sign={-1}
-				label={ctx.t('editor.visual.resize.inspector')}
-				onResize={setInspectorWidth}
-				onDragChange={setResizing}
-			/>
+			{#if inspectorVisible}<VisualColumnResizer
+					value={columnWidths.inspector}
+					min={INSPECTOR_MIN_WIDTH}
+					max={INSPECTOR_MAX_WIDTH}
+					defaultValue={INSPECTOR_DEFAULT_WIDTH}
+					sign={-1}
+					label={ctx.t('editor.visual.resize.inspector')}
+					onResize={setInspectorWidth}
+					onDragChange={setResizing}
+				/>{/if}
 		{/if}
 		<!-- FUERA del `{#if canvasActive}` a propósito (ver cabecera): es la misma instancia en los
 		     dos anchos, solo cambia de `mode`. Por debajo de 900px (mismo punto de corte en el que
 		     `PreviewPanel.svelte` se retira entera) es el modo «solo textos»; el lienzo no se
 		     oculta, no se monta — así no se descarga el sitio del cliente en un móvil. -->
-		<VisualInspector
-			bind:this={inspectorRef}
-			{blocks}
-			selectedId={selectedBlockId}
-			mode={canvasActive ? 'inspector' : 'texts'}
-			onBlockSaved={handleContentSaved}
-			onBack={() => ctx.nav.toRecord(type.name, record.id)}
-			onSelectBlock={openPendingBlock}
-			fullFormHref={recordRoute(type.name, record.id)}
-		/>
+		<div
+			class="vega-visual-inspector-shell"
+			class:vega-visual-inspector-shell--hidden={canvasActive && !inspectorVisible}
+		>
+			<VisualInspector
+				bind:this={inspectorRef}
+				{blocks}
+				selectedId={selectedBlockId}
+				mode={canvasActive ? 'inspector' : 'texts'}
+				onBlockSaved={handleContentSaved}
+				onBack={() => ctx.nav.toRecord(type.name, record.id)}
+				onSelectBlock={openPendingBlock}
+				onClose={() => (inspectorVisible = false)}
+				fullFormHref={recordRoute(type.name, record.id)}
+			/>
+		</div>
 	</div>
 
 	<!-- La ayuda se descarga al pedirla; el estado de carga/error sigue siendo cancelable. -->
@@ -1685,6 +1791,34 @@
 		padding: 0 calc(var(--vega-space-gutter) * 1.5) calc(var(--vega-space-gutter) * 1.25);
 	}
 
+	/* `display: contents` deja los paneles en sus celdas originales; `none` los quita del foco
+	   y del ancho sin desmontar BlockEditor ni sus borradores. */
+	.vega-visual-tree-shell,
+	.vega-visual-inspector-shell {
+		display: contents;
+	}
+
+	.vega-visual-tree-shell--hidden,
+	.vega-visual-inspector-shell--hidden {
+		display: none;
+	}
+
+	.vega-visual-panel-toggle {
+		min-height: 2.5rem;
+		padding: 0.4rem 0.75rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--surface);
+		color: var(--ink);
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.vega-visual-panel-toggle:hover,
+	.vega-visual-panel-toggle:focus-visible {
+		border-color: var(--accent);
+	}
+
 	/* `--vega-visual-tree-w`/`--inspector-w` (ver cabecera, "Anchos de columna ajustables"): el
 	   `8px` intercalado es la celda que ocupa cada `VisualColumnResizer` — su valor tiene que
 	   casar con el `width: 8px` de `.vega-col-resizer` (propio componente) o el grid dejaría un
@@ -1714,6 +1848,13 @@
 	   como columna normal hasta los 900px en los que el lienzo entero deja de montarse
 	   (`canvasActive`, ver el script). */
 	@media (max-width: 1180px) {
+		.vega-visual-tree-shell--hidden {
+			display: contents;
+		}
+
+		.vega-visual-panel-toggle--tree {
+			display: none;
+		}
 		.vega-visual-preview-tools::before {
 			content: '';
 			width: 7rem;

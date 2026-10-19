@@ -1039,6 +1039,9 @@
 	   borde igual. */
 	.vega-visual-overlay-box {
 		position: absolute;
+		/* Solo el bloque activo o bajo el puntero enmarca el sitio. Los nodos se conservan para
+		   que el puente y los tests sigan mapeando todos los ids sin montar otra capa. */
+		opacity: 0;
 		/* `pointer-events: none` también INLINE aquí (ver el marcado): la instrucción es "en el
 		   contenedor Y en las cajas", explícito en las dos, no heredado de una — así una caja no
 		   se rompe si algún día se mueve fuera de este árbol. */
@@ -1049,6 +1052,7 @@
 	}
 
 	.vega-visual-overlay-box--highlighted {
+		opacity: 1;
 		box-shadow:
 			0 0 0 1px var(--paper),
 			0 0 0 2px var(--accent),
@@ -1059,6 +1063,7 @@
 	   anillo más grueso, no un color distinto — la etiqueta ya dice el tipo, el grosor dice
 	   "esta es la que tienes abierta". */
 	.vega-visual-overlay-box--selected {
+		opacity: 1;
 		box-shadow:
 			0 0 0 1px var(--paper),
 			0 0 0 3px var(--accent),
@@ -1146,7 +1151,8 @@
 		   propio ancho, que es lo que la deja pegada a la derecha DENTRO del contorno sin tener
 		   que medir la barra en JS. La esquina izquierda ya la ocupa la etiqueta del tipo de
 		   bloque (`.vega-visual-overlay-label`). */
-		transform: translateX(-100%);
+		transform: translateX(-100%) scale(var(--menu-scale));
+		transform-origin: top right;
 		display: inline-flex;
 		align-items: center;
 		gap: 0.15rem;
