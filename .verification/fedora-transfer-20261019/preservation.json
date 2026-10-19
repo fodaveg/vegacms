@@ -1,0 +1,137 @@
+{
+  "branch": "wip/fedora-network-20261019",
+  "sourceBranch": "codex/network-durable-20261009",
+  "baseCommit": "b00186ce5587fcc7323aefdd9d3cdcbfea281750",
+  "sourceWorktree": "/Users/david/code/vegacms/.verification/worktrees/network-durable-20261009",
+  "copiedFiles": [
+    {
+      "path": ".verification/RUNBOOK-ROOT-20261015.md",
+      "sha256": "147da231ad7b47d43260603afd1f30765c8bcf631f801ff85552e2a2a77339b2"
+    },
+    {
+      "path": ".verification/caddy-native-routing-20261015/base_remote_validate.py",
+      "sha256": "b9a4cc3ef38919409348509d0b6af8312655a795a3ec1caf0ffe4372cf032b6e"
+    },
+    {
+      "path": ".verification/caddy-native-routing-20261015/probe.py",
+      "sha256": "9b7618c6f5c634ef440d0b12e985bc07c9ff81126efe9cc8951985299966e378"
+    },
+    {
+      "path": ".verification/caddy-native-routing-20261015/procedure.md",
+      "sha256": "1f5e2aeb99ffdb6ff3e5a224798fe09c8a6d5150573f7a839669ef6cabe37bce"
+    },
+    {
+      "path": ".verification/caddy-native-routing-20261015/projection.py",
+      "sha256": "85b7d2c4286a619b5d6d866b4b4613645298edb79dd5c5696afb85638b1d493c"
+    },
+    {
+      "path": ".verification/caddy-native-routing-20261015/proposal.md",
+      "sha256": "36e0a40e038440a0da6da0d54653dece25f1f89434df8a2bb148411ee1278673"
+    },
+    {
+      "path": ".verification/caddy-native-routing-20261015/remote_native.py",
+      "sha256": "928545b49705805a80425735f8177bfd15d27467c42b142a005d5fdb443ff460"
+    },
+    {
+      "path": ".verification/caddy-native-routing-20261015/run_once.py",
+      "sha256": "6e6d8c9375e0bfa1c1bf86485fa7856eb4c2d888e2d96e184f338baebfe868c1"
+    },
+    {
+      "path": ".verification/caddy-native-routing-20261015/verification.md",
+      "sha256": "c9bd72ed586017ab340c45aa45c89515656422311678ef1736229bc1d761db6d"
+    },
+    {
+      "path": ".verification/dependencies.cors-prepared-20261015.json",
+      "sha256": "a60e787646ff919843a696de5ec77cfe2e79c9e567689c8af7342b4754b46b67"
+    },
+    {
+      "path": ".verification/dependencies.cors-prepared-20261015.sources.md",
+      "sha256": "27f516b6118148384c7cd9321a6637d30a2707e6df9e7440142b539fbacf6345"
+    },
+    {
+      "path": ".verification/edge-global-smoke-launcher-20261015/BRIEF.md",
+      "sha256": "594df50515f07f67de96314af1b88a803f0915d05fcbf182cf75816bbfd956aa"
+    },
+    {
+      "path": ".verification/edge-global-smoke-launcher-20261015/SHA256SUMS",
+      "sha256": "7db792dca5bd7b1c635cc0118f925be86b6692591a957b8ce47525f399f8002f"
+    },
+    {
+      "path": ".verification/edge-global-smoke-launcher-20261015/global-prebaseline-20261015.json",
+      "sha256": "6702c7cd111e901ba92862a68fe31dcd07278cd0b2f0372bfc85858e3e58f1de"
+    },
+    {
+      "path": ".verification/edge-global-smoke-launcher-20261015/remote_global_smoke.py",
+      "sha256": "267bb0d56031cdc2a02f364f07e03da780160069a72b019ed7eee16f8a996f9a"
+    },
+    {
+      "path": ".verification/edge-global-smoke-launcher-20261015/run_global_smoke.py",
+      "sha256": "261bdd2d1e5e50b096ca2bcc387b03a3892f1f63beb746c198b2c1a617127636"
+    },
+    {
+      "path": ".verification/edge-global-smoke-launcher-20261015/selftest.log",
+      "sha256": "9ab8ba6f8effa138761e926e77902f4c8894ae0d3e3da010e84460e81d9132fa"
+    },
+    {
+      "path": ".verification/edge-global-smoke-launcher-20261015/selftest.py",
+      "sha256": "d4b46d8df6728eb87a861c5d3dbb94e11d2ee47a1d7d4a1b9156293f6b4c6d3e"
+    },
+    {
+      "path": ".verification/network-durable-candidate-20261009/BRIEF.md",
+      "sha256": "bc1ae2e074e0ffe1b84f706609c4f017ac28bb256bc9c2a9aeafa3e4efd892d6"
+    },
+    {
+      "path": ".verification/network-durable-candidate-20261009/SHA256SUMS",
+      "sha256": "5670cf430e91bb1e4e2489a6275a457937ab46422defa5a8e3175ae8b6ea70ba"
+    },
+    {
+      "path": ".verification/network-durable-candidate-20261009/dependencies.draft.json",
+      "sha256": "fdd370fa2f595d63eef0995f153911d46d322c763b3e7dca57ece18552aba742"
+    },
+    {
+      "path": ".verification/network-durable-candidate-20261009/frozen-stock-selftest.log",
+      "sha256": "2d014bb427120fb1a5014d7499096989061fd0fdf40acb471c2e2667de60e71e"
+    },
+    {
+      "path": ".verification/network-durable-candidate-20261009/offline-selftest.log",
+      "sha256": "ea6024af9087c00f9d6e9d779c6189caf0cee361f03694bea143b9fb7e244f6a"
+    },
+    {
+      "path": ".verification/network-durable-candidate-20261009/remote_dependencies.py",
+      "sha256": "4b4486aaee4308f10dabd35fb231ac518beb3391e27dfc1aaf3c3e936c806ba2"
+    },
+    {
+      "path": ".verification/network-durable-candidate-20261009/remote_edge_durable.py",
+      "sha256": "b61ff6c8ec78a235a724b02928f1e80d7593e2cff92ba5aab0ac957550063c14"
+    },
+    {
+      "path": ".verification/network-durable-candidate-20261009/remote_stock_durable.py",
+      "sha256": "9af3be27c89395d416069c5a8ccc6b8fd26b1e462e1034ba7a05266250463068"
+    },
+    {
+      "path": ".verification/network-durable-candidate-20261009/run_candidate.py",
+      "sha256": "719b8b69b5731867fee8f5937b01b698d5729cb70a2c834759fc3727da619f7d"
+    },
+    {
+      "path": ".verification/network-durable-candidate-20261009/seals.json",
+      "sha256": "68817475ef00b9b739141f471e807a5c2c88aad4300d4767d16cbc6e4f390bae"
+    },
+    {
+      "path": ".verification/network-durable-candidate-20261009/selftest.py",
+      "sha256": "d4aa8354e959e1538c43478e259a68d2c548614baf938a20ccae2816d3bbf2c4"
+    },
+    {
+      "path": ".verification/network-durable-rollback-handoff-20261009.md",
+      "sha256": "fd18e6a5bce08d891aa074c23f772d42ae492588283e0f39a44e29759fe3263d"
+    }
+  ],
+  "checks": {
+    "sha256CopyComparison": "PASS",
+    "credentialPatternReview": "PASS; only synthetic fixture credential detected in root handoff selection"
+  },
+  "limits": [
+    "WIP checkpoint for Fedora continuation; no product tests, gate or deployment run.",
+    "Original source worktree/index preserved.",
+    "Python bytecode excluded."
+  ]
+}

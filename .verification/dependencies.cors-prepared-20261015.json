@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "state": "DRAFT",
+  "cors": {
+    "vega-pb": {
+      "status": "PASS",
+      "containerId": "007b755b8de76195d857181ce985a9522fe71c5d2941a2c1597b310d12d56881",
+      "imageId": "sha256:dd978b8d23081d2e3c69ebf6ef8ff4599a1acdd3f38dc559ae6fa379e46449b4",
+      "composeSha": "11593d1da51e580f988058bfac8288194eaeb7697ac7db2f6926815f8d14dcde",
+      "receiptSha": "5707011a8086e65d4ec6bf76c9a375adb0b6128892b9a021ce94952a6e04b821"
+    },
+    "lumbre-admin-pb": {
+      "status": "PASS",
+      "containerId": "3774856bc7cbb6aa193b3db9ad2d0545d25bd4a66a35ef53c398b786d89ca9ca",
+      "imageId": "sha256:40df6a9bbcfd4edbc93680b0f45946d0be7c50c4e5c470167e33646fe499c1b7",
+      "composeSha": "56caa1a1273feaa3c56b34db7724177c448190d1c28d723d53a5b62fbe110ae9",
+      "receiptSha": "1ec30638cfdf18ef9b469b79c51c3d09c080df04352e240a2f3e9acf5f61a747"
+    },
+    "fodaveg": {
+      "status": "PASS",
+      "containerId": "c25a7858f2692b395925d5b7f8d80512378dccbaa58ec55e432d8c5f186b73e6",
+      "imageId": "sha256:22cf0983980e3bf9562a0a518f258e6e69cdd58cb3d23a19516f1da60a6d403e",
+      "composeSha": "eb62c0447d4cce8a8af1ceedeeabb11602770d48d6bf952618ef19e7b8a1008b",
+      "receiptSha": "ac3334c07a2f95db384a8422987a79d109539cbc9f904fc6f3a015b9cd7e80c1"
+    }
+  },
+  "caddy": {
+    "status": "PENDING",
+    "containerId": "ae97fc0c57fbe4c3a97f5dce15dfc9da92f33f527b60d95c3f74de9d2a160a7a",
+    "imageId": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+    "preflightSha": "PENDING"
+  },
+  "source": null
+}

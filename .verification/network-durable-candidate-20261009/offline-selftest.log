@@ -1,0 +1,18 @@
+test_bootstrap_compiles_without_running_remote_operation (__main__.DurableTests.test_bootstrap_compiles_without_running_remote_operation) ... ok
+test_dependencies_reject_draft_missing_pass_and_foreign_fields (__main__.DurableTests.test_dependencies_reject_draft_missing_pass_and_foreign_fields) ... ok
+test_dependency_guard_rejects_fod_forward_drift (__main__.DurableTests.test_dependency_guard_rejects_fod_forward_drift) ... ok
+test_exact_published_guard_and_all_rejections (__main__.DurableTests.test_exact_published_guard_and_all_rejections) ... ok
+test_extension_rejected_before_parser_and_flags_do_not_resolve_env (__main__.DurableTests.test_extension_rejected_before_parser_and_flags_do_not_resolve_env) ... ok
+test_manifest_and_source_seals_reject_drift (__main__.DurableTests.test_manifest_and_source_seals_reject_drift) ... ok
+test_model_delta_preserves_every_other_service (__main__.DurableTests.test_model_delta_preserves_every_other_service) ... ok
+test_new_stock_guard_accepts_only_owned_exact_members (__main__.DurableTests.test_new_stock_guard_accepts_only_owned_exact_members) ... ok
+test_real_git_commit_tree_preserves_foreign_index_and_head (__main__.DurableTests.test_real_git_commit_tree_preserves_foreign_index_and_head) ... ok
+test_real_stock_rollback_recreates_on_edge_and_closes_receipt (__main__.DurableTests.test_real_stock_rollback_recreates_on_edge_and_closes_receipt) ... ok
+test_rollback_drift_never_replaces_or_commits (__main__.DurableTests.test_rollback_drift_never_replaces_or_commits) ... ok
+test_rollback_requires_caddy_only_before_source_write (__main__.DurableTests.test_rollback_requires_caddy_only_before_source_write) ... ok
+test_transport_rejects_extra_receipt_and_wrong_source_pin (__main__.DurableTests.test_transport_rejects_extra_receipt_and_wrong_source_pin) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.764s
+
+OK

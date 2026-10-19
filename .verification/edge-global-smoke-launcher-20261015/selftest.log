@@ -1,0 +1,11 @@
+test_drift_or_second_raw_inspect_rejected (__main__.GlobalSmokeTests.test_drift_or_second_raw_inspect_rejected) ... ok
+test_early_guard_throw_and_late_drift_stop_closed (__main__.GlobalSmokeTests.test_early_guard_throw_and_late_drift_stop_closed) ... ok
+test_exact_original_and_single_metadata_only_delta (__main__.GlobalSmokeTests.test_exact_original_and_single_metadata_only_delta) ... ok
+test_first_failure_is_finite_and_closed (__main__.GlobalSmokeTests.test_first_failure_is_finite_and_closed) ... ok
+test_pass_is_19_closed_checks_with_both_guards (__main__.GlobalSmokeTests.test_pass_is_19_closed_checks_with_both_guards) ... ok
+test_wrapper_rejects_private_or_inconsistent_receipt (__main__.GlobalSmokeTests.test_wrapper_rejects_private_or_inconsistent_receipt) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.004s
+
+OK
