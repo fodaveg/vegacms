@@ -816,6 +816,19 @@ async function flush(): Promise<void> {
 	await tick();
 }
 
+/** La pantalla inicia con el lienzo solo: abrir «Estructura» dispara el import diferido del
+ * árbol. Esperar sus filas evita que los atajos se midan contra un panel aún sin montar. */
+async function openStructure(target: HTMLElement, expectedRows: number): Promise<void> {
+	const toggle = target.querySelector<HTMLButtonElement>('.vega-visual-panel-toggle--tree');
+	expect(toggle).not.toBeNull();
+	toggle!.click();
+	await tick();
+	expect(toggle!.getAttribute('aria-expanded')).toBe('true');
+	await vi.waitFor(() => {
+		expect(target.querySelectorAll('.vega-tree-row')).toHaveLength(expectedRows);
+	});
+}
+
 function mountScreen(
 	ctx: VegaAppContext,
 	type: ResolvedContentType
@@ -856,6 +869,7 @@ describe('Paridad de teclado — pantalla (VisualEditorScreen.svelte, atajos)', 
 		]);
 		mounted = mountScreen(ctx, type);
 		await flush();
+		await openStructure(mounted.target, 2);
 
 		// Selección vía árbol (ya medida en la sección A; aquí es solo el paso previo).
 		mounted.target.querySelector<HTMLButtonElement>('.vega-tree-row')!.click();
@@ -877,6 +891,7 @@ describe('Paridad de teclado — pantalla (VisualEditorScreen.svelte, atajos)', 
 		]);
 		mounted = mountScreen(ctx, type);
 		await flush();
+		await openStructure(mounted.target, 2);
 
 		pressKey(window, 'ArrowDown', { altKey: true });
 		await flush();
@@ -891,6 +906,7 @@ describe('Paridad de teclado — pantalla (VisualEditorScreen.svelte, atajos)', 
 		const { ctx, type, port } = await setupScreen([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);
 		await flush();
+		await openStructure(mounted.target, 1);
 
 		mounted.target.querySelector<HTMLButtonElement>('.vega-tree-row')!.click();
 		await tick();
@@ -911,6 +927,7 @@ describe('Paridad de teclado — pantalla (VisualEditorScreen.svelte, atajos)', 
 		const { ctx, type } = await setupScreen([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);
 		await flush();
+		await openStructure(mounted.target, 1);
 
 		mounted.target.querySelector<HTMLButtonElement>('.vega-tree-row')!.click();
 		await tick();
