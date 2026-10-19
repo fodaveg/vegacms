@@ -525,6 +525,9 @@ export const es = {
 	// «900 px» del texto son el mismo punto de corte que `NARROW_QUERY` en `VisualEditorScreen`.
 	'editor.visual.insert.start': 'Añadir al principio',
 	'editor.visual.insert.end': 'Añadir al final',
+	'editor.visual.paletteSearch.label': 'Buscar bloques',
+	'editor.visual.paletteSearch.placeholder': 'Buscar por tipo o campo',
+	'editor.visual.paletteSearch.empty': 'No hay bloques que coincidan.',
 	'editor.visual.insert.after': 'Añadir después de «{label}»',
 	'editor.visual.texts.jump': 'Ir a sección',
 	'editor.visual.texts.form': 'Abrir formulario completo',

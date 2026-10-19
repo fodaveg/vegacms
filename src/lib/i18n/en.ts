@@ -493,6 +493,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// "Text only" mode (batch 12, sheet 8), see `es.ts` for the full rationale.
 	'editor.visual.insert.start': 'Add at the start',
 	'editor.visual.insert.end': 'Add at the end',
+	'editor.visual.paletteSearch.label': 'Search blocks',
+	'editor.visual.paletteSearch.placeholder': 'Search by type or field',
+	'editor.visual.paletteSearch.empty': 'No matching blocks.',
 	'editor.visual.insert.after': 'Add after “{label}”',
 	'editor.visual.texts.jump': 'Go to section',
 	'editor.visual.texts.form': 'Open full form',

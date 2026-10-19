@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * `VisualPalette.svelte` (encargo "paleta de bloques arrastrable del editor visual"): fila de
-	 * botones —uno por `blocksState.blockTypes`, la MISMA fuente que ya usa el menú "Añadir sección"
+	 * `VisualPalette.svelte` (encargo "paleta de bloques arrastrable del editor visual"): catálogo
+	 * buscable de botones —uno por `blocksState.blockTypes`, la MISMA fuente que ya usa el menú "Añadir sección"
 	 * de `VisualBlockTree.svelte` y el `+` de `VisualOverlay.svelte` (si esta paleta acabase con su
 	 * propia lista de tipos, el encargo habría salido mal)— que SUSTITUYE al botón "Añadir Sección
 	 * ›" del árbol cuando hay menú de tipos (decisión 1 del encargo, cerrada con David): ese botón
@@ -81,6 +81,24 @@
 
 	let { blocks, onStructuralChange, onDragStart, onDragEnd }: Props = $props();
 	const ctx = getVegaContext();
+	let search = $state('');
+
+	/** Solo el manifiesto alimenta el catálogo. Se busca por etiqueta y campos declarados, con
+	 * normalización de acentos; ni el nombre técnico ni el sitio generan miniaturas ficticias. */
+	const visibleTypes = $derived.by(() => {
+		const query = normalize(search.trim());
+		if (!query) return blocks.blockTypes;
+		return blocks.blockTypes.filter((type) =>
+			normalize([type.label, ...type.fields.map((field) => field.label)].join(' ')).includes(query)
+		);
+	});
+
+	function normalize(value: string): string {
+		return value
+			.normalize('NFD')
+			.replace(/[\u0300-\u036f]/g, '')
+			.toLocaleLowerCase(ctx.locale);
+	}
 
 	/** Misma guarda que las filas del árbol y la barra flotante del lienzo, y **a propósito más
 	 *  estricta que el botón "Añadir Sección ›" al que sustituye** (que solo miraba
@@ -120,13 +138,23 @@
 		<div class="vega-palette-head">
 			<h2 id="vega-palette-heading">{ctx.t('editor.visual.insert.end')}</h2>
 		</div>
+		<label class="vega-palette-search-label" for="vega-palette-search">
+			{ctx.t('editor.visual.paletteSearch.label')}
+		</label>
+		<input
+			id="vega-palette-search"
+			class="vega-palette-search"
+			type="search"
+			bind:value={search}
+			placeholder={ctx.t('editor.visual.paletteSearch.placeholder')}
+		/>
 		{#if blocks.anyDirty}
 			<p class="vega-palette-notice" id="vega-palette-pending">
 				{ctx.t('editor.visual.pending.palette')}
 			</p>
 		{/if}
 		<div class="vega-palette-list">
-			{#each blocks.blockTypes as blockType (blockType.name)}
+			{#each visibleTypes as blockType (blockType.name)}
 				<button
 					type="button"
 					class="vega-palette-item"
@@ -137,10 +165,20 @@
 					ondragend={onDragEnd}
 					onclick={() => void createAtEnd(blockType)}
 				>
-					{#if blockType.icon}<Icon id={blockType.icon} size={14} />{/if}
-					{blockType.label}
+					<span class="vega-palette-icon" aria-hidden="true">
+						{#if blockType.icon}<Icon id={blockType.icon} size={18} />{/if}
+					</span>
+					<span class="vega-palette-copy">
+						<strong>{blockType.label}</strong>
+						<span class="vega-palette-fields"
+							>{blockType.fields.map((field) => field.label).join(' · ')}</span
+						>
+					</span>
 				</button>
 			{/each}
+			{#if visibleTypes.length === 0}
+				<p class="vega-palette-empty">{ctx.t('editor.visual.paletteSearch.empty')}</p>
+			{/if}
 		</div>
 	</div>
 {/if}
@@ -174,28 +212,88 @@
 		overflow-wrap: anywhere;
 	}
 
+	.vega-palette-search-label {
+		padding: 0 0.9rem 0.25rem;
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--ink-2);
+	}
+
+	.vega-palette-search {
+		margin: 0 0.9rem 0.65rem;
+		min-height: 2.75rem;
+		padding: 0.5rem 0.65rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--surface);
+		color: var(--ink);
+		font: inherit;
+	}
+
+	.vega-palette-search:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
 	.vega-palette-list {
-		display: flex;
-		flex-wrap: wrap;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
 		gap: 0.4rem;
 		padding: 0 0.9rem 0.75rem;
-		max-height: 9rem;
+		max-height: 18rem;
 		overflow-y: auto;
 	}
 
 	.vega-palette-item {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-		padding: 0.35rem 0.65rem;
+		display: flex;
+		align-items: flex-start;
+		gap: 0.65rem;
+		min-width: 0;
+		min-height: 3.25rem;
+		padding: 0.55rem 0.65rem;
 		border: 1px solid var(--line);
-		border-radius: 999px;
+		border-radius: var(--r);
 		background: var(--surface);
 		color: var(--ink);
 		font: inherit;
-		font-size: 0.78em;
-		font-weight: 600;
+		text-align: left;
 		cursor: grab;
+	}
+
+	.vega-palette-icon {
+		display: grid;
+		place-items: center;
+		flex: 0 0 2rem;
+		min-height: 2rem;
+		border-radius: calc(var(--r) / 2);
+		background: var(--paper);
+		color: var(--accent-text);
+	}
+
+	.vega-palette-copy {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		min-width: 0;
+	}
+
+	.vega-palette-copy strong {
+		font-size: 0.82rem;
+		font-weight: 600;
+	}
+
+	.vega-palette-fields {
+		color: var(--ink-2);
+		font-size: 0.74rem;
+		line-height: 1.3;
+		overflow-wrap: anywhere;
+	}
+
+	.vega-palette-empty {
+		margin: 0;
+		padding: 0.65rem;
+		color: var(--ink-2);
+		font-size: 0.8rem;
 	}
 
 	.vega-palette-item:hover:not(:disabled) {

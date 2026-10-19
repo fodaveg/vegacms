@@ -16,12 +16,44 @@ import type { ResolvedBlockType } from '$lib/model/types';
 import type { VegaRecord } from '$lib/backend';
 import { t as translate } from '$lib/i18n';
 
-const HERO_TYPE = { name: 'hero', label: 'Portada', icon: 'box' } as unknown as ResolvedBlockType;
+const HERO_TYPE = {
+	name: 'hero',
+	label: 'Portada',
+	icon: 'box',
+	fields: [
+		{
+			name: 'heading',
+			label: 'Titular',
+			widget: 'text',
+			source: 'data',
+			required: true,
+			options: null
+		},
+		{
+			name: 'body',
+			label: 'Descripción',
+			widget: 'textarea',
+			source: 'data',
+			required: false,
+			options: null
+		}
+	]
+} as ResolvedBlockType;
 const GALLERY_TYPE = {
 	name: 'gallery',
 	label: 'Galería',
-	icon: null
-} as unknown as ResolvedBlockType;
+	icon: null,
+	fields: [
+		{
+			name: 'image',
+			label: 'Imagen',
+			widget: 'file',
+			source: 'record',
+			required: false,
+			options: null
+		}
+	]
+} as ResolvedBlockType;
 
 function record(id: string, heading: string): VegaRecord {
 	return { id, type: 'post_block', values: { heading } };
@@ -147,7 +179,7 @@ describe('VisualPalette.svelte', () => {
 		expect(mounted.target.querySelector('h2')?.textContent).toBe('Añadir al final');
 		expect(
 			Array.from(mounted.target.querySelectorAll('.vega-palette-item')).map((el) =>
-				el.textContent?.trim()
+				el.querySelector('strong')?.textContent?.trim()
 			)
 		).toEqual(types.map((type) => type.label));
 	});
@@ -184,8 +216,48 @@ describe('VisualPalette.svelte', () => {
 		const items = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-palette-item');
 		expect(items).toHaveLength(2);
 		expect(items[0].textContent?.trim()).toContain('Portada');
+		expect(items[0].querySelector('.vega-palette-fields')?.textContent).toBe(
+			'Titular · Descripción'
+		);
 		expect(items[0].querySelector('svg')).not.toBeNull();
 		expect(items[1].textContent?.trim()).toContain('Galería');
+		expect(items[1].querySelector('.vega-palette-fields')?.textContent).toBe('Imagen');
+	});
+
+	test('busca por tipo o campo declarado sin perder la acción de crear', async () => {
+		const handleCreate = vi.fn(async () => {});
+		const blocks = fakeBlocksState({
+			hasTypeMenu: true,
+			blockTypes: [HERO_TYPE, GALLERY_TYPE],
+			handleCreate
+		});
+		mounted = mountPalette({ blocks });
+		const search = mounted.target.querySelector<HTMLInputElement>('input[type="search"]')!;
+		expect(search.labels?.[0]?.textContent?.trim()).toBe('Buscar bloques');
+		search.value = 'descripcion';
+		search.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		const items = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-palette-item');
+		expect(items).toHaveLength(1);
+		expect(items[0].textContent).toContain('Portada');
+		items[0].click();
+		await settle();
+		expect(handleCreate).toHaveBeenCalledWith(HERO_TYPE);
+	});
+
+	test('sin coincidencias muestra vacío y conserva el buscador', async () => {
+		mounted = mountPalette({
+			blocks: fakeBlocksState({ hasTypeMenu: true, blockTypes: [HERO_TYPE] })
+		});
+		const search = mounted.target.querySelector<HTMLInputElement>('input[type="search"]')!;
+		search.value = 'galeria';
+		search.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		expect(mounted.target.querySelector('.vega-palette-item')).toBeNull();
+		expect(mounted.target.querySelector('.vega-palette-empty')?.textContent).toBe(
+			'No hay bloques que coincidan.'
+		);
+		expect(search.disabled).toBe(false);
 	});
 
 	test('región propia con su propio encabezado (`role="region"` + `aria-labelledby`)', () => {
