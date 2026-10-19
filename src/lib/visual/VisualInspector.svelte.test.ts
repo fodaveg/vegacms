@@ -17,6 +17,7 @@ import type { BlocksState, BlocksStatus } from '$lib/form/blocks-state.svelte';
 import type { ContentType } from '$lib/backend/types';
 import type { ResolvedContentType } from '$lib/model/types';
 import { recordVersion, type VegaRecord } from '$lib/backend';
+import { VegaError } from '$lib/backend/errors';
 import { resolveContentModel } from '$lib/model/resolve';
 import { t as translate } from '$lib/i18n';
 import { focusLost } from './a11y-audit';
@@ -431,6 +432,38 @@ describe('VisualInspector.svelte', () => {
 		expect(update).toHaveBeenCalledTimes(1);
 	});
 
+	test('el error del registro no apunta a campos inexistentes y conserva el borrador', async () => {
+		const update = vi.fn().mockRejectedValue(
+			VegaError.validation({
+				'': { code: 'record_rejected', message: 'No se admite esta combinación.' }
+			})
+		);
+		const blocks = fakeBlocksState(
+			{ records: [record('b1', 'Hero')] },
+			childType,
+			structuralFields
+		);
+		mounted = mountInspector(blocks, 'b1', fakeCtx(update));
+		await settleFocus();
+		const input = mounted.target.querySelector<HTMLInputElement>('input[type="text"]')!;
+		input.value = 'Borrador retenido';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		mounted.target.querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
+		await settleFocus();
+		expect(mounted.target.querySelector('.vega-block-context-state')?.textContent).toContain(
+			'No se pudo guardar'
+		);
+		expect(mounted.target.querySelector('.vega-field-error')).toBeNull();
+		expect(mounted.target.querySelector('.vega-block-banner')?.textContent).toBe(
+			'No se admite esta combinación.'
+		);
+		expect(input.value).toBe('Borrador retenido');
+		expect(
+			mounted.target.querySelector<HTMLButtonElement>('.vega-block-save-button')!.disabled
+		).toBe(false);
+	});
+
 	test('abrir un bloque sin campos habilitados enfoca su sección contextual, nunca Guardar', async () => {
 		const lockedChild = {
 			...childType,
@@ -659,7 +692,7 @@ describe('VisualInspector.svelte', () => {
 			expect(mounted.target.querySelector('.vega-block-save-button')).not.toBeNull();
 		});
 
-		test('sección sin ningún texto: se lista igual, lo dice, y no ofrece «Guardar»', () => {
+		test('sección sin ningún texto: se lista igual, lo dice, y no ofrece «Guardar»', async () => {
 			const numeric = buildChildTypeFrom(numericBlockType);
 			const blocks = fakeBlocksState(
 				{
@@ -676,6 +709,9 @@ describe('VisualInspector.svelte', () => {
 				translate('es', 'editor.visual.texts.none')
 			);
 			expect(mounted.target.querySelector('.vega-block-save-button')).toBeNull();
+			await settleFocus();
+			(mounted.instance as unknown as { focusBlock: (id: string) => void }).focusBlock('b1');
+			expect(document.activeElement).toBe(mounted.target.querySelector('.vega-inspector-body'));
 		});
 
 		test('sin permiso de editar: campos deshabilitados, sin «Guardar» y el aviso de siempre', () => {

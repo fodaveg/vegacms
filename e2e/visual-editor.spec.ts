@@ -1096,14 +1096,32 @@ test('UX02: abrir pendiente enfoca el richtext y la relación reales antes que G
 		.getByRole('button', { name: `Abrir bloque: ${SECCIONES[1].text}`, exact: true })
 		.click();
 	await expect(richtext).toBeFocused();
-	const editorBox = (await richtext.boundingBox())!;
+	// TipTap restaura su caret después de pintar: el rect del control completo puede empezar
+	// fuera del panel si es muy alto; lo que debe seguir visible es la posición editable actual.
+	await page.evaluate(
+		() =>
+			new Promise<void>((resolve) =>
+				requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+			)
+	);
+	const caret = await richtext.evaluate((el) => {
+		const selection = document.getSelection()!;
+		const range = selection.getRangeAt(0);
+		return {
+			inside: el.contains(range.startContainer),
+			collapsed: selection.isCollapsed,
+			rect: range.getBoundingClientRect().toJSON()
+		};
+	});
 	const headerBox = (await page
 		.locator('[data-block-id="seccion_2"] .vega-block-context')
 		.boundingBox())!;
 	const panelBox = (await page.locator('.vega-inspector-panel').boundingBox())!;
-	expect(editorBox.height).toBeGreaterThan(panelBox.height);
-	expect(editorBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
-	expect(editorBox.y).toBeLessThan(panelBox.y + panelBox.height);
+	expect((await richtext.boundingBox())!.height).toBeGreaterThan(panelBox.height);
+	expect(caret.inside && caret.collapsed).toBe(true);
+	expect(caret.rect.top).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
+	expect(caret.rect.bottom).toBeLessThanOrEqual(panelBox.y + panelBox.height);
+
 	await pending
 		.getByRole('button', { name: `Abrir bloque: ${SECCIONES[2].text}`, exact: true })
 		.click();
@@ -1114,4 +1132,131 @@ test('UX02: abrir pendiente enfoca el richtext y la relación reales antes que G
 	await expect(
 		page.locator('[data-block-id="seccion_3"] .vega-block-save-button')
 	).not.toBeFocused();
+});
+
+/** URL con hash de la distribución real, sin acoplar la prueba al nombre de un chunk. */
+async function visualHelpChunkPath(): Promise<string> {
+	const { readFile } = await import('node:fs/promises');
+	const manifest = JSON.parse(
+		await readFile('.svelte-kit/output/client/.vite/manifest.json', 'utf8')
+	);
+	const entry = Object.entries(manifest).find(([name]) =>
+		name.endsWith('/VisualHelpDialog.svelte')
+	);
+	expect(entry, 'La ayuda tiene una entrada diferida propia en la build').toBeDefined();
+	return `/${(entry![1] as { file: string }).file}`;
+}
+
+test('UX02: ayuda se descarga solo al pedirla; cerrar durante carga no abre tarde y restaura foco', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const chunk = await visualHelpChunkPath();
+	let release!: () => void;
+	const held = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	let requests = 0;
+	await page.route(`**${chunk}`, async (route) => {
+		requests++;
+		await held;
+		await route.continue();
+	});
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	expect(requests).toBe(0);
+	const opener = page.getByRole('button', { name: 'Atajos de teclado', exact: true });
+	await opener.focus();
+	await opener.press('?');
+	const loading = page.locator('.vega-visual-help-loading');
+	await expect(loading.getByRole('status')).toHaveText('Cargando…');
+	await expect(loading.getByRole('button', { name: 'Cerrar', exact: true })).toBeFocused();
+	expect(requests).toBe(1);
+	await page.keyboard.press('Escape');
+	await expect(loading).toHaveCount(0);
+	await expect(opener).toBeFocused();
+	const response = page.waitForResponse((r) => r.url().endsWith(chunk));
+	release();
+	await response;
+	await page.evaluate(
+		() =>
+			new Promise<void>((resolve) =>
+				requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+			)
+	);
+	await expect(page.getByRole('dialog')).toHaveCount(0);
+	await opener.click();
+	const dialog = page.getByRole('dialog', { name: 'Atajos de teclado', exact: true });
+	await expect(dialog).toBeVisible();
+	const close = dialog.getByRole('button', { name: 'Cerrar', exact: true });
+	await expect(close).toBeFocused();
+	await close.press('Tab');
+	await expect(close).toBeFocused();
+	await close.press('Shift+Tab');
+	await expect(close).toBeFocused();
+	await page.keyboard.press('Escape');
+	await expect(dialog).toHaveCount(0);
+	await expect(opener).toBeFocused();
+});
+
+test('UX02: fallo de descarga de ayuda permite cerrar y guardar sin perder borradores', async ({
+	page
+}, testInfo) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const chunk = await visualHelpChunkPath();
+	let requests = 0;
+	await page.route(`**${chunk}`, async (route) => {
+		requests++;
+		if (requests === 1) await route.abort('failed');
+		else await route.continue();
+	});
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await page.locator('[data-vega-tree-row="seccion_1"]').click();
+	await headingInput(page).fill('Borrador conservado durante la descarga');
+	await page.getByRole('button', { name: 'Atajos de teclado', exact: true }).click();
+	const loading = page.locator('.vega-visual-help-loading');
+	await expect(loading.getByRole('alert')).toContainText('No se ha podido cargar la ayuda');
+	await page.screenshot({ path: testInfo.outputPath('ux02-help-load-error.png') });
+	await expect(loading).toContainText('Guarda tus cambios antes de recargar el editor');
+	await expect(loading.getByRole('button', { name: 'Reintentar', exact: true })).toHaveCount(0);
+	await loading.getByRole('button', { name: 'Cerrar', exact: true }).click();
+	await expect(page.getByRole('button', { name: 'Atajos de teclado', exact: true })).toBeFocused();
+	await expect(headingInput(page)).toHaveValue('Borrador conservado durante la descarga');
+	await headingInput(page).fill('Borrador corregido después del fallo de ayuda');
+	await visibleInspectorBody(page).getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page.getByRole('region', { name: 'Cambios sin guardar', exact: true })).toHaveCount(
+		0
+	);
+	await expect(headingInput(page)).toHaveValue('Borrador corregido después del fallo de ayuda');
+	expect(requests).toBe(1);
+});
+
+test('UX02: desmontar mientras carga ayuda no abre ni enfoca el diálogo después', async ({
+	page
+}) => {
+	const chunk = await visualHelpChunkPath();
+	let release!: () => void;
+	const held = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	await page.route(`**${chunk}`, async (route) => {
+		await held;
+		await route.continue();
+	});
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await page.getByRole('button', { name: 'Atajos de teclado', exact: true }).click();
+	await expect(page.locator('.vega-visual-help-loading')).toBeVisible();
+	await page.getByRole('button', { name: 'Volver al formulario', exact: true }).click();
+	await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
+	const response = page.waitForResponse((r) => r.url().endsWith(chunk));
+	release();
+	await response;
+	await expect(page.getByRole('dialog')).toHaveCount(0);
+	await expect(page.locator('.vega-visual-help-loading')).toHaveCount(0);
+	await expect(page.locator('.vega-record-form')).toBeVisible();
 });

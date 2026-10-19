@@ -595,6 +595,8 @@ export const es = {
 	'editor.visual.zoom.level': '{percent} %',
 	'editor.visual.zoom.fit': 'Ajustar',
 	'editor.visual.help.toggle': 'Atajos de teclado',
+	'editor.visual.help.loadError':
+		'No se ha podido cargar la ayuda. Guarda tus cambios antes de recargar el editor.',
 	'editor.visual.help.title': 'Atajos de teclado',
 	'editor.visual.help.deselect': 'Deseleccionar el bloque',
 	'editor.visual.help.move': 'Mover el bloque seleccionado arriba/abajo',

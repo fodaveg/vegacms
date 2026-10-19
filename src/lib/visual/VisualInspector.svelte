@@ -182,17 +182,36 @@
 		focusContext(target ?? body);
 	}
 
-	/** El navegador no descuenta la cabecera sticky al enfocar. Se alinea el comienzo del
-	 *  control debajo de ella (también si el richtext supera el alto del panel), sin animación
-	 *  ni scroll de otra superficie. La sección sin controles vuelve a su contexto superior. */
+	/** El foco nativo no descuenta la cabecera sticky. Los controles se alinean debajo; TipTap
+	 *  puede restaurar después su caret, así que tras pintar solo se corrige su visibilidad,
+	 *  conservando la selección actual y sin desplazar otra ficha ni otro foco. */
 	function focusContext(target: HTMLElement | undefined): void {
 		if (!target || !panelEl) return;
+		const panel = panelEl;
 		target.focus({ preventScroll: true });
-		const section = target.closest('.vega-inspector-body');
-		const header = section?.querySelector('.vega-block-context');
-		const inset = target === section ? 0 : (header?.getBoundingClientRect().height ?? 0) + 12;
-		panelEl.scrollTop +=
-			target.getBoundingClientRect().top - panelEl.getBoundingClientRect().top - inset;
+		const editable = target.getAttribute('contenteditable') === 'true';
+		const reveal = (): void => {
+			if (document.activeElement !== target || !target.isConnected || target.closest('[hidden]'))
+				return;
+			const section = target.closest('.vega-inspector-body');
+			const header = section?.querySelector('.vega-block-context');
+			const viewport = panel.getBoundingClientRect();
+			const selection = document.getSelection();
+			const rect =
+				editable && selection?.rangeCount && target.contains(selection.anchorNode)
+					? selection.getRangeAt(0).getBoundingClientRect()
+					: target.getBoundingClientRect();
+			const top =
+				target === section
+					? viewport.top
+					: (header?.getBoundingClientRect().bottom ?? viewport.top) + 12;
+			const bottom = viewport.bottom - 12;
+			if (rect.height > bottom - top || rect.top < top) panel.scrollTop += rect.top - top;
+			else if (rect.bottom > bottom) panel.scrollTop += rect.bottom - bottom;
+		};
+		// La selección de TipTap se restaura después del foco; no se fuerza primero al comienzo.
+		if (editable) requestAnimationFrame(() => requestAnimationFrame(reveal));
+		else reveal();
 	}
 
 	/** La acción persistente precede a los campos en el DOM; «Abrir bloque» sigue llevando al
@@ -203,14 +222,6 @@
 			if (target && !target.closest('[hidden]')) return target;
 		}
 		return focusables(body).find((control) => !control.closest('[hidden], .vega-block-context'));
-	}
-
-	/** Primer enfocable de la ficha VISIBLE de `panelEl` (la que no lleva `hidden`), o `null` si no
-	 *  hay ninguna ficha visible o está vacía de controles. Reusa el mismo resolver por campo
-	 *  que el acceso explícito desde el aviso de borradores. */
-	function firstFocusableInVisibleBody(): HTMLElement | null {
-		const visible = panelEl?.querySelector<HTMLElement>('.vega-inspector-body:not([hidden])');
-		return visible ? (firstFieldControl(visible) ?? null) : null;
 	}
 
 	/** `$effect.pre` (ver cabecera): corre ANTES de que Svelte aplique el `hidden` nuevo al DOM, así
@@ -231,8 +242,11 @@
 		if (texts) return; // ver arriba
 		if (!focusWasInsidePanel) return; // nunca robar el foco a quien teclea en OTRA superficie
 		void tick().then(() => {
-			const target = id === null ? null : firstFocusableInVisibleBody();
-			focusContext(target ?? headingEl);
+			const body =
+				id === null
+					? null
+					: panelEl?.querySelector<HTMLElement>('.vega-inspector-body:not([hidden])');
+			focusContext((body ? firstFieldControl(body) : undefined) ?? headingEl);
 		});
 	});
 

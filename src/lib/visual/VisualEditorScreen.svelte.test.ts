@@ -2372,6 +2372,7 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		helpToggle.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
 		await tick();
 
+		await vi.waitFor(() => expect(mounted!.target.querySelector('[role="dialog"]')).not.toBeNull());
 		const dialog = mounted.target.querySelector('[role="dialog"]');
 		expect(dialog).not.toBeNull();
 		expect(document.activeElement?.classList.contains('vega-visual-help-close')).toBe(true);

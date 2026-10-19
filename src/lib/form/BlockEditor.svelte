@@ -569,15 +569,19 @@
 	{#if contextualHeader}
 		{@render contextualHeader(
 			name ?? blockType?.label ?? childType.label,
-			saving
-				? ctx.t('editor.saving')
-				: conflict
-					? ctx.t('editor.conflict.topbar')
-					: errors.record || Object.keys(errors.byField).length > 0
-						? ctx.t('editor.blocks.form.reviewFields')
-						: dirty
-							? ctx.t('editor.visual.pending.title')
-							: ctx.t('topbar.publish.noChanges'),
+			ctx.t(
+				saving
+					? 'editor.saving'
+					: conflict
+						? 'editor.conflict.topbar'
+						: errors.record
+							? 'editor.conflict.error.title'
+							: Object.keys(errors.byField).length > 0
+								? 'editor.blocks.form.reviewFields'
+								: dirty
+									? 'editor.visual.pending.title'
+									: 'topbar.publish.noChanges'
+			),
 			hasTexts && !locked && (!typed || blockType !== null) ? saveButton : undefined
 		)}
 	{/if}

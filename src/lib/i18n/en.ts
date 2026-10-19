@@ -541,6 +541,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.zoom.level': '{percent} %',
 	'editor.visual.zoom.fit': 'Fit',
 	'editor.visual.help.toggle': 'Keyboard shortcuts',
+	'editor.visual.help.loadError':
+		'Help could not be loaded. Save your changes before reloading the editor.',
 	'editor.visual.help.title': 'Keyboard shortcuts',
 	'editor.visual.help.deselect': 'Deselect the block',
 	'editor.visual.help.move': 'Move the selected block up/down',

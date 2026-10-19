@@ -521,11 +521,7 @@
 	let canvasEl = $state<HTMLDivElement | undefined>(undefined);
 	let canvasSize = $state({ width: 0, height: 0 });
 	// ————— Panel de ayuda de atajos (ver `handleVisualKeydown`) —————
-	let helpOpen = $state(false);
-	let helpDialogEl = $state<HTMLElement | undefined>(undefined);
-	/** Primer elemento focusable del diálogo (su botón de cerrar): destino del foco inicial, mismo
-	 *  patrón que `firstScopeEl` de `ExportDialog.svelte`. */
-	let helpFirstEl = $state<HTMLElement | undefined>(undefined);
+	let helpRequest = $state.raw<Promise<typeof import('./VisualHelpDialog.svelte')> | null>(null);
 	/** Quién tenía el foco al abrir (el disparador, sea el botón "?" de la barra o la propia tecla
 	 *  con el foco en cualquier otro sitio del lienzo): PLANA, no `$state` — solo se lee de forma
 	 *  imperativa al cerrar, mismo criterio que `formEl` de `RecordForm.svelte`. */
@@ -785,45 +781,28 @@
 	// ————— Panel de ayuda de atajos (ver `handleVisualKeydown`) —————
 
 	function closeHelp(): void {
-		helpOpen = false;
+		helpRequest = null;
 	}
 
-	function helpFocusableItems(): HTMLElement[] {
-		return helpDialogEl ? Array.from(helpDialogEl.querySelectorAll<HTMLElement>('button')) : [];
-	}
-
-	/** Solo atrapa `Tab` — `Esc` lo gestiona `handleVisualKeydown` (mismo escuchador de `window` de
-	 *  toda la pantalla, ver su cabecera): un segundo camino para la misma tecla aquí sería el
-	 *  antipatrón "dos escritores, un solo estado" que ya evita el resto de este componente. */
-	function handleHelpDialogKeydown(event: KeyboardEvent): void {
-		if (event.key !== 'Tab') return;
-		const items = helpFocusableItems();
-		if (items.length === 0) return;
-		const first = items[0];
-		const last = items[items.length - 1];
-		if (event.shiftKey && document.activeElement === first) {
-			event.preventDefault();
-			last.focus();
-		} else if (!event.shiftKey && document.activeElement === last) {
-			event.preventDefault();
-			first.focus();
+	/** El disparador se captura antes del import; cerrar durante la carga retira el #await, de
+	 *  modo que resolver tarde nunca abre un diálogo ni roba foco tras desmontar la pantalla. */
+	function toggleHelp(): void {
+		if (helpRequest) {
+			closeHelp();
+			return;
 		}
+		helpPreviouslyFocused = document.activeElement as HTMLElement | null;
+		helpRequest = import('./VisualHelpDialog.svelte');
 	}
 
-	/** Foco inicial + foco de vuelta al disparador (mismo patrón que `ExportDialog.svelte`, ver su
-	 *  cabecera): `document.activeElement` YA es el disparador cuando este efecto corre, sea el
-	 *  botón "?" de la barra o cualquier otro punto del lienzo si el panel se abrió con la tecla —
-	 *  no hace falta distinguir el origen. `document.contains(...)` antes de devolver el foco: el
-	 *  disparador podría haber desaparecido del DOM mientras el panel estaba abierto (landmine ya
-	 *  documentada en este repo: ocultar un elemento anula su `.focus()`). */
+	function focusHelpClose(node: HTMLButtonElement): void {
+		node.focus();
+	}
+
 	$effect(() => {
-		if (!helpOpen) return;
-		helpPreviouslyFocused = document.activeElement as HTMLElement | null;
-		helpFirstEl?.focus();
+		if (!helpRequest) return;
 		return () => {
-			if (helpPreviouslyFocused && document.contains(helpPreviouslyFocused)) {
-				helpPreviouslyFocused.focus();
-			}
+			if (helpPreviouslyFocused?.isConnected) helpPreviouslyFocused.focus();
 		};
 	});
 
@@ -866,7 +845,7 @@
 	// | ⌘S / Ctrl+S              | guardar el bloque seleccionado                       |
 	// | ?                        | abrir/cerrar el panel de ayuda de atajos             |
 	function handleVisualKeydown(event: KeyboardEvent): void {
-		switch (visualKeyboardAction(event, canvasActive, helpOpen)) {
+		switch (visualKeyboardAction(event, canvasActive, helpRequest !== null)) {
 			case 'save':
 				inspectorRef?.saveSelected();
 				break;
@@ -877,7 +856,7 @@
 				selectedBlockId = null;
 				break;
 			case 'toggle-help':
-				helpOpen = !helpOpen;
+				toggleHelp();
 				break;
 			case 'move-up':
 				void moveSelectedBlock(-1);
@@ -987,6 +966,20 @@
 		new Set(overlayBlocks.filter((block) => block.unpublished).map((block) => block.id))
 	);
 </script>
+
+{#snippet helpLoading(failed: boolean)}
+	<aside class="vega-visual-help-loading" aria-label={ctx.t('editor.visual.help.title')}>
+		<p role={failed ? 'alert' : 'status'}>
+			{ctx.t(failed ? 'editor.visual.help.loadError' : 'common.loading')}
+		</p>
+		<button
+			type="button"
+			class="vega-visual-help-loading-close"
+			use:focusHelpClose
+			onclick={closeHelp}>{ctx.t('common.close')}</button
+		>
+	</aside>
+{/snippet}
 
 <div class="vega-visual-screen">
 	<EditTopBar bleed>
@@ -1161,8 +1154,8 @@
 						type="button"
 						class="vega-visual-help-toggle"
 						aria-label={ctx.t('editor.visual.help.toggle')}
-						aria-pressed={helpOpen}
-						onclick={() => (helpOpen = !helpOpen)}>?</button
+						aria-pressed={helpRequest !== null}
+						onclick={toggleHelp}>?</button
 					>
 					<div class="vega-visual-status" aria-live="polite">
 						{#if bridgeState.status === 'connected'}
@@ -1280,62 +1273,15 @@
 		/>
 	</div>
 
-	<!-- Panel de ayuda de atajos (ver cabecera, "Atajos de teclado" + `handleVisualKeydown`):
-	     diálogo modal con foco atrapado (mismo patrón que `ExportDialog.svelte`) — `Esc` lo cierra
-	     vía el escuchador de `window` de toda la pantalla (no un segundo escuchador aquí, ver
-	     `handleHelpDialogKeydown`), y el foco vuelve a su disparador al cerrarse. -->
-	{#if helpOpen}
-		<div class="vega-visual-help-backdrop">
-			<div
-				class="vega-visual-help-dialog"
-				role="dialog"
-				aria-modal="true"
-				aria-labelledby="vega-visual-help-title"
-				tabindex="-1"
-				bind:this={helpDialogEl}
-				onkeydown={handleHelpDialogKeydown}
-			>
-				<div class="vega-visual-help-head">
-					<h2 id="vega-visual-help-title">{ctx.t('editor.visual.help.title')}</h2>
-					<button
-						type="button"
-						class="vega-visual-help-close"
-						bind:this={helpFirstEl}
-						aria-label={ctx.t('common.close')}
-						onclick={closeHelp}
-					>
-						<Icon id="close" size={16} />
-					</button>
-				</div>
-				<dl class="vega-visual-help-list">
-					<div>
-						<dt><kbd>Esc</kbd></dt>
-						<dd>{ctx.t('editor.visual.help.deselect')}</dd>
-					</div>
-					<div>
-						<dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt>
-						<dd>{ctx.t('editor.visual.help.move')}</dd>
-					</div>
-					<div>
-						<dt><kbd>Supr</kbd> / <kbd>⌫</kbd></dt>
-						<dd>{ctx.t('editor.visual.help.delete')}</dd>
-					</div>
-					<div>
-						<dt><kbd>⌘S</kbd> / <kbd>Ctrl+S</kbd></dt>
-						<dd>{ctx.t('editor.visual.help.save')}</dd>
-					</div>
-					<div>
-						<dt><kbd>?</kbd></dt>
-						<dd>{ctx.t('editor.visual.help.toggleHelp')}</dd>
-					</div>
-				</dl>
-				<!-- La asimetría se DICE con palabras (§encargo), no se deja implícita: mover/
-				     duplicar/borrar/crear secciones se guardan solos (decisión 1 de
-				     `blocks-state.svelte.ts`); el texto de un campo se guarda con el botón
-				     "Guardar" de la ficha. -->
-				<p class="vega-visual-help-asymmetry">{ctx.t('editor.visual.help.asymmetry')}</p>
-			</div>
-		</div>
+	<!-- La ayuda se descarga al pedirla; el estado de carga/error sigue siendo cancelable. -->
+	{#if helpRequest}
+		{#await helpRequest}
+			{@render helpLoading(false)}
+		{:then help}
+			<help.default onClose={closeHelp} />
+		{:catch}
+			{@render helpLoading(true)}
+		{/await}
 	{/if}
 
 	<!-- «Describir la imagen…» de la revisión (lote 13): la ficha de Medios de siempre, encima del
@@ -1591,7 +1537,8 @@
 		color: var(--ink-2);
 	}
 
-	.vega-visual-retry {
+	.vega-visual-retry,
+	.vega-visual-help-loading-close {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -1607,7 +1554,8 @@
 		cursor: pointer;
 	}
 
-	.vega-visual-retry:hover {
+	.vega-visual-retry:hover,
+	.vega-visual-help-loading-close:hover {
 		border-color: var(--line-strong);
 	}
 
@@ -1689,122 +1637,28 @@
 			min-height: 44px;
 		}
 
-		.vega-visual-help-toggle,
-		.vega-visual-help-close {
+		.vega-visual-help-toggle {
 			min-height: 44px;
 			min-width: 44px;
 		}
 	}
 
-	/* Diálogo de ayuda (ver cabecera, "Panel de ayuda de atajos"): mismo par backdrop/dialog que
-	   `ExportDialog.svelte`/`ReloginModal.svelte` (ver sus cabeceras), scrim ALLOWLISTED en
-	   `check-theme-coverage.mjs` por el mismo motivo que ahí (§3 no tiene token de velo). */
-	.vega-visual-help-backdrop {
+	.vega-visual-help-loading {
 		position: fixed;
 		z-index: 80;
-		inset: 0;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: var(--vega-space-gutter);
-		background: rgb(15 17 21 / 55%);
-	}
-
-	.vega-visual-help-dialog {
-		display: flex;
-		flex-direction: column;
-		gap: 0.9rem;
-		width: 100%;
-		max-width: 26rem;
-		max-height: calc(100dvh - var(--vega-space-gutter) * 2);
-		padding: 1.25rem;
-		border-radius: 10px;
+		right: var(--vega-space-gutter);
+		bottom: var(--vega-space-gutter);
+		max-width: min(26rem, calc(100% - var(--vega-space-gutter) * 2));
+		padding: 1rem;
+		border: 1px solid var(--line);
+		border-radius: var(--r);
 		background: var(--surface);
 		color: var(--ink);
 		box-shadow: var(--shadow-card);
-		overflow-y: auto;
 	}
 
-	.vega-visual-help-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.75rem;
-	}
-
-	.vega-visual-help-head h2 {
-		margin: 0;
-		font-size: 1.05rem;
-		color: var(--ink-hi);
-	}
-
-	.vega-visual-help-close {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		width: 1.9rem;
-		height: 1.9rem;
-		border: 0;
-		border-radius: 6px;
-		background: transparent;
-		color: var(--ink-2);
-		cursor: pointer;
-	}
-
-	.vega-visual-help-close:hover {
-		background: var(--active);
-		color: var(--ink);
-	}
-
-	.vega-visual-help-close:focus-visible {
-		outline: 2px solid var(--accent);
-		outline-offset: 2px;
-	}
-
-	.vega-visual-help-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.6rem;
-		margin: 0;
-	}
-
-	.vega-visual-help-list > div {
-		display: flex;
-		align-items: baseline;
-		gap: 0.75rem;
-	}
-
-	.vega-visual-help-list dt {
-		flex-shrink: 0;
-		width: 7.5rem;
-	}
-
-	.vega-visual-help-list dd {
-		margin: 0;
-		color: var(--ink-2);
-		font-size: 0.85rem;
-	}
-
-	.vega-visual-help-list kbd {
-		padding: 0.1rem 0.4rem;
-		border: 1px solid var(--line);
-		border-radius: 4px;
-		background: var(--surface-2);
-		color: var(--ink);
-		font-family: var(--mono);
-		font-size: 0.75rem;
-	}
-
-	/* La asimetría (ver cabecera del script, "Estado de guardado en la barra") se DICE aparte del
-	   listado de teclas: no es un atajo, es la explicación de por qué el punto "sin guardar" de la
-	   barra no siempre corresponde a lo último que se hizo. */
-	.vega-visual-help-asymmetry {
-		margin: 0;
-		padding-top: 0.6rem;
-		border-top: 1px solid var(--line);
-		color: var(--ink-2);
-		font-size: 0.8rem;
+	.vega-visual-help-loading p {
+		margin: 0 0 0.5rem;
 	}
 
 	/* Tres columnas (ver cabecera): árbol | lienzo | inspector, mismo esquema que
