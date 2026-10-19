@@ -21,6 +21,9 @@ import {
 	writeBackendOverride
 } from './backend-override';
 
+const paths = vi.hoisted(() => ({ base: '' }));
+vi.mock('$app/paths', () => paths);
+
 function t(key: string, params?: Record<string, string | number>): string {
 	return params ? `${key}:${JSON.stringify(params)}` : key;
 }
@@ -48,6 +51,7 @@ describe('BackendUrlForm.svelte', () => {
 	let mounted: { target: HTMLElement; instance: ReturnType<typeof mount> } | null = null;
 
 	beforeEach(() => {
+		paths.base = '';
 		localStorage.clear();
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
 	});
@@ -284,6 +288,25 @@ describe('BackendUrlForm.svelte', () => {
 	});
 
 	// ————— Colección de autenticación (lote L6c) —————
+
+	test.each(['', '/admin'])('muestra la colección de la config bajo la base %j', async (base) => {
+		paths.base = base;
+		const configPath = `${base}/vega.config.json`;
+		const fetchSpy = vi.fn(async (input: RequestInfo | URL) =>
+			String(input) === configPath
+				? Response.json({ authCollection: 'config_editors' })
+				: new Response(null, { status: 404 })
+		);
+		vi.stubGlobal('fetch', fetchSpy);
+		mounted = mountForm();
+
+		await vi.waitFor(() => {
+			expect(mounted?.target.textContent).toContain(
+				'connect.current.authCollectionEffective:{"authCollection":"config_editors"}'
+			);
+		});
+		expect(fetchSpy).toHaveBeenCalledWith(configPath, { cache: 'no-store' });
+	});
 
 	test('sin override ni discovery/config: muestra el fallback efectivo sin atribuirlo al campo vacío', async () => {
 		mounted = mountForm();

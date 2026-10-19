@@ -90,6 +90,19 @@ describe('hasUnsafeMarkdownContent', () => {
 		);
 	});
 
+	test.each([
+		'javascript&colon;alert(1)',
+		'java&Tab;script:alert(1)',
+		'java&NewLine;script:alert(1)',
+		'java&Tab;script&colon;alert(1)',
+		'java&NewLine;script&colon;alert(1)',
+		'javascript&#x26;colon;alert(1)',
+		'java&#9;&NewLine;script&colon;alert(1)'
+	])('rechaza entidades en destinos de enlace e imagen: %s', (destination) => {
+		expect(hasUnsafeMarkdownContent(`[x](${destination})`, manager)).toBe(true);
+		expect(hasUnsafeMarkdownContent(`![x](${destination})`, manager)).toBe(true);
+	});
+
 	test('rechaza HTML embebido de bloque o inline aunque su etiqueta parezca inocua', () => {
 		expect(hasUnsafeMarkdownContent('<script>alert(1)</script>', manager)).toBe(true);
 		expect(

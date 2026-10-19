@@ -41,6 +41,7 @@
 	 * best-effort, si el usuario cancela NO se escribe/borra ningún override ni se recarga (estado
 	 * consistente).
 	 */
+	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
 	import {
 		isAbsoluteUrl,
@@ -108,7 +109,7 @@
 
 	async function fetchVegaConfigForDisplay(): Promise<VegaConfig | null> {
 		try {
-			const response = await fetch('/vega.config.json', { cache: 'no-store' });
+			const response = await fetch(`${base}/vega.config.json`, { cache: 'no-store' });
 			if (!response.ok) return null;
 			const data: unknown = await response.json();
 			return typeof data === 'object' && data !== null ? (data as VegaConfig) : null;

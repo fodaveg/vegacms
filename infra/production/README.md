@@ -207,8 +207,8 @@ Cómo queda ahora para los errores del borde (502, timeout…), que Caddy vuelca
 entera, `?token=` incluido: el fragmento de `admin.vegacms.com` declara `log vega_admin { output
 discard }` (logger con nombre y sin salida: no hay log de acceso, y los errores de este host salen
 como `http.log.error.vega_admin`), y el bloque global de `/srv/edge/Caddyfile` (repo edge-infra)
-declara `log admins_vega_errores` con `format filter` (`request>uri regexp \`\?.*$\`
-\`?[query-redactada]\``, sin `Cookie`, `Authorization`, `Referer` ni `X-Forwarded-For`, IP
+declara `log admins_vega_errores` con `format filter` (`` request>uri regexp `\?.*$` `?[query-redactada]` ``,
+sin `Cookie`, `Authorization`, `Referer` ni `X-Forwarded-For`, IP
 enmascarada) e `include http.log.error.vega_admin`. Las dos piezas van juntas: sin la primera el
 error sale por el logger por defecto, sin filtro.
 
