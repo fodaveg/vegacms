@@ -487,6 +487,8 @@
 	// `true` tras el evento `load` del documento ACTUAL del iframe (ver cabecera de
 	// `PreviewPanel.svelte`, "Qué NO hace"): se resetea en cada petición nueva.
 	let tokenState = $state<TokenState>({ kind: 'loading' });
+	/** Cada token aceptado abre un documento nuevo, incluso si el backend reutiliza la URL opaca. */
+	let frameVersion = $state(0);
 	let previewError = $state<string | null>(null);
 	let previewUpdating = $state(false);
 	let previewDraftAccepted = $state(false);
@@ -628,6 +630,7 @@
 				: undefined,
 		setTokenState: (state) => {
 			tokenState = state;
+			if (state.kind === 'ready') frameVersion++;
 			if (state.kind === 'ready' && state.token.postToken) {
 				const generation = ++postGeneration;
 				void tick().then(() => {
@@ -1392,15 +1395,17 @@
 							style:height="{stageHeightPx}px"
 							style:transform="scale({zoomFactor})"
 						>
-							<iframe
-								class="vega-visual-frame"
-								bind:this={iframeEl}
-								name={frameName}
-								src={tokenState.token.postToken ? 'about:blank' : tokenState.token.url}
-								title={ctx.t('editor.visual.frameTitle')}
-								referrerpolicy="no-referrer"
-								onload={handleFrameLoad}
-							></iframe>
+							{#key frameVersion}
+								<iframe
+									class="vega-visual-frame"
+									bind:this={iframeEl}
+									name={frameName}
+									src={tokenState.token.postToken ? 'about:blank' : tokenState.token.url}
+									title={ctx.t('editor.visual.frameTitle')}
+									referrerpolicy="no-referrer"
+									onload={handleFrameLoad}
+								></iframe>
+							{/key}
 							<!-- ANTES del skeleton de token de abajo en el DOM a propósito: mientras el
 						     token sigue cargando o el `load` del marco no ha disparado, ese skeleton
 						     (más adelante, misma pila de apilamiento) tapa este overlay entero — no

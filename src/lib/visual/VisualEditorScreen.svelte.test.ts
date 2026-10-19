@@ -1796,7 +1796,7 @@ describe('VisualEditorScreen.svelte — refresco en vivo del lienzo', () => {
 		expect(iframeAfter).toBe(iframeBefore);
 	});
 
-	test('con "liveRefresh" falso: guardar pide otro token sin desmontar el lienzo', async () => {
+	test('con "liveRefresh" falso: guardar recarga el iframe incluso si la URL del token se repite', async () => {
 		const fetchMock = freshTokenFetch();
 		vi.stubGlobal('fetch', fetchMock);
 		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
@@ -1809,10 +1809,12 @@ describe('VisualEditorScreen.svelte — refresco en vivo del lienzo', () => {
 		await saveHeading(mounted.target, 'Hero editado');
 		await flushRefreshDebounce(); // por si acaso: no hay rebote en este camino, pero no debe fallar
 
-		// El lienzo sigue visible durante la petición; una respuesta fallida no borra la vista anterior.
+		// El endpoint puede devolver la MISMA URL opaca con un token nuevo. Svelte no navega un
+		// iframe cuyo src no cambia: hay que remountarlo tras aceptar el token guardado.
 		const iframeAfter = mounted.target.querySelector('.vega-visual-frame');
 		expect(iframeAfter).not.toBeNull();
-		expect(iframeAfter).toBe(iframeBefore);
+		expect(iframeAfter).not.toBe(iframeBefore);
+		expect((iframeAfter as HTMLIFrameElement).src).toBe((iframeBefore as HTMLIFrameElement).src);
 		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
 	});
 
