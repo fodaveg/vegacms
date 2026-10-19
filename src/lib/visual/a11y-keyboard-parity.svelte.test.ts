@@ -263,13 +263,37 @@ describe('Paridad de teclado — árbol (VisualBlockTree.svelte)', () => {
 		const GALLERY_TYPE = {
 			name: 'gallery',
 			label: 'Galería',
-			icon: null
-		} as unknown as ResolvedBlockType;
+			icon: null,
+			fields: [
+				{
+					name: 'images',
+					label: 'Imágenes',
+					widget: 'file',
+					source: 'record',
+					required: false,
+					options: null
+				}
+			]
+		} as ResolvedBlockType;
 		const blocks = fakeTreeBlocksState({
 			records,
 			hasTypeMenu: true,
 			blockTypes: [
-				{ name: 'hero', label: 'Portada', icon: null } as unknown as ResolvedBlockType,
+				{
+					name: 'hero',
+					label: 'Portada',
+					icon: null,
+					fields: [
+						{
+							name: 'heading',
+							label: 'Título',
+							widget: 'text',
+							source: 'data',
+							required: false,
+							options: null
+						}
+					]
+				} as ResolvedBlockType,
 				GALLERY_TYPE
 			],
 			handleCreate,

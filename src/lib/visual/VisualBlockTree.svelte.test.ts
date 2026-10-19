@@ -32,12 +32,36 @@ const CHILD_TYPE = {
 	schema: { fields: [] }
 } as unknown as ResolvedContentType;
 
-const HERO_TYPE = { name: 'hero', label: 'Portada', icon: null } as unknown as ResolvedBlockType;
+const HERO_TYPE = {
+	name: 'hero',
+	label: 'Portada',
+	icon: null,
+	fields: [
+		{
+			name: 'heading',
+			label: 'Título',
+			widget: 'text',
+			source: 'data',
+			required: false,
+			options: null
+		}
+	]
+} as ResolvedBlockType;
 const GALLERY_TYPE = {
 	name: 'gallery',
 	label: 'Galería',
-	icon: null
-} as unknown as ResolvedBlockType;
+	icon: null,
+	fields: [
+		{
+			name: 'images',
+			label: 'Imágenes',
+			widget: 'file',
+			source: 'record',
+			required: false,
+			options: null
+		}
+	]
+} as ResolvedBlockType;
 
 function record(id: string, heading: string): VegaRecord {
 	return { id, type: 'post_block', values: { heading } };
@@ -507,6 +531,8 @@ describe('VisualBlockTree.svelte', () => {
 		expect(mounted.target.querySelector('.vega-tree-add')).toBeNull();
 		const items = mounted.target.querySelectorAll<HTMLButtonElement>('.vega-palette-item');
 		expect(items).toHaveLength(2);
+		expect(items[0].textContent).toContain('Título');
+		expect(items[1].textContent).toContain('Imágenes');
 
 		// Dos regiones con encabezado PROPIO (ver la cabecera del componente): ni una sola cubriendo
 		// paleta+secciones, ni ninguna sin `aria-labelledby` resoluble.
