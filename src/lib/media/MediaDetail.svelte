@@ -862,6 +862,9 @@
 
 	.vega-media-detail-body {
 		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		/* El track no hereda el mínimo intrínseco del input; espacio para su anillo 2+2. */
+		padding: 0.25rem;
 		align-content: start;
 		gap: 0.9rem;
 		grid-auto-rows: max-content;
@@ -1224,7 +1227,6 @@
 
 	@media (max-height: 550px) {
 		.vega-media-detail-dialog {
-			box-sizing: border-box;
 			padding: 0.75rem;
 			gap: 0.5rem;
 		}

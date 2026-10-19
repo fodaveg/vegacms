@@ -841,6 +841,37 @@ test.describe('biblioteca contextual de medios (UX C)', () => {
 		await expect(opener).toBeFocused();
 	});
 
+	test('ficha independiente estrecha mantiene campos, Centrar y sus outlines dentro del scroll', async ({
+		page
+	}) => {
+		await loginAsDemo(page, { seedMedia: true });
+		await waitForHome(page);
+		await goToMedia(page);
+		await page.locator('[data-media-item="media_2"]').click();
+		await page.setViewportSize({ width: 390, height: 844 });
+		const dialog = page.getByRole('dialog', { name: 'Editar medio' });
+		const sizing = await dialog.evaluate((el) => {
+			const body = el.querySelector<HTMLElement>('.vega-media-detail-body')!,
+				b = body.getBoundingClientRect();
+			return {
+				overflow: body.scrollWidth - body.clientWidth,
+				clipped: [
+					...body.querySelectorAll<HTMLElement>('input[type=text],.vega-media-focal-reset')
+				].some((control) => {
+					const r = control.getBoundingClientRect();
+					return r.left - 4 < b.left - 0.5 || r.right + 4 > b.left + body.clientWidth + 0.5;
+				})
+			};
+		});
+		expect(sizing.overflow).toBeLessThanOrEqual(1);
+		expect(sizing.clipped).toBe(false);
+		await dialog
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Título con asociación única');
+		await dialog.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(dialog).toHaveCount(0);
+	});
+
 	test('selección entre páginas y reapertura conservan recorrido, vaciando elegidos', async ({
 		page
 	}) => {
@@ -953,12 +984,23 @@ test.describe('biblioteca contextual de medios (UX C)', () => {
 				return {
 					right: d.right - c.right,
 					bottom: d.bottom - c.bottom,
-					overflow: el.scrollWidth - el.clientWidth
+					overflow: el.scrollWidth - el.clientWidth,
+					clipped: (() => {
+						const body = el.querySelector<HTMLElement>('.vega-media-detail-body')!,
+							b = body.getBoundingClientRect();
+						return [
+							...body.querySelectorAll<HTMLElement>('input[type=text],.vega-media-focal-reset')
+						].some((control) => {
+							const r = control.getBoundingClientRect();
+							return r.left - 4 < b.left - 0.5 || r.right + 4 > b.left + body.clientWidth + 0.5;
+						});
+					})()
 				};
 			});
 			expect(bounds.right).toBeLessThanOrEqual(1);
 			expect(bounds.bottom).toBeLessThanOrEqual(1);
 			expect(bounds.overflow).toBeLessThanOrEqual(1);
+			expect(bounds.clipped).toBe(false);
 			await dialog.getByRole('button', { name: 'Biblioteca', exact: true }).click();
 			await expect(dialog.getByRole('searchbox')).toHaveValue('portada');
 			await expect(card).toBeFocused();
