@@ -841,6 +841,58 @@ test.describe('biblioteca contextual de medios (UX C)', () => {
 		await expect(opener).toBeFocused();
 	});
 
+	test.describe('selección táctil en rejilla', () => {
+		test.use({ hasTouch: true });
+		test('área44 sin invadir vecinos: tocar fuera del círculo elige sin inspeccionar', async ({
+			page
+		}, testInfo) => {
+			await page.setViewportSize({ width: 390, height: 844 });
+			const { dialog } = await openPicker(page);
+			const control = pickerToggle(dialog, 'media_2');
+			const measurement = await control.evaluate((button) => {
+				const r = button.getBoundingClientRect(),
+					visual = button.querySelector('.vega-media-check')?.getBoundingClientRect(),
+					x = r.left + 3,
+					y = r.bottom - 3;
+				const target = document.elementFromPoint(x, y),
+					others = [
+						...button.closest('[data-media-grid]')!.querySelectorAll('.vega-media-check--control')
+					]
+						.filter((e) => e !== button)
+						.map((e) => e.getBoundingClientRect());
+				return {
+					rect: r.toJSON(),
+					visual: visual?.toJSON(),
+					before: getComputedStyle(button, '::before').content,
+					coarse: matchMedia('(pointer:coarse)').matches,
+					point: { x, y },
+					hitsControl: target === button || button.contains(target),
+					overlap: others.some(
+						(o) =>
+							Math.min(r.right, o.right) > Math.max(r.left, o.left) &&
+							Math.min(r.bottom, o.bottom) > Math.max(r.top, o.top)
+					)
+				};
+			});
+			await testInfo.attach('touch-hit-area.json', {
+				body: JSON.stringify(measurement, null, 2),
+				contentType: 'application/json'
+			});
+			expect(measurement.coarse).toBe(true);
+			expect(measurement.rect.width).toBeGreaterThanOrEqual(44);
+			expect(measurement.rect.height).toBeGreaterThanOrEqual(44);
+			expect(measurement.visual).toBeDefined();
+			expect(measurement.point.x).toBeLessThan(measurement.visual!.left);
+			expect(measurement.point.y).toBeGreaterThan(measurement.visual!.bottom);
+			expect(measurement.hitsControl).toBe(true);
+			expect(measurement.overlap).toBe(false);
+			await page.touchscreen.tap(measurement.point.x, measurement.point.y);
+			await expect(control).toHaveAttribute('aria-pressed', 'true');
+			await expect(dialog.locator('.vega-media-detail-dialog')).toHaveCount(0);
+			await expect(dialog.getByRole('button', { name: 'Seleccionar', exact: true })).toBeEnabled();
+		});
+	});
+
 	test('ficha independiente estrecha mantiene campos, Centrar y sus outlines dentro del scroll', async ({
 		page
 	}) => {

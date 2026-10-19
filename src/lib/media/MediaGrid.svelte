@@ -246,12 +246,12 @@
 				<!-- Modo biblioteca: control REAL de selección, hermano del botón de la celda. -->
 				<button
 					type="button"
-					class="vega-media-check vega-media-check--control"
+					class="vega-media-check--control"
 					aria-pressed={selected}
 					aria-label={ctx.t('media.selection.toggle', { label })}
 					onclick={() => onToggleSelect(item)}
 				>
-					<Icon id="check" size={12} />
+					<span class="vega-media-check" aria-hidden="true"><Icon id="check" size={12} /></span>
 				</button>
 			{/if}
 		</li>
@@ -450,11 +450,29 @@
 		color: transparent;
 	}
 
+	/* El círculo conserva su aspecto; el botón hermano ofrece 44px dentro de SU tarjeta. */
 	.vega-media-check--control {
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 44px;
+		height: 44px;
+		padding: 0;
+		border: 0;
+		background: transparent;
 		cursor: pointer;
 	}
 
-	.vega-media-check--control:hover {
+	.vega-media-check--control .vega-media-check {
+		box-sizing: border-box;
+	}
+
+	.vega-media-check--control:focus-visible {
+		outline-color: var(--ink);
+		outline-offset: -2px;
+	}
+
+	.vega-media-check--control:hover .vega-media-check {
 		border-color: var(--accent-line);
 	}
 
