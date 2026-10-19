@@ -611,6 +611,11 @@ export const es = {
 	'editor.visual.overlay.toolbar.label': 'Acciones de «{label}»',
 	'editor.visual.overlay.insertLabel': 'Insertar bloque en la posición {position} de {total}',
 	'editor.visual.pending.title': 'Cambios sin guardar',
+	'editor.visual.pending.one': '{count} bloque sin guardar',
+	'editor.visual.pending.many': '{count} bloques sin guardar',
+	'editor.visual.pending.view': 'Ver bloques',
+	'editor.visual.pending.hide': 'Ocultar bloques',
+	'editor.visual.structureLoadError': 'No se pudo cargar la estructura de bloques.',
 	'editor.visual.pending.body':
 		'Guarda los bloques pendientes antes de insertar o reordenar. Abre cada bloque y pulsa Guardar.',
 	'editor.visual.pending.open': 'Abrir bloque: {label}',

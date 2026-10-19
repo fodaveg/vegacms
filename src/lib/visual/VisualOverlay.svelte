@@ -1241,7 +1241,9 @@
 		color: var(--ink-2);
 		box-shadow: var(--shadow-card);
 		cursor: pointer;
-		transform: translate(-50%, -50%);
+		/* El escenario escala iframe y overlay juntos; el botón conserva su tamaño físico
+		   también con ratón (a 50%, sin compensación quedaba en apenas 12.8 px). */
+		transform: translate(-50%, -50%) scale(var(--menu-scale));
 	}
 
 	.vega-visual-overlay-insert:hover:not([aria-disabled='true']) {
@@ -1443,7 +1445,6 @@
 		/* El zoom pertenece al sitio; los controles conservan su caja y glifo en pantalla. */
 		.vega-visual-overlay-insert {
 			top: var(--insert-touch-top);
-			transform: translate(-50%, -50%) scale(var(--menu-scale));
 		}
 
 		.vega-visual-overlay-insert-menu {

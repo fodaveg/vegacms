@@ -557,6 +557,11 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.overlay.toolbar.label': 'Actions for «{label}»',
 	'editor.visual.overlay.insertLabel': 'Insert block at position {position} of {total}',
 	'editor.visual.pending.title': 'Unsaved changes',
+	'editor.visual.pending.one': '{count} block with unsaved changes',
+	'editor.visual.pending.many': '{count} blocks with unsaved changes',
+	'editor.visual.pending.view': 'View blocks',
+	'editor.visual.pending.hide': 'Hide blocks',
+	'editor.visual.structureLoadError': 'Could not load the block structure.',
 	'editor.visual.pending.body':
 		'Save the pending blocks before inserting or reordering. Open each block and select Save.',
 	'editor.visual.pending.open': 'Open block: {label}',

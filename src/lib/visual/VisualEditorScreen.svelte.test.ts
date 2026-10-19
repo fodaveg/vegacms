@@ -258,12 +258,16 @@ function stubResizeObserver(): { triggerResize: () => void } {
 async function flush(): Promise<void> {
 	await vi.advanceTimersByTimeAsync(0);
 	await tick();
+	await treePreload;
 }
+
+let treePreload: Promise<void> | null = null;
 
 function mountScreen(
 	ctx: VegaAppContext,
 	type: ResolvedContentType,
-	record: VegaRecord = RECORD
+	record: VegaRecord = RECORD,
+	preloadTree = true
 ): { target: HTMLElement; instance: ReturnType<typeof mount> } {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
@@ -272,6 +276,19 @@ function mountScreen(
 		props: { type, record },
 		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
 	});
+	// Los tests heredados inspeccionan el árbol aunque empiece cerrado. Lo abren y pliegan en la
+	// fixture para conservar ese contexto; el caso explícito de carga por intención desactiva esto.
+	treePreload = preloadTree
+		? tick().then(async () => {
+				const button = target.querySelector<HTMLButtonElement>('.vega-visual-panel-toggle--tree');
+				if (!button) return; // modo solo textos: no hay lienzo ni árbol
+				button.click();
+				await import('./VisualBlockTree.svelte');
+				await tick();
+				button.click();
+				await tick();
+			})
+		: null;
 	return { target, instance };
 }
 
@@ -357,6 +374,38 @@ describe('VisualEditorScreen.svelte', () => {
 
 		const iframe = mounted.target.querySelector<HTMLIFrameElement>('.vega-visual-frame');
 		expect(iframe?.src).toBe(TOKEN_URL);
+	});
+
+	test('Estructura se descarga al abrir y permanece montada al plegar', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type, RECORD, false);
+		await flush();
+		const toggle = mounted.target.querySelector<HTMLButtonElement>(
+			'.vega-visual-panel-toggle--tree'
+		)!;
+		expect(toggle.getAttribute('aria-expanded')).toBe('false');
+		expect(mounted.target.querySelector('.vega-tree-panel')).toBeNull();
+		toggle.click();
+		await import('./VisualBlockTree.svelte');
+		await tick();
+		expect(toggle.getAttribute('aria-expanded')).toBe('true');
+		expect(mounted.target.querySelector('.vega-tree-panel')).not.toBeNull();
+		toggle.click();
+		await tick();
+		expect(mounted.target.querySelector('.vega-tree-panel')).not.toBeNull();
+	});
+
+	test('entre 900 y 1180 px carga el árbol que contiene el disparador del cajón', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		stubMatchMedia(false, true);
+		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type, RECORD, false);
+		await flush();
+		await import('./VisualBlockTree.svelte');
+		await tick();
+		expect(mounted.target.querySelector('.vega-tree-panel')).not.toBeNull();
+		expect(mounted.target.querySelector('.vega-tree-toggle')).not.toBeNull();
 	});
 
 	test('la cabecera vuelve al listado y ofrece Campos de página con enlaces reales', async () => {
@@ -2669,8 +2718,12 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 			};
 			await edit('b1', 'Borrador A');
 			await edit('b2', 'Borrador B');
-			const notice = mounted.target.querySelector('.vega-visual-pending')!;
-			expect(notice.textContent).toContain('Cambios sin guardar');
+			const notice = mounted.target.querySelector<HTMLDetailsElement>('.vega-visual-pending')!;
+			expect(notice.open).toBe(false);
+			expect(notice.querySelector('summary')?.textContent).toContain('2 bloques sin guardar');
+			notice.querySelector('summary')!.click();
+			await tick();
+			expect(notice.open).toBe(true);
 			expect(notice.textContent).toContain('antes de insertar o reordenar');
 			expect(notice.textContent).toContain(longTitle);
 			expect(notice.querySelectorAll('button')).toHaveLength(2);
@@ -2712,8 +2765,8 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		)!;
 		save.click();
 		await flush();
-		expect(mounted.target.querySelector('.vega-visual-pending')?.textContent).toContain(
-			'Cambios sin guardar'
+		expect(mounted.target.querySelector('.vega-visual-pending summary')?.textContent).toContain(
+			'1 bloque sin guardar'
 		);
 		expect(
 			mounted.target.querySelector<HTMLInputElement>(

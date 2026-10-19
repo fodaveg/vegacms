@@ -317,7 +317,6 @@
 	import EditTopBar from '$lib/shell/EditTopBar.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import VisualOverlay from './VisualOverlay.svelte';
-	import VisualBlockTree from './VisualBlockTree.svelte';
 	import VisualInspector from './VisualInspector.svelte';
 	import VisualColumnResizer from './VisualColumnResizer.svelte';
 	import VisualPublishControl from './VisualPublishControl.svelte';
@@ -503,6 +502,20 @@
 	/** Los paneles se cierran sin desmontar los editores, que conservan el borrador de cada bloque. */
 	let treeVisible = $state(false);
 	let inspectorVisible = $state(false);
+	/** El árbol y su catálogo se descargan al abrir «Estructura» en escritorio. Entre 900 y
+	 * 1180 px se cargan al montar porque el propio árbol contiene el disparador del cajón.
+	 * Una vez montado, plegarlo conserva su instancia, estado y foco. */
+	let treeRequest = $state.raw<Promise<typeof import('./VisualBlockTree.svelte')> | null>(null);
+	function ensureTreeLoaded(): void {
+		if (treeRequest === null) treeRequest = import('./VisualBlockTree.svelte');
+	}
+	function toggleTree(): void {
+		treeVisible = !treeVisible;
+		if (treeVisible) ensureTreeLoaded();
+	}
+	function retryTree(): void {
+		treeRequest = import('./VisualBlockTree.svelte');
+	}
 	let editBlockButtonEl = $state<HTMLButtonElement | undefined>(undefined);
 
 	/** Cerrar conserva el editor montado y devuelve el foco a su disparador recién mostrado. */
@@ -787,6 +800,8 @@
 		if (wide === canvasActive) return;
 		canvasActive = wide;
 		if (wide) {
+			// Entre 900 y 1180 px el propio árbol aporta el disparador del cajón.
+			if (!treeResizerActive) ensureTreeLoaded();
 			void requestPreview();
 			return;
 		}
@@ -799,6 +814,7 @@
 
 	function handleTreeQueryChange(event: MediaQueryListEvent): void {
 		treeResizerActive = !event.matches;
+		if (event.matches && canvasActive) ensureTreeLoaded();
 	}
 
 	/** `VisualColumnResizer.svelte` ya llega con el ancho recortado a `[min, max]` (ver su
@@ -964,6 +980,7 @@
 		narrowQuery.addEventListener('change', handleNarrowChange);
 		treeQuery = window.matchMedia(TREE_QUERY);
 		treeResizerActive = !treeQuery.matches;
+		if (canvasActive && !treeResizerActive) ensureTreeLoaded();
 		treeQuery.addEventListener('change', handleTreeQueryChange);
 		if (canvasActive) void requestPreview();
 	});
@@ -1135,11 +1152,18 @@
 	<!-- eslint-enable svelte/no-navigation-without-resolve -->
 
 	{#if pendingBlocks.length > 0}
-		<section class="vega-visual-pending" aria-labelledby="vega-visual-pending-title">
-			<div role="status">
-				<h2 id="vega-visual-pending-title">{ctx.t('editor.visual.pending.title')}</h2>
-				<p>{ctx.t('editor.visual.pending.body')}</p>
-			</div>
+		<details class="vega-visual-pending">
+			<summary>
+				<span role="status"
+					>{ctx.t(
+						pendingBlocks.length === 1 ? 'editor.visual.pending.one' : 'editor.visual.pending.many',
+						{ count: pendingBlocks.length }
+					)}</span
+				>
+				<span class="vega-visual-pending-expand">{ctx.t('editor.visual.pending.view')}</span>
+				<span class="vega-visual-pending-collapse">{ctx.t('editor.visual.pending.hide')}</span>
+			</summary>
+			<p>{ctx.t('editor.visual.pending.body')}</p>
 			<ul class="vega-visual-pending-list">
 				{#each pendingBlocks as block (block.id)}
 					<li>
@@ -1153,7 +1177,13 @@
 					</li>
 				{/each}
 			</ul>
-		</section>
+		</details>
+	{/if}
+
+	<!-- En escritorio el árbol plegado sale de accesibilidad con display:none; la misma región
+	     permanece aquí para anunciar selecciones del lienzo antes de abrir Estructura. -->
+	{#if canvasActive && treeResizerActive && !treeVisible}
+		<div aria-live="polite" class="vega-visually-hidden">{blocks.announce}</div>
 	{/if}
 
 	<!-- La rejilla existe en los DOS anchos; lo que cambia con `canvasActive` es cuántas celdas
@@ -1169,25 +1199,34 @@
 		style:--vega-visual-inspector-w="{columnWidths.inspector}px"
 	>
 		{#if canvasActive}
-			<!-- Tres columnas, mismo patrón que `.vega-editor-grid--rail`/`--aside` de
-			     `RecordForm.svelte` (ver su cabecera): árbol | lienzo | inspector. Las dos columnas
-			     laterales SIEMPRE están presentes en esta rama (a diferencia del raíl/aside de
-			     `RecordForm`, opt-in por manifiesto): `resolveVisualGate` ya exige `type.blocks` para
-			     que esta ruta exista, así que el árbol/inspector siempre tienen algo que decir, aunque
-			     sea un aviso ("todavía no hay bloques", "elige uno"). Las manillas (ver cabecera,
+			<!-- Hasta tres columnas, mismo patrón que `.vega-editor-grid--rail`/`--aside` de
+			     `RecordForm.svelte` (ver su cabecera): árbol | lienzo | inspector. Las columnas laterales
+			     aparecen al abrir cada panel; el inspector conserva sus editores montados al plegarse.
+			     Las manillas (ver cabecera,
 			     "Anchos de columna ajustables") son celdas del MISMO grid, a propósito: su orden en
 			     el marcado tiene que casar con el de `grid-template-columns` del CSS. -->
 			<div class="vega-visual-tree-shell" class:vega-visual-tree-shell--hidden={!treeVisible}>
-				<VisualBlockTree
-					{blocks}
-					selectedId={selectedBlockId}
-					unpublishedIds={unpublishedBlockIds}
-					onHover={handleTreeHover}
-					onSelect={handleBlockSelect}
-					onStructuralChange={handleContentSaved}
-					onPaletteDragStart={handlePaletteDragStart}
-					onPaletteDragEnd={handlePaletteDragEnd}
-				/>
+				{#if treeRequest}
+					{#await treeRequest}
+						<p role="status">{ctx.t('common.loading')}</p>
+					{:then tree}
+						<tree.default
+							{blocks}
+							selectedId={selectedBlockId}
+							unpublishedIds={unpublishedBlockIds}
+							onHover={handleTreeHover}
+							onSelect={handleBlockSelect}
+							onStructuralChange={handleContentSaved}
+							onPaletteDragStart={handlePaletteDragStart}
+							onPaletteDragEnd={handlePaletteDragEnd}
+						/>
+					{:catch}
+						<p role="alert">{ctx.t('editor.visual.structureLoadError')}</p>
+						<button type="button" class="vega-visual-tree-retry" onclick={retryTree}
+							>{ctx.t('common.retry')}</button
+						>
+					{/await}
+				{/if}
 			</div>
 			{#if treeResizerActive && treeVisible}
 				<VisualColumnResizer
@@ -1213,7 +1252,7 @@
 						class:vega-visual-panel-toggle--tree={true}
 						aria-expanded={treeVisible}
 						aria-controls="vega-block-tree-panel"
-						onclick={() => (treeVisible = !treeVisible)}>{ctx.t('editor.visual.structure')}</button
+						onclick={toggleTree}>{ctx.t('editor.visual.structure')}</button
 					>
 					{#if selectedBlockId && !inspectorVisible}
 						<button
@@ -1474,27 +1513,47 @@
 		height: calc(100% + 2.5rem);
 	}
 
-	/* Un único scroll conserva todo el aviso, también si su guía crece al cambiar de tipografía.
-	   La cota evita que muchos borradores consuman el espacio reservado al inspector. */
+	/* El estado plegado ocupa una sola fila; la guía y los enlaces aparecen al pedirlos. */
 	.vega-visual-pending {
 		min-height: 0;
 		max-height: 12rem;
-		padding: 0.75rem 1rem;
 		border-bottom: 1px solid var(--line-strong);
 		background: var(--surface);
 		color: var(--ink);
 		overflow-y: auto;
 	}
-
-	.vega-visual-pending h2 {
-		margin: 0;
+	.vega-visual-pending summary {
+		min-height: 44px;
+		padding: 0.5rem 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		cursor: pointer;
+	}
+	.vega-visual-pending summary::marker {
+		color: var(--accent);
+	}
+	.vega-visual-pending summary span:first-child {
 		color: var(--ink-hi);
 		font-size: 0.9rem;
 		font-weight: 650;
 	}
+	.vega-visual-pending-expand,
+	.vega-visual-pending-collapse {
+		margin-left: auto;
+		font-size: 0.85rem;
+		color: var(--accent);
+	}
+	.vega-visual-pending-collapse,
+	.vega-visual-pending[open] .vega-visual-pending-expand {
+		display: none;
+	}
+	.vega-visual-pending[open] .vega-visual-pending-collapse {
+		display: inline;
+	}
 
 	.vega-visual-pending p {
-		margin: 0.25rem 0 0;
+		margin: 0.25rem 1rem 0;
 		font-size: 0.85rem;
 	}
 
@@ -1502,7 +1561,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.25rem 0.5rem;
-		margin: 0.5rem 0 0;
+		margin: 0.5rem 1rem 0.75rem;
 		padding: 0.25rem;
 		list-style: none;
 	}
@@ -1804,6 +1863,9 @@
 	   (tamaño de pantalla, zoom) ya crecen con su propio padding, así que basta con el alto; los dos
 	   iconos-solo (ayuda, cerrar el panel de ayuda) son cuadrados y necesitan las dos dimensiones. */
 	@media (pointer: coarse) {
+		.vega-visual-panel-toggle {
+			min-height: 44px;
+		}
 		.vega-visual-view-select,
 		.vega-visual-zoom-select {
 			min-height: 44px;
@@ -1880,6 +1942,10 @@
 	.vega-visual-panel-toggle:hover,
 	.vega-visual-panel-toggle:focus-visible {
 		border-color: var(--accent);
+	}
+	.vega-visual-tree-retry {
+		min-width: 44px;
+		min-height: 44px;
 	}
 
 	/* `--vega-visual-tree-w`/`--inspector-w` (ver cabecera, "Anchos de columna ajustables"): el

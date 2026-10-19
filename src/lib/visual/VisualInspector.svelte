@@ -515,6 +515,11 @@
 		font: inherit;
 		cursor: pointer;
 	}
+	@media (pointer: coarse) {
+		.vega-inspector-close {
+			min-height: 44px;
+		}
+	}
 
 	.vega-inspector-close:hover,
 	.vega-inspector-close:focus-visible {
