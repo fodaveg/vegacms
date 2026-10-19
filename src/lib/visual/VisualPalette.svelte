@@ -238,6 +238,8 @@
 	.vega-palette-list {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
+		grid-auto-rows: max-content;
+		align-content: start;
 		gap: 0.4rem;
 		padding: 0 0.9rem 0.75rem;
 		max-height: 18rem;
@@ -257,6 +259,7 @@
 		color: var(--ink);
 		font: inherit;
 		text-align: left;
+		overflow: hidden;
 		cursor: grab;
 	}
 
@@ -275,17 +278,24 @@
 		flex-direction: column;
 		gap: 0.15rem;
 		min-width: 0;
+		overflow: hidden;
 	}
 
 	.vega-palette-copy strong {
 		font-size: 0.82rem;
 		font-weight: 600;
+		overflow-wrap: anywhere;
 	}
 
 	.vega-palette-fields {
 		color: var(--ink-2);
 		font-size: 0.74rem;
 		line-height: 1.3;
+		max-height: 2.6em;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		overflow: hidden;
 		overflow-wrap: anywhere;
 	}
 

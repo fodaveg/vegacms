@@ -260,6 +260,28 @@ describe('VisualPalette.svelte', () => {
 		expect(search.disabled).toBe(false);
 	});
 
+	test('un campo al final de una descripción larga sigue encontrando la tarjeta', async () => {
+		const longType: ResolvedBlockType = {
+			...HERO_TYPE,
+			fields: Array.from({ length: 8 }, (_, index) => ({
+				...HERO_TYPE.fields[0],
+				name: `field${index + 1}`,
+				label: `Campo ${index + 1}`
+			}))
+		};
+		mounted = mountPalette({
+			blocks: fakeBlocksState({ hasTypeMenu: true, blockTypes: [longType, GALLERY_TYPE] })
+		});
+		const search = mounted.target.querySelector<HTMLInputElement>('input[type="search"]')!;
+		search.value = 'campo 8';
+		search.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		const item = mounted.target.querySelector('.vega-palette-item');
+		expect(item?.querySelector('strong')?.textContent).toBe('Portada');
+		expect(item?.querySelector('.vega-palette-fields')?.textContent).toContain('Campo 8');
+		expect(mounted.target.querySelectorAll('.vega-palette-item')).toHaveLength(1);
+	});
+
 	test('región propia con su propio encabezado (`role="region"` + `aria-labelledby`)', () => {
 		const blocks = fakeBlocksState({ hasTypeMenu: true, blockTypes: [HERO_TYPE] });
 		mounted = mountPalette({ blocks });
