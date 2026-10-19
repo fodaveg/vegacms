@@ -1464,8 +1464,17 @@ export const es = {
 	'media.picker.selectedCount': '{count} elegido(s)',
 	// Segunda mitad del pie («2 elegidos · 1 sin texto alternativo»): solo se pinta si hay alguno.
 	'media.picker.missingAltCount': '{count} sin texto alternativo',
-	'media.picker.insert': 'Insertar',
-	'media.picker.inserting': 'Insertando…',
+	'media.picker.back': 'Biblioteca',
+	'media.picker.libraryAlt': 'Texto alternativo de la biblioteca',
+	'media.picker.readonly': 'Puedes seleccionar este archivo, pero no editar sus metadatos.',
+	'media.picker.browseHelp':
+		'Abre un archivo para ver sus metadatos. Usa su control de selección para elegirlo.',
+	'media.picker.metadata': 'Metadatos de la biblioteca',
+	'media.picker.metadataSaved': 'Metadatos guardados',
+	'media.picker.saveNotice': 'Guardar no selecciona el archivo.',
+	'media.picker.pending': 'Guarda o descarta los cambios antes de seleccionar.',
+	'media.picker.insert': 'Seleccionar',
+	'media.picker.inserting': 'Seleccionando…',
 
 	// ————— Warnings (L10 de P2) —————
 	'warnings.title': 'Avisos del modelo',

@@ -342,3 +342,18 @@ describe('MediaDetail.svelte — reemplazar fichero con metadatos sin guardar', 
 		expect(vi.mocked(port.update).mock.calls[0][2]).toEqual({ file });
 	});
 });
+
+describe('MediaDetail — asociación accesible y acciones fuera del scroll', () => {
+	test('IDs únicos: el diálogo nombra al heading y Título al input real; Guardar conserva su form', () => {
+		const { target } = render(asset());
+		const elements = Array.from(target.querySelectorAll('[id]'));
+		expect(new Set(elements.map((element) => element.id)).size).toBe(elements.length);
+		const dialog = target.querySelector('[role="dialog"]')!;
+		expect(target.querySelector(`#${dialog.getAttribute('aria-labelledby')}`)?.tagName).toBe('H2');
+		const label = target.querySelector<HTMLLabelElement>('label[for="vega-media-detail-title"]')!;
+		expect(document.getElementById(label.htmlFor)?.tagName).toBe('INPUT');
+		const save = target.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+		expect(save.form).toBe(target.querySelector('form'));
+		expect(target.querySelector('.vega-media-detail-body')?.contains(save)).toBe(false);
+	});
+});

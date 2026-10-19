@@ -1151,8 +1151,8 @@ test.describe('widget file — texto alternativo y copia en Medios (lote 12, lá
 
 		await field.getByRole('button', { name: 'Elegir de la biblioteca' }).click();
 		const dialog = page.getByRole('dialog');
-		await dialog.locator('[data-media-item]').first().click();
-		await dialog.getByRole('button', { name: 'Insertar' }).click();
+		await dialog.locator('.vega-media-check--control').first().click();
+		await dialog.getByRole('button', { name: 'Seleccionar', exact: true }).click();
 
 		await expect(field.locator('.vega-file-item')).toHaveCount(1);
 		await expect(field.getByRole('textbox', { name: 'Texto alternativo' })).toHaveCount(0);

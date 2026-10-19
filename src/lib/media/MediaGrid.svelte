@@ -95,9 +95,11 @@
 		/** Presente ⇒ modo biblioteca: la selección se opera con el círculo de la esquina (ver
 		 *  cabecera), no con el click de la celda. */
 		onToggleSelect?: (item: MediaItemView) => void;
+		/** Archivo cuya ficha está abierta; independiente de la selección. */
+		isInspected?: (item: MediaItemView) => boolean;
 	}
 
-	let { items, onSelect, isSelected, onToggleSelect }: Props = $props();
+	let { items, onSelect, isSelected, onToggleSelect, isInspected }: Props = $props();
 
 	const ctx = getVegaContext();
 
@@ -188,6 +190,8 @@
 				type="button"
 				class="vega-media-cell"
 				data-media-item={item.id}
+				class:vega-media-inspected={isInspected?.(item) ?? false}
+				aria-current={isInspected?.(item) ? 'true' : undefined}
 				data-media-kind={src ? 'image' : 'other'}
 				data-media-selected={selected ? 'true' : undefined}
 				aria-pressed={isSelected && !onToggleSelect ? selected : undefined}
@@ -495,5 +499,10 @@
 		.vega-media-grid {
 			grid-template-columns: repeat(2, 1fr);
 		}
+	}
+
+	.vega-media-inspected {
+		outline: 2px solid var(--ink);
+		outline-offset: -2px;
 	}
 </style>

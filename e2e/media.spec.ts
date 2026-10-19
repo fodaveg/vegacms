@@ -562,6 +562,13 @@ test.describe('/media borrado de un asset (contrato P6, Fase 6d)', () => {
  * imágenes), sobre los campos file de `posts` (`coverImage` single+`mimeTypes:['image/*']`,
  * `attachments` múltiple sin restricción de mime — semilla F5-f, `session/demo-seed.ts`).
  */
+function pickerToggle(dialog: import('@playwright/test').Locator, id: string) {
+	return dialog
+		.locator(`[data-media-item="${id}"]`)
+		.locator('..')
+		.locator('.vega-media-check--control');
+}
+
 test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', () => {
 	async function loginWithMediaSeed(page: import('@playwright/test').Page): Promise<void> {
 		await loginAsDemo(page, { seedMedia: true });
@@ -588,13 +595,10 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 		await expect(dialog.locator('[data-media-item]')).toHaveCount(2);
 		await expect(dialog.locator('[data-media-item="media_1"]')).toHaveCount(0);
 
-		await dialog.locator('[data-media-item="media_2"]').click();
-		await expect(dialog.locator('[data-media-item="media_2"]')).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
+		await pickerToggle(dialog, 'media_2').click();
+		await expect(pickerToggle(dialog, 'media_2')).toHaveAttribute('aria-pressed', 'true');
 
-		await dialog.getByRole('button', { name: 'Insertar', exact: true }).click();
+		await dialog.getByRole('button', { name: 'Seleccionar', exact: true }).click();
 		await expect(dialog).not.toBeVisible();
 
 		// Se añadió como `File` NUEVO (mismo camino que subir a mano): preview de object URL, un
@@ -648,8 +652,8 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();
 		const dialog = page.getByRole('dialog', { name: 'Elegir de la biblioteca' });
 
-		const first = dialog.locator('[data-media-item="media_2"]');
-		const second = dialog.locator('[data-media-item="media_3"]');
+		const first = pickerToggle(dialog, 'media_2');
+		const second = pickerToggle(dialog, 'media_3');
 		await first.click();
 		await expect(first).toHaveAttribute('aria-pressed', 'true');
 
@@ -657,7 +661,7 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 		await expect(second).toHaveAttribute('aria-pressed', 'true');
 		await expect(first).toHaveAttribute('aria-pressed', 'false');
 
-		await dialog.getByRole('button', { name: 'Insertar', exact: true }).click();
+		await dialog.getByRole('button', { name: 'Seleccionar', exact: true }).click();
 		await expect(dialog).not.toBeVisible();
 		// Un ÚNICO fichero en el campo (single, no acumula el reemplazado).
 		await expect(field.locator('img.vega-file-thumb')).toHaveCount(1);
@@ -674,7 +678,7 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 		await field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true }).click();
 		const dialog = page.getByRole('dialog', { name: 'Elegir de la biblioteca' });
 
-		await dialog.locator('[data-media-item="media_2"]').click();
+		await pickerToggle(dialog, 'media_2').click();
 		await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
 		await expect(dialog).not.toBeVisible();
 
@@ -698,18 +702,12 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 		// Sin `accept` (attachments no restringe mime): los 3 assets sembrados aparecen, pdf incluido.
 		await expect(dialog.locator('[data-media-item]')).toHaveCount(3);
 
-		await dialog.locator('[data-media-item="media_2"]').click();
-		await dialog.locator('[data-media-item="media_3"]').click();
-		await expect(dialog.locator('[data-media-item="media_2"]')).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
-		await expect(dialog.locator('[data-media-item="media_3"]')).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
+		await pickerToggle(dialog, 'media_2').click();
+		await pickerToggle(dialog, 'media_3').click();
+		await expect(pickerToggle(dialog, 'media_2')).toHaveAttribute('aria-pressed', 'true');
+		await expect(pickerToggle(dialog, 'media_3')).toHaveAttribute('aria-pressed', 'true');
 
-		await dialog.getByRole('button', { name: 'Insertar', exact: true }).click();
+		await dialog.getByRole('button', { name: 'Seleccionar', exact: true }).click();
 		await expect(dialog).not.toBeVisible();
 
 		// Ambas imágenes entran como `File` nuevo (clasificadas por mime real, no por extensión):
@@ -741,7 +739,7 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 
 		// A mitad de gesto (elegido, sin llegar a pulsar "Insertar") — el caso real que motivó el
 		// fix: una petición `open()` en vuelo cuando el usuario navega.
-		await dialog.locator('[data-media-item="media_2"]').click();
+		await pickerToggle(dialog, 'media_2').click();
 
 		// `page.goBack()` (botón de atrás del navegador, NUNCA un clic dentro de la página — el
 		// backdrop del modal bloquea cualquier clic de fondo, así que esta es la única vía real por
@@ -770,10 +768,206 @@ test.describe('widget file: picker de biblioteca (contrato P6, Fase P6·6e)', ()
 		// `media_2.title === 'Foto de portada'`: único que coincide con "portada".
 		await dialog.getByLabel('Buscar por título o texto alternativo').fill('portada');
 		await expect(dialog.locator('[data-media-item]')).toHaveCount(1);
-		await expect(dialog.locator('[data-media-item="media_2"]')).toBeVisible();
+		await expect(pickerToggle(dialog, 'media_2')).toBeVisible();
 
 		// Vaciar el buscador restaura los 3.
 		await dialog.getByLabel('Buscar por título o texto alternativo').fill('');
 		await expect(dialog.locator('[data-media-item]')).toHaveCount(3);
 	});
+});
+
+/** Un solo diálogo y un solo formulario de metadatos; elegir sigue entregando bytes al campo. */
+test.describe('biblioteca contextual de medios (UX C)', () => {
+	async function openPicker(page: import('@playwright/test').Page) {
+		await loginAsDemo(page, { seedMedia: true });
+		await waitForHome(page);
+		await page.goto('/c/posts/new');
+		const field = page.locator('[data-field="coverImage"]');
+		const opener = field.getByRole('button', { name: 'Elegir de la biblioteca', exact: true });
+		await opener.click();
+		return { field, opener, dialog: page.getByRole('dialog', { name: 'Elegir de la biblioteca' }) };
+	}
+
+	test('guardar metadatos no selecciona ni cierra; cancelar selección conserva lo guardado', async ({
+		page
+	}) => {
+		const { field, opener, dialog } = await openPicker(page);
+		await dialog.locator('[data-media-item="media_2"]').click();
+		await expect(page.getByRole('dialog')).toHaveCount(1);
+		const title = dialog.getByRole('textbox', { name: 'Título', exact: true });
+		await title.fill('Portada revisada desde el documento');
+		await expect(dialog.getByRole('button', { name: 'Seleccionar', exact: true })).toBeDisabled();
+		// Botón externo asociado al formulario nativo real, no invocación del handler.
+		await dialog.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(dialog.getByText('Metadatos guardados', { exact: true })).toBeVisible();
+		await expect(dialog).toBeVisible();
+		await expect(field.locator('img.vega-file-thumb')).toHaveCount(0);
+		await expect(dialog.getByRole('button', { name: 'Seleccionar', exact: true })).toBeDisabled();
+		await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
+		await expect(opener).toBeFocused();
+		await opener.click();
+		await expect(pickerToggle(dialog, 'media_2')).toHaveAttribute('aria-pressed', 'false');
+		await dialog.locator('[data-media-item="media_2"]').click();
+		await expect(dialog.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(
+			'Portada revisada desde el documento'
+		);
+		await dialog.getByRole('button', { name: 'Biblioteca', exact: true }).click();
+		await pickerToggle(dialog, 'media_2').click();
+		await dialog.getByRole('button', { name: 'Seleccionar', exact: true }).click();
+		await expect(field.locator('img.vega-file-thumb')).toBeVisible();
+		await expect(dialog).toHaveCount(0);
+	});
+
+	test('cancelar la salida conserva el borrador y permite seguir editando y guardar', async ({
+		page
+	}) => {
+		const { dialog, opener } = await openPicker(page);
+		await pickerToggle(dialog, 'media_2').click();
+		await dialog.locator('[data-media-item="media_2"]').click();
+		const alt = dialog.getByRole('textbox', {
+			name: 'Texto alternativo de la biblioteca',
+			exact: true
+		});
+		await alt.fill('Descripción pendiente tras el error');
+		page.once('dialog', (confirmation) => confirmation.dismiss());
+		await dialog.getByRole('button', { name: 'Biblioteca', exact: true }).click();
+		await expect(alt).toHaveValue('Descripción pendiente tras el error');
+		await expect(dialog.getByRole('button', { name: 'Seleccionar', exact: true })).toBeDisabled();
+		await dialog.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(dialog.getByRole('alert')).toHaveCount(0);
+		await expect(dialog.getByRole('button', { name: 'Seleccionar', exact: true })).toBeEnabled();
+		await page.keyboard.press('Escape');
+		await expect(dialog).toHaveCount(0);
+		await expect(opener).toBeFocused();
+	});
+
+	test('selección entre páginas y reapertura conservan recorrido, vaciando elegidos', async ({
+		page
+	}) => {
+		await loginAsDemo(page, { seedMedia: true });
+		await waitForHome(page);
+		await goToMedia(page);
+		const png = Buffer.from(
+			'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+			'base64'
+		);
+		await page.getByLabel('Subir archivos').setInputFiles(
+			Array.from({ length: 25 }, (_, i) => ({
+				name: `pagina-${i}.png`,
+				mimeType: 'image/png',
+				buffer: png
+			}))
+		);
+		await expect(page.getByText('25 archivo(s) subido(s), 0 fallido(s).')).toBeVisible();
+		await page
+			.getByRole('navigation', { name: 'Navegación principal' })
+			.getByRole('link', { name: 'Entradas' })
+			.click();
+		await page.getByRole('link', { name: 'Bienvenido a Vega' }).click();
+		const opener = page
+			.locator('[data-field="attachments"]')
+			.getByRole('button', { name: 'Elegir de la biblioteca', exact: true });
+		await opener.click();
+		const dialog = page.getByRole('dialog', { name: 'Elegir de la biblioteca' });
+		await expect(dialog.locator('[data-media-item]')).toHaveCount(24);
+		await dialog.locator('.vega-media-check--control').first().click();
+		await dialog.getByRole('button', { name: 'Siguiente', exact: true }).click();
+		await expect(dialog.locator('[data-media-item]')).toHaveCount(4);
+		await dialog.locator('.vega-media-check--control').first().click();
+		await expect(dialog.locator('[data-media-picker-count]')).toContainText('2 elegido(s)');
+		await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
+		await expect(opener).toBeFocused();
+		await opener.click();
+		await expect(dialog.locator('[data-media-item]')).toHaveCount(4);
+		await expect(dialog.getByRole('button', { name: 'Siguiente', exact: true })).toBeDisabled();
+		await expect(dialog.locator('[aria-pressed="true"]')).toHaveCount(0);
+		await expect(dialog.getByRole('button', { name: 'Seleccionar', exact: true })).toBeDisabled();
+		await dialog.getByRole('button', { name: 'Anterior', exact: true }).click();
+		await expect(dialog.locator('[data-media-item]')).toHaveCount(24);
+		await expect(dialog.locator('[aria-pressed="true"]')).toHaveCount(0);
+	});
+
+	test('richtext mantiene URL y alt de instancia sin escribir el alt de biblioteca', async ({
+		page
+	}) => {
+		await loginAsDemo(page, { seedMedia: true });
+		await waitForHome(page);
+		await page.goto('/c/posts/new');
+		const content = page.locator('[data-field="content"]');
+		const imageButton = content.getByRole('button', { name: 'Imagen', exact: true });
+		await expect(imageButton).toBeEnabled();
+		await content.getByRole('textbox').click();
+		await imageButton.click();
+		const picker = page.getByRole('dialog', { name: 'Elegir de la biblioteca' });
+		await pickerToggle(picker, 'media_3').click();
+		await picker.getByRole('button', { name: 'Seleccionar', exact: true }).click();
+		const instance = page.getByRole('dialog', { name: 'Texto alternativo', exact: true });
+		await instance
+			.getByRole('textbox', { name: 'Texto alternativo (opcional)', exact: true })
+			.fill('Descripción de esta aparición');
+		await instance.getByRole('button', { name: 'Insertar imagen', exact: true }).click();
+		await expect(content.locator('.tiptap img')).toHaveAttribute(
+			'alt',
+			'Descripción de esta aparición'
+		);
+		await expect(content.locator('.tiptap img')).toHaveAttribute('src', /^data:image\/png/);
+		await expect(content.getByRole('textbox')).toBeFocused();
+		await imageButton.click();
+		await picker.locator('[data-media-item="media_3"]').click();
+		await expect(
+			picker.getByRole('textbox', { name: 'Texto alternativo de la biblioteca', exact: true })
+		).toHaveValue('');
+		await picker.getByRole('button', { name: 'Cancelar', exact: true }).click();
+		await expect(content.getByRole('textbox')).toBeFocused();
+	});
+
+	for (const viewport of [
+		{ width: 390, height: 844 },
+		{ width: 720, height: 500 }
+	]) {
+		test(`ficha estrecha ${viewport.width}×${viewport.height}: acciones estables, Volver conserva búsqueda y foco`, async ({
+			page
+		}) => {
+			await page.setViewportSize(viewport);
+			const { dialog } = await openPicker(page);
+			await dialog.getByRole('searchbox').fill('portada');
+			await expect(dialog.locator('[data-media-item]')).toHaveCount(1);
+			const card = dialog.locator('[data-media-item="media_2"]');
+			await pickerToggle(dialog, 'media_2').click();
+			await card.click();
+			await expect(dialog.getByRole('searchbox')).toBeHidden();
+			const alt = dialog.getByRole('textbox', {
+				name: 'Texto alternativo de la biblioteca',
+				exact: true
+			});
+			await alt.fill('Biblioteca y documento con acciones alcanzables');
+			const save = dialog.getByRole('button', { name: 'Guardar', exact: true });
+			await expect(save).toBeInViewport();
+			await save.click();
+			await expect(dialog.getByText('Metadatos guardados', { exact: true })).toBeVisible();
+			const bounds = await dialog.evaluate((el) => {
+				const detail = el.querySelector('.vega-media-detail-dialog')!;
+				const content = el.querySelector('.vega-media-picker-content')!;
+				const d = detail.getBoundingClientRect(),
+					c = content.getBoundingClientRect();
+				return {
+					right: d.right - c.right,
+					bottom: d.bottom - c.bottom,
+					overflow: el.scrollWidth - el.clientWidth
+				};
+			});
+			expect(bounds.right).toBeLessThanOrEqual(1);
+			expect(bounds.bottom).toBeLessThanOrEqual(1);
+			expect(bounds.overflow).toBeLessThanOrEqual(1);
+			await dialog.getByRole('button', { name: 'Biblioteca', exact: true }).click();
+			await expect(dialog.getByRole('searchbox')).toHaveValue('portada');
+			await expect(card).toBeFocused();
+			await expect(pickerToggle(dialog, 'media_2')).toHaveAttribute('aria-pressed', 'true');
+			const select = dialog.getByRole('button', { name: 'Seleccionar', exact: true });
+			await expect(select).toBeInViewport();
+			await select.focus();
+			await page.keyboard.press('Tab');
+			await expect(dialog.getByRole('button', { name: 'Cerrar', exact: true })).toBeFocused();
+		});
+	}
 });

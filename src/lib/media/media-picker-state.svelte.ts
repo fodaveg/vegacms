@@ -15,6 +15,8 @@ import type { MediaPickerOpenOptions, MediaPickResult } from './media-picker';
 
 interface MediaPickRequest {
 	opts: MediaPickerOpenOptions;
+	/** Capturado antes de que el consumidor deshabilite su botón durante la promesa. */
+	opener: HTMLElement | null;
 	resolve: (result: MediaPickResult[] | null) => void;
 }
 
@@ -27,9 +29,13 @@ let request = $state<MediaPickRequest | null>(null);
  * siempre — defensivo, cubre una llamada a `open()` mientras otra sigue sin resolver.
  */
 function open(opts: MediaPickerOpenOptions): Promise<MediaPickResult[] | null> {
+	const opener =
+		typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
+			? document.activeElement
+			: null;
 	request?.resolve(null);
 	return new Promise((resolve) => {
-		request = { opts, resolve };
+		request = { opts, opener, resolve };
 	});
 }
 

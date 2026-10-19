@@ -120,6 +120,11 @@
 		/** La `vega_media` descubierta tiene el campo `focal` (ver cabecera). Default `false`: sin él
 		 *  el panel se comporta exactamente como antes del campo. */
 		canSetFocal?: boolean;
+		/** Ficha dentro del selector: un solo diálogo/trap; guardar permanece abierto. */
+		embedded?: boolean;
+		/** El selector está preparando los bytes: no admite un borrador nuevo durante la salida. */
+		disabled?: boolean;
+		onStateChange?: (state: { dirty: boolean; busy: boolean; confirmationOpen: boolean }) => void;
 	}
 
 	let {
@@ -130,10 +135,17 @@
 		fallbackFocusEl,
 		canUpdate = true,
 		canDelete = true,
-		canSetFocal = false
+		canSetFocal = false,
+		embedded = false,
+		disabled = false,
+		onStateChange
 	}: Props = $props();
 
 	const ctx = getVegaContext();
+	/** Asociación nativa: el selector coloca su único Guardar en el pie exterior. */
+	const detailScope = $props.id();
+	export const formId = `vega-media-metadata-${detailScope}`;
+	let headingEl = $state<HTMLHeadingElement | null>(null);
 
 	let altDraft = $state('');
 	let titleDraft = $state('');
@@ -149,7 +161,7 @@
 	/** Controles de edición inertes (`#lote-shell`): mientras se guarda, como siempre, y también
 	 *  cuando las reglas del backend no dejan actualizar este asset — ahí el panel sigue siendo
 	 *  útil (ver el fichero, su URL y sus metadatos), solo que no se puede tocar. */
-	const editingDisabled = $derived(saving || !canUpdate);
+	const editingDisabled = $derived(disabled || saving || !canUpdate);
 	let saveError = $state<string | null>(null);
 
 	// ————— Borrado (Fase 6d) —————
@@ -198,6 +210,25 @@
 				!tagsEqual(tagsDraft, item.tags) ||
 				(canSetFocal && !mediaFocalEquals(focalDraft, item.focal)))
 	);
+
+	$effect(() => {
+		onStateChange?.({
+			dirty,
+			busy: saving || deletingAsset || replacingAsset,
+			confirmationOpen: confirmingDelete || confirmingReplace
+		});
+	});
+
+	/** El padre conserva la prioridad de Escape focal sin instalar otra trampa. */
+	export function clearPendingFocal(): boolean {
+		if (focalPending === null) return false;
+		focalPending = null;
+		return true;
+	}
+
+	export function focusContext(): void {
+		headingEl?.focus();
+	}
 
 	const fullSrc = $derived(item ? resolveMediaFullSrc(ctx.port, item) : null);
 
@@ -266,7 +297,7 @@
 	}
 
 	$effect(() => {
-		if (!item) return;
+		if (!item || embedded) return;
 
 		previouslyFocused = document.activeElement as HTMLElement | null;
 		altInputEl?.focus();
@@ -284,10 +315,21 @@
 
 	/** Cierra el diálogo — con cambios sin guardar, reutiliza el guard de salida de P5 (ver
 	 *  cabecera). Ignorado mientras `saving` está en vuelo (mismo guard que `DeleteConfirm`). */
+	export function canLeave(): boolean {
+		if (
+			disabled ||
+			saving ||
+			deletingAsset ||
+			replacingAsset ||
+			confirmingDelete ||
+			confirmingReplace
+		)
+			return false;
+		return !dirty || window.confirm(ctx.t('editor.leaveConfirm'));
+	}
+
 	function requestClose(): void {
-		if (saving) return;
-		if (dirty && !window.confirm(ctx.t('editor.leaveConfirm'))) return;
-		onClose();
+		if (canLeave()) onClose();
 	}
 
 	function handleAddTag(): void {
@@ -332,20 +374,19 @@
 
 	async function handleSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
-		if (!item || saving) return;
+		if (!item || editingDisabled || (embedded && !dirty)) return;
 		saving = true;
 		saveError = null;
 		try {
 			const saved: VegaRecord = await ctx.port.update('vega_media', item.id, metadataInput());
 			ctx.feedback.toast(ctx.t('media.detail.saveSuccess'), { kind: 'success' });
 			onSaved(toMediaItemView(saved));
-			onClose();
+			if (!embedded) onClose();
 		} catch (err) {
 			const vegaErr =
 				err instanceof VegaError ? err : VegaError.backend('Error al guardar el medio', err);
-			if (vegaErr.kind === 'validation') {
-				saveError = vegaErr.message;
-			} else {
+			saveError = vegaErr.message;
+			if (vegaErr.kind !== 'validation') {
 				ctx.feedback.reportError(vegaErr, { action: 'media:detail:save' });
 			}
 		} finally {
@@ -475,223 +516,244 @@
 </script>
 
 {#if item}
-	<div class="vega-media-detail-backdrop">
+	<div class="vega-media-detail-backdrop" class:vega-media-detail-backdrop--embedded={embedded}>
 		<div
 			class="vega-media-detail-dialog"
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="vega-media-detail-title"
+			class:vega-media-detail-dialog--embedded={embedded}
+			inert={disabled}
+			role={embedded ? 'region' : 'dialog'}
+			aria-modal={embedded ? undefined : 'true'}
+			aria-labelledby="vega-media-detail-heading"
 			bind:this={dialogEl}
 		>
 			<div class="vega-media-detail-header">
-				<h2 id="vega-media-detail-title">{ctx.t('media.detail.title')}</h2>
+				<h2
+					id="vega-media-detail-heading"
+					tabindex="-1"
+					bind:this={headingEl}
+					title={embedded ? mediaDisplayName(item) : undefined}
+				>
+					{embedded ? mediaDisplayName(item) : ctx.t('media.detail.title')}
+				</h2>
 				<button
 					type="button"
 					class="vega-media-detail-close"
 					onclick={requestClose}
-					aria-label={ctx.t('common.close')}
-				>
-					<Icon id="close" />
-				</button>
-			</div>
-
-			<div class="vega-media-detail-preview">
-				{#if fullSrc && focalEnabled}
-					<!-- Punto focal (ver cabecera): el botón abraza a la imagen, su caja ES la imagen.
-					     `aria-label` le da nombre propio; la ayuda y el estado lo describen. -->
-					<button
-						type="button"
-						class="vega-media-focal"
-						aria-label={ctx.t('media.focal.label')}
-						aria-describedby="vega-media-focal-status vega-media-focal-help"
-						disabled={editingDisabled}
-						onclick={handleFocalClick}
-						onkeydown={handleFocalKeydown}
-						onblur={() => (focalPending = null)}
-						data-media-focal
-					>
-						<img
-							src={fullSrc}
-							alt={mediaImgAlt(item)}
-							class="vega-media-detail-image"
-							bind:this={focalImageEl}
-						/>
-						<span
-							class="vega-media-focal-mark"
-							style:left="{focalMarkPercent.x}%"
-							style:top="{focalMarkPercent.y}%"
-							data-media-focal-mark
-							aria-hidden="true"
-						></span>
-						{#if focalPendingPercent}
-							<span
-								class="vega-media-focal-mark vega-media-focal-mark--pending"
-								style:left="{focalPendingPercent.x}%"
-								style:top="{focalPendingPercent.y}%"
-								data-media-focal-pending
-								aria-hidden="true"
-							></span>
-						{/if}
-					</button>
-				{:else if fullSrc}
-					<img src={fullSrc} alt={mediaImgAlt(item)} class="vega-media-detail-image" />
-				{:else}
-					<Icon id="document" size={48} title={mediaImgAlt(item)} />
-				{/if}
-			</div>
-
-			{#if focalEnabled}
-				<div class="vega-media-focal-row">
-					<p
-						id="vega-media-focal-status"
-						class="vega-media-focal-status"
-						aria-live="polite"
-						data-media-focal-status
-					>
-						{focalStatus}
-					</p>
-					<button
-						type="button"
-						class="vega-media-focal-reset"
-						onclick={resetFocal}
-						disabled={editingDisabled || (focalDraft === null && focalPending === null)}
-					>
-						{ctx.t('media.focal.reset')}
-					</button>
-				</div>
-				<p id="vega-media-focal-help" class="vega-media-focal-help">
-					{ctx.t('media.focal.help')}
-				</p>
-			{/if}
-
-			<!-- Reemplazar fichero (`#lote-integridad`, Fase A): control de fichero REAL, oculto
-			     VISUALMENTE (mismo patrón que `MediaUpload.svelte` — nunca `display: none`, sigue en
-			     el árbol de accesibilidad). El botón visible dispara `.click()` sobre él. -->
-			<div class="vega-media-detail-replace" hidden={!canUpdate}>
-				<label class="vega-media-detail-replace-sr" for="vega-media-detail-replace-input">
-					{ctx.t('media.detail.replace')}
-				</label>
-				<input
-					id="vega-media-detail-replace-input"
-					type="file"
-					class="vega-media-detail-replace-sr"
-					bind:this={replaceInputEl}
-					accept={mediaFileSchema?.mimeTypes?.join(',') || undefined}
+					aria-label={ctx.t(embedded ? 'media.picker.back' : 'common.close')}
 					disabled={saving || deletingAsset || replacingAsset}
-					onchange={handleReplaceFileChange}
-				/>
-				<button
-					type="button"
-					onclick={requestReplaceFile}
-					disabled={saving || deletingAsset || confirmingDelete || replacingAsset}
 				>
-					{ctx.t('media.detail.replace')}
+					{#if embedded}{ctx.t('media.picker.back')}{:else}<Icon id="close" />{/if}
 				</button>
-				{#if replaceRejection}
-					<p class="vega-media-detail-error" role="alert">
-						{replaceRejection === 'tooLarge'
-							? ctx.t('media.replace.rejectedTooLarge')
-							: ctx.t('media.replace.rejectedInvalidType')}
-					</p>
-				{/if}
 			</div>
 
-			<form onsubmit={handleSubmit} novalidate>
-				{#if saveError}
-					<p class="vega-media-detail-error" role="alert">{saveError}</p>
+			<div class="vega-media-detail-body">
+				{#if embedded}
+					<p class="vega-media-detail-file-name">{item.fileName}</p>
+					{#if !canUpdate}<p class="vega-media-detail-readonly">
+							{ctx.t('media.picker.readonly')}
+						</p>{/if}
 				{/if}
-
-				<div class="vega-media-detail-field">
-					<label for="vega-media-detail-alt">{ctx.t('media.detail.alt')}</label>
-					<input
-						id="vega-media-detail-alt"
-						type="text"
-						bind:value={altDraft}
-						bind:this={altInputEl}
-						disabled={editingDisabled}
-						aria-describedby={isImage ? 'vega-media-detail-alt-hint' : undefined}
-					/>
-					{#if isImage}
-						{#if altDraftMissing}
-							<p
-								id="vega-media-detail-alt-hint"
-								class="vega-media-detail-alt-hint vega-media-detail-alt-hint--warn"
-								data-media-alt-hint="missing"
-							>
-								<Icon id="warning" size={12} />
-								<span>{ctx.t('media.detail.altMissingHint', { name: item.fileName })}</span>
-							</p>
-						{:else}
-							<p
-								id="vega-media-detail-alt-hint"
-								class="vega-media-detail-alt-hint"
-								data-media-alt-hint="help"
-							>
-								{ctx.t('media.detail.altHelp')}
-							</p>
-						{/if}
-					{/if}
-				</div>
-
-				<div class="vega-media-detail-field">
-					<label for="vega-media-detail-title">{ctx.t('media.detail.titleLabel')}</label>
-					<input
-						id="vega-media-detail-title"
-						type="text"
-						bind:value={titleDraft}
-						disabled={editingDisabled}
-					/>
-				</div>
-
-				<div class="vega-media-detail-field">
-					<span id="vega-media-detail-tags-label">{ctx.t('media.detail.tags')}</span>
-					{#if tagsDraft.length > 0}
-						<ul class="vega-media-detail-tags" aria-labelledby="vega-media-detail-tags-label">
-							{#each tagsDraft as tag (tag)}
-								<li class="vega-media-tag">
-									{tag}
-									<button
-										type="button"
-										onclick={() => handleRemoveTag(tag)}
-										disabled={editingDisabled}
-										aria-label={ctx.t('media.detail.removeTag', { tag })}
-									>
-										×
-									</button>
-								</li>
-							{/each}
-						</ul>
-					{/if}
-					<div class="vega-media-detail-tag-input">
-						<input
-							type="text"
-							bind:value={tagInput}
-							onkeydown={handleTagInputKeydown}
-							disabled={editingDisabled}
-							placeholder={ctx.t('media.detail.tagPlaceholder')}
-							aria-label={ctx.t('media.detail.tagInputLabel')}
-						/>
+				<div class="vega-media-detail-preview">
+					{#if fullSrc && focalEnabled}
+						<!-- Punto focal (ver cabecera): el botón abraza a la imagen, su caja ES la imagen.
+					     `aria-label` le da nombre propio; la ayuda y el estado lo describen. -->
 						<button
 							type="button"
-							onclick={handleAddTag}
-							disabled={editingDisabled || normalizeTagInput(tagInput) === ''}
+							class="vega-media-focal"
+							aria-label={ctx.t('media.focal.label')}
+							aria-describedby="vega-media-focal-status vega-media-focal-help"
+							disabled={editingDisabled}
+							onclick={handleFocalClick}
+							onkeydown={handleFocalKeydown}
+							onblur={() => (focalPending = null)}
+							data-media-focal
 						>
-							{ctx.t('media.detail.addTag')}
+							<img
+								src={fullSrc}
+								alt={mediaImgAlt(item)}
+								class="vega-media-detail-image"
+								bind:this={focalImageEl}
+							/>
+							<span
+								class="vega-media-focal-mark"
+								style:left="{focalMarkPercent.x}%"
+								style:top="{focalMarkPercent.y}%"
+								data-media-focal-mark
+								aria-hidden="true"
+							></span>
+							{#if focalPendingPercent}
+								<span
+									class="vega-media-focal-mark vega-media-focal-mark--pending"
+									style:left="{focalPendingPercent.x}%"
+									style:top="{focalPendingPercent.y}%"
+									data-media-focal-pending
+									aria-hidden="true"
+								></span>
+							{/if}
+						</button>
+					{:else if fullSrc}
+						<img src={fullSrc} alt={mediaImgAlt(item)} class="vega-media-detail-image" />
+					{:else}
+						<Icon id="document" size={48} title={mediaImgAlt(item)} />
+					{/if}
+				</div>
+
+				{#if focalEnabled}
+					<div class="vega-media-focal-row">
+						<p
+							id="vega-media-focal-status"
+							class="vega-media-focal-status"
+							aria-live="polite"
+							data-media-focal-status
+						>
+							{focalStatus}
+						</p>
+						<button
+							type="button"
+							class="vega-media-focal-reset"
+							onclick={resetFocal}
+							disabled={editingDisabled || (focalDraft === null && focalPending === null)}
+						>
+							{ctx.t('media.focal.reset')}
 						</button>
 					</div>
+					<p id="vega-media-focal-help" class="vega-media-focal-help">
+						{ctx.t('media.focal.help')}
+					</p>
+				{/if}
+
+				<!-- Reemplazar fichero (`#lote-integridad`, Fase A): control de fichero REAL, oculto
+			     VISUALMENTE (mismo patrón que `MediaUpload.svelte` — nunca `display: none`, sigue en
+			     el árbol de accesibilidad). El botón visible dispara `.click()` sobre él. -->
+				<div class="vega-media-detail-replace" hidden={!canUpdate || embedded}>
+					<label class="vega-media-detail-replace-sr" for="vega-media-detail-replace-input">
+						{ctx.t('media.detail.replace')}
+					</label>
+					<input
+						id="vega-media-detail-replace-input"
+						type="file"
+						class="vega-media-detail-replace-sr"
+						bind:this={replaceInputEl}
+						accept={mediaFileSchema?.mimeTypes?.join(',') || undefined}
+						disabled={saving || deletingAsset || replacingAsset}
+						onchange={handleReplaceFileChange}
+					/>
+					<button
+						type="button"
+						onclick={requestReplaceFile}
+						disabled={saving || deletingAsset || confirmingDelete || replacingAsset}
+					>
+						{ctx.t('media.detail.replace')}
+					</button>
+					{#if replaceRejection}
+						<p class="vega-media-detail-error" role="alert">
+							{replaceRejection === 'tooLarge'
+								? ctx.t('media.replace.rejectedTooLarge')
+								: ctx.t('media.replace.rejectedInvalidType')}
+						</p>
+					{/if}
 				</div>
 
-				<!-- "Se usa en" (`#lote-integridad`, Fase A): colapsado por defecto, ver
+				<form id={formId} onsubmit={handleSubmit} novalidate>
+					{#if saveError}
+						<p class="vega-media-detail-error" role="alert">{saveError}</p>
+					{/if}
+
+					<div class="vega-media-detail-field">
+						<label for="vega-media-detail-alt"
+							>{ctx.t(embedded ? 'media.picker.libraryAlt' : 'media.detail.alt')}</label
+						>
+						<input
+							id="vega-media-detail-alt"
+							type="text"
+							bind:value={altDraft}
+							bind:this={altInputEl}
+							disabled={editingDisabled}
+							aria-describedby={isImage ? 'vega-media-detail-alt-hint' : undefined}
+						/>
+						{#if isImage}
+							{#if altDraftMissing}
+								<p
+									id="vega-media-detail-alt-hint"
+									class="vega-media-detail-alt-hint vega-media-detail-alt-hint--warn"
+									data-media-alt-hint="missing"
+								>
+									<Icon id="warning" size={12} />
+									<span>{ctx.t('media.detail.altMissingHint', { name: item.fileName })}</span>
+								</p>
+							{:else}
+								<p
+									id="vega-media-detail-alt-hint"
+									class="vega-media-detail-alt-hint"
+									data-media-alt-hint="help"
+								>
+									{ctx.t('media.detail.altHelp')}
+								</p>
+							{/if}
+						{/if}
+					</div>
+
+					<div class="vega-media-detail-field">
+						<label for="vega-media-detail-title">{ctx.t('media.detail.titleLabel')}</label>
+						<input
+							id="vega-media-detail-title"
+							type="text"
+							bind:value={titleDraft}
+							disabled={editingDisabled}
+						/>
+					</div>
+
+					<div class="vega-media-detail-field">
+						<span id="vega-media-detail-tags-label">{ctx.t('media.detail.tags')}</span>
+						{#if tagsDraft.length > 0}
+							<ul class="vega-media-detail-tags" aria-labelledby="vega-media-detail-tags-label">
+								{#each tagsDraft as tag (tag)}
+									<li class="vega-media-tag">
+										{tag}
+										<button
+											type="button"
+											onclick={() => handleRemoveTag(tag)}
+											disabled={editingDisabled}
+											aria-label={ctx.t('media.detail.removeTag', { tag })}
+										>
+											×
+										</button>
+									</li>
+								{/each}
+							</ul>
+						{/if}
+						<div class="vega-media-detail-tag-input">
+							<input
+								type="text"
+								bind:value={tagInput}
+								onkeydown={handleTagInputKeydown}
+								disabled={editingDisabled}
+								placeholder={ctx.t('media.detail.tagPlaceholder')}
+								aria-label={ctx.t('media.detail.tagInputLabel')}
+							/>
+							<button
+								type="button"
+								onclick={handleAddTag}
+								disabled={editingDisabled || normalizeTagInput(tagInput) === ''}
+							>
+								{ctx.t('media.detail.addTag')}
+							</button>
+						</div>
+					</div>
+
+					<!-- "Se usa en" (`#lote-integridad`, Fase A): colapsado por defecto, ver
 				     `UsedInPanel.svelte`. `targetFileRef` alimenta la vía "url" del motor — el picker de
 				     media COPIA el binario, así que la vía "relation" casi nunca encuentra nada aquí. -->
-				<div class="vega-media-detail-field">
-					<UsedInPanel
-						targetCollection="vega_media"
-						targetId={item.id}
-						targetFileRef={item.fileRef}
-					/>
-				</div>
-
+					<div class="vega-media-detail-field">
+						<UsedInPanel
+							targetCollection="vega_media"
+							targetId={item.id}
+							targetFileRef={item.fileRef}
+						/>
+					</div>
+				</form>
+			</div>
+			{#if !embedded}
 				<div class="vega-media-detail-actions">
 					{#if canDelete}
 						<button
@@ -708,13 +770,13 @@
 							{ctx.t('common.cancel')}
 						</button>
 						{#if canUpdate}
-							<button type="submit" disabled={saving}>
+							<button type="submit" form={formId} disabled={saving}>
 								{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
 							</button>
 						{/if}
 					</div>
 				</div>
-			</form>
+			{/if}
 		</div>
 	</div>
 {/if}
@@ -763,18 +825,63 @@
 	}
 
 	.vega-media-detail-dialog {
-		display: flex;
-		flex-direction: column;
+		box-sizing: border-box;
+		display: grid;
+		grid-template-rows: auto minmax(0, 1fr) auto;
 		gap: 0.9rem;
 		width: 100%;
 		max-width: 26rem;
-		max-height: calc(100vh - 2 * var(--vega-space-gutter));
-		overflow-y: auto;
+		max-height: calc(100dvh - 2 * var(--vega-space-gutter));
+		overflow: hidden;
 		padding: 1.5rem;
 		border-radius: 10px;
 		background: var(--surface);
 		color: var(--ink);
 		box-shadow: var(--shadow-card);
+	}
+
+	.vega-media-detail-backdrop--embedded {
+		position: static;
+		display: contents;
+		padding: 0;
+		background: transparent;
+	}
+
+	.vega-media-detail-dialog--embedded {
+		grid-template-rows: auto minmax(0, 1fr);
+		min-width: 0;
+		min-height: 0;
+		max-width: none;
+		max-height: none;
+		height: 100%;
+		padding: 1rem;
+		border-left: 1px solid var(--line);
+		border-radius: 0;
+		box-shadow: none;
+	}
+
+	.vega-media-detail-body {
+		display: grid;
+		align-content: start;
+		gap: 0.9rem;
+		grid-auto-rows: max-content;
+		min-width: 0;
+		min-height: 0;
+		overflow-y: auto;
+		scroll-padding-block: 0.5rem;
+	}
+
+	.vega-media-detail-file-name {
+		margin: 0 0 0.75rem;
+		color: var(--ink-2);
+		overflow-wrap: anywhere;
+		font: 0.75rem var(--mono);
+	}
+
+	.vega-media-detail-readonly {
+		margin: 0 0 0.75rem;
+		color: var(--ink-2);
+		font-size: 0.85rem;
 	}
 
 	.vega-media-detail-header {
@@ -785,11 +892,16 @@
 	}
 
 	.vega-media-detail-header h2 {
+		min-width: 0;
 		margin: 0;
+		overflow-wrap: anywhere;
 		font-size: 1.1rem;
 	}
 
 	.vega-media-detail-close {
+		flex-shrink: 0;
+		min-width: 44px;
+		min-height: 44px;
 		border: none;
 		background: transparent;
 		color: var(--ink-2);
@@ -1030,6 +1142,7 @@
 	}
 
 	.vega-media-detail-tag-input input {
+		min-width: 0;
 		flex: 1;
 	}
 
@@ -1049,6 +1162,9 @@
 
 	.vega-media-detail-actions {
 		display: flex;
+		flex-wrap: wrap;
+		border-top: 1px solid var(--line);
+		padding-top: 0.75rem;
 		/* "Borrar" (danger) a la izquierda, Cancelar/Guardar agrupados a la derecha (D-P6.5/6d): la
 		   acción destructiva vive separada del par cancelar/guardar, nunca adyacente a "Guardar". */
 		justify-content: space-between;
@@ -1062,6 +1178,8 @@
 	}
 
 	.vega-media-detail-actions button {
+		min-width: 44px;
+		min-height: 44px;
 		padding: 0.5rem 0.9rem;
 		border: 1px solid var(--line);
 		border-radius: 6px;
@@ -1089,5 +1207,35 @@
 		background: var(--danger-soft);
 		color: var(--danger);
 		font-weight: 600;
+	}
+
+	.vega-media-detail-dialog--embedded h2 {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		overflow: hidden;
+		font-size: 0.95rem;
+	}
+
+	.vega-media-detail-dialog :is(input, button):focus-visible {
+		outline-color: var(--ink);
+	}
+
+	@media (max-height: 550px) {
+		.vega-media-detail-dialog {
+			box-sizing: border-box;
+			padding: 0.75rem;
+			gap: 0.5rem;
+		}
+		.vega-media-detail-dialog--embedded {
+			padding: 0.5rem 0.75rem;
+		}
+		.vega-media-detail-actions {
+			padding-top: 0.5rem;
+		}
+		.vega-media-detail-image {
+			max-height: 8rem;
+		}
 	}
 </style>

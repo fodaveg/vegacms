@@ -1379,8 +1379,17 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.picker.empty': 'No asset matches the search or the allowed file type.',
 	'media.picker.selectedCount': '{count} selected',
 	'media.picker.missingAltCount': '{count} without alt text',
-	'media.picker.insert': 'Insert',
-	'media.picker.inserting': 'Inserting…',
+	'media.picker.back': 'Library',
+	'media.picker.libraryAlt': 'Library alt text',
+	'media.picker.readonly': 'You can select this file, but cannot edit its metadata.',
+	'media.picker.browseHelp':
+		'Open a file to inspect its metadata. Use its selection control to choose it.',
+	'media.picker.metadata': 'Library metadata',
+	'media.picker.metadataSaved': 'Metadata saved',
+	'media.picker.saveNotice': 'Saving does not select the file.',
+	'media.picker.pending': 'Save or discard your changes before selecting.',
+	'media.picker.insert': 'Select',
+	'media.picker.inserting': 'Selecting…',
 
 	// ————— Warnings (P2's L10) —————
 	'warnings.title': 'Model warnings',
