@@ -992,6 +992,9 @@ export const es = {
 	'list.cell.yes': 'Sí',
 	'list.cell.no': 'No',
 	'list.untitled': '(sin título)',
+	'list.page.edit': 'Editar página',
+	'list.page.editLabel': 'Editar página: {label}',
+	'list.page.fields': 'Campos de página',
 	// Borrador con «Publicar el» en el futuro (`publishAtField`, `describeStatusBadge` en
 	// `list/cell.ts`): listado, raíl y cabecera del formulario. `{date}` = «12 oct 10:00».
 	'list.status.scheduled': 'Programada · {date}',

@@ -5,8 +5,10 @@
 	 * (4d, ver más abajo) — SIN búsqueda (eso vive en `ListToolbar.svelte`) ni borrado (4e).
 	 *
 	 * - **Fila siempre abrible (L-P4.15, fix de code-review de 4c)**: la celda de APERTURA es
-	 *   SIEMPRE un enlace real a `ctx.nav.toRecord` — `href` real (Cmd/Ctrl/Shift+click y click
+	 *   SIEMPRE un enlace real al destino del registro — `href` real (Cmd/Ctrl/Shift+click y click
 	 *   central abren en pestaña nueva sin pasar por la SPA, mismo patrón que `NavItem.svelte`).
+	 *   Las páginas con bloques y puente visual disponible abren el lienzo; «Campos de página»
+	 *   conserva un enlace directo al formulario. El gate es el de la ruta visual.
 	 *   Esa celda es la columna `isTitle` SI EXISTE (`type.titleField` resuelto, §4.4) — pero NO
 	 *   siempre existe: la cascada de P2 puede agotarse a `null` (ningún campo `text`/`email`/`url`
 	 *   representable) o un manifiesto puede declarar `listFields` explícito sin el `titleField`
@@ -115,14 +117,15 @@
 	 *   sigue TONTO: solo EMITE `onDeleteRequest`/`onDuplicateRequest` con el registro y el mismo
 	 *   texto de apertura (`openText`, DRY) que ya se pinta en la celda-título — el diálogo de
 	 *   confirmación y la escritura son de `+page.svelte`.
-	 * - **Una sola parada de tabulación por fila (la lámina cuenta 60 → 30 en una página de 30
+	 * - **Una sola parada de tabulación por fila normal (la lámina cuenta 60 → 30 en una página de 30
 	 *   filas)**: el disparador del menú lleva `tabindex="-1"` y se alcanza con → desde el título
 	 *   (← vuelve). Para que el atajo no sea un secreto, el enlace del título lleva
 	 *   `aria-describedby` a una frase oculta («Flecha derecha: acciones de la fila»), y borrar sigue
 	 *   estando también dentro del registro, en «Zona de peligro». Fila sin permiso de ver (el
 	 *   título no es enlace): el disparador pasa a ser LA parada de tabulación de esa fila
-	 *   (`tabindex="0"`), si no la fila no tendría ninguna. Tabla reordenable: el asa de arrastre
-	 *   sigue siendo su propia parada (no cambia).
+	 *   (`tabindex="0"`), si no la fila no tendría ninguna. Las páginas con editor visual tienen una
+	 *   segunda parada para «Campos de página», que conserva el acceso directo al formulario.
+	 *   Tabla reordenable: el asa de arrastre sigue siendo su propia parada.
 	 * - **Disparador oculto hasta hover/foco (misma aparición que tenía «Borrar», R3)**: `opacity`,
 	 *   nunca `display:none`; lo revela `tbody tr:hover`/`tbody tr:focus-within` (vía `:global`, el
 	 *   botón vive dentro de `ActionMenu`) o el propio menú abierto; con puntero basto o sin hover,
@@ -165,7 +168,8 @@
 	 *   presentacional: no toca `onReorder` ni la persistencia, que siguen exactamente igual.
 	 */
 	import { getVegaContext } from '$lib/app-context';
-	import { recordRoute } from '$lib/nav/routes';
+	import { recordRoute, visualRoute } from '$lib/nav/routes';
+	import { resolveVisualGate } from '$lib/visual/visual-gate';
 	import {
 		classifyStatusBadge,
 		describeCell,
@@ -226,6 +230,12 @@
 	}: Props = $props();
 
 	const ctx = getVegaContext();
+
+	/** El mismo gate que protege la ruta visual decide el destino del listado. Se calcula por
+	 * colección y puerto, sin depender del registro ni cargar el editor en este bundle. */
+	const opensVisual = $derived(
+		Boolean(contentType.page) && resolveVisualGate(contentType, ctx.port).status === 'ok'
+	);
 
 	/** Prefijo único de esta tabla para los `id` del menú de cada fila y de la frase oculta del
 	 *  atajo (`aria-describedby`): dos tablas en la misma página no pueden compartirlos. */
@@ -352,15 +362,14 @@
 		return recordInlineStatusBadge(record, statusColumn, contentType, ctx);
 	}
 
-	/** Abre el registro (L-P4.15), respetando los gestos nativos del navegador — mismo patrón que
-	 *  `NavItem.svelte`: un click normal navega vía `nav.toRecord` (exit-guard incluido); un click
-	 *  modificado (Cmd/Ctrl/Shift/central) sigue el `href` real y abre en pestaña/ventana nueva. */
-	function openRecord(event: MouseEvent, id: string): void {
+	/** Navega al destino del enlace sin interceptar gestos de nueva pestaña ni el menú nativo. */
+	function openRecord(event: MouseEvent, id: string, visual: boolean): void {
 		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
 			return;
 		}
 		event.preventDefault();
-		ctx.nav.toRecord(contentType.name, id);
+		if (visual) ctx.nav.toVisual(contentType.name, id);
+		else ctx.nav.toRecord(contentType.name, id);
 	}
 
 	/** Valor ARIA del estado de orden de la columna `field` (D-P4.6, solo para cabeceras
@@ -564,14 +573,30 @@
 	     `onclick`, así Tab ya no la trata como destino y el detalle no es alcanzable desde aquí. -->
 	{#if contentType.permissions.view}
 		<a
-			href={recordRoute(contentType.name, record.id)}
+			href={opensVisual
+				? visualRoute(contentType.name, record.id)
+				: recordRoute(contentType.name, record.id)}
 			title={openText(record)}
+			aria-label={opensVisual
+				? ctx.t('list.page.editLabel', { label: openText(record) })
+				: undefined}
 			aria-describedby={hasRowMenu ? hintId : undefined}
-			onclick={(event) => openRecord(event, record.id)}
+			onclick={(event) => openRecord(event, record.id, opensVisual)}
 			onkeydown={handleTitleKeydown}
 		>
 			{openText(record)}
+			{#if opensVisual}
+				<span class="vega-page-edit-label">{ctx.t('list.page.edit')}</span>
+			{/if}
 		</a>
+		{#if opensVisual}
+			<span class="vega-page-links">
+				<a
+					href={recordRoute(contentType.name, record.id)}
+					onclick={(event) => openRecord(event, record.id, false)}>{ctx.t('list.page.fields')}</a
+				>
+			</span>
+		{/if}
 	{:else}
 		<span class="vega-cell-title-text">{openText(record)}</span>
 	{/if}
@@ -895,6 +920,29 @@
 		color: var(--ink-hi);
 		font-weight: 500;
 		line-height: 1.3;
+	}
+
+	/* Las páginas capaces de edición visual muestran la acción principal y un enlace real al
+	   formulario. Ambos admiten Tab, Enter y los gestos nativos de nueva pestaña. */
+	.vega-page-links {
+		display: flex;
+		flex-wrap: wrap;
+		margin-top: 0.2rem;
+		font-size: 0.72rem;
+		line-height: 1.3;
+	}
+
+	.vega-page-edit-label {
+		display: inline-block;
+		margin-left: 0.75rem;
+		font-size: 0.72rem;
+		color: var(--accent-text);
+		font-weight: 600;
+	}
+
+	.vega-record-table td .vega-page-links a {
+		color: var(--ink-2);
+		font-weight: 400;
 	}
 
 	/* Línea secundaria bajo el título (M3, mockup `.cell-title .slug`): mono, tinta secundaria —

@@ -77,6 +77,7 @@ function fakeCtx(): VegaAppContext {
 	return {
 		t: (key: string, params?: Record<string, string | number>) => t('es', key, params),
 		locale: 'es',
+		port: {},
 		model: { scheduledPublishing: 'unknown' },
 		nav: { toRecord: vi.fn() }
 	} as unknown as VegaAppContext;

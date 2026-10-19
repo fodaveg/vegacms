@@ -102,6 +102,7 @@ function fakeCtx(): VegaAppContext {
 	return {
 		t: (key: string) => key,
 		locale: 'es',
+		port: {},
 		nav: { toRecord: vi.fn() }
 	} as unknown as VegaAppContext;
 }

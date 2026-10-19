@@ -923,6 +923,9 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'list.cell.yes': 'Yes',
 	'list.cell.no': 'No',
 	'list.untitled': '(untitled)',
+	'list.page.edit': 'Edit page',
+	'list.page.editLabel': 'Edit page: {label}',
+	'list.page.fields': 'Page fields',
 	// Draft whose "Publish on" date is in the future (`publishAtField`, `describeStatusBadge` in
 	// `list/cell.ts`): list, rail and form header. `{date}` = "Oct 12 10:00 AM".
 	'list.status.scheduled': 'Scheduled · {date}',
