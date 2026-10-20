@@ -248,9 +248,30 @@ describe('loadUnpublishedChanges', () => {
 
 		await expect(loadUnpublishedStatus(port, model([EDITED]), 't', fetcher)).resolves.toEqual({
 			hasChanges: false,
-			lastPublishedAt
+			lastPublishedAt,
+			state: 'ok'
 		});
 	});
+
+	test.each(['running', 'failed'] as const)(
+		'estado %s conserva el estado real y no calcula una falsa actualización',
+		async (state) => {
+			const port = editedPort('2026-10-01 08:00:00.000Z');
+			await expect(
+				loadUnpublishedStatus(
+					port,
+					model([EDITED]),
+					't',
+					statusFetcher({ state, lastPublishedAt: '2026-10-01T09:00:00.000Z' })
+				)
+			).resolves.toEqual({
+				hasChanges: null,
+				lastPublishedAt: '2026-10-01T09:00:00.000Z',
+				state
+			});
+			expect(port.list).not.toHaveBeenCalled();
+		}
+	);
 
 	test('ningún tipo con fecha de edición legible: null («no lo sé»), no un false', async () => {
 		const fetcher = statusFetcher({ state: 'ok', lastPublishedAt: null });

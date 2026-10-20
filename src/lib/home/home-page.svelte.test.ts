@@ -13,6 +13,7 @@ import { VegaError } from '$lib/backend/errors';
 import type { ContentModel } from '$lib/model/types';
 import { field, model, type } from './fixture';
 import { serializeRecentEdits, type RecentEdit } from './recent-edits';
+import { announceSiteUpdateStatus } from '$lib/shell/site-update';
 
 import HomePage from '../../routes/+page.svelte';
 
@@ -177,6 +178,8 @@ describe('portada: lo último que editaste', () => {
 		expect(rows[2]?.querySelector('h3')?.textContent?.trim()).toBe('list.untitled');
 		// Estado actual y fallback tipográfico cuando el tipo no declara imagen.
 		expect(rows[1]?.querySelector('.pill')?.textContent?.trim()).toBe('Borrador');
+		expect(rows[2]?.querySelector('.pill')?.getAttribute('data-status-kind')).toBe('pub');
+		expect(rows[2]?.querySelector('.status')?.getAttribute('data-status-kind')).toBe('pub');
 		expect(rows[0]?.querySelector('.pill')).toBeNull();
 		expect(rows[0]?.querySelector('.fallback')?.textContent).toBe('P');
 		expect(rows[0]?.querySelector('.continue-label')?.textContent).toBe('home.recent.continue');
@@ -519,6 +522,68 @@ describe('portada: cambios sin publicar en el sitio', () => {
 		const card = unpublishedCard(target);
 		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.upToDate');
 		expect(card?.classList.contains('calm')).toBe(true);
+	});
+
+	test('una actualización observada desde cualquiera de los botones refresca titular y fecha', async () => {
+		stubBuildStatus({ state: 'ok', lastPublishedAt: '2026-10-01T09:00:00.000Z' });
+		const { target } = mountHome({
+			model: EDITED_MODEL,
+			buildApiUrl: BUILD_URL,
+			list: lastEdited('2026-10-01 09:30:00.000Z')
+		});
+		await settle();
+		const card = unpublishedCard(target);
+		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.unpublishedHeadline');
+		announceSiteUpdateStatus('https://other.example/api/vega/build', {
+			state: 'failed',
+			startedAt: null,
+			finishedAt: null,
+			lastPublishedAt: null,
+			logUrl: null,
+			detail: null
+		});
+		await settle();
+		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.unpublishedHeadline');
+
+		announceSiteUpdateStatus(BUILD_URL, {
+			state: 'running',
+			startedAt: '2026-10-01T10:00:00.000Z',
+			finishedAt: null,
+			lastPublishedAt: '2026-10-01T09:00:00.000Z',
+			logUrl: null,
+			detail: null
+		});
+		await settle();
+		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.buildRunning');
+		expect(card?.classList.contains('calm')).toBe(false);
+
+		announceSiteUpdateStatus(BUILD_URL, {
+			state: 'ok',
+			startedAt: '2026-10-01T10:00:00.000Z',
+			finishedAt: '2026-10-01T10:02:00.000Z',
+			lastPublishedAt: '2026-10-01T10:02:00.000Z',
+			logUrl: null,
+			detail: null
+		});
+		await settle();
+		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.upToDate');
+		expect(card?.classList.contains('calm')).toBe(true);
+		expect(card?.querySelector('.published-at')?.textContent).toContain(
+			'home.pending.lastPublished'
+		);
+	});
+
+	test('un resultado fallido nunca se presenta como sitio al día', async () => {
+		stubBuildStatus({ state: 'failed', lastPublishedAt: '2026-10-01T09:00:00.000Z' });
+		const { target } = mountHome({
+			model: EDITED_MODEL,
+			buildApiUrl: BUILD_URL,
+			list: lastEdited('2026-10-01 08:00:00.000Z')
+		});
+		await settle();
+		const card = unpublishedCard(target);
+		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.buildFailed');
+		expect(card?.classList.contains('calm')).toBe(false);
 	});
 
 	test('mientras lo calcula, la tarjeta comunica carga', async () => {

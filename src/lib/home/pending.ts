@@ -14,7 +14,7 @@
  */
 
 import type { BackendPort } from '$lib/backend/port';
-import { createBuildClient } from '$lib/backend/build-client';
+import { createBuildClient, type BuildState, type BuildStatus } from '$lib/backend/build-client';
 import { detectUnpublishedChanges } from '$lib/backend/unpublished-changes';
 import { allowedFilterOps, type FilterNode, type Query } from '$lib/backend/query';
 import type { ContentModel, ResolvedContentType } from '$lib/model/types';
@@ -149,29 +149,41 @@ export function pendingCards(model: ContentModel, now: number = Date.now()): Pen
 
 /**
  * Estado de publicación del sitio: cambios conocidos o `null` si no hay fecha de edición
- * legible (ver `detectUnpublishedChanges`), y fecha de la última publicación. Solo tiene sentido si el
- * proyecto anuncia `build` (`port.buildApiUrl`); sin él la tarjeta no existe y esto no se llama.
+ * legible (ver `detectUnpublishedChanges`), y fecha de la última publicación. Solo tiene sentido
+ * si el proyecto anuncia `build` (`port.buildApiUrl`); sin él la tarjeta no existe.
  *
- * Coste: un `GET` al estado del build (de ahí sale la fecha de la última publicación) más la
- * consulta de `detectUnpublishedChanges`, una `list` de un registro por colección con fecha de
- * edición. Es el mismo cálculo que hace el botón «Publicar» de la barra superior, repetido aquí
- * porque ese botón no comparte su resultado. Rechaza si el estado del build no se puede leer.
+ * Coste inicial: un `GET` al estado del build más la consulta de `detectUnpublishedChanges`,
+ * una `list` de un registro por colección con fecha de edición. Si un botón «Publicar» acaba
+ * de observar un cambio, reutiliza ese `observedStatus` sin otro GET. En running/failed no
+ * calcula la pista de cambios ni afirma que el sitio esté al día. Rechaza si el GET falla.
  */
 export async function loadUnpublishedStatus(
 	port: BackendPort,
 	model: ContentModel,
 	token: string,
-	fetcher?: typeof fetch
-): Promise<{ hasChanges: boolean | null; lastPublishedAt: string | null } | null> {
+	fetcher?: typeof fetch,
+	observedStatus?: BuildStatus
+): Promise<{
+	hasChanges: boolean | null;
+	lastPublishedAt: string | null;
+	state: BuildState;
+} | null> {
 	if (!port.buildApiUrl) return null;
-	const client = createBuildClient({ apiUrl: port.buildApiUrl, token, fetcher });
-	const status = await client.fetchStatus();
+	const status =
+		observedStatus ??
+		(await createBuildClient({ apiUrl: port.buildApiUrl, token, fetcher }).fetchStatus());
+	if (status.state === 'running' || status.state === 'failed')
+		return { hasChanges: null, lastPublishedAt: status.lastPublishedAt, state: status.state };
 	const result = await detectUnpublishedChanges(
 		port,
 		model.types.map((type) => type.schema),
 		status.lastPublishedAt
 	);
-	return { hasChanges: result.hasChanges, lastPublishedAt: status.lastPublishedAt };
+	return {
+		hasChanges: result.hasChanges,
+		lastPublishedAt: status.lastPublishedAt,
+		state: status.state
+	};
 }
 
 /** Compatibilidad con quien solo necesita la pista de cambios, sin la fecha de publicación. */

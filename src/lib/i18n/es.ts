@@ -53,6 +53,8 @@ export const es = {
 	'home.pending.unpublishedYes': 'Sí',
 	'home.pending.unpublishedNo': 'No',
 	'home.pending.unpublishedHeadline': 'Hay cambios que el sitio todavía no enseña.',
+	'home.pending.buildFailed': 'La última publicación falló.',
+	'home.pending.buildRunning': 'El sitio se está actualizando.',
 	'home.pending.lastPublished': 'Última publicación: {date}',
 	'home.publishNow': 'Publicar ahora',
 	'home.pending.upToDate': 'Sitio al día.',

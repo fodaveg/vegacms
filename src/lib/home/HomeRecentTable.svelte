@@ -169,7 +169,7 @@
 		left: 10px;
 		color: var(--ink-2);
 	}
-	.pill[data-status-kind='published'] {
+	.pill[data-status-kind='pub'] {
 		color: var(--success);
 	}
 	.pill[data-status-kind='scheduled'] {
@@ -220,7 +220,7 @@
 		background: var(--btn);
 		white-space: nowrap;
 	}
-	.status[data-status-kind='published'] {
+	.status[data-status-kind='pub'] {
 		color: var(--success);
 		background: var(--success-soft);
 	}

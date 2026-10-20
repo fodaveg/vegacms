@@ -12,8 +12,10 @@
 		type BuildStatus
 	} from '$lib/backend';
 	import {
+		announceSiteUpdateStatus,
 		hasNewSiteUpdateResult,
 		observeSiteUpdate,
+		siteUpdateStatusKey,
 		type SiteUpdateObservation
 	} from './site-update';
 	import Icon from '$lib/icons/Icon.svelte';
@@ -86,7 +88,10 @@
 			maxDurationMs: STATUS_WAIT_MS,
 			onStatus(next) {
 				if (!current()) return;
+				const changed =
+					status !== null && siteUpdateStatusKey(status) !== siteUpdateStatusKey(next);
 				status = next;
+				if (changed && ctx.port.buildApiUrl) announceSiteUpdateStatus(ctx.port.buildApiUrl, next);
 				fetchProblem = null;
 				checking = false;
 				if (attempt) {

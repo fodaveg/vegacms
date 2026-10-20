@@ -1,7 +1,7 @@
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import PublishButton from './PublishButton.svelte';
-import { hasNewSiteUpdateResult, observeSiteUpdate } from './site-update';
+import { hasNewSiteUpdateResult, observeSiteUpdate, onSiteUpdateStatus } from './site-update';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { BackendPort } from '$lib/backend/port';
 import type { BuildStatus, ContentType, Field } from '$lib/backend';
@@ -146,6 +146,10 @@ describe('PublishButton — site update observation', () => {
 		}
 	);
 	test('202 → old ok → new running → new ok never promotes the old terminal', async () => {
+		const seen: string[] = [];
+		const stop = onSiteUpdateStatus('https://pb.test/api/vega-build', (status) =>
+			seen.push(status.state)
+		);
 		const fetcher = vi
 			.fn()
 			.mockResolvedValueOnce(jsonResponse(OLD))
@@ -164,6 +168,8 @@ describe('PublishButton — site update observation', () => {
 		await vi.advanceTimersByTimeAsync(4000);
 		await tick();
 		expect(state()).toBe('ok');
+		expect(seen).toEqual(['running', 'ok']);
+		stop();
 		expect(trigger().disabled).toBe(false);
 		await vi.advanceTimersByTimeAsync(120000);
 		expect(fetcher).toHaveBeenCalledTimes(5);

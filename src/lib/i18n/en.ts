@@ -45,6 +45,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'home.pending.unpublishedYes': 'Yes',
 	'home.pending.unpublishedNo': 'No',
 	'home.pending.unpublishedHeadline': 'There are changes the site does not show yet.',
+	'home.pending.buildFailed': 'The last site update failed.',
+	'home.pending.buildRunning': 'The site is updating.',
 	'home.pending.lastPublished': 'Last published: {date}',
 	'home.publishNow': 'Publish now',
 	'home.pending.upToDate': 'Site is up to date.',

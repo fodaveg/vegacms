@@ -2,8 +2,10 @@
 	/** Bento de Inicio: cifras independientes y estado global del sitio cuando se puede conocer. */
 	import { onMount } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
+	import type { BuildState, BuildStatus } from '$lib/backend/build-client';
 	import Icon from '$lib/icons/Icon.svelte';
 	import PublishButton from '$lib/shell/PublishButton.svelte';
+	import { onSiteUpdateStatus, siteUpdateStatusKey } from '$lib/shell/site-update';
 	import {
 		loadPendingCount,
 		loadUnpublishedStatus,
@@ -23,7 +25,10 @@
 	const hasBuild = Boolean(ctx.port.buildApiUrl);
 	let counts = $state<Record<string, number | 'loading' | 'error'>>({});
 	let unpublished = $state<
-		'loading' | 'error' | { hasChanges: boolean | null; lastPublishedAt: string | null } | null
+		| 'loading'
+		| 'error'
+		| { hasChanges: boolean | null; lastPublishedAt: string | null; state: BuildState }
+		| null
 	>(hasBuild ? 'loading' : null);
 	const lastPublished = $derived.by(() => {
 		if (!unpublished || typeof unpublished === 'string' || !unpublished.lastPublishedAt)
@@ -32,6 +37,8 @@
 		return Number.isFinite(date.getTime()) ? date.toLocaleDateString(ctx.locale) : null;
 	});
 	let alive = false;
+	let publicationGeneration = 0;
+	let observedStatusKey: string | null = null;
 
 	/** Reintenta una cifra sin bloquear las demás tarjetas. */
 	async function loadCard(card: PendingCard): Promise<void> {
@@ -45,14 +52,27 @@
 	}
 
 	/** Un resultado desconocido no afirma que el sitio esté al día. */
-	async function loadUnpublished(): Promise<void> {
+	async function loadUnpublished(observedStatus?: BuildStatus): Promise<void> {
 		if (!hasBuild) return;
-		unpublished = 'loading';
+		const generation = ++publicationGeneration;
+		unpublished = observedStatus
+			? {
+					hasChanges: null,
+					lastPublishedAt: observedStatus.lastPublishedAt,
+					state: observedStatus.state
+				}
+			: 'loading';
 		try {
-			const value = await loadUnpublishedStatus(ctx.port, ctx.model, ctx.session.token);
-			if (alive) unpublished = value;
+			const value = await loadUnpublishedStatus(
+				ctx.port,
+				ctx.model,
+				ctx.session.token,
+				undefined,
+				observedStatus
+			);
+			if (alive && generation === publicationGeneration) unpublished = value;
 		} catch {
-			if (alive) unpublished = 'error';
+			if (alive && generation === publicationGeneration) unpublished = 'error';
 		}
 	}
 
@@ -60,8 +80,18 @@
 		alive = true;
 		for (const card of cards) void loadCard(card);
 		void loadUnpublished();
+		const unsubscribe = ctx.port.buildApiUrl
+			? onSiteUpdateStatus(ctx.port.buildApiUrl, (status) => {
+					const key = siteUpdateStatusKey(status);
+					if (key === observedStatusKey) return;
+					observedStatusKey = key;
+					void loadUnpublished(status);
+				})
+			: null;
 		return () => {
 			alive = false;
+			publicationGeneration++;
+			unsubscribe?.();
 		};
 	});
 
@@ -77,7 +107,10 @@
 				class="brandcard"
 				class:calm={unpublished !== null &&
 					typeof unpublished === 'object' &&
-					unpublished.hasChanges === false}
+					unpublished.hasChanges === false &&
+					unpublished.lastPublishedAt !== null &&
+					unpublished.state !== 'failed' &&
+					unpublished.state !== 'running'}
 				data-pending="unpublished"
 				aria-busy={unpublished === 'loading'}
 			>
@@ -91,7 +124,13 @@
 					<button type="button" class="retry" onclick={() => loadUnpublished()}
 						>{ctx.t('common.retry')}</button
 					>
+				{:else if unpublished?.state === 'failed'}
+					<h2>{ctx.t('home.pending.buildFailed')}</h2>
+				{:else if unpublished?.state === 'running'}
+					<h2>{ctx.t('home.pending.buildRunning')}</h2>
 				{:else if unpublished === null || unpublished.hasChanges === null}
+					<h2>{ctx.t('home.pending.unpublishedUnknown')}</h2>
+				{:else if unpublished.hasChanges === false && unpublished.lastPublishedAt === null}
 					<h2>{ctx.t('home.pending.unpublishedUnknown')}</h2>
 				{:else}
 					<h2>
