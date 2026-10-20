@@ -433,6 +433,7 @@
 			}
 			const saved = await onSubmit(input, { expectedVersion: conflict.serverVersion });
 			adoptRecord(saved);
+			onSaveError(false);
 			onSaved(saved);
 		} catch (err) {
 			onSaveError(true);
@@ -454,6 +455,7 @@
 		try {
 			const fresh = await ctx.port.get(childType.name, initialRecord.id);
 			adoptRecord(fresh);
+			onSaveError(false);
 			onSaved(fresh);
 		} catch (err) {
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al recargar', err);
@@ -593,6 +595,7 @@
 			const saved = await onSubmit(input, { expectedVersion: version });
 
 			adoptRecord(saved);
+			onSaveError(false);
 			onSaved(saved);
 		} catch (err) {
 			onSaveError(true);

@@ -111,15 +111,32 @@ describe('inline v2', () => {
 		h.client.stop();
 	});
 	test('toolbar Save waits for the final field value before invoking the shared save', () => {
+		vi.useFakeTimers();
 		const h = setup();
 		const edit = h.start();
 		h.receive({ ...edit, type: 'input', sequence: 0 });
 		expect(h.client.saveInline()).toBe(true);
 		expect(h.posted.at(-1)).toMatchObject({ type: 'finishField', requestValue: true });
+		vi.advanceTimersByTime(10000);
 		expect(h.save).not.toHaveBeenCalled();
+		expect(h.end).not.toHaveBeenCalled();
 		h.receive({ ...edit, type: 'commit', sequence: 1, value: 'Final IME text' });
 		expect(h.input).toHaveBeenCalledWith('b', 'heading', 'Final IME text');
 		expect(h.save).toHaveBeenCalledOnce();
+		h.client.stop();
+	});
+
+	test('unanswered final save can be retried and navigation invalidates its late commit', () => {
+		const h = setup();
+		const edit = h.start();
+		h.receive({ ...edit, type: 'input', sequence: 0 });
+		expect(h.client.saveInline()).toBe(true);
+		expect(h.client.saveInline()).toBe(true);
+		expect(h.posted.filter((m) => m.type === 'finishField' && m.requestValue)).toHaveLength(2);
+		h.client.loaded();
+		expect(h.end).toHaveBeenCalledWith('b', false);
+		expect(h.receive({ ...edit, type: 'commit', sequence: 1, value: 'Late' })).toBe('out-of-order');
+		expect(h.save).not.toHaveBeenCalled();
 		h.client.stop();
 	});
 

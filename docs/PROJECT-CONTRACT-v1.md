@@ -480,7 +480,14 @@ waits for the final commit value; a missing acknowledgement never saves stale te
 
 Text Enter commits; textarea Enter inserts a newline and Cmd/Ctrl+Enter commits.
 Escape cancels; neither action finalises during IME composition. Blur or a field
-change commits to draft only. Cmd/Ctrl+S transmits explicit save intent to
+change commits to draft only. Blur and a toolbar Save requested during composition
+wait for compositionend and its final value. The final-value wait has no short
+timeout: Save stays available to retry; frame navigation, stop or bridge error
+invalidates the pending save and rejects late messages. The initial edit
+acknowledgement still has its bounded timeout. After v2 negotiation, eligible
+annotated text is keyboard-focusable and Enter/F2 requests editing through the
+same CMS authorisation; native controls retain their own keyboard behaviour.
+Cmd/Ctrl+S transmits explicit save intent to
 saveSelected. Paste and drop insert plain text only; values never use innerHTML.
 
 Starting inline invalidates pending token/debounce/fallback work and site DOM

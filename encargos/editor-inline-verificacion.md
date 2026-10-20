@@ -44,3 +44,15 @@ En esta máquina Chromium falla incluso con permisos elevados al arrancar
 (`bootstrap_check_in`, `MachPortRendezvous` 141). No se repite ese fallo ambiental.
 La ejecución cross-origin y la QA visual 1440/390/tableta, claro/oscuro, selección,
 foco, IME y pegado nativos siguen pendientes hasta disponer de un navegador viable.
+
+## Correcciones tras revisión
+
+La composición IME conserva el nodo hasta `compositionend` incluso si hay blur o
+Guardar desde la barra; el commit final incluye el valor terminado. Guardar sigue
+habilitado para reintentar; navegar/reabrir el iframe invalida la petición y su
+commit tardío. El timeout de inicio se conserva, la espera de composición no se
+corta a los 2 segundos. Los nodos de texto elegibles reciben foco tras negociar v2
+y Enter/F2 solicita edición; los controles nativos conservan su comportamiento.
+Resolver un conflicto mediante Guardar igualmente o Descartar y recargar limpia
+el estado de error del anfitrión. Regresiones focales y recibo de revisión en la
+misma carpeta durable de evidencia; QA de navegador sigue pendiente.

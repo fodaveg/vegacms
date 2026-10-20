@@ -76,7 +76,9 @@ test.describe('actual Astro inline bridge', () => {
 		const frame = page.frameLocator('.vega-visual-frame');
 		const title = frame.locator('[data-vega-field="heading"]');
 		await expect(title).toBeVisible();
-		await title.click();
+		await expect(title).toHaveAttribute('tabindex', '0');
+		await title.focus();
+		await page.keyboard.press('Enter');
 		await expect(title).toHaveAttribute('contenteditable', 'plaintext-only');
 		const count = tokenRequests;
 		await page.keyboard.insertText('Draft with caret');
@@ -113,6 +115,21 @@ test.describe('actual Astro inline bridge', () => {
 		await page.keyboard.insertText('Saved from the page');
 		await expect(page.locator('.vega-visual-dirty')).toBeVisible();
 		await page.keyboard.press('Control+s');
+		await expect(page.locator('.vega-visual-dirty')).toHaveCount(0);
+		await title.click();
+		await expect(title).toHaveAttribute('contenteditable', 'plaintext-only');
+		await title.dispatchEvent('compositionstart');
+		await title.evaluate((node) => {
+			node.textContent = '仮';
+			node.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+		await page.locator('.vega-visual-save').click();
+		await page.waitForTimeout(2100); // composition must outlive the initial ack timeout
+		await expect(title).toHaveAttribute('contenteditable', 'plaintext-only');
+		await title.evaluate((node) => {
+			node.textContent = 'Saved from the page';
+			node.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }));
+		});
 		await expect(page.locator('.vega-visual-dirty')).toHaveCount(0);
 		await page.getByRole('link', { name: 'Campos de página' }).click();
 		await expect(page.locator('.vega-block-title').first()).toHaveText('Saved from the page');

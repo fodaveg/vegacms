@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from 'vitest';
 import BlockEditor from '$lib/form/BlockEditor.svelte';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import { resolveContentModel } from '$lib/model/resolve';
-import { recordVersion, type VegaRecord, type ContentType } from '$lib/backend';
+import { recordVersion, VegaConflictError, type VegaRecord, type ContentType } from '$lib/backend';
 import { t } from '$lib/i18n';
 
 const text = (name: string) => ({
@@ -70,9 +70,12 @@ async function setup() {
 		values: { ...original.values, ...input }
 	}));
 	const draft = vi.fn();
+	const failed = vi.fn();
+	const reload = vi.fn(async () => original);
 	const ctx = {
 		t: (key: string) => t('es', key),
 		locale: 'es',
+		port: { get: reload },
 		feedback: { reportError: vi.fn(), toast: vi.fn() }
 	} as unknown as VegaAppContext;
 	const editor = mount(BlockEditor, {
@@ -88,12 +91,16 @@ async function setup() {
 			onSubmit: submit,
 			onSaved: vi.fn(),
 			onDirtyChange: vi.fn(),
-			onDraftChange: draft
+			onDraftChange: draft,
+			onSaveError: failed
 		}
 	});
 	await tick();
 	return {
 		editor,
+		target,
+		failed,
+		reload,
 		submit,
 		draft,
 		async close() {
@@ -139,6 +146,41 @@ describe('inline owns the existing typed draft', () => {
 			await h.close();
 		}
 	});
+	test.each(['force', 'discard'] as const)(
+		'successful conflict %s clears the host save error',
+		async (action) => {
+			const h = await setup();
+			try {
+				h.submit.mockRejectedValueOnce(new VegaConflictError(original, 'server-version'));
+				h.editor.beginInline('body');
+				h.editor.updateInline('body', 'Unsaved');
+				h.editor.finishInline();
+				h.editor.save();
+				await vi.waitFor(() => expect(h.failed).toHaveBeenLastCalledWith(true));
+				await tick();
+				const label = t(
+					'es',
+					action === 'force' ? 'editor.conflict.force' : 'editor.conflict.discardNarrow'
+				);
+				const button = [...h.target.querySelectorAll('button')].find(
+					(node) => node.textContent?.trim() === label
+				)!;
+				expect(button).toBeDefined();
+				button.click();
+				await vi.waitFor(() => expect(h.failed).toHaveBeenLastCalledWith(false));
+				await tick();
+				expect(h.target.querySelector('.vega-conflict')).toBeNull();
+				if (action === 'force')
+					expect(h.submit).toHaveBeenLastCalledWith(expect.anything(), {
+						expectedVersion: 'server-version'
+					});
+				else expect(h.reload).toHaveBeenCalledWith('blocks', 'block');
+			} finally {
+				await h.close();
+			}
+		}
+	);
+
 	test('cancel restores an earlier unsaved draft and a second writer cannot start', async () => {
 		const h = await setup();
 		try {

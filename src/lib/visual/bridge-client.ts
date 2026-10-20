@@ -610,8 +610,8 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 			if (!inline) return false;
 			saveAfterCommit = true;
 			post({ type: 'finishField', ...inline.identity, requestValue: true });
-			if (inlineTimer) clearTimeout(inlineTimer);
-			inlineTimer = setTimeout(() => endInline(false), 2000);
+			// Composition may last longer than the initial acknowledgement timeout.
+			// An acknowledged edit ends on its final value or explicit invalidation.
 			return true;
 		},
 
