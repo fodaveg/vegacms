@@ -1,511 +1,2562 @@
 <!doctype html>
 <html lang="es" data-theme="auto">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vega · Edición en vivo — lámina de dirección (20 oct 2026)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
-<style>
-/* Tokens: los de inicio-v2.html (mismo lenguaje). Solo se añaden los del overlay del lienzo (§3). */
-:root {
-  --v-font-sans: "Geist", -apple-system, "Segoe UI", system-ui, sans-serif;
-  --v-font-display: "Bricolage Grotesque", "Geist", system-ui, sans-serif;
-  --v-font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --v-fs-12: 12px; --v-fs-13: 13px; --v-fs-14: 14px; --v-fs-15: 15px; --v-fs-17: 17px; --v-fs-22: 22px; --v-fs-28: 28px; --v-fs-36: 36px;
-  --v-sp-1: 4px; --v-sp-2: 8px; --v-sp-3: 12px; --v-sp-4: 16px; --v-sp-5: 20px; --v-sp-6: 24px; --v-sp-8: 32px; --v-sp-10: 40px; --v-sp-12: 48px;
-  --v-r-sm: 10px; --v-r-md: 16px; --v-r-lg: 22px; --v-r-pill: 999px;
-  --v-topbar-h: 56px; --v-inset: 12px;
-  --v-canvas: #f3f4f7; --v-surface: #ffffff; --v-surface-raised: #ffffff; --v-glass: rgb(255 255 255 / .72);
-  --v-btn: #eef0f4; --v-hover: #f5f6f9; --v-line: #e3e6ec; --v-line-soft: #edeff3; --v-line-strong: #cbd1da;
-  --v-ink-1: #14171c; --v-ink-2: #5b6472; --v-ink-3: #8a93a1;
-  --v-accent: #4c4ad9; --v-accent-hover: #3e3cc6; --v-accent-ink: #ffffff; --v-accent-text: #4441cf;
-  --v-accent-soft: #ecebfb; --v-accent-line: #c9c8f3; --v-ring: #4c4ad9;
-  --v-brand-a: #4c4ad9; --v-brand-b: #6a5ae0; --v-brand-grad: linear-gradient(135deg, var(--v-brand-a), var(--v-brand-b));
-  --v-halo: radial-gradient(900px 420px at 18% -8%, rgb(76 74 217 / .13), transparent 70%);
-  --v-success: #045a26; --v-success-soft: #e6f0ea; --v-danger: #a91408; --v-danger-soft: #f8e8e6;
-  --v-warning: #684800; --v-warning-soft: #f3ede0; --v-info: #07517d; --v-info-soft: #e6eef3;
-  --v-shadow-1: 0 1px 2px rgb(20 23 28 / .04), 0 4px 16px rgb(20 23 28 / .05);
-  --v-shadow-2: 0 2px 6px rgb(20 23 28 / .06), 0 16px 40px rgb(20 23 28 / .08);
-  --v-shadow-brand: 0 10px 30px rgb(76 74 217 / .28);
-  /* Overlay del lienzo (nuevos en esta lámina) */
-  --v-ol-select: var(--v-accent);
-  --v-ol-hover: rgb(76 74 217 / .55);
-  --v-ol-select-ink: #ffffff;
-  --v-ol-inline: #e8562a;            /* edición en línea (contorno y cursor, gráfico ≥3:1): caliente, distinto de la selección */
-  --v-ol-inline-text: #bf3f14;       /* el mismo matiz como TEXTO: 5.33:1 sobre blanco, 5.11:1 sobre el papel del sitio */
-  --v-ol-inline-soft: rgb(232 86 42 / .12);
-  --v-stage: #e6e8ee;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --v-canvas: #0c0e12; --v-surface: #15181d; --v-surface-raised: #1b1f26; --v-glass: rgb(21 24 29 / .72);
-    --v-btn: #1b1f26; --v-hover: #1a1e24; --v-line: #262b33; --v-line-soft: #1f242b; --v-line-strong: #353c47;
-    --v-ink-1: #eceef2; --v-ink-2: #9aa3b1; --v-ink-3: #687180;
-    --v-accent: #5f62ee; --v-accent-hover: #7477f2; --v-accent-text: #9b9ffc; --v-accent-soft: #1f2140; --v-accent-line: #34376a; --v-ring: #9b9ffc;
-    --v-brand-a: #4f52e0; --v-brand-b: #6c5ee6; --v-halo: radial-gradient(900px 420px at 18% -8%, rgb(95 98 238 / .22), transparent 70%);
-    --v-success: #5cbd8e; --v-success-soft: #1a2a23; --v-danger: #ef8078; --v-danger-soft: #2f1f1f; --v-warning: #dfae4d; --v-warning-soft: #2c261a; --v-info: #74b6d6; --v-info-soft: #1a262d;
-    --v-shadow-1: 0 1px 2px rgb(0 0 0 / .4), 0 4px 16px rgb(0 0 0 / .32); --v-shadow-2: 0 2px 6px rgb(0 0 0 / .4), 0 18px 48px rgb(0 0 0 / .5); --v-shadow-brand: 0 10px 30px rgb(95 98 238 / .32);
-    --v-ol-select: #8b8ff9; --v-ol-select-ink: #14171c; --v-ol-hover: rgb(139 143 249 / .6); --v-ol-inline: #ff7a4d; --v-ol-inline-text: #ff7a4d; --v-ol-inline-soft: rgb(255 122 77 / .16);
-    --v-stage: #101318;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --v-canvas: #0c0e12; --v-surface: #15181d; --v-surface-raised: #1b1f26; --v-glass: rgb(21 24 29 / .72);
-  --v-btn: #1b1f26; --v-hover: #1a1e24; --v-line: #262b33; --v-line-soft: #1f242b; --v-line-strong: #353c47;
-  --v-ink-1: #eceef2; --v-ink-2: #9aa3b1; --v-ink-3: #687180;
-  --v-accent: #5f62ee; --v-accent-hover: #7477f2; --v-accent-text: #9b9ffc; --v-accent-soft: #1f2140; --v-accent-line: #34376a; --v-ring: #9b9ffc;
-  --v-brand-a: #4f52e0; --v-brand-b: #6c5ee6; --v-halo: radial-gradient(900px 420px at 18% -8%, rgb(95 98 238 / .22), transparent 70%);
-  --v-success: #5cbd8e; --v-success-soft: #1a2a23; --v-danger: #ef8078; --v-danger-soft: #2f1f1f; --v-warning: #dfae4d; --v-warning-soft: #2c261a; --v-info: #74b6d6; --v-info-soft: #1a262d;
-  --v-shadow-1: 0 1px 2px rgb(0 0 0 / .4), 0 4px 16px rgb(0 0 0 / .32); --v-shadow-2: 0 2px 6px rgb(0 0 0 / .4), 0 18px 48px rgb(0 0 0 / .5); --v-shadow-brand: 0 10px 30px rgb(95 98 238 / .32);
-  --v-ol-select: #8b8ff9; --v-ol-select-ink: #14171c; --v-ol-hover: rgb(139 143 249 / .6); --v-ol-inline: #ff7a4d; --v-ol-inline-text: #ff7a4d; --v-ol-inline-soft: rgb(255 122 77 / .16);
-  --v-stage: #101318;
-  color-scheme: dark;
-}
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Vega · Edición en vivo — lámina de dirección (20 oct 2026)</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			/* Tokens: los de inicio-v2.html (mismo lenguaje). Solo se añaden los del overlay del lienzo (§3). */
+			:root {
+				--v-font-sans: 'Geist', -apple-system, 'Segoe UI', system-ui, sans-serif;
+				--v-font-display: 'Bricolage Grotesque', 'Geist', system-ui, sans-serif;
+				--v-font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+				--v-fs-12: 12px;
+				--v-fs-13: 13px;
+				--v-fs-14: 14px;
+				--v-fs-15: 15px;
+				--v-fs-17: 17px;
+				--v-fs-22: 22px;
+				--v-fs-28: 28px;
+				--v-fs-36: 36px;
+				--v-sp-1: 4px;
+				--v-sp-2: 8px;
+				--v-sp-3: 12px;
+				--v-sp-4: 16px;
+				--v-sp-5: 20px;
+				--v-sp-6: 24px;
+				--v-sp-8: 32px;
+				--v-sp-10: 40px;
+				--v-sp-12: 48px;
+				--v-r-sm: 10px;
+				--v-r-md: 16px;
+				--v-r-lg: 22px;
+				--v-r-pill: 999px;
+				--v-topbar-h: 56px;
+				--v-inset: 12px;
+				--v-canvas: #f3f4f7;
+				--v-surface: #ffffff;
+				--v-surface-raised: #ffffff;
+				--v-glass: rgb(255 255 255 / 0.72);
+				--v-btn: #eef0f4;
+				--v-hover: #f5f6f9;
+				--v-line: #e3e6ec;
+				--v-line-soft: #edeff3;
+				--v-line-strong: #cbd1da;
+				--v-ink-1: #14171c;
+				--v-ink-2: #5b6472;
+				--v-ink-3: #8a93a1;
+				--v-accent: #4c4ad9;
+				--v-accent-hover: #3e3cc6;
+				--v-accent-ink: #ffffff;
+				--v-accent-text: #4441cf;
+				--v-accent-soft: #ecebfb;
+				--v-accent-line: #c9c8f3;
+				--v-ring: #4c4ad9;
+				--v-brand-a: #4c4ad9;
+				--v-brand-b: #6a5ae0;
+				--v-brand-grad: linear-gradient(135deg, var(--v-brand-a), var(--v-brand-b));
+				--v-halo: radial-gradient(900px 420px at 18% -8%, rgb(76 74 217 / 0.13), transparent 70%);
+				--v-success: #045a26;
+				--v-success-soft: #e6f0ea;
+				--v-danger: #a91408;
+				--v-danger-soft: #f8e8e6;
+				--v-warning: #684800;
+				--v-warning-soft: #f3ede0;
+				--v-info: #07517d;
+				--v-info-soft: #e6eef3;
+				--v-shadow-1: 0 1px 2px rgb(20 23 28 / 0.04), 0 4px 16px rgb(20 23 28 / 0.05);
+				--v-shadow-2: 0 2px 6px rgb(20 23 28 / 0.06), 0 16px 40px rgb(20 23 28 / 0.08);
+				--v-shadow-brand: 0 10px 30px rgb(76 74 217 / 0.28);
+				/* Overlay del lienzo (nuevos en esta lámina) */
+				--v-ol-select: var(--v-accent);
+				--v-ol-hover: rgb(76 74 217 / 0.55);
+				--v-ol-select-ink: #ffffff;
+				--v-ol-inline: #e8562a; /* edición en línea (contorno y cursor, gráfico ≥3:1): caliente, distinto de la selección */
+				--v-ol-inline-text: #bf3f14; /* el mismo matiz como TEXTO: 5.33:1 sobre blanco, 5.11:1 sobre el papel del sitio */
+				--v-ol-inline-soft: rgb(232 86 42 / 0.12);
+				--v-stage: #e6e8ee;
+				color-scheme: light;
+			}
+			@media (prefers-color-scheme: dark) {
+				:root:not([data-theme='light']) {
+					--v-canvas: #0c0e12;
+					--v-surface: #15181d;
+					--v-surface-raised: #1b1f26;
+					--v-glass: rgb(21 24 29 / 0.72);
+					--v-btn: #1b1f26;
+					--v-hover: #1a1e24;
+					--v-line: #262b33;
+					--v-line-soft: #1f242b;
+					--v-line-strong: #353c47;
+					--v-ink-1: #eceef2;
+					--v-ink-2: #9aa3b1;
+					--v-ink-3: #687180;
+					--v-accent: #5f62ee;
+					--v-accent-hover: #7477f2;
+					--v-accent-text: #9b9ffc;
+					--v-accent-soft: #1f2140;
+					--v-accent-line: #34376a;
+					--v-ring: #9b9ffc;
+					--v-brand-a: #4f52e0;
+					--v-brand-b: #6c5ee6;
+					--v-halo: radial-gradient(900px 420px at 18% -8%, rgb(95 98 238 / 0.22), transparent 70%);
+					--v-success: #5cbd8e;
+					--v-success-soft: #1a2a23;
+					--v-danger: #ef8078;
+					--v-danger-soft: #2f1f1f;
+					--v-warning: #dfae4d;
+					--v-warning-soft: #2c261a;
+					--v-info: #74b6d6;
+					--v-info-soft: #1a262d;
+					--v-shadow-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.32);
+					--v-shadow-2: 0 2px 6px rgb(0 0 0 / 0.4), 0 18px 48px rgb(0 0 0 / 0.5);
+					--v-shadow-brand: 0 10px 30px rgb(95 98 238 / 0.32);
+					--v-ol-select: #8b8ff9;
+					--v-ol-select-ink: #14171c;
+					--v-ol-hover: rgb(139 143 249 / 0.6);
+					--v-ol-inline: #ff7a4d;
+					--v-ol-inline-text: #ff7a4d;
+					--v-ol-inline-soft: rgb(255 122 77 / 0.16);
+					--v-stage: #101318;
+					color-scheme: dark;
+				}
+			}
+			:root[data-theme='dark'] {
+				--v-canvas: #0c0e12;
+				--v-surface: #15181d;
+				--v-surface-raised: #1b1f26;
+				--v-glass: rgb(21 24 29 / 0.72);
+				--v-btn: #1b1f26;
+				--v-hover: #1a1e24;
+				--v-line: #262b33;
+				--v-line-soft: #1f242b;
+				--v-line-strong: #353c47;
+				--v-ink-1: #eceef2;
+				--v-ink-2: #9aa3b1;
+				--v-ink-3: #687180;
+				--v-accent: #5f62ee;
+				--v-accent-hover: #7477f2;
+				--v-accent-text: #9b9ffc;
+				--v-accent-soft: #1f2140;
+				--v-accent-line: #34376a;
+				--v-ring: #9b9ffc;
+				--v-brand-a: #4f52e0;
+				--v-brand-b: #6c5ee6;
+				--v-halo: radial-gradient(900px 420px at 18% -8%, rgb(95 98 238 / 0.22), transparent 70%);
+				--v-success: #5cbd8e;
+				--v-success-soft: #1a2a23;
+				--v-danger: #ef8078;
+				--v-danger-soft: #2f1f1f;
+				--v-warning: #dfae4d;
+				--v-warning-soft: #2c261a;
+				--v-info: #74b6d6;
+				--v-info-soft: #1a262d;
+				--v-shadow-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.32);
+				--v-shadow-2: 0 2px 6px rgb(0 0 0 / 0.4), 0 18px 48px rgb(0 0 0 / 0.5);
+				--v-shadow-brand: 0 10px 30px rgb(95 98 238 / 0.32);
+				--v-ol-select: #8b8ff9;
+				--v-ol-select-ink: #14171c;
+				--v-ol-hover: rgb(139 143 249 / 0.6);
+				--v-ol-inline: #ff7a4d;
+				--v-ol-inline-text: #ff7a4d;
+				--v-ol-inline-soft: rgb(255 122 77 / 0.16);
+				--v-stage: #101318;
+				color-scheme: dark;
+			}
 
-* { box-sizing: border-box; } html, body { margin: 0; }
-body { font-family: var(--v-font-sans); font-size: var(--v-fs-14); line-height: 1.45; color: var(--v-ink-1); background: var(--v-canvas); -webkit-font-smoothing: antialiased; }
-:focus-visible { outline: 2px solid var(--v-ring); outline-offset: 2px; border-radius: 6px; }
-button, a, input, textarea { font: inherit; } button { cursor: pointer; }
-svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.display { font-family: var(--v-font-display); font-variation-settings: "opsz" 96; letter-spacing: -.03em; }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; } }
+			* {
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				margin: 0;
+			}
+			body {
+				font-family: var(--v-font-sans);
+				font-size: var(--v-fs-14);
+				line-height: 1.45;
+				color: var(--v-ink-1);
+				background: var(--v-canvas);
+				-webkit-font-smoothing: antialiased;
+			}
+			:focus-visible {
+				outline: 2px solid var(--v-ring);
+				outline-offset: 2px;
+				border-radius: 6px;
+			}
+			button,
+			a,
+			input,
+			textarea {
+				font: inherit;
+			}
+			button {
+				cursor: pointer;
+			}
+			svg.i {
+				width: 16px;
+				height: 16px;
+				flex: none;
+				stroke: currentColor;
+				fill: none;
+				stroke-width: 1.6;
+				stroke-linecap: round;
+				stroke-linejoin: round;
+			}
+			.display {
+				font-family: var(--v-font-display);
+				font-variation-settings: 'opsz' 96;
+				letter-spacing: -0.03em;
+			}
+			@media (prefers-reduced-motion: reduce) {
+				*,
+				*::before,
+				*::after {
+					animation-duration: 0.001ms !important;
+					animation-iteration-count: 1 !important;
+					transition-duration: 0.001ms !important;
+				}
+			}
 
-/* ===== Chrome de la lámina (igual que v2) ===== */
-.lam { max-width: 1480px; margin: 0 auto; padding: 0 var(--v-sp-5) var(--v-sp-12); }
-.lam-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--v-sp-3); padding: var(--v-sp-5) 0 var(--v-sp-4); border-bottom: 1px solid var(--v-line); margin-bottom: var(--v-sp-6); }
-.lam-head h1 { font-size: var(--v-fs-17); font-weight: 600; margin: 0; letter-spacing: -.01em; } .lam-head .meta { color: var(--v-ink-2); font-size: var(--v-fs-13); } .lam-head .spacer { flex: 1; }
-.seg { display: inline-flex; border: 1px solid var(--v-line); border-radius: var(--v-r-sm); overflow: hidden; background: var(--v-surface); }
-.seg button { border: 0; background: transparent; color: var(--v-ink-2); padding: 6px 12px; font-size: var(--v-fs-13); font-weight: 500; } .seg button + button { border-left: 1px solid var(--v-line); }
-.seg button[aria-pressed="true"] { background: var(--v-ink-1); color: var(--v-canvas); }
-.lam h2.sec { font-size: var(--v-fs-13); font-weight: 500; color: var(--v-ink-2); text-transform: uppercase; letter-spacing: .08em; margin: var(--v-sp-12) 0 var(--v-sp-3); } .lam h2.sec span { color: var(--v-ink-3); font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 8px; }
-.lam p.lead { max-width: 78ch; color: var(--v-ink-2); margin: 0 0 var(--v-sp-5); }
-.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--v-sp-3); margin-top: var(--v-sp-4); }
-.note { background: var(--v-surface); border: 1px solid var(--v-line); border-radius: var(--v-r-md); padding: var(--v-sp-4); font-size: var(--v-fs-13); color: var(--v-ink-2); } .note b { display: block; color: var(--v-ink-1); font-weight: 600; margin-bottom: 4px; }
-.note code, .state code, table.spec code, .check code { font-family: var(--v-font-mono); font-size: 12px; color: var(--v-ink-1); }
-.states { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--v-sp-5); } @media (max-width: 480px) { .states { grid-template-columns: 1fr; } }
-.state { min-width: 0; } .state.wide { grid-column: 1 / -1; }
-.state > h3 { font-size: var(--v-fs-14); font-weight: 600; margin: 0 0 var(--v-sp-2); } .state > h3 small { font-weight: 400; color: var(--v-ink-2); margin-left: 6px; }
-.state > p { font-size: var(--v-fs-13); color: var(--v-ink-2); margin: 0 0 var(--v-sp-3); max-width: 66ch; }
-.panel { background: var(--v-canvas); border: 1px solid var(--v-line); border-radius: var(--v-r-lg); padding: var(--v-sp-5); min-width: 0; overflow: hidden; }
-.panel.stage { background: var(--v-stage); }
-.prop { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; color: var(--v-warning); background: var(--v-warning-soft); border-radius: 999px; padding: 1px 8px; vertical-align: middle; white-space: nowrap; }
-.reuse { display: inline-flex; font-size: 11px; font-weight: 500; color: var(--v-success); background: var(--v-success-soft); border-radius: 999px; padding: 1px 8px; vertical-align: middle; white-space: nowrap; }
-table.spec { width: 100%; border-collapse: collapse; font-size: var(--v-fs-13); background: var(--v-surface); border: 1px solid var(--v-line); border-radius: var(--v-r-sm); overflow: hidden; }
-table.spec th, table.spec td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--v-line); vertical-align: top; } table.spec th { font-weight: 500; color: var(--v-ink-2); background: var(--v-canvas); } table.spec tr:last-child td { border-bottom: 0; }
-.ok { color: var(--v-success); font-weight: 500; } .gap { color: var(--v-warning); font-weight: 500; } .ko { color: var(--v-danger); font-weight: 500; }
-.tbl-wrap { overflow-x: auto; border-radius: var(--v-r-sm); }
-.check { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--v-sp-2); }
-.check li { background: var(--v-surface); border: 1px solid var(--v-line); border-radius: var(--v-r-sm); padding: 10px 14px; font-size: var(--v-fs-13); display: grid; grid-template-columns: 110px 1fr; gap: 12px; } @media (max-width: 560px) { .check li { grid-template-columns: 1fr; } }
-.frame { border: 1px solid var(--v-line-strong); border-radius: var(--v-r-lg); overflow: hidden; background: var(--v-canvas); box-shadow: var(--v-shadow-1); width: 100%; max-width: 1440px; margin: 0 auto; }
-.frame.phone { max-width: 390px; margin: 0; }
+			/* ===== Chrome de la lámina (igual que v2) ===== */
+			.lam {
+				max-width: 1480px;
+				margin: 0 auto;
+				padding: 0 var(--v-sp-5) var(--v-sp-12);
+			}
+			.lam-head {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: var(--v-sp-3);
+				padding: var(--v-sp-5) 0 var(--v-sp-4);
+				border-bottom: 1px solid var(--v-line);
+				margin-bottom: var(--v-sp-6);
+			}
+			.lam-head h1 {
+				font-size: var(--v-fs-17);
+				font-weight: 600;
+				margin: 0;
+				letter-spacing: -0.01em;
+			}
+			.lam-head .meta {
+				color: var(--v-ink-2);
+				font-size: var(--v-fs-13);
+			}
+			.lam-head .spacer {
+				flex: 1;
+			}
+			.seg {
+				display: inline-flex;
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-sm);
+				overflow: hidden;
+				background: var(--v-surface);
+			}
+			.seg button {
+				border: 0;
+				background: transparent;
+				color: var(--v-ink-2);
+				padding: 6px 12px;
+				font-size: var(--v-fs-13);
+				font-weight: 500;
+			}
+			.seg button + button {
+				border-left: 1px solid var(--v-line);
+			}
+			.seg button[aria-pressed='true'] {
+				background: var(--v-ink-1);
+				color: var(--v-canvas);
+			}
+			.lam h2.sec {
+				font-size: var(--v-fs-13);
+				font-weight: 500;
+				color: var(--v-ink-2);
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+				margin: var(--v-sp-12) 0 var(--v-sp-3);
+			}
+			.lam h2.sec span {
+				color: var(--v-ink-3);
+				font-weight: 400;
+				text-transform: none;
+				letter-spacing: 0;
+				margin-left: 8px;
+			}
+			.lam p.lead {
+				max-width: 78ch;
+				color: var(--v-ink-2);
+				margin: 0 0 var(--v-sp-5);
+			}
+			.notes {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+				gap: var(--v-sp-3);
+				margin-top: var(--v-sp-4);
+			}
+			.note {
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-md);
+				padding: var(--v-sp-4);
+				font-size: var(--v-fs-13);
+				color: var(--v-ink-2);
+			}
+			.note b {
+				display: block;
+				color: var(--v-ink-1);
+				font-weight: 600;
+				margin-bottom: 4px;
+			}
+			.note code,
+			.state code,
+			table.spec code,
+			.check code {
+				font-family: var(--v-font-mono);
+				font-size: 12px;
+				color: var(--v-ink-1);
+			}
+			.states {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+				gap: var(--v-sp-5);
+			}
+			@media (max-width: 480px) {
+				.states {
+					grid-template-columns: 1fr;
+				}
+			}
+			.state {
+				min-width: 0;
+			}
+			.state.wide {
+				grid-column: 1 / -1;
+			}
+			.state > h3 {
+				font-size: var(--v-fs-14);
+				font-weight: 600;
+				margin: 0 0 var(--v-sp-2);
+			}
+			.state > h3 small {
+				font-weight: 400;
+				color: var(--v-ink-2);
+				margin-left: 6px;
+			}
+			.state > p {
+				font-size: var(--v-fs-13);
+				color: var(--v-ink-2);
+				margin: 0 0 var(--v-sp-3);
+				max-width: 66ch;
+			}
+			.panel {
+				background: var(--v-canvas);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-lg);
+				padding: var(--v-sp-5);
+				min-width: 0;
+				overflow: hidden;
+			}
+			.panel.stage {
+				background: var(--v-stage);
+			}
+			.prop {
+				display: inline-flex;
+				align-items: center;
+				gap: 4px;
+				font-size: 11px;
+				font-weight: 500;
+				color: var(--v-warning);
+				background: var(--v-warning-soft);
+				border-radius: 999px;
+				padding: 1px 8px;
+				vertical-align: middle;
+				white-space: nowrap;
+			}
+			.reuse {
+				display: inline-flex;
+				font-size: 11px;
+				font-weight: 500;
+				color: var(--v-success);
+				background: var(--v-success-soft);
+				border-radius: 999px;
+				padding: 1px 8px;
+				vertical-align: middle;
+				white-space: nowrap;
+			}
+			table.spec {
+				width: 100%;
+				border-collapse: collapse;
+				font-size: var(--v-fs-13);
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-sm);
+				overflow: hidden;
+			}
+			table.spec th,
+			table.spec td {
+				text-align: left;
+				padding: 9px 12px;
+				border-bottom: 1px solid var(--v-line);
+				vertical-align: top;
+			}
+			table.spec th {
+				font-weight: 500;
+				color: var(--v-ink-2);
+				background: var(--v-canvas);
+			}
+			table.spec tr:last-child td {
+				border-bottom: 0;
+			}
+			.ok {
+				color: var(--v-success);
+				font-weight: 500;
+			}
+			.gap {
+				color: var(--v-warning);
+				font-weight: 500;
+			}
+			.ko {
+				color: var(--v-danger);
+				font-weight: 500;
+			}
+			.tbl-wrap {
+				overflow-x: auto;
+				border-radius: var(--v-r-sm);
+			}
+			.check {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				display: grid;
+				gap: var(--v-sp-2);
+			}
+			.check li {
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-sm);
+				padding: 10px 14px;
+				font-size: var(--v-fs-13);
+				display: grid;
+				grid-template-columns: 110px 1fr;
+				gap: 12px;
+			}
+			@media (max-width: 560px) {
+				.check li {
+					grid-template-columns: 1fr;
+				}
+			}
+			.frame {
+				border: 1px solid var(--v-line-strong);
+				border-radius: var(--v-r-lg);
+				overflow: hidden;
+				background: var(--v-canvas);
+				box-shadow: var(--v-shadow-1);
+				width: 100%;
+				max-width: 1440px;
+				margin: 0 auto;
+			}
+			.frame.phone {
+				max-width: 390px;
+				margin: 0;
+			}
 
-/* ===== Editor: shell ===== */
-.ed { container: ed / inline-size; display: flex; flex-direction: column; background: var(--v-canvas); background-image: var(--v-halo); background-repeat: no-repeat; }
-.edbar { height: var(--v-topbar-h); display: flex; align-items: center; gap: 6px; padding: 0 var(--v-sp-4); background: var(--v-glass); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); border-bottom: 1px solid var(--v-line); position: relative; z-index: 5; }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 14px; border-radius: var(--v-r-pill); border: 1px solid var(--v-line); background: var(--v-surface); color: var(--v-ink-1); font-size: var(--v-fs-13); font-weight: 500; text-decoration: none; white-space: nowrap; }
-.btn:hover { background: var(--v-btn); border-color: var(--v-line-strong); }
-.btn.primary { background: var(--v-brand-grad); border-color: transparent; color: var(--v-accent-ink); box-shadow: 0 1px 2px rgb(76 74 217 / .3); }
-.btn.quiet { border-color: transparent; background: transparent; color: var(--v-ink-2); } .btn.quiet:hover { background: var(--v-btn); color: var(--v-ink-1); }
-.btn.sm { height: 30px; padding: 0 12px; font-size: var(--v-fs-12); }
-.btn.danger { color: var(--v-danger); }
-.iconbtn { width: 34px; padding: 0; }
-.crumbs { display: flex; align-items: center; gap: 6px; font-size: var(--v-fs-13); color: var(--v-ink-2); white-space: nowrap; }
-.crumbs b { color: var(--v-ink-1); font-weight: 600; font-family: var(--v-font-display); font-variation-settings: "opsz" 20; letter-spacing: -.01em; font-size: var(--v-fs-15); }
-.crumbs .sep { color: var(--v-ink-3); }
-.pill { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px 0 8px; border-radius: 999px; font-size: var(--v-fs-12); font-weight: 500; white-space: nowrap; }
-.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.pill.draft { color: var(--v-ink-2); background: var(--v-btn); } .pill.pub { color: var(--v-success); background: var(--v-success-soft); } .pill.warn { color: var(--v-warning); background: var(--v-warning-soft); }
-.statusgrp { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 6px; border: 1px solid var(--v-line); border-radius: 999px; background: var(--v-surface); }
-.savestate { display: inline-flex; align-items: center; gap: 7px; font-size: var(--v-fs-12); color: var(--v-ink-2); font-family: var(--v-font-mono); font-feature-settings: "tnum" 1; padding: 0 10px; white-space: nowrap; }
-.savestate i { width: 8px; height: 8px; border-radius: 50%; background: var(--v-ink-3); flex: none; }
-.savestate.dirty i { background: var(--v-warning); } .savestate.saving i { background: var(--v-accent); animation: blink 1s infinite; } .savestate.saved i { background: var(--v-success); } .savestate.err { color: var(--v-danger); } .savestate.err i { background: var(--v-danger); }
-@keyframes blink { 50% { opacity: .3; } }
-.spacer { flex: 1; }
-.segm { display: inline-flex; align-items: center; background: var(--v-btn); border-radius: 999px; padding: 3px; gap: 2px; }
-.segm button { height: 28px; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; color: var(--v-ink-2); font-size: var(--v-fs-12); font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
-.segm button[aria-pressed="true"] { background: var(--v-surface); color: var(--v-ink-1); box-shadow: var(--v-shadow-1); }
-.segm button svg { width: 14px; height: 14px; }
-.width { font-family: var(--v-font-mono); font-size: 11px; color: var(--v-ink-3); padding: 0 4px; white-space: nowrap; }
+			/* ===== Editor: shell ===== */
+			.ed {
+				container: ed / inline-size;
+				display: flex;
+				flex-direction: column;
+				background: var(--v-canvas);
+				background-image: var(--v-halo);
+				background-repeat: no-repeat;
+			}
+			.edbar {
+				height: var(--v-topbar-h);
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				padding: 0 var(--v-sp-4);
+				background: var(--v-glass);
+				backdrop-filter: blur(18px) saturate(1.4);
+				-webkit-backdrop-filter: blur(18px) saturate(1.4);
+				border-bottom: 1px solid var(--v-line);
+				position: relative;
+				z-index: 5;
+			}
+			.btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				gap: 7px;
+				height: 34px;
+				padding: 0 14px;
+				border-radius: var(--v-r-pill);
+				border: 1px solid var(--v-line);
+				background: var(--v-surface);
+				color: var(--v-ink-1);
+				font-size: var(--v-fs-13);
+				font-weight: 500;
+				text-decoration: none;
+				white-space: nowrap;
+			}
+			.btn:hover {
+				background: var(--v-btn);
+				border-color: var(--v-line-strong);
+			}
+			.btn.primary {
+				background: var(--v-brand-grad);
+				border-color: transparent;
+				color: var(--v-accent-ink);
+				box-shadow: 0 1px 2px rgb(76 74 217 / 0.3);
+			}
+			.btn.quiet {
+				border-color: transparent;
+				background: transparent;
+				color: var(--v-ink-2);
+			}
+			.btn.quiet:hover {
+				background: var(--v-btn);
+				color: var(--v-ink-1);
+			}
+			.btn.sm {
+				height: 30px;
+				padding: 0 12px;
+				font-size: var(--v-fs-12);
+			}
+			.btn.danger {
+				color: var(--v-danger);
+			}
+			.iconbtn {
+				width: 34px;
+				padding: 0;
+			}
+			.crumbs {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				font-size: var(--v-fs-13);
+				color: var(--v-ink-2);
+				white-space: nowrap;
+			}
+			.crumbs b {
+				color: var(--v-ink-1);
+				font-weight: 600;
+				font-family: var(--v-font-display);
+				font-variation-settings: 'opsz' 20;
+				letter-spacing: -0.01em;
+				font-size: var(--v-fs-15);
+			}
+			.crumbs .sep {
+				color: var(--v-ink-3);
+			}
+			.pill {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				height: 24px;
+				padding: 0 10px 0 8px;
+				border-radius: 999px;
+				font-size: var(--v-fs-12);
+				font-weight: 500;
+				white-space: nowrap;
+			}
+			.pill::before {
+				content: '';
+				width: 6px;
+				height: 6px;
+				border-radius: 50%;
+				background: currentColor;
+			}
+			.pill.draft {
+				color: var(--v-ink-2);
+				background: var(--v-btn);
+			}
+			.pill.pub {
+				color: var(--v-success);
+				background: var(--v-success-soft);
+			}
+			.pill.warn {
+				color: var(--v-warning);
+				background: var(--v-warning-soft);
+			}
+			.statusgrp {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				padding: 3px 4px 3px 6px;
+				border: 1px solid var(--v-line);
+				border-radius: 999px;
+				background: var(--v-surface);
+			}
+			.savestate {
+				display: inline-flex;
+				align-items: center;
+				gap: 7px;
+				font-size: var(--v-fs-12);
+				color: var(--v-ink-2);
+				font-family: var(--v-font-mono);
+				font-feature-settings: 'tnum' 1;
+				padding: 0 10px;
+				white-space: nowrap;
+			}
+			.savestate i {
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: var(--v-ink-3);
+				flex: none;
+			}
+			.savestate.dirty i {
+				background: var(--v-warning);
+			}
+			.savestate.saving i {
+				background: var(--v-accent);
+				animation: blink 1s infinite;
+			}
+			.savestate.saved i {
+				background: var(--v-success);
+			}
+			.savestate.err {
+				color: var(--v-danger);
+			}
+			.savestate.err i {
+				background: var(--v-danger);
+			}
+			@keyframes blink {
+				50% {
+					opacity: 0.3;
+				}
+			}
+			.spacer {
+				flex: 1;
+			}
+			.segm {
+				display: inline-flex;
+				align-items: center;
+				background: var(--v-btn);
+				border-radius: 999px;
+				padding: 3px;
+				gap: 2px;
+			}
+			.segm button {
+				height: 28px;
+				padding: 0 10px;
+				border: 0;
+				border-radius: 999px;
+				background: transparent;
+				color: var(--v-ink-2);
+				font-size: var(--v-fs-12);
+				font-weight: 500;
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+			}
+			.segm button[aria-pressed='true'] {
+				background: var(--v-surface);
+				color: var(--v-ink-1);
+				box-shadow: var(--v-shadow-1);
+			}
+			.segm button svg {
+				width: 14px;
+				height: 14px;
+			}
+			.width {
+				font-family: var(--v-font-mono);
+				font-size: 11px;
+				color: var(--v-ink-3);
+				padding: 0 4px;
+				white-space: nowrap;
+			}
 
-.edbody { display: grid; grid-template-columns: 264px minmax(0, 1fr) 340px; gap: var(--v-inset); padding: var(--v-inset); min-height: 760px; align-items: stretch; }
-.pane { background: var(--v-glass); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--v-line); border-radius: var(--v-r-md); box-shadow: var(--v-shadow-1); display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
-.pane h2 { margin: 0; padding: 14px 16px 8px; font-size: var(--v-fs-12); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--v-ink-3); }
-.pane h2 .n { margin-left: 6px; font-family: var(--v-font-mono); font-weight: 500; letter-spacing: 0; color: var(--v-ink-2); }
-.palette { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 12px 12px; border-bottom: 1px solid var(--v-line-soft); }
-.ptype { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border: 1px dashed var(--v-line-strong); border-radius: var(--v-r-sm); background: transparent; color: var(--v-ink-2); font-size: 11px; font-weight: 500; cursor: grab; }
-.ptype:hover { border-style: solid; border-color: var(--v-accent-line); background: var(--v-accent-soft); color: var(--v-accent-text); }
-.ptype svg { width: 18px; height: 18px; }
-.tree { list-style: none; margin: 0; padding: 8px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; } .tree > li { min-width: 0; display: flex; } .tree > li > .trow { flex: 1; }
-.trow { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border-radius: var(--v-r-sm); color: var(--v-ink-1); text-decoration: none; border: 1px solid transparent; min-width: 0; overflow: hidden; }
-.trow .tx b { display: block; min-width: 0; } .trow .flag, .trow .acts { flex: none; }
-.trow .ic { width: 28px; height: 28px; border-radius: 8px; background: var(--v-btn); color: var(--v-ink-2); display: grid; place-items: center; flex: none; } .trow .ic svg { width: 15px; height: 15px; }
-.trow .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; } .trow .tx b { font-weight: 500; font-size: var(--v-fs-13); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .trow .tx small { font-size: 11px; color: var(--v-ink-3); }
-.trow .flag { font-size: 10px; font-weight: 600; color: var(--v-warning); background: var(--v-warning-soft); border-radius: 999px; padding: 1px 6px; }
-.trow:hover { background: var(--v-surface); box-shadow: var(--v-shadow-1); }
-.trow.sel { background: var(--v-surface); border-color: var(--v-accent-line); box-shadow: 0 0 0 3px var(--v-accent-soft); } .trow.sel .ic { background: var(--v-accent-soft); color: var(--v-accent-text); }
-.trow.hov { background: var(--v-surface); }
-.trow .acts { display: none; gap: 2px; } .trow.sel .acts { display: inline-flex; }
-.trow .acts button { width: 26px; height: 26px; border: 0; background: transparent; border-radius: 6px; color: var(--v-ink-3); display: grid; place-items: center; } .trow .acts button:hover { background: var(--v-btn); color: var(--v-ink-1); } .trow .acts svg { width: 14px; height: 14px; }
-.pane .foot { margin-top: auto; padding: 10px 16px; border-top: 1px solid var(--v-line-soft); font-size: 11px; color: var(--v-ink-3); }
+			.edbody {
+				display: grid;
+				grid-template-columns: 264px minmax(0, 1fr) 340px;
+				gap: var(--v-inset);
+				padding: var(--v-inset);
+				min-height: 760px;
+				align-items: stretch;
+			}
+			.pane {
+				background: var(--v-glass);
+				backdrop-filter: blur(18px);
+				-webkit-backdrop-filter: blur(18px);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-md);
+				box-shadow: var(--v-shadow-1);
+				display: flex;
+				flex-direction: column;
+				min-width: 0;
+				overflow: hidden;
+			}
+			.pane h2 {
+				margin: 0;
+				padding: 14px 16px 8px;
+				font-size: var(--v-fs-12);
+				font-weight: 600;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				color: var(--v-ink-3);
+			}
+			.pane h2 .n {
+				margin-left: 6px;
+				font-family: var(--v-font-mono);
+				font-weight: 500;
+				letter-spacing: 0;
+				color: var(--v-ink-2);
+			}
+			.palette {
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 6px;
+				padding: 0 12px 12px;
+				border-bottom: 1px solid var(--v-line-soft);
+			}
+			.ptype {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				gap: 6px;
+				padding: 10px 6px;
+				border: 1px dashed var(--v-line-strong);
+				border-radius: var(--v-r-sm);
+				background: transparent;
+				color: var(--v-ink-2);
+				font-size: 11px;
+				font-weight: 500;
+				cursor: grab;
+			}
+			.ptype:hover {
+				border-style: solid;
+				border-color: var(--v-accent-line);
+				background: var(--v-accent-soft);
+				color: var(--v-accent-text);
+			}
+			.ptype svg {
+				width: 18px;
+				height: 18px;
+			}
+			.tree {
+				list-style: none;
+				margin: 0;
+				padding: 8px;
+				display: grid;
+				grid-template-columns: minmax(0, 1fr);
+				gap: 2px;
+			}
+			.tree > li {
+				min-width: 0;
+				display: flex;
+			}
+			.tree > li > .trow {
+				flex: 1;
+			}
+			.trow {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				min-height: 44px;
+				padding: 6px 10px;
+				border-radius: var(--v-r-sm);
+				color: var(--v-ink-1);
+				text-decoration: none;
+				border: 1px solid transparent;
+				min-width: 0;
+				overflow: hidden;
+			}
+			.trow .tx b {
+				display: block;
+				min-width: 0;
+			}
+			.trow .flag,
+			.trow .acts {
+				flex: none;
+			}
+			.trow .ic {
+				width: 28px;
+				height: 28px;
+				border-radius: 8px;
+				background: var(--v-btn);
+				color: var(--v-ink-2);
+				display: grid;
+				place-items: center;
+				flex: none;
+			}
+			.trow .ic svg {
+				width: 15px;
+				height: 15px;
+			}
+			.trow .tx {
+				flex: 1;
+				min-width: 0;
+				display: flex;
+				flex-direction: column;
+			}
+			.trow .tx b {
+				font-weight: 500;
+				font-size: var(--v-fs-13);
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			.trow .tx small {
+				font-size: 11px;
+				color: var(--v-ink-3);
+			}
+			.trow .flag {
+				font-size: 10px;
+				font-weight: 600;
+				color: var(--v-warning);
+				background: var(--v-warning-soft);
+				border-radius: 999px;
+				padding: 1px 6px;
+			}
+			.trow:hover {
+				background: var(--v-surface);
+				box-shadow: var(--v-shadow-1);
+			}
+			.trow.sel {
+				background: var(--v-surface);
+				border-color: var(--v-accent-line);
+				box-shadow: 0 0 0 3px var(--v-accent-soft);
+			}
+			.trow.sel .ic {
+				background: var(--v-accent-soft);
+				color: var(--v-accent-text);
+			}
+			.trow.hov {
+				background: var(--v-surface);
+			}
+			.trow .acts {
+				display: none;
+				gap: 2px;
+			}
+			.trow.sel .acts {
+				display: inline-flex;
+			}
+			.trow .acts button {
+				width: 26px;
+				height: 26px;
+				border: 0;
+				background: transparent;
+				border-radius: 6px;
+				color: var(--v-ink-3);
+				display: grid;
+				place-items: center;
+			}
+			.trow .acts button:hover {
+				background: var(--v-btn);
+				color: var(--v-ink-1);
+			}
+			.trow .acts svg {
+				width: 14px;
+				height: 14px;
+			}
+			.pane .foot {
+				margin-top: auto;
+				padding: 10px 16px;
+				border-top: 1px solid var(--v-line-soft);
+				font-size: 11px;
+				color: var(--v-ink-3);
+			}
 
-/* Lienzo */
-.stage { background: var(--v-stage); border-radius: var(--v-r-md); border: 1px solid var(--v-line); position: relative; padding: 28px 24px; display: flex; justify-content: center; overflow: hidden; min-width: 0; }
-.stage .meta { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-family: var(--v-font-mono); font-size: 11px; color: var(--v-ink-3); white-space: nowrap; }
-.site { width: 100%; max-width: 760px; background: #fbfaf7; color: #1b1a17; border-radius: 12px; box-shadow: var(--v-shadow-2); font-family: "Geist", system-ui, sans-serif; position: relative; overflow: visible; }
-.site.m { max-width: 390px; }
-.site .snav { display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; border-bottom: 1px solid #ebe7df; font-size: 13px; color: #6b665c; }
-.site .snav b { color: #1b1a17; font-family: "Fraunces", Georgia, serif; font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
-.site .snav span + span { margin-left: 18px; }
-.blk { position: relative; padding: 36px 28px; }
-.blk.hero { padding: 56px 28px 48px; }
-.blk.hero h1 { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 40px; line-height: 1.05; letter-spacing: -.02em; margin: 0 0 12px; max-width: 14ch; }
-.blk.hero p { margin: 0; font-size: 16px; color: #6b665c; max-width: 44ch; }
-.blk.text h2 { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 28px; letter-spacing: -.015em; margin: 0 0 10px; line-height: 1.1; }
-.blk.text p { margin: 0 0 8px; font-size: 15px; line-height: 1.6; color: #3a3832; max-width: 60ch; }
-.blk.text p a { color: #b4471c; }
-.blk.gal h2 { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 24px; margin: 0 0 14px; }
-.blk.gal .g { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; } .site.m .blk.gal .g { grid-template-columns: 1fr 1fr; }
-.blk.gal .g i { display: block; aspect-ratio: 4/3; border-radius: 8px; background: linear-gradient(135deg, #dcd3c3, #a99a82); } .blk.gal .g i:nth-child(2) { background: linear-gradient(160deg, #cfd9d4, #6f8d82); } .blk.gal .g i:nth-child(3) { background: linear-gradient(135deg, #e3d2c3, #b47c5a); }
-.blk.gal figcaption { margin-top: 10px; font-size: 12px; color: #8a8478; }
-.sfoot { padding: 20px 28px; border-top: 1px solid #ebe7df; font-size: 12px; color: #8a8478; }
-.site.m .blk { padding: 28px 20px; } .site.m .blk.hero h1 { font-size: 30px; } .site.m .snav { padding: 14px 20px; }
+			/* Lienzo */
+			.stage {
+				background: var(--v-stage);
+				border-radius: var(--v-r-md);
+				border: 1px solid var(--v-line);
+				position: relative;
+				padding: 28px 24px;
+				display: flex;
+				justify-content: center;
+				overflow: hidden;
+				min-width: 0;
+			}
+			.stage .meta {
+				position: absolute;
+				top: 10px;
+				left: 50%;
+				transform: translateX(-50%);
+				font-family: var(--v-font-mono);
+				font-size: 11px;
+				color: var(--v-ink-3);
+				white-space: nowrap;
+			}
+			.site {
+				width: 100%;
+				max-width: 760px;
+				background: #fbfaf7;
+				color: #1b1a17;
+				border-radius: 12px;
+				box-shadow: var(--v-shadow-2);
+				font-family: 'Geist', system-ui, sans-serif;
+				position: relative;
+				overflow: visible;
+			}
+			.site.m {
+				max-width: 390px;
+			}
+			.site .snav {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 16px 28px;
+				border-bottom: 1px solid #ebe7df;
+				font-size: 13px;
+				color: #6b665c;
+			}
+			.site .snav b {
+				color: #1b1a17;
+				font-family: 'Fraunces', Georgia, serif;
+				font-size: 18px;
+				font-weight: 600;
+				letter-spacing: -0.01em;
+			}
+			.site .snav span + span {
+				margin-left: 18px;
+			}
+			.blk {
+				position: relative;
+				padding: 36px 28px;
+			}
+			.blk.hero {
+				padding: 56px 28px 48px;
+			}
+			.blk.hero h1 {
+				font-family: 'Fraunces', Georgia, serif;
+				font-weight: 600;
+				font-size: 40px;
+				line-height: 1.05;
+				letter-spacing: -0.02em;
+				margin: 0 0 12px;
+				max-width: 14ch;
+			}
+			.blk.hero p {
+				margin: 0;
+				font-size: 16px;
+				color: #6b665c;
+				max-width: 44ch;
+			}
+			.blk.text h2 {
+				font-family: 'Fraunces', Georgia, serif;
+				font-weight: 600;
+				font-size: 28px;
+				letter-spacing: -0.015em;
+				margin: 0 0 10px;
+				line-height: 1.1;
+			}
+			.blk.text p {
+				margin: 0 0 8px;
+				font-size: 15px;
+				line-height: 1.6;
+				color: #3a3832;
+				max-width: 60ch;
+			}
+			.blk.text p a {
+				color: #b4471c;
+			}
+			.blk.gal h2 {
+				font-family: 'Fraunces', Georgia, serif;
+				font-weight: 600;
+				font-size: 24px;
+				margin: 0 0 14px;
+			}
+			.blk.gal .g {
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 10px;
+			}
+			.site.m .blk.gal .g {
+				grid-template-columns: 1fr 1fr;
+			}
+			.blk.gal .g i {
+				display: block;
+				aspect-ratio: 4/3;
+				border-radius: 8px;
+				background: linear-gradient(135deg, #dcd3c3, #a99a82);
+			}
+			.blk.gal .g i:nth-child(2) {
+				background: linear-gradient(160deg, #cfd9d4, #6f8d82);
+			}
+			.blk.gal .g i:nth-child(3) {
+				background: linear-gradient(135deg, #e3d2c3, #b47c5a);
+			}
+			.blk.gal figcaption {
+				margin-top: 10px;
+				font-size: 12px;
+				color: #8a8478;
+			}
+			.sfoot {
+				padding: 20px 28px;
+				border-top: 1px solid #ebe7df;
+				font-size: 12px;
+				color: #8a8478;
+			}
+			.site.m .blk {
+				padding: 28px 20px;
+			}
+			.site.m .blk.hero h1 {
+				font-size: 30px;
+			}
+			.site.m .snav {
+				padding: 14px 20px;
+			}
 
-/* Overlay (en producto se pinta FUERA del iframe con el rect del puente; aquí va sobre el bloque) */
-.blk::before { content: ""; position: absolute; inset: 4px; border-radius: 8px; pointer-events: none; border: 1.5px solid transparent; }
-.blk.hov::before { border-color: var(--v-ol-hover); }
-.blk.sel::before { border: 2px solid var(--v-ol-select); box-shadow: 0 0 0 4px rgb(76 74 217 / .12); }
-.lbl { position: absolute; top: -11px; left: 12px; display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--v-ol-select); color: var(--v-ol-select-ink); font-family: var(--v-font-sans); font-size: 11px; font-weight: 600; letter-spacing: .01em; box-shadow: var(--v-shadow-1); z-index: 3; }
-.blk.hov .lbl { background: var(--v-surface); color: var(--v-accent-text); border: 1px solid var(--v-accent-line); }
-.lbl .np { opacity: .85; font-weight: 500; }
-.lbl svg { width: 12px; height: 12px; }
-.tb { position: absolute; top: -18px; right: 12px; display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px; background: var(--v-surface); border: 1px solid var(--v-line); box-shadow: var(--v-shadow-2); z-index: 4; font-family: var(--v-font-sans); }
-.tb button { width: 30px; height: 30px; border: 0; background: transparent; border-radius: 999px; color: var(--v-ink-2); display: grid; place-items: center; } .tb button:hover { background: var(--v-btn); color: var(--v-ink-1); } .tb button.danger:hover { background: var(--v-danger-soft); color: var(--v-danger); }
-.tb button svg { width: 15px; height: 15px; } .tb .sepv { width: 1px; height: 18px; background: var(--v-line); margin: 0 3px; }
-.ins { position: absolute; left: 50%; transform: translate(-50%, -50%); z-index: 4; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 6px; border-radius: 999px; background: var(--v-surface); border: 1px solid var(--v-accent-line); color: var(--v-accent-text); font-family: var(--v-font-sans); font-size: 11px; font-weight: 600; box-shadow: var(--v-shadow-1); }
-.ins.top { top: 0; } .ins.bot { bottom: 0; transform: translate(-50%, 50%); }
-.ins svg { width: 14px; height: 14px; stroke-width: 2; }
-.ins::before, .ins::after { content: ""; position: absolute; top: 50%; width: 120px; height: 1.5px; background: var(--v-accent-line); } .ins::before { right: 100%; margin-right: 6px; } .ins::after { left: 100%; margin-left: 6px; }
-/* Edición en línea (propuesta) */
-.inl { position: relative; display: inline; background: var(--v-ol-inline-soft); box-decoration-break: clone; -webkit-box-decoration-break: clone; outline: 2px solid var(--v-ol-inline); outline-offset: 4px; border-radius: 3px; }
-.inl .caret { display: inline-block; width: 2px; height: .9em; background: var(--v-ol-inline); vertical-align: -.1em; margin-left: 1px; animation: blink 1s infinite; }
-.inl-hint { position: relative; margin: 10px 0 4px; display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border-radius: 999px; background: var(--v-surface); border: 1px solid var(--v-line); color: var(--v-ink-2); font-family: var(--v-font-sans); font-size: 11px; box-shadow: var(--v-shadow-1); z-index: 4; white-space: nowrap; }
-.inl-hint b { color: var(--v-ol-inline-text); font-weight: 600; } .inl-hint kbd { font-family: var(--v-font-mono); font-size: 10px; background: var(--v-btn); border: 1px solid var(--v-line); border-radius: 4px; padding: 0 4px; color: var(--v-ink-1); }
+			/* Overlay (en producto se pinta FUERA del iframe con el rect del puente; aquí va sobre el bloque) */
+			.blk::before {
+				content: '';
+				position: absolute;
+				inset: 4px;
+				border-radius: 8px;
+				pointer-events: none;
+				border: 1.5px solid transparent;
+			}
+			.blk.hov::before {
+				border-color: var(--v-ol-hover);
+			}
+			.blk.sel::before {
+				border: 2px solid var(--v-ol-select);
+				box-shadow: 0 0 0 4px rgb(76 74 217 / 0.12);
+			}
+			.lbl {
+				position: absolute;
+				top: -11px;
+				left: 12px;
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				height: 22px;
+				padding: 0 9px;
+				border-radius: 999px;
+				background: var(--v-ol-select);
+				color: var(--v-ol-select-ink);
+				font-family: var(--v-font-sans);
+				font-size: 11px;
+				font-weight: 600;
+				letter-spacing: 0.01em;
+				box-shadow: var(--v-shadow-1);
+				z-index: 3;
+			}
+			.blk.hov .lbl {
+				background: var(--v-surface);
+				color: var(--v-accent-text);
+				border: 1px solid var(--v-accent-line);
+			}
+			.lbl .np {
+				opacity: 0.85;
+				font-weight: 500;
+			}
+			.lbl svg {
+				width: 12px;
+				height: 12px;
+			}
+			.tb {
+				position: absolute;
+				top: -18px;
+				right: 12px;
+				display: inline-flex;
+				align-items: center;
+				gap: 2px;
+				padding: 3px;
+				border-radius: 999px;
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				box-shadow: var(--v-shadow-2);
+				z-index: 4;
+				font-family: var(--v-font-sans);
+			}
+			.tb button {
+				width: 30px;
+				height: 30px;
+				border: 0;
+				background: transparent;
+				border-radius: 999px;
+				color: var(--v-ink-2);
+				display: grid;
+				place-items: center;
+			}
+			.tb button:hover {
+				background: var(--v-btn);
+				color: var(--v-ink-1);
+			}
+			.tb button.danger:hover {
+				background: var(--v-danger-soft);
+				color: var(--v-danger);
+			}
+			.tb button svg {
+				width: 15px;
+				height: 15px;
+			}
+			.tb .sepv {
+				width: 1px;
+				height: 18px;
+				background: var(--v-line);
+				margin: 0 3px;
+			}
+			.ins {
+				position: absolute;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				z-index: 4;
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				height: 28px;
+				padding: 0 10px 0 6px;
+				border-radius: 999px;
+				background: var(--v-surface);
+				border: 1px solid var(--v-accent-line);
+				color: var(--v-accent-text);
+				font-family: var(--v-font-sans);
+				font-size: 11px;
+				font-weight: 600;
+				box-shadow: var(--v-shadow-1);
+			}
+			.ins.top {
+				top: 0;
+			}
+			.ins.bot {
+				bottom: 0;
+				transform: translate(-50%, 50%);
+			}
+			.ins svg {
+				width: 14px;
+				height: 14px;
+				stroke-width: 2;
+			}
+			.ins::before,
+			.ins::after {
+				content: '';
+				position: absolute;
+				top: 50%;
+				width: 120px;
+				height: 1.5px;
+				background: var(--v-accent-line);
+			}
+			.ins::before {
+				right: 100%;
+				margin-right: 6px;
+			}
+			.ins::after {
+				left: 100%;
+				margin-left: 6px;
+			}
+			/* Edición en línea (propuesta) */
+			.inl {
+				position: relative;
+				display: inline;
+				background: var(--v-ol-inline-soft);
+				box-decoration-break: clone;
+				-webkit-box-decoration-break: clone;
+				outline: 2px solid var(--v-ol-inline);
+				outline-offset: 4px;
+				border-radius: 3px;
+			}
+			.inl .caret {
+				display: inline-block;
+				width: 2px;
+				height: 0.9em;
+				background: var(--v-ol-inline);
+				vertical-align: -0.1em;
+				margin-left: 1px;
+				animation: blink 1s infinite;
+			}
+			.inl-hint {
+				position: relative;
+				margin: 10px 0 4px;
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+				height: 28px;
+				padding: 0 10px;
+				border-radius: 999px;
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				color: var(--v-ink-2);
+				font-family: var(--v-font-sans);
+				font-size: 11px;
+				box-shadow: var(--v-shadow-1);
+				z-index: 4;
+				white-space: nowrap;
+			}
+			.inl-hint b {
+				color: var(--v-ol-inline-text);
+				font-weight: 600;
+			}
+			.inl-hint kbd {
+				font-family: var(--v-font-mono);
+				font-size: 10px;
+				background: var(--v-btn);
+				border: 1px solid var(--v-line);
+				border-radius: 4px;
+				padding: 0 4px;
+				color: var(--v-ink-1);
+			}
 
-/* Inspector */
-.insp .head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--v-line-soft); }
-.insp .head .ic { width: 34px; height: 34px; border-radius: 10px; background: var(--v-accent-soft); color: var(--v-accent-text); display: grid; place-items: center; } .insp .head .ic svg { width: 17px; height: 17px; }
-.insp .head h3 { margin: 0; font-family: var(--v-font-display); font-variation-settings: "opsz" 20; font-size: var(--v-fs-17); font-weight: 600; letter-spacing: -.02em; } .insp .head small { display: block; font-size: 11px; color: var(--v-ink-3); font-family: var(--v-font-mono); }
-.fields { padding: 14px 16px; display: grid; gap: 14px; overflow: auto; }
-.f label { display: flex; align-items: center; gap: 8px; font-size: var(--v-fs-12); font-weight: 500; color: var(--v-ink-2); margin-bottom: 6px; }
-.f label .live { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--v-ol-inline-text); font-weight: 600; } .f label .live i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.f input, .f textarea { width: 100%; border: 1px solid var(--v-line); border-radius: var(--v-r-sm); background: var(--v-surface); color: var(--v-ink-1); padding: 9px 12px; font-size: var(--v-fs-14); }
-.f textarea { min-height: 84px; resize: vertical; line-height: 1.5; }
-.f input.live { border-color: var(--v-ol-inline); box-shadow: 0 0 0 3px var(--v-ol-inline-soft); }
-.f .rt { border: 1px solid var(--v-line); border-radius: var(--v-r-sm); background: var(--v-surface); overflow: hidden; }
-.f .rt .rtb { display: flex; gap: 2px; padding: 6px; border-bottom: 1px solid var(--v-line-soft); } .f .rt .rtb button { width: 28px; height: 28px; border: 0; background: transparent; border-radius: 6px; color: var(--v-ink-2); font-size: 12px; font-weight: 600; } .f .rt .rtb button:hover { background: var(--v-btn); }
-.f .rt .rtc { padding: 10px 12px; font-size: var(--v-fs-13); line-height: 1.5; color: var(--v-ink-1); } .f .rt .rtc a { color: var(--v-accent-text); } .f .rt .rtc .img { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--v-warning); background: var(--v-warning-soft); border-radius: 6px; padding: 2px 8px; }
-.insp .acts { margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--v-line-soft); display: flex; align-items: center; gap: 8px; }
-.insp .acts .st { font-size: 11px; color: var(--v-ink-3); margin-left: auto; font-family: var(--v-font-mono); }
-.alert { display: flex; gap: 10px; padding: 10px 12px; border-radius: var(--v-r-sm); font-size: var(--v-fs-12); line-height: 1.4; }
-.alert.err { background: var(--v-danger-soft); color: var(--v-danger); } .alert svg { flex: none; margin-top: 1px; }
+			/* Inspector */
+			.insp .head {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				padding: 14px 16px;
+				border-bottom: 1px solid var(--v-line-soft);
+			}
+			.insp .head .ic {
+				width: 34px;
+				height: 34px;
+				border-radius: 10px;
+				background: var(--v-accent-soft);
+				color: var(--v-accent-text);
+				display: grid;
+				place-items: center;
+			}
+			.insp .head .ic svg {
+				width: 17px;
+				height: 17px;
+			}
+			.insp .head h3 {
+				margin: 0;
+				font-family: var(--v-font-display);
+				font-variation-settings: 'opsz' 20;
+				font-size: var(--v-fs-17);
+				font-weight: 600;
+				letter-spacing: -0.02em;
+			}
+			.insp .head small {
+				display: block;
+				font-size: 11px;
+				color: var(--v-ink-3);
+				font-family: var(--v-font-mono);
+			}
+			.fields {
+				padding: 14px 16px;
+				display: grid;
+				gap: 14px;
+				overflow: auto;
+			}
+			.f label {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				font-size: var(--v-fs-12);
+				font-weight: 500;
+				color: var(--v-ink-2);
+				margin-bottom: 6px;
+			}
+			.f label .live {
+				margin-left: auto;
+				display: inline-flex;
+				align-items: center;
+				gap: 5px;
+				font-size: 11px;
+				color: var(--v-ol-inline-text);
+				font-weight: 600;
+			}
+			.f label .live i {
+				width: 6px;
+				height: 6px;
+				border-radius: 50%;
+				background: currentColor;
+			}
+			.f input,
+			.f textarea {
+				width: 100%;
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-sm);
+				background: var(--v-surface);
+				color: var(--v-ink-1);
+				padding: 9px 12px;
+				font-size: var(--v-fs-14);
+			}
+			.f textarea {
+				min-height: 84px;
+				resize: vertical;
+				line-height: 1.5;
+			}
+			.f input.live {
+				border-color: var(--v-ol-inline);
+				box-shadow: 0 0 0 3px var(--v-ol-inline-soft);
+			}
+			.f .rt {
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-sm);
+				background: var(--v-surface);
+				overflow: hidden;
+			}
+			.f .rt .rtb {
+				display: flex;
+				gap: 2px;
+				padding: 6px;
+				border-bottom: 1px solid var(--v-line-soft);
+			}
+			.f .rt .rtb button {
+				width: 28px;
+				height: 28px;
+				border: 0;
+				background: transparent;
+				border-radius: 6px;
+				color: var(--v-ink-2);
+				font-size: 12px;
+				font-weight: 600;
+			}
+			.f .rt .rtb button:hover {
+				background: var(--v-btn);
+			}
+			.f .rt .rtc {
+				padding: 10px 12px;
+				font-size: var(--v-fs-13);
+				line-height: 1.5;
+				color: var(--v-ink-1);
+			}
+			.f .rt .rtc a {
+				color: var(--v-accent-text);
+			}
+			.f .rt .rtc .img {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				font-size: 11px;
+				color: var(--v-warning);
+				background: var(--v-warning-soft);
+				border-radius: 6px;
+				padding: 2px 8px;
+			}
+			.insp .acts {
+				margin-top: auto;
+				padding: 12px 16px;
+				border-top: 1px solid var(--v-line-soft);
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+			.insp .acts .st {
+				font-size: 11px;
+				color: var(--v-ink-3);
+				margin-left: auto;
+				font-family: var(--v-font-mono);
+			}
+			.alert {
+				display: flex;
+				gap: 10px;
+				padding: 10px 12px;
+				border-radius: var(--v-r-sm);
+				font-size: var(--v-fs-12);
+				line-height: 1.4;
+			}
+			.alert.err {
+				background: var(--v-danger-soft);
+				color: var(--v-danger);
+			}
+			.alert svg {
+				flex: none;
+				margin-top: 1px;
+			}
 
-/* Paleta de tipos en popover (desde un «+») */
-.pop { background: var(--v-surface-raised); border: 1px solid var(--v-line); border-radius: var(--v-r-md); box-shadow: var(--v-shadow-2); padding: 8px; width: 300px; }
-.pop h4 { margin: 0; padding: 6px 8px 8px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--v-ink-3); }
-.pop button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px; border: 0; background: transparent; border-radius: var(--v-r-sm); text-align: left; color: var(--v-ink-1); }
-.pop button:hover { background: var(--v-accent-soft); } .pop button .ic { width: 34px; height: 34px; border-radius: 9px; background: var(--v-btn); color: var(--v-ink-2); display: grid; place-items: center; flex: none; } .pop button:hover .ic { background: var(--v-surface); color: var(--v-accent-text); }
-.pop button b { display: block; font-weight: 600; font-size: var(--v-fs-13); } .pop button small { display: block; font-size: 11px; color: var(--v-ink-3); }
+			/* Paleta de tipos en popover (desde un «+») */
+			.pop {
+				background: var(--v-surface-raised);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-md);
+				box-shadow: var(--v-shadow-2);
+				padding: 8px;
+				width: 300px;
+			}
+			.pop h4 {
+				margin: 0;
+				padding: 6px 8px 8px;
+				font-size: 11px;
+				font-weight: 600;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				color: var(--v-ink-3);
+			}
+			.pop button {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				width: 100%;
+				padding: 8px;
+				border: 0;
+				background: transparent;
+				border-radius: var(--v-r-sm);
+				text-align: left;
+				color: var(--v-ink-1);
+			}
+			.pop button:hover {
+				background: var(--v-accent-soft);
+			}
+			.pop button .ic {
+				width: 34px;
+				height: 34px;
+				border-radius: 9px;
+				background: var(--v-btn);
+				color: var(--v-ink-2);
+				display: grid;
+				place-items: center;
+				flex: none;
+			}
+			.pop button:hover .ic {
+				background: var(--v-surface);
+				color: var(--v-accent-text);
+			}
+			.pop button b {
+				display: block;
+				font-weight: 600;
+				font-size: var(--v-fs-13);
+			}
+			.pop button small {
+				display: block;
+				font-size: 11px;
+				color: var(--v-ink-3);
+			}
 
-/* Estado del lienzo: error */
-.cerr { max-width: 460px; margin: 60px auto; background: var(--v-surface); border: 1px solid var(--v-line); border-radius: var(--v-r-md); padding: var(--v-sp-6); box-shadow: var(--v-shadow-1); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-.cerr .glyph { width: 40px; height: 40px; border-radius: 12px; background: var(--v-danger-soft); color: var(--v-danger); display: grid; place-items: center; margin-bottom: 4px; }
-.cerr h3 { margin: 0; font-family: var(--v-font-display); font-variation-settings: "opsz" 20; font-size: var(--v-fs-17); font-weight: 600; letter-spacing: -.02em; } .cerr p { margin: 0; font-size: var(--v-fs-13); color: var(--v-ink-2); } .cerr .acts { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+			/* Estado del lienzo: error */
+			.cerr {
+				max-width: 460px;
+				margin: 60px auto;
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-md);
+				padding: var(--v-sp-6);
+				box-shadow: var(--v-shadow-1);
+				display: flex;
+				flex-direction: column;
+				gap: 8px;
+				align-items: flex-start;
+			}
+			.cerr .glyph {
+				width: 40px;
+				height: 40px;
+				border-radius: 12px;
+				background: var(--v-danger-soft);
+				color: var(--v-danger);
+				display: grid;
+				place-items: center;
+				margin-bottom: 4px;
+			}
+			.cerr h3 {
+				margin: 0;
+				font-family: var(--v-font-display);
+				font-variation-settings: 'opsz' 20;
+				font-size: var(--v-fs-17);
+				font-weight: 600;
+				letter-spacing: -0.02em;
+			}
+			.cerr p {
+				margin: 0;
+				font-size: var(--v-fs-13);
+				color: var(--v-ink-2);
+			}
+			.cerr .acts {
+				display: flex;
+				gap: 8px;
+				margin-top: 8px;
+				flex-wrap: wrap;
+			}
 
-/* Modo «Solo textos» (<900 px: existe) */
-.texts { display: none; padding: var(--v-sp-4); gap: 12px; flex-direction: column; }
-.texts .intro { font-size: var(--v-fs-13); color: var(--v-ink-2); margin: 0 0 4px; }
-.tcard { background: var(--v-surface); border: 1px solid var(--v-line); border-radius: var(--v-r-md); box-shadow: var(--v-shadow-1); }
-.tcard .head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--v-line-soft); } .tcard .head .ic { width: 28px; height: 28px; border-radius: 8px; background: var(--v-accent-soft); color: var(--v-accent-text); display: grid; place-items: center; } .tcard .head .ic svg { width: 14px; height: 14px; }
-.tcard .head b { font-size: var(--v-fs-14); font-weight: 600; } .tcard .head .dirty { margin-left: auto; font-size: 11px; color: var(--v-warning); }
-.tcard .fields { padding: 12px 14px; gap: 10px; } .tcard .rest { font-size: 11px; color: var(--v-ink-3); padding: 0 14px 10px; } .tcard .acts { padding: 0 14px 12px; }
+			/* Modo «Solo textos» (<900 px: existe) */
+			.texts {
+				display: none;
+				padding: var(--v-sp-4);
+				gap: 12px;
+				flex-direction: column;
+			}
+			.texts .intro {
+				font-size: var(--v-fs-13);
+				color: var(--v-ink-2);
+				margin: 0 0 4px;
+			}
+			.tcard {
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-md);
+				box-shadow: var(--v-shadow-1);
+			}
+			.tcard .head {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				padding: 12px 14px;
+				border-bottom: 1px solid var(--v-line-soft);
+			}
+			.tcard .head .ic {
+				width: 28px;
+				height: 28px;
+				border-radius: 8px;
+				background: var(--v-accent-soft);
+				color: var(--v-accent-text);
+				display: grid;
+				place-items: center;
+			}
+			.tcard .head .ic svg {
+				width: 14px;
+				height: 14px;
+			}
+			.tcard .head b {
+				font-size: var(--v-fs-14);
+				font-weight: 600;
+			}
+			.tcard .head .dirty {
+				margin-left: auto;
+				font-size: 11px;
+				color: var(--v-warning);
+			}
+			.tcard .fields {
+				padding: 12px 14px;
+				gap: 10px;
+			}
+			.tcard .rest {
+				font-size: 11px;
+				color: var(--v-ink-3);
+				padding: 0 14px 10px;
+			}
+			.tcard .acts {
+				padding: 0 14px 12px;
+			}
 
-@container ed (max-width: 1180px) { .edbody { grid-template-columns: 240px minmax(0, 1fr); } .insp { grid-column: 1 / -1; } }
-@container ed (max-width: 900px) {
-  .edbody { display: none; } .texts { display: flex; }
-  .edbar { flex-wrap: wrap; height: auto; padding: 8px 12px; gap: 6px; }
-  .edbar .segm, .edbar .width, .edbar .hide-m { display: none; }
-}
-</style>
-</head>
-<body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
-  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
-  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
-  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
-  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
-  <symbol id="i-dn" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
-  <symbol id="i-dup" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
-  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
-  <symbol id="i-media" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/></symbol>
-  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
-  <symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></symbol>
-  <symbol id="i-desk" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
-  <symbol id="i-tab" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M11 17h2"/></symbol>
-  <symbol id="i-mob" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
-  <symbol id="i-kbd" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></symbol>
-  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></symbol>
-  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"/><path d="M20 3v5h-5"/></symbol>
-  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="m12.5 7.5 4 4"/></symbol>
-  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
-  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
-</svg>
+			@container ed (max-width: 1180px) {
+				.edbody {
+					grid-template-columns: 240px minmax(0, 1fr);
+				}
+				.insp {
+					grid-column: 1 / -1;
+				}
+			}
+			@container ed (max-width: 900px) {
+				.edbody {
+					display: none;
+				}
+				.texts {
+					display: flex;
+				}
+				.edbar {
+					flex-wrap: wrap;
+					height: auto;
+					padding: 8px 12px;
+					gap: 6px;
+				}
+				.edbar .segm,
+				.edbar .width,
+				.edbar .hide-m {
+					display: none;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+			<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" /></symbol>
+			<symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" /></symbol>
+			<symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+			<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+			<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" /></symbol>
+			<symbol id="i-dn" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6" /></symbol>
+			<symbol id="i-dup" viewBox="0 0 24 24">
+				<rect x="9" y="9" width="11" height="11" rx="2" />
+				<path d="M5 15V5a2 2 0 0 1 2-2h10" />
+			</symbol>
+			<symbol id="i-trash" viewBox="0 0 24 24">
+				<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+			</symbol>
+			<symbol id="i-media" viewBox="0 0 24 24">
+				<rect x="3" y="4" width="18" height="16" rx="2" />
+				<circle cx="9" cy="10" r="1.6" />
+				<path d="m21 16-5-5-9 9" />
+			</symbol>
+			<symbol id="i-doc" viewBox="0 0 24 24">
+				<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+				<path d="M14 3v5h5M9 13h6M9 17h6" />
+			</symbol>
+			<symbol id="i-box" viewBox="0 0 24 24">
+				<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z" />
+				<path d="M4 7.5 12 12l8-4.5M12 12v9" />
+			</symbol>
+			<symbol id="i-desk" viewBox="0 0 24 24">
+				<rect x="3" y="4" width="18" height="12" rx="2" />
+				<path d="M8 20h8M12 16v4" />
+			</symbol>
+			<symbol id="i-tab" viewBox="0 0 24 24">
+				<rect x="4" y="3" width="16" height="18" rx="2" />
+				<path d="M11 17h2" />
+			</symbol>
+			<symbol id="i-mob" viewBox="0 0 24 24">
+				<rect x="7" y="2" width="10" height="20" rx="2" />
+				<path d="M11 18h2" />
+			</symbol>
+			<symbol id="i-kbd" viewBox="0 0 24 24">
+				<rect x="3" y="6" width="18" height="12" rx="2" />
+				<path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10" />
+			</symbol>
+			<symbol id="i-alert" viewBox="0 0 24 24">
+				<circle cx="12" cy="12" r="9" />
+				<path d="M12 8v5M12 16h.01" />
+			</symbol>
+			<symbol id="i-refresh" viewBox="0 0 24 24">
+				<path d="M20 12a8 8 0 1 1-2.3-5.7L20 8" />
+				<path d="M20 3v5h-5" />
+			</symbol>
+			<symbol id="i-pen" viewBox="0 0 24 24">
+				<path d="M4 20h4l10-10-4-4L4 16z" />
+				<path d="m12.5 7.5 4 4" />
+			</symbol>
+			<symbol id="i-link" viewBox="0 0 24 24">
+				<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+				<path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+			</symbol>
+			<symbol id="i-eye" viewBox="0 0 24 24">
+				<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" />
+				<circle cx="12" cy="12" r="3" />
+			</symbol>
+		</svg>
 
-<div class="lam">
-  <header class="lam-head">
-    <h1>Vega · Edición en vivo — lámina de dirección</h1>
-    <span class="meta">20 oct 2026 · mismo lenguaje que Inicio v2 · página «Inicio» de la semilla showcase (`demo-seed.ts`, secciones portada / texto / galería) · el lienzo es el sitio y no cambia de tema</span>
-    <span class="spacer"></span>
-    <div class="seg" role="group" aria-label="Modo de color del chrome del admin">
-      <button type="button" data-set="auto" aria-pressed="true">Auto</button><button type="button" data-set="light" aria-pressed="false">Claro</button><button type="button" data-set="dark" aria-pressed="false">Oscuro</button>
-    </div>
-  </header>
+		<div class="lam">
+			<header class="lam-head">
+				<h1>Vega · Edición en vivo — lámina de dirección</h1>
+				<span class="meta"
+					>20 oct 2026 · mismo lenguaje que Inicio v2 · página «Inicio» de la semilla showcase
+					(`demo-seed.ts`, secciones portada / texto / galería) · el lienzo es el sitio y no cambia
+					de tema</span
+				>
+				<span class="spacer"></span>
+				<div class="seg" role="group" aria-label="Modo de color del chrome del admin">
+					<button type="button" data-set="auto" aria-pressed="true">Auto</button
+					><button type="button" data-set="light" aria-pressed="false">Claro</button
+					><button type="button" data-set="dark" aria-pressed="false">Oscuro</button>
+				</div>
+			</header>
 
-  <p class="lead"><strong style="color:var(--v-ink-1)">Punto de partida honesto.</strong> El editor visual YA existe en <code>/c/[type]/[id]/visual</code>: iframe de otro origen, puente <code>vega-visual-1</code> por <code>postMessage</code>, contornos y barra flotante de acciones sobre el bloque, puntos «+» de inserción, paleta de tipos arrastrable, árbol de bloques, inspector con la ficha del bloque, estado de guardado, presets Móvil/Tableta/Escritorio con zoom, cinco errores de puente y modo «Solo textos» bajo 900 px. Esta lámina lo viste con el lenguaje de Inicio v2 (cristal, píldoras, display) y añade UNA capacidad nueva: <strong style="color:var(--v-ink-1)">escribir el texto sobre la propia página</strong>. Esa capacidad contradice una frase del contrato (§«Visual editing bridge»: «never makes any part of the page <code>contenteditable</code>. Text is typed in Vega's own form controls»), así que no es un retoque: es una versión 2 del protocolo y una decisión de David. Todo lo nuevo lleva <span class="prop">propuesta, no existe</span>; lo que ya existe lleva <span class="reuse">existe</span> en las notas.</p>
+			<p class="lead">
+				<strong style="color: var(--v-ink-1)">Punto de partida honesto.</strong> El editor visual YA
+				existe en <code>/c/[type]/[id]/visual</code>: iframe de otro origen, puente
+				<code>vega-visual-1</code> por <code>postMessage</code>, contornos y barra flotante de
+				acciones sobre el bloque, puntos «+» de inserción, paleta de tipos arrastrable, árbol de
+				bloques, inspector con la ficha del bloque, estado de guardado, presets
+				Móvil/Tableta/Escritorio con zoom, cinco errores de puente y modo «Solo textos» bajo 900 px.
+				Esta lámina lo viste con el lenguaje de Inicio v2 (cristal, píldoras, display) y añade UNA
+				capacidad nueva:
+				<strong style="color: var(--v-ink-1)">escribir el texto sobre la propia página</strong>. Esa
+				capacidad contradice una frase del contrato (§«Visual editing bridge»: «never makes any part
+				of the page <code>contenteditable</code>. Text is typed in Vega's own form controls»), así
+				que no es un retoque: es una versión 2 del protocolo y una decisión de David. Todo lo nuevo
+				lleva <span class="prop">propuesta, no existe</span>; lo que ya existe lleva
+				<span class="reuse">existe</span> en las notas.
+			</p>
 
-  <!-- ============================ 1. PANTALLA PRINCIPAL ============================ -->
-  <h2 class="sec">1 · Edición en vivo, escritorio <span>1440 px · «Inicio» con 3 secciones · bloque 2 seleccionado · título en edición en línea</span></h2>
+			<!-- ============================ 1. PANTALLA PRINCIPAL ============================ -->
+			<h2 class="sec">
+				1 · Edición en vivo, escritorio
+				<span
+					>1440 px · «Inicio» con 3 secciones · bloque 2 seleccionado · título en edición en
+					línea</span
+				>
+			</h2>
 
-  <div class="frame" id="desktop">
-    <div class="ed">
-      <header class="edbar">
-        <a class="btn quiet" href="#"><svg class="i"><use href="#i-back"/></svg><span class="hide-m">Volver al formulario</span></a>
-        <nav class="crumbs" aria-label="Dónde estás"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav>
-        <div class="statusgrp" role="group" aria-label="Estado de la página"><span class="pill draft">Borrador</span><button class="btn sm quiet" type="button">Marcar como publicada</button><button class="btn sm quiet hide-m" type="button">Programar…</button></div>
-        <span class="savestate saving" aria-live="polite"><i aria-hidden="true"></i>Guardando…</span>
-        <span class="spacer"></span>
-        <div class="segm" role="group" aria-label="Tamaño de pantalla">
-          <button type="button" aria-pressed="false"><svg class="i"><use href="#i-mob"/></svg>Móvil</button>
-          <button type="button" aria-pressed="false"><svg class="i"><use href="#i-tab"/></svg>Tableta</button>
-          <button type="button" aria-pressed="true"><svg class="i"><use href="#i-desk"/></svg>Escritorio</button>
-        </div>
-        <span class="width">1280 px · 59 %</span>
-        <button class="btn quiet iconbtn hide-m" type="button" aria-label="Atajos de teclado"><svg class="i"><use href="#i-kbd"/></svg></button>
-        <button class="btn quiet iconbtn hide-m" type="button" aria-label="Abrir la vista previa" title="Vista previa"><svg class="i"><use href="#i-eye"/></svg></button>
-        <button class="btn primary" type="button">Publicar</button>
-      </header>
+			<div class="frame" id="desktop">
+				<div class="ed">
+					<header class="edbar">
+						<a class="btn quiet" href="#"
+							><svg class="i"><use href="#i-back" /></svg
+							><span class="hide-m">Volver al formulario</span></a
+						>
+						<nav class="crumbs" aria-label="Dónde estás">
+							<span>Páginas</span><span class="sep">/</span><b>Inicio</b>
+						</nav>
+						<div class="statusgrp" role="group" aria-label="Estado de la página">
+							<span class="pill draft">Borrador</span
+							><button class="btn sm quiet" type="button">Marcar como publicada</button
+							><button class="btn sm quiet hide-m" type="button">Programar…</button>
+						</div>
+						<span class="savestate saving" aria-live="polite"
+							><i aria-hidden="true"></i>Guardando…</span
+						>
+						<span class="spacer"></span>
+						<div class="segm" role="group" aria-label="Tamaño de pantalla">
+							<button type="button" aria-pressed="false">
+								<svg class="i"><use href="#i-mob" /></svg>Móvil
+							</button>
+							<button type="button" aria-pressed="false">
+								<svg class="i"><use href="#i-tab" /></svg>Tableta
+							</button>
+							<button type="button" aria-pressed="true">
+								<svg class="i"><use href="#i-desk" /></svg>Escritorio
+							</button>
+						</div>
+						<span class="width">1280 px · 59 %</span>
+						<button class="btn quiet iconbtn hide-m" type="button" aria-label="Atajos de teclado">
+							<svg class="i"><use href="#i-kbd" /></svg>
+						</button>
+						<button
+							class="btn quiet iconbtn hide-m"
+							type="button"
+							aria-label="Abrir la vista previa"
+							title="Vista previa"
+						>
+							<svg class="i"><use href="#i-eye" /></svg>
+						</button>
+						<button class="btn primary" type="button">Publicar</button>
+					</header>
 
-      <div class="edbody">
-        <aside class="pane tree-pane" aria-label="Bloques de la página">
-          <h2>Añadir sección</h2>
-          <div class="palette" role="region" aria-label="Paleta de bloques">
-            <button class="ptype" type="button" draggable="true"><svg class="i"><use href="#i-media"/></svg>Portada</button>
-            <button class="ptype" type="button" draggable="true"><svg class="i"><use href="#i-doc"/></svg>Texto</button>
-            <button class="ptype" type="button" draggable="true"><svg class="i"><use href="#i-box"/></svg>Galería</button>
-          </div>
-          <h2>Bloques <span class="n">3</span></h2>
-          <ul class="tree">
-            <li><a class="trow hov" href="#"><span class="ic"><svg class="i"><use href="#i-media"/></svg></span><span class="tx"><b>Escribe. Publica. Olvídate del resto.</b><small>Portada</small></span></a></li>
-            <li><a class="trow sel" href="#" aria-current="true"><span class="ic"><svg class="i"><use href="#i-doc"/></svg></span><span class="tx"><b>Tu contenido, en tu servidor</b><small>Texto · sin guardar</small></span><span class="acts"><button type="button" aria-label="Subir «Tu contenido, en tu servidor»"><svg class="i"><use href="#i-up"/></svg></button><button type="button" aria-label="Bajar «Tu contenido, en tu servidor»"><svg class="i"><use href="#i-dn"/></svg></button></span></a></li>
-            <li><a class="trow" href="#"><span class="ic"><svg class="i"><use href="#i-box"/></svg></span><span class="tx"><b>Se adapta a tu modelo</b><small>Galería</small></span><span class="flag">No pública</span></a></li>
-          </ul>
-          <div class="foot">Conectado al sitio: 3 bloques en la página.</div>
-        </aside>
+					<div class="edbody">
+						<aside class="pane tree-pane" aria-label="Bloques de la página">
+							<h2>Añadir sección</h2>
+							<div class="palette" role="region" aria-label="Paleta de bloques">
+								<button class="ptype" type="button" draggable="true">
+									<svg class="i"><use href="#i-media" /></svg>Portada
+								</button>
+								<button class="ptype" type="button" draggable="true">
+									<svg class="i"><use href="#i-doc" /></svg>Texto
+								</button>
+								<button class="ptype" type="button" draggable="true">
+									<svg class="i"><use href="#i-box" /></svg>Galería
+								</button>
+							</div>
+							<h2>Bloques <span class="n">3</span></h2>
+							<ul class="tree">
+								<li>
+									<a class="trow hov" href="#"
+										><span class="ic"
+											><svg class="i"><use href="#i-media" /></svg></span
+										><span class="tx"
+											><b>Escribe. Publica. Olvídate del resto.</b><small>Portada</small></span
+										></a
+									>
+								</li>
+								<li>
+									<a class="trow sel" href="#" aria-current="true"
+										><span class="ic"
+											><svg class="i"><use href="#i-doc" /></svg></span
+										><span class="tx"
+											><b>Tu contenido, en tu servidor</b><small>Texto · sin guardar</small></span
+										><span class="acts"
+											><button type="button" aria-label="Subir «Tu contenido, en tu servidor»">
+												<svg class="i"><use href="#i-up" /></svg></button
+											><button type="button" aria-label="Bajar «Tu contenido, en tu servidor»">
+												<svg class="i"><use href="#i-dn" /></svg></button></span
+									></a>
+								</li>
+								<li>
+									<a class="trow" href="#"
+										><span class="ic"
+											><svg class="i"><use href="#i-box" /></svg></span
+										><span class="tx"><b>Se adapta a tu modelo</b><small>Galería</small></span
+										><span class="flag">No pública</span></a
+									>
+								</li>
+							</ul>
+							<div class="foot">Conectado al sitio: 3 bloques en la página.</div>
+						</aside>
 
-        <main class="stage" aria-label="La página del sitio, dentro del editor visual">
-          <span class="meta">vega-visual-1 · refresco en vivo · hover del sitio</span>
-          <div class="site" style="margin-top:12px">
-            <div class="snav"><b>Vega</b><span><span>Producto</span><span>Precios</span><span>Docs</span></span></div>
-            <section class="blk hero hov">
-              <span class="lbl"><svg class="i"><use href="#i-media"/></svg>Portada</span>
-              <h1>Escribe. Publica. Olvídate del resto.</h1>
-              <p>Un CMS editor-first sobre tu propio PocketBase.</p>
-            </section>
-            <section class="blk text sel">
-              <span class="lbl"><svg class="i"><use href="#i-doc"/></svg>Texto</span>
-              <div class="tb" role="toolbar" aria-label="Acciones de «Tu contenido, en tu servidor»">
-                <button type="button" aria-label="Subir"><svg class="i"><use href="#i-up"/></svg></button>
-                <button type="button" aria-label="Bajar"><svg class="i"><use href="#i-dn"/></svg></button>
-                <span class="sepv"></span>
-                <button type="button" aria-label="Duplicar"><svg class="i"><use href="#i-dup"/></svg></button>
-                <button type="button" class="danger" aria-label="Borrar"><svg class="i"><use href="#i-trash"/></svg></button>
-              </div>
-              <span class="ins top"><svg class="i"><use href="#i-plus"/></svg>Insertar bloque en la posición 2 de 4</span>
-              <h2><span class="inl">Tu contenido, en tu servidor<span class="caret"></span></span></h2>
-              <span class="inl-hint"><b>Título</b> · escribiendo en la página <kbd>⏎</kbd> aplicar <kbd>Esc</kbd> cancelar <span class="prop">propuesta, no existe</span></span>
-              <p>Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.</p>
-              <p>Los datos viven en tu servidor y los precios están en <a href="#">la página de precios</a>.</p>
-              <span class="ins bot"><svg class="i"><use href="#i-plus"/></svg>Insertar bloque en la posición 3 de 4</span>
-            </section>
-            <section class="blk gal">
-              <h2>Se adapta a tu modelo</h2>
-              <div class="g"><i></i><i></i><i></i></div>
-              <figcaption>Capturas del editor visual, la lista y la ficha de un registro.</figcaption>
-            </section>
-            <div class="sfoot">© Vega · Hecho con PocketBase</div>
-          </div>
-        </main>
+						<main class="stage" aria-label="La página del sitio, dentro del editor visual">
+							<span class="meta">vega-visual-1 · refresco en vivo · hover del sitio</span>
+							<div class="site" style="margin-top: 12px">
+								<div class="snav">
+									<b>Vega</b><span><span>Producto</span><span>Precios</span><span>Docs</span></span>
+								</div>
+								<section class="blk hero hov">
+									<span class="lbl"
+										><svg class="i"><use href="#i-media" /></svg>Portada</span
+									>
+									<h1>Escribe. Publica. Olvídate del resto.</h1>
+									<p>Un CMS editor-first sobre tu propio PocketBase.</p>
+								</section>
+								<section class="blk text sel">
+									<span class="lbl"
+										><svg class="i"><use href="#i-doc" /></svg>Texto</span
+									>
+									<div
+										class="tb"
+										role="toolbar"
+										aria-label="Acciones de «Tu contenido, en tu servidor»"
+									>
+										<button type="button" aria-label="Subir">
+											<svg class="i"><use href="#i-up" /></svg>
+										</button>
+										<button type="button" aria-label="Bajar">
+											<svg class="i"><use href="#i-dn" /></svg>
+										</button>
+										<span class="sepv"></span>
+										<button type="button" aria-label="Duplicar">
+											<svg class="i"><use href="#i-dup" /></svg>
+										</button>
+										<button type="button" class="danger" aria-label="Borrar">
+											<svg class="i"><use href="#i-trash" /></svg>
+										</button>
+									</div>
+									<span class="ins top"
+										><svg class="i"><use href="#i-plus" /></svg>Insertar bloque en la posición 2 de
+										4</span
+									>
+									<h2>
+										<span class="inl">Tu contenido, en tu servidor<span class="caret"></span></span>
+									</h2>
+									<span class="inl-hint"
+										><b>Título</b> · escribiendo en la página <kbd>⏎</kbd> aplicar
+										<kbd>Esc</kbd> cancelar <span class="prop">propuesta, no existe</span></span
+									>
+									<p>
+										Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.
+									</p>
+									<p>
+										Los datos viven en tu servidor y los precios están en
+										<a href="#">la página de precios</a>.
+									</p>
+									<span class="ins bot"
+										><svg class="i"><use href="#i-plus" /></svg>Insertar bloque en la posición 3 de
+										4</span
+									>
+								</section>
+								<section class="blk gal">
+									<h2>Se adapta a tu modelo</h2>
+									<div class="g"><i></i><i></i><i></i></div>
+									<figcaption>
+										Capturas del editor visual, la lista y la ficha de un registro.
+									</figcaption>
+								</section>
+								<div class="sfoot">© Vega · Hecho con PocketBase</div>
+							</div>
+						</main>
 
-        <aside class="pane insp" aria-label="Inspector">
-          <div class="head"><span class="ic"><svg class="i"><use href="#i-doc"/></svg></span><div><h3>Texto</h3><small>Sección 2 de 3 · seccion_2</small></div></div>
-          <div class="fields">
-            <div class="f"><label for="f-t">Título <span class="live"><i></i>en la página</span></label><input id="f-t" class="live" value="Tu contenido, en tu servidor"></div>
-            <div class="f"><label for="f-c">Cuerpo</label><textarea id="f-c">Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.</textarea></div>
-            <div class="f"><label>Contenido</label>
-              <div class="rt"><div class="rtb"><button type="button">B</button><button type="button"><i>I</i></button><button type="button">H2</button><button type="button" aria-label="Enlace"><svg class="i" style="width:14px;height:14px"><use href="#i-link"/></svg></button></div>
-              <div class="rtc"><p style="margin:0 0 6px">Los datos viven en tu servidor y los precios están en <a href="#">la página de precios</a>.</p><span class="img">imagen sin texto alternativo</span></div></div>
-            </div>
-          </div>
-          <div class="acts"><button class="btn primary" type="button">Guardar</button><button class="btn quiet" type="button">Descartar</button><span class="st">⌘S</span></div>
-        </aside>
-      </div>
+						<aside class="pane insp" aria-label="Inspector">
+							<div class="head">
+								<span class="ic"
+									><svg class="i"><use href="#i-doc" /></svg
+								></span>
+								<div>
+									<h3>Texto</h3>
+									<small>Sección 2 de 3 · seccion_2</small>
+								</div>
+							</div>
+							<div class="fields">
+								<div class="f">
+									<label for="f-t"
+										>Título <span class="live"><i></i>en la página</span></label
+									><input id="f-t" class="live" value="Tu contenido, en tu servidor" />
+								</div>
+								<div class="f">
+									<label for="f-c">Cuerpo</label
+									><textarea id="f-c">
+Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.</textarea>
+								</div>
+								<div class="f">
+									<label>Contenido</label>
+									<div class="rt">
+										<div class="rtb">
+											<button type="button">B</button><button type="button"><i>I</i></button
+											><button type="button">H2</button
+											><button type="button" aria-label="Enlace">
+												<svg class="i" style="width: 14px; height: 14px">
+													<use href="#i-link" />
+												</svg>
+											</button>
+										</div>
+										<div class="rtc">
+											<p style="margin: 0 0 6px">
+												Los datos viven en tu servidor y los precios están en
+												<a href="#">la página de precios</a>.
+											</p>
+											<span class="img">imagen sin texto alternativo</span>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="acts">
+								<button class="btn primary" type="button">Guardar</button
+								><button class="btn quiet" type="button">Descartar</button
+								><span class="st">⌘S</span>
+							</div>
+						</aside>
+					</div>
 
-      <div class="texts" aria-label="Solo textos">
-        <p class="intro"><b style="color:var(--v-ink-1)">Solo textos.</b> Aquí puedes corregir los textos de cada sección. Para ver la página, mover secciones o cambiar imágenes hace falta una ventana de 900 px o más.</p>
-        <section class="tcard"><div class="head"><span class="ic"><svg class="i"><use href="#i-media"/></svg></span><b>Portada</b></div><div class="fields"><div class="f"><label>Título</label><input value="Escribe. Publica. Olvídate del resto."></div><div class="f"><label>Subtítulo</label><input value="Un CMS editor-first sobre tu propio PocketBase."></div></div><div class="acts"><button class="btn sm" type="button">Guardar</button></div></section>
-        <section class="tcard"><div class="head"><span class="ic"><svg class="i"><use href="#i-doc"/></svg></span><b>Texto</b><span class="dirty">sin guardar</span></div><div class="fields"><div class="f"><label>Título</label><input value="Tu contenido, en tu servidor"></div><div class="f"><label>Cuerpo</label><textarea>Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.</textarea></div></div><p class="rest">Esta sección tiene 1 campo más (Contenido) que se edita en una pantalla ancha o en el formulario.</p><div class="acts"><button class="btn sm primary" type="button">Guardar</button></div></section>
-        <section class="tcard"><div class="head"><span class="ic"><svg class="i"><use href="#i-box"/></svg></span><b>Galería</b></div><div class="fields"><div class="f"><label>Título</label><input value="Se adapta a tu modelo"></div><div class="f"><label>Pie de foto</label><input value="Capturas del editor visual, la lista y la ficha de un registro."></div></div><p class="rest">Esta sección tiene 1 campo más (Imágenes) que se edita en una pantalla ancha o en el formulario.</p><div class="acts"><button class="btn sm" type="button">Guardar</button></div></section>
-      </div>
-    </div>
-  </div>
+					<div class="texts" aria-label="Solo textos">
+						<p class="intro">
+							<b style="color: var(--v-ink-1)">Solo textos.</b> Aquí puedes corregir los textos de
+							cada sección. Para ver la página, mover secciones o cambiar imágenes hace falta una
+							ventana de 900 px o más.
+						</p>
+						<section class="tcard">
+							<div class="head">
+								<span class="ic"
+									><svg class="i"><use href="#i-media" /></svg></span
+								><b>Portada</b>
+							</div>
+							<div class="fields">
+								<div class="f">
+									<label>Título</label><input value="Escribe. Publica. Olvídate del resto." />
+								</div>
+								<div class="f">
+									<label>Subtítulo</label
+									><input value="Un CMS editor-first sobre tu propio PocketBase." />
+								</div>
+							</div>
+							<div class="acts"><button class="btn sm" type="button">Guardar</button></div>
+						</section>
+						<section class="tcard">
+							<div class="head">
+								<span class="ic"
+									><svg class="i"><use href="#i-doc" /></svg></span
+								><b>Texto</b><span class="dirty">sin guardar</span>
+							</div>
+							<div class="fields">
+								<div class="f">
+									<label>Título</label><input value="Tu contenido, en tu servidor" />
+								</div>
+								<div class="f">
+									<label>Cuerpo</label
+									><textarea>
+Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.</textarea>
+								</div>
+							</div>
+							<p class="rest">
+								Esta sección tiene 1 campo más (Contenido) que se edita en una pantalla ancha o en
+								el formulario.
+							</p>
+							<div class="acts"><button class="btn sm primary" type="button">Guardar</button></div>
+						</section>
+						<section class="tcard">
+							<div class="head">
+								<span class="ic"
+									><svg class="i"><use href="#i-box" /></svg></span
+								><b>Galería</b>
+							</div>
+							<div class="fields">
+								<div class="f"><label>Título</label><input value="Se adapta a tu modelo" /></div>
+								<div class="f">
+									<label>Pie de foto</label
+									><input value="Capturas del editor visual, la lista y la ficha de un registro." />
+								</div>
+							</div>
+							<p class="rest">
+								Esta sección tiene 1 campo más (Imágenes) que se edita en una pantalla ancha o en el
+								formulario.
+							</p>
+							<div class="acts"><button class="btn sm" type="button">Guardar</button></div>
+						</section>
+					</div>
+				</div>
+			</div>
 
-  <div class="notes">
-    <div class="note"><b>1 · Edición en línea <span class="prop">propuesta, no existe</span></b>Un doble clic sobre un texto anotado abre la edición EN la página. Color propio (naranja) para que nunca se confunda con la selección (índigo): seleccionar es «este bloque», escribir es «este campo». El inspector refleja el mismo campo con «en la página»: una sola fuente de verdad, el borrador del <code>BlockEditor</code>; <kbd>⏎</kbd> aplica al borrador, <kbd>Esc</kbd> descarta, y «Guardar» sigue siendo quien escribe en PocketBase. Requiere <code>vega-visual-2</code>: el sitio anota <code>data-vega-field="heading"</code>, hace <code>contenteditable</code> SOLO ese nodo a petición de Vega (<code>editField</code>) y devuelve <code>input {blockId, field, text}</code>; a Vega le llega texto plano, nunca HTML. Limitado a <code>text</code>/<code>textarea</code> (el mismo corte que «Solo textos»); el richtext se sigue editando en el inspector.</div>
-    <div class="note"><b>2 · Lienzo <span class="reuse">existe</span></b>Contorno de selección, etiqueta de tipo, barra flotante (subir, bajar, duplicar, borrar), puntos «+» con su posición, hover que manda el sitio, «No pública». Aquí se les pone el lenguaje de v2: píldoras, sombra de dos capas, acento en vez del gris. El overlay sigue pintándose FUERA del iframe con los <code>rect</code> del puente.</div>
-    <div class="note"><b>3 · Barra <span class="reuse">existe</span> + <span class="prop">propuesta</span></b>Existe: Volver, migas, estado con «Marcar como publicada» y «Programar…», guardado (punto + texto), presets con anchura, zoom, atajos. Propuesta: «Publicar» del sitio dentro de esta barra (hoy el editor va a pantalla completa sin la barra de la app) y «Vista previa» como salida a la vista previa de siempre.</div>
-    <div class="note"><b>4 · Paneles de cristal</b>Árbol e inspector flotan como el menú de Inicio v2; el lienzo es la única superficie opaca y su escenario es más oscuro que el canvas para que el sitio (claro siempre) parezca una hoja sobre la mesa. Fila del árbol seleccionada = mismo anillo que la tarjeta «Continuar» de Inicio.</div>
-    <div class="note"><b>5 · Lo que no se toca</b>La ESTRUCTURA se guarda sola al ocurrir (mover, duplicar, borrar, crear) y el TEXTO con «Guardar» de su ficha: es la asimetría que el propio editor explica en sus atajos. La edición en línea se somete a esa regla: aplica al borrador, no guarda.</div>
-  </div>
+			<div class="notes">
+				<div class="note">
+					<b>1 · Edición en línea <span class="prop">propuesta, no existe</span></b
+					>Un doble clic sobre un texto anotado abre la edición EN la página. Color propio (naranja)
+					para que nunca se confunda con la selección (índigo): seleccionar es «este bloque»,
+					escribir es «este campo». El inspector refleja el mismo campo con «en la página»: una sola
+					fuente de verdad, el borrador del <code>BlockEditor</code>; <kbd>⏎</kbd> aplica al
+					borrador, <kbd>Esc</kbd> descarta, y «Guardar» sigue siendo quien escribe en PocketBase.
+					Requiere <code>vega-visual-2</code>: el sitio anota
+					<code>data-vega-field="heading"</code>, hace <code>contenteditable</code> SOLO ese nodo a
+					petición de Vega (<code>editField</code>) y devuelve
+					<code>input {blockId, field, text}</code>; a Vega le llega texto plano, nunca HTML.
+					Limitado a <code>text</code>/<code>textarea</code> (el mismo corte que «Solo textos»); el
+					richtext se sigue editando en el inspector.
+				</div>
+				<div class="note">
+					<b>2 · Lienzo <span class="reuse">existe</span></b
+					>Contorno de selección, etiqueta de tipo, barra flotante (subir, bajar, duplicar, borrar),
+					puntos «+» con su posición, hover que manda el sitio, «No pública». Aquí se les pone el
+					lenguaje de v2: píldoras, sombra de dos capas, acento en vez del gris. El overlay sigue
+					pintándose FUERA del iframe con los <code>rect</code> del puente.
+				</div>
+				<div class="note">
+					<b>3 · Barra <span class="reuse">existe</span> + <span class="prop">propuesta</span></b
+					>Existe: Volver, migas, estado con «Marcar como publicada» y «Programar…», guardado (punto
+					+ texto), presets con anchura, zoom, atajos. Propuesta: «Publicar» del sitio dentro de
+					esta barra (hoy el editor va a pantalla completa sin la barra de la app) y «Vista previa»
+					como salida a la vista previa de siempre.
+				</div>
+				<div class="note">
+					<b>4 · Paneles de cristal</b>Árbol e inspector flotan como el menú de Inicio v2; el lienzo
+					es la única superficie opaca y su escenario es más oscuro que el canvas para que el sitio
+					(claro siempre) parezca una hoja sobre la mesa. Fila del árbol seleccionada = mismo anillo
+					que la tarjeta «Continuar» de Inicio.
+				</div>
+				<div class="note">
+					<b>5 · Lo que no se toca</b>La ESTRUCTURA se guarda sola al ocurrir (mover, duplicar,
+					borrar, crear) y el TEXTO con «Guardar» de su ficha: es la asimetría que el propio editor
+					explica en sus atajos. La edición en línea se somete a esa regla: aplica al borrador, no
+					guarda.
+				</div>
+			</div>
 
-  <!-- ============================ 2. ESTADOS ============================ -->
-  <h2 class="sec">2 · Estados</h2>
-  <div class="states">
-    <div class="state">
-      <h3>Hover sobre un bloque no seleccionado <span class="reuse">existe</span></h3>
-      <p>Contorno fino de acento al 55 % y etiqueta clara con borde. El puntero está DENTRO del iframe: el sitio manda <code>hover</code> y Vega solo pinta. Durante el scroll el contorno desaparece (el puente manda <code>hover: null</code>).</p>
-      <div class="panel stage"><div class="site" style="max-width:none">
-        <section class="blk gal hov"><span class="lbl"><svg class="i"><use href="#i-box"/></svg>Galería <span class="np">· No pública</span></span><h2>Se adapta a tu modelo</h2><div class="g"><i></i><i></i><i></i></div><figcaption>Capturas del editor visual, la lista y la ficha de un registro.</figcaption></section>
-      </div></div>
-    </div>
+			<!-- ============================ 2. ESTADOS ============================ -->
+			<h2 class="sec">2 · Estados</h2>
+			<div class="states">
+				<div class="state">
+					<h3>Hover sobre un bloque no seleccionado <span class="reuse">existe</span></h3>
+					<p>
+						Contorno fino de acento al 55 % y etiqueta clara con borde. El puntero está DENTRO del
+						iframe: el sitio manda <code>hover</code> y Vega solo pinta. Durante el scroll el
+						contorno desaparece (el puente manda <code>hover: null</code>).
+					</p>
+					<div class="panel stage">
+						<div class="site" style="max-width: none">
+							<section class="blk gal hov">
+								<span class="lbl"
+									><svg class="i"><use href="#i-box" /></svg>Galería
+									<span class="np">· No pública</span></span
+								>
+								<h2>Se adapta a tu modelo</h2>
+								<div class="g"><i></i><i></i><i></i></div>
+								<figcaption>
+									Capturas del editor visual, la lista y la ficha de un registro.
+								</figcaption>
+							</section>
+						</div>
+					</div>
+				</div>
 
-    <div class="state">
-      <h3>Añadir bloque: paleta de tipos <span class="reuse">existe</span> · <span class="prop">presentación nueva</span></h3>
-      <p>Hoy el «+» abre un menú de tipos y la paleta del árbol se arrastra. Propuesta: el mismo vocabulario (<code>blockTypes</code>) como popover con icono y descripción del tipo. La descripción no existe en el manifiesto: hueco.</p>
-      <div class="panel stage" style="position:relative;min-height:400px"><div class="site" style="max-width:none;min-height:360px">
-        <section class="blk text" style="padding:24px 28px 40px"><h2>Tu contenido, en tu servidor</h2>
-          <span class="ins bot" style="background:var(--v-accent);color:#fff;border-color:var(--v-accent)"><svg class="i"><use href="#i-plus"/></svg>Insertar bloque en la posición 3 de 4</span></section>
-      </div>
-        <div class="pop" style="position:absolute;left:50%;top:178px;transform:translateX(-50%)" role="menu" aria-label="Tipo de bloque">
-          <h4>Insertar en la posición 3 de 4</h4>
-          <button type="button"><span class="ic"><svg class="i"><use href="#i-media"/></svg></span><span><b>Portada</b><small>Título y subtítulo <span class="prop">descripción: no existe</span></small></span></button>
-          <button type="button"><span class="ic"><svg class="i"><use href="#i-doc"/></svg></span><span><b>Texto</b><small>Título, cuerpo y contenido con formato</small></span></button>
-          <button type="button"><span class="ic"><svg class="i"><use href="#i-box"/></svg></span><span><b>Galería</b><small>Título, pie de foto e imágenes de la biblioteca</small></span></button>
-        </div>
-      </div>
-    </div>
+				<div class="state">
+					<h3>
+						Añadir bloque: paleta de tipos <span class="reuse">existe</span> ·
+						<span class="prop">presentación nueva</span>
+					</h3>
+					<p>
+						Hoy el «+» abre un menú de tipos y la paleta del árbol se arrastra. Propuesta: el mismo
+						vocabulario (<code>blockTypes</code>) como popover con icono y descripción del tipo. La
+						descripción no existe en el manifiesto: hueco.
+					</p>
+					<div class="panel stage" style="position: relative; min-height: 400px">
+						<div class="site" style="max-width: none; min-height: 360px">
+							<section class="blk text" style="padding: 24px 28px 40px">
+								<h2>Tu contenido, en tu servidor</h2>
+								<span
+									class="ins bot"
+									style="background: var(--v-accent); color: #fff; border-color: var(--v-accent)"
+									><svg class="i"><use href="#i-plus" /></svg>Insertar bloque en la posición 3 de
+									4</span
+								>
+							</section>
+						</div>
+						<div
+							class="pop"
+							style="position: absolute; left: 50%; top: 178px; transform: translateX(-50%)"
+							role="menu"
+							aria-label="Tipo de bloque"
+						>
+							<h4>Insertar en la posición 3 de 4</h4>
+							<button type="button">
+								<span class="ic"
+									><svg class="i"><use href="#i-media" /></svg></span
+								><span
+									><b>Portada</b
+									><small
+										>Título y subtítulo <span class="prop">descripción: no existe</span></small
+									></span
+								>
+							</button>
+							<button type="button">
+								<span class="ic"
+									><svg class="i"><use href="#i-doc" /></svg></span
+								><span><b>Texto</b><small>Título, cuerpo y contenido con formato</small></span>
+							</button>
+							<button type="button">
+								<span class="ic"
+									><svg class="i"><use href="#i-box" /></svg></span
+								><span
+									><b>Galería</b
+									><small>Título, pie de foto e imágenes de la biblioteca</small></span
+								>
+							</button>
+						</div>
+					</div>
+				</div>
 
-    <div class="state wide">
-      <h3>Guardando · guardado · error al guardar <span class="reuse">existe</span> · <span class="prop">error en la barra: propuesta</span></h3>
-      <p>Hoy la barra dice «Guardando…», pinta el punto «sin guardar» y «último guardado HH:MM»; el error vive en la ficha del bloque. Propuesta: el error sube también a la barra, con el mismo texto, para que se vea sin mirar el inspector.</p>
-      <div class="panel" style="display:grid;gap:12px">
-        <div class="edbar" style="border-radius:var(--v-r-md);border:1px solid var(--v-line)"><nav class="crumbs"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav><span class="statusgrp"><span class="pill draft">Borrador</span></span><span class="savestate dirty"><i></i>sin guardar</span><span class="spacer"></span><span class="width">reposo con cambios</span></div>
-        <div class="edbar" style="border-radius:var(--v-r-md);border:1px solid var(--v-line)"><nav class="crumbs"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav><span class="statusgrp"><span class="pill draft">Borrador</span></span><span class="savestate saving" aria-live="polite"><i></i>Guardando…</span><span class="spacer"></span><span class="width">en vuelo · el punto parpadea (reduced-motion: fijo)</span></div>
-        <div class="edbar" style="border-radius:var(--v-r-md);border:1px solid var(--v-line)"><nav class="crumbs"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav><span class="statusgrp"><span class="pill draft">Borrador</span></span><span class="savestate saved" aria-live="polite"><i></i>último guardado 10:42</span><span class="spacer"></span><span class="width">guardado · el lienzo se refresca en vivo sin perder el scroll</span></div>
-        <div class="edbar" style="border-radius:var(--v-r-md);border:1px solid var(--v-line)"><nav class="crumbs"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav><span class="statusgrp"><span class="pill draft">Borrador</span></span><span class="savestate err" role="alert"><i></i>No se pudo guardar «Texto» <span class="prop">propuesta</span></span><span class="spacer"></span><button class="btn sm" type="button"><svg class="i"><use href="#i-refresh"/></svg>Reintentar</button></div>
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:12px;align-items:start">
-          <div class="note" style="margin:0"><b>Conflicto de versión <span class="reuse">existe</span></b>«La página cambió en el servidor: revisa su estado antes de volver a intentarlo». El control adopta el registro del servidor y no reintenta solo.</div>
-          <aside class="pane insp" style="min-height:0"><div class="head"><span class="ic"><svg class="i"><use href="#i-doc"/></svg></span><div><h3>Texto</h3><small>Sección 2 de 3</small></div></div><div class="fields"><div class="alert err" role="alert"><svg class="i"><use href="#i-alert"/></svg><span>No se pudo guardar. El servidor ha contestado: <code>403 Forbidden</code>. Tus cambios siguen aquí.</span></div><div class="f"><label>Título</label><input value="Tu contenido, en tu servidor"></div></div><div class="acts"><button class="btn primary" type="button">Reintentar</button><button class="btn quiet" type="button">Descartar</button></div></aside>
-        </div>
-      </div>
-    </div>
+				<div class="state wide">
+					<h3>
+						Guardando · guardado · error al guardar <span class="reuse">existe</span> ·
+						<span class="prop">error en la barra: propuesta</span>
+					</h3>
+					<p>
+						Hoy la barra dice «Guardando…», pinta el punto «sin guardar» y «último guardado HH:MM»;
+						el error vive en la ficha del bloque. Propuesta: el error sube también a la barra, con
+						el mismo texto, para que se vea sin mirar el inspector.
+					</p>
+					<div class="panel" style="display: grid; gap: 12px">
+						<div
+							class="edbar"
+							style="border-radius: var(--v-r-md); border: 1px solid var(--v-line)"
+						>
+							<nav class="crumbs"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav>
+							<span class="statusgrp"><span class="pill draft">Borrador</span></span
+							><span class="savestate dirty"><i></i>sin guardar</span><span class="spacer"></span
+							><span class="width">reposo con cambios</span>
+						</div>
+						<div
+							class="edbar"
+							style="border-radius: var(--v-r-md); border: 1px solid var(--v-line)"
+						>
+							<nav class="crumbs"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav>
+							<span class="statusgrp"><span class="pill draft">Borrador</span></span
+							><span class="savestate saving" aria-live="polite"><i></i>Guardando…</span
+							><span class="spacer"></span
+							><span class="width">en vuelo · el punto parpadea (reduced-motion: fijo)</span>
+						</div>
+						<div
+							class="edbar"
+							style="border-radius: var(--v-r-md); border: 1px solid var(--v-line)"
+						>
+							<nav class="crumbs"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav>
+							<span class="statusgrp"><span class="pill draft">Borrador</span></span
+							><span class="savestate saved" aria-live="polite"><i></i>último guardado 10:42</span
+							><span class="spacer"></span
+							><span class="width"
+								>guardado · el lienzo se refresca en vivo sin perder el scroll</span
+							>
+						</div>
+						<div
+							class="edbar"
+							style="border-radius: var(--v-r-md); border: 1px solid var(--v-line)"
+						>
+							<nav class="crumbs"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav>
+							<span class="statusgrp"><span class="pill draft">Borrador</span></span
+							><span class="savestate err" role="alert"
+								><i></i>No se pudo guardar «Texto» <span class="prop">propuesta</span></span
+							><span class="spacer"></span
+							><button class="btn sm" type="button">
+								<svg class="i"><use href="#i-refresh" /></svg>Reintentar
+							</button>
+						</div>
+						<div
+							style="
+								display: grid;
+								grid-template-columns: minmax(0, 1fr) 340px;
+								gap: 12px;
+								align-items: start;
+							"
+						>
+							<div class="note" style="margin: 0">
+								<b>Conflicto de versión <span class="reuse">existe</span></b
+								>«La página cambió en el servidor: revisa su estado antes de volver a intentarlo».
+								El control adopta el registro del servidor y no reintenta solo.
+							</div>
+							<aside class="pane insp" style="min-height: 0">
+								<div class="head">
+									<span class="ic"
+										><svg class="i"><use href="#i-doc" /></svg
+									></span>
+									<div>
+										<h3>Texto</h3>
+										<small>Sección 2 de 3</small>
+									</div>
+								</div>
+								<div class="fields">
+									<div class="alert err" role="alert">
+										<svg class="i"><use href="#i-alert" /></svg
+										><span
+											>No se pudo guardar. El servidor ha contestado: <code>403 Forbidden</code>.
+											Tus cambios siguen aquí.</span
+										>
+									</div>
+									<div class="f">
+										<label>Título</label><input value="Tu contenido, en tu servidor" />
+									</div>
+								</div>
+								<div class="acts">
+									<button class="btn primary" type="button">Reintentar</button
+									><button class="btn quiet" type="button">Descartar</button>
+								</div>
+							</aside>
+						</div>
+					</div>
+				</div>
 
-    <div class="state wide">
-      <h3>Cambios sin publicar <span class="reuse">existe</span></h3>
-      <p>Dos cosas distintas y las dos existen: la PÁGINA en borrador (píldora y «Marcar como publicada», con revisión previa y aviso de bloques sin guardar) y el SITIO sin reconstruir («Publicar» de la app, estado <code>ready</code>, «Última publicación: …»). La barra las enseña juntas sin fundirlas.</p>
-      <div class="panel" style="display:grid;gap:12px">
-        <div class="edbar" style="border-radius:var(--v-r-md);border:1px solid var(--v-line)"><nav class="crumbs"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav><span class="statusgrp"><span class="pill pub">Publicada</span><button class="btn sm quiet" type="button">Pasar a borrador</button></span><span class="savestate saved"><i></i>último guardado 10:42</span><span class="spacer"></span><span class="pill warn">Sitio con cambios sin publicar</span><button class="btn primary" type="button" title="Última publicación: ayer, 18:40">Publicar</button></div>
-        <div class="edbar" style="border-radius:var(--v-r-md);border:1px solid var(--v-line)"><nav class="crumbs"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav><span class="statusgrp"><span class="pill draft">Borrador</span><button class="btn sm quiet" type="button">Marcar como publicada</button></span><span class="savestate dirty"><i></i>sin guardar</span><span class="spacer"></span><span class="width">al pulsar: «Hay 1 bloque sin guardar · Publicar igualmente / Cancelar»</span></div>
-      </div>
-    </div>
+				<div class="state wide">
+					<h3>Cambios sin publicar <span class="reuse">existe</span></h3>
+					<p>
+						Dos cosas distintas y las dos existen: la PÁGINA en borrador (píldora y «Marcar como
+						publicada», con revisión previa y aviso de bloques sin guardar) y el SITIO sin
+						reconstruir («Publicar» de la app, estado <code>ready</code>, «Última publicación: …»).
+						La barra las enseña juntas sin fundirlas.
+					</p>
+					<div class="panel" style="display: grid; gap: 12px">
+						<div
+							class="edbar"
+							style="border-radius: var(--v-r-md); border: 1px solid var(--v-line)"
+						>
+							<nav class="crumbs"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav>
+							<span class="statusgrp"
+								><span class="pill pub">Publicada</span
+								><button class="btn sm quiet" type="button">Pasar a borrador</button></span
+							><span class="savestate saved"><i></i>último guardado 10:42</span
+							><span class="spacer"></span
+							><span class="pill warn">Sitio con cambios sin publicar</span
+							><button class="btn primary" type="button" title="Última publicación: ayer, 18:40">
+								Publicar
+							</button>
+						</div>
+						<div
+							class="edbar"
+							style="border-radius: var(--v-r-md); border: 1px solid var(--v-line)"
+						>
+							<nav class="crumbs"><span>Páginas</span><span class="sep">/</span><b>Inicio</b></nav>
+							<span class="statusgrp"
+								><span class="pill draft">Borrador</span
+								><button class="btn sm quiet" type="button">Marcar como publicada</button></span
+							><span class="savestate dirty"><i></i>sin guardar</span><span class="spacer"></span
+							><span class="width"
+								>al pulsar: «Hay 1 bloque sin guardar · Publicar igualmente / Cancelar»</span
+							>
+						</div>
+					</div>
+				</div>
 
-    <div class="state">
-      <h3>Vista móvil del lienzo <span class="reuse">existe</span></h3>
-      <p>Preset «Móvil» = iframe de 390 px CSS de verdad (los <code>@media</code> del sitio se disparan); el zoom escala con <code>transform</code>, nunca con <code>width</code>. La selección y la edición en línea funcionan igual.</p>
-      <div class="panel stage" style="display:flex;flex-direction:column;align-items:center;gap:10px">
-        <div class="segm" role="group" aria-label="Tamaño de pantalla"><button type="button" aria-pressed="true"><svg class="i"><use href="#i-mob"/></svg>Móvil</button><button type="button" aria-pressed="false"><svg class="i"><use href="#i-tab"/></svg>Tableta</button><button type="button" aria-pressed="false"><svg class="i"><use href="#i-desk"/></svg>Escritorio</button><span class="width">390 px · 100 %</span></div>
-        <div class="site m">
-          <div class="snav"><b>Vega</b><span>☰</span></div>
-          <section class="blk hero sel"><span class="lbl"><svg class="i"><use href="#i-media"/></svg>Portada</span><div class="tb"><button type="button" aria-label="Bajar"><svg class="i"><use href="#i-dn"/></svg></button><span class="sepv"></span><button type="button" aria-label="Duplicar"><svg class="i"><use href="#i-dup"/></svg></button><button type="button" class="danger" aria-label="Borrar"><svg class="i"><use href="#i-trash"/></svg></button></div><h1>Escribe. Publica. Olvídate del resto.</h1><p><span class="inl">Un CMS editor-first sobre tu propio PocketBase.<span class="caret"></span></span></p></section>
-          <section class="blk text"><h2>Tu contenido, en tu servidor</h2><p>Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.</p></section>
-        </div>
-      </div>
-    </div>
+				<div class="state">
+					<h3>Vista móvil del lienzo <span class="reuse">existe</span></h3>
+					<p>
+						Preset «Móvil» = iframe de 390 px CSS de verdad (los <code>@media</code> del sitio se
+						disparan); el zoom escala con <code>transform</code>, nunca con <code>width</code>. La
+						selección y la edición en línea funcionan igual.
+					</p>
+					<div
+						class="panel stage"
+						style="display: flex; flex-direction: column; align-items: center; gap: 10px"
+					>
+						<div class="segm" role="group" aria-label="Tamaño de pantalla">
+							<button type="button" aria-pressed="true">
+								<svg class="i"><use href="#i-mob" /></svg>Móvil</button
+							><button type="button" aria-pressed="false">
+								<svg class="i"><use href="#i-tab" /></svg>Tableta</button
+							><button type="button" aria-pressed="false">
+								<svg class="i"><use href="#i-desk" /></svg>Escritorio</button
+							><span class="width">390 px · 100 %</span>
+						</div>
+						<div class="site m">
+							<div class="snav"><b>Vega</b><span>☰</span></div>
+							<section class="blk hero sel">
+								<span class="lbl"
+									><svg class="i"><use href="#i-media" /></svg>Portada</span
+								>
+								<div class="tb">
+									<button type="button" aria-label="Bajar">
+										<svg class="i"><use href="#i-dn" /></svg></button
+									><span class="sepv"></span
+									><button type="button" aria-label="Duplicar">
+										<svg class="i"><use href="#i-dup" /></svg></button
+									><button type="button" class="danger" aria-label="Borrar">
+										<svg class="i"><use href="#i-trash" /></svg>
+									</button>
+								</div>
+								<h1>Escribe. Publica. Olvídate del resto.</h1>
+								<p>
+									<span class="inl"
+										>Un CMS editor-first sobre tu propio PocketBase.<span class="caret"></span
+									></span>
+								</p>
+							</section>
+							<section class="blk text">
+								<h2>Tu contenido, en tu servidor</h2>
+								<p>
+									Sin cuentas de terceros ni exportaciones a medianoche: los datos ya son tuyos.
+								</p>
+							</section>
+						</div>
+					</div>
+				</div>
 
-    <div class="state wide">
-      <h3>El sitio no carga en el iframe <span class="reuse">existe</span></h3>
-      <p>Cinco desenlaces del puente más el error de token; todos con texto propio y ninguno deja el lienzo mudo: la vista previa de siempre y el formulario siguen funcionando. Se muestran dos; el árbol y el inspector siguen operativos (se puede editar sin lienzo).</p>
-      <div class="panel stage" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px">
-        <div class="cerr" style="margin:0"><span class="glyph"><svg class="i"><use href="#i-alert"/></svg></span><h3>Este sitio no tiene instalado el puente de edición visual</h3><p>Vega no ha recibido respuesta de la página. La vista previa de siempre sí funciona, y el formulario también.</p><div class="acts"><button class="btn primary" type="button"><svg class="i"><use href="#i-refresh"/></svg>Reintentar</button><button class="btn" type="button"><svg class="i"><use href="#i-eye"/></svg>Abrir la vista previa</button><button class="btn quiet" type="button">Volver al formulario</button></div></div>
-        <div class="cerr" style="margin:0"><span class="glyph"><svg class="i"><use href="#i-alert"/></svg></span><h3>No se pudo cargar la página del sitio</h3><p>El servidor ha contestado: <code>502 Bad Gateway</code>. El sitio habla «vega-visual-1» cuando responde; mientras tanto puedes editar los bloques desde el árbol y la ficha.</p><div class="acts"><button class="btn primary" type="button"><svg class="i"><use href="#i-refresh"/></svg>Reintentar</button><button class="btn quiet" type="button">Volver al formulario</button></div></div>
-      </div>
-    </div>
+				<div class="state wide">
+					<h3>El sitio no carga en el iframe <span class="reuse">existe</span></h3>
+					<p>
+						Cinco desenlaces del puente más el error de token; todos con texto propio y ninguno deja
+						el lienzo mudo: la vista previa de siempre y el formulario siguen funcionando. Se
+						muestran dos; el árbol y el inspector siguen operativos (se puede editar sin lienzo).
+					</p>
+					<div
+						class="panel stage"
+						style="
+							display: grid;
+							grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+							gap: 16px;
+						"
+					>
+						<div class="cerr" style="margin: 0">
+							<span class="glyph"
+								><svg class="i"><use href="#i-alert" /></svg
+							></span>
+							<h3>Este sitio no tiene instalado el puente de edición visual</h3>
+							<p>
+								Vega no ha recibido respuesta de la página. La vista previa de siempre sí funciona,
+								y el formulario también.
+							</p>
+							<div class="acts">
+								<button class="btn primary" type="button">
+									<svg class="i"><use href="#i-refresh" /></svg>Reintentar</button
+								><button class="btn" type="button">
+									<svg class="i"><use href="#i-eye" /></svg>Abrir la vista previa</button
+								><button class="btn quiet" type="button">Volver al formulario</button>
+							</div>
+						</div>
+						<div class="cerr" style="margin: 0">
+							<span class="glyph"
+								><svg class="i"><use href="#i-alert" /></svg
+							></span>
+							<h3>No se pudo cargar la página del sitio</h3>
+							<p>
+								El servidor ha contestado: <code>502 Bad Gateway</code>. El sitio habla
+								«vega-visual-1» cuando responde; mientras tanto puedes editar los bloques desde el
+								árbol y la ficha.
+							</p>
+							<div class="acts">
+								<button class="btn primary" type="button">
+									<svg class="i"><use href="#i-refresh" /></svg>Reintentar</button
+								><button class="btn quiet" type="button">Volver al formulario</button>
+							</div>
+						</div>
+					</div>
+				</div>
 
-    <div class="state">
-      <h3>Bajo 900 px: «Solo textos» <span class="reuse">existe</span></h3>
-      <p>La misma pantalla, clonada en un marco de 390 px: el editor deja de ser una salida y enseña las secciones con solo sus textos. Sin lienzo no hay edición en línea; la propuesta no cambia nada aquí.</p>
-      <div class="frame phone" id="movil"></div>
-    </div>
-  </div>
+				<div class="state">
+					<h3>Bajo 900 px: «Solo textos» <span class="reuse">existe</span></h3>
+					<p>
+						La misma pantalla, clonada en un marco de 390 px: el editor deja de ser una salida y
+						enseña las secciones con solo sus textos. Sin lienzo no hay edición en línea; la
+						propuesta no cambia nada aquí.
+					</p>
+					<div class="frame phone" id="movil"></div>
+				</div>
+			</div>
 
-  <!-- ============================ 3. QUÉ EXISTE Y QUÉ ES NUEVO ============================ -->
-  <h2 class="sec">3 · Reutiliza / nuevo <span>contra <code>src/lib/visual/*</code>, <code>bridge-client.ts</code> y §«Visual editing bridge» del contrato</span></h2>
-  <div class="tbl-wrap"><table class="spec">
-    <thead><tr><th>Pieza</th><th>Hoy</th><th>En la lámina</th><th>Veredicto</th></tr></thead>
-    <tbody>
-      <tr><td>Lienzo iframe de otro origen + overlay con <code>rect</code> del puente</td><td><code>VisualEditorScreen</code> + <code>VisualOverlay</code></td><td>igual, restyle</td><td class="ok">existe</td></tr>
-      <tr><td>Contorno de selección, etiqueta de tipo, «No pública», hover del sitio</td><td><code>VisualOverlay</code>, mensaje <code>hover</code>, <code>data-vega-unpublished</code></td><td>igual, píldoras y acento</td><td class="ok">existe</td></tr>
-      <tr><td>Barra flotante: subir, bajar, duplicar, borrar · puntos «+» con posición</td><td><code>VisualOverlay</code> → <code>blocks-state</code></td><td>igual</td><td class="ok">existe</td></tr>
-      <tr><td>Paleta de tipos (arrastrar/clic) y menú de tipos en el «+»</td><td><code>VisualPalette</code>, <code>type-menu.ts</code></td><td>popover con icono y descripción</td><td class="gap">existe; la DESCRIPCIÓN del tipo no está en el manifiesto</td></tr>
-      <tr><td>Árbol de bloques con mover/duplicar/borrar y cajón bajo 1180 px</td><td><code>VisualBlockTree</code></td><td>igual, restyle</td><td class="ok">existe</td></tr>
-      <tr><td>Inspector con la ficha del bloque y «Guardar» (⌘S)</td><td><code>VisualInspector</code> → <code>BlockEditor</code></td><td>igual; campo «en la página» cuando se edita en línea</td><td class="gap">existe; el indicador «en la página» es nuevo</td></tr>
-      <tr><td>Estado de guardado en la barra: sin guardar · Guardando… · último guardado HH:MM</td><td><code>editor.dirty/saving/savedAt</code></td><td>igual + error en la barra</td><td class="gap">existe; el error en la barra es propuesta</td></tr>
-      <tr><td>Estado de la página: píldora + «Marcar como publicada» + «Programar…» + revisión previa</td><td><code>VisualPublishControl</code></td><td>igual</td><td class="ok">existe</td></tr>
-      <tr><td>Presets Móvil 390 / Tableta 834 / Escritorio 1280 + zoom 50/75/100/Ajustar</td><td><code>viewport.ts</code></td><td>igual, segmentado en píldora</td><td class="ok">existe</td></tr>
-      <tr><td>Refresco en vivo sin recargar el marco</td><td><code>bridge.refresh()</code>, §Live refresh</td><td>igual</td><td class="ok">existe</td></tr>
-      <tr><td>Errores: sin puente, versión, error del sitio, otro registro, URL inválida, token</td><td><code>bridge-client.ts</code> (5) + <code>token.error</code></td><td>tarjeta sobre el escenario con «Reintentar», «Abrir la vista previa», «Volver»</td><td class="gap">existe; «Abrir la vista previa» como botón es propuesta (hoy se dice en el texto)</td></tr>
-      <tr><td>«Solo textos» bajo 900 px</td><td><code>texts-mode.ts</code>, <code>VisualInspector mode=texts</code></td><td>igual</td><td class="ok">existe</td></tr>
-      <tr><td>«Publicar» (reconstruir el sitio) y «Vista previa» en la barra del editor</td><td><code>PublishButton</code> en la barra de la app; el editor va a pantalla completa</td><td>dentro de la barra del editor</td><td class="gap">propuesta de ubicación; la función existe</td></tr>
-      <tr><td><b>Edición de texto en línea sobre la página</b></td><td>NO existe. El contrato lo excluye: «never makes any part of the page <code>contenteditable</code>»</td><td>doble clic → <code>contenteditable</code> del nodo anotado, <kbd>⏎</kbd>/<kbd>Esc</kbd>, texto plano al borrador del inspector</td><td class="ko">propuesta, no existe. Exige <code>vega-visual-2</code>: <code>data-vega-field</code> en el sitio, mensajes <code>editField</code> (Vega→sitio) e <code>input</code>/<code>commit</code>/<code>cancel</code> (sitio→Vega), cambio de <code>@vega/astro</code> y del contrato. Decisión de David</td></tr>
-    </tbody>
-  </table></div>
-  <div class="notes">
-    <div class="note"><b>Tokens</b>Los de Inicio v2 sin cambios. Nuevos, solo del overlay: <code>--v-ol-select</code> (= accent), <code>--v-ol-hover</code> (accent al 55 %), <code>--v-ol-select-ink</code> (blanco en claro 6.39:1; tinta oscura sobre el índigo claro del modo oscuro, 6.33:1), <code>--v-ol-inline</code> / <code>-soft</code> (contorno y cursor #e8562a, gráfico: 3.47:1 ≥ 3:1), <code>--v-ol-inline-text</code> (#bf3f14 como texto: 5.33:1 sobre blanco, 5.11:1 sobre el papel del sitio; en oscuro #ff7a4d, 6.90:1) y <code>--v-stage</code> (escenario). P7 no tiene rol de «edición en línea»: entraría como semántico nuevo o se derivaría de <code>warning</code>, que es ámbar y se confundiría con los avisos.</div>
-    <div class="note"><b>Por qué naranja y no índigo</b>Dos estados simultáneos sobre el mismo bloque (seleccionado y escribiendo) no pueden compartir color. El naranja solo aparece mientras hay un cursor dentro de la página; en cuanto se aplica o cancela, desaparece.</div>
-  </div>
+			<!-- ============================ 3. QUÉ EXISTE Y QUÉ ES NUEVO ============================ -->
+			<h2 class="sec">
+				3 · Reutiliza / nuevo
+				<span
+					>contra <code>src/lib/visual/*</code>, <code>bridge-client.ts</code> y §«Visual editing
+					bridge» del contrato</span
+				>
+			</h2>
+			<div class="tbl-wrap">
+				<table class="spec">
+					<thead>
+						<tr>
+							<th>Pieza</th>
+							<th>Hoy</th>
+							<th>En la lámina</th>
+							<th>Veredicto</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>Lienzo iframe de otro origen + overlay con <code>rect</code> del puente</td>
+							<td><code>VisualEditorScreen</code> + <code>VisualOverlay</code></td>
+							<td>igual, restyle</td>
+							<td class="ok">existe</td>
+						</tr>
+						<tr>
+							<td>Contorno de selección, etiqueta de tipo, «No pública», hover del sitio</td>
+							<td>
+								<code>VisualOverlay</code>, mensaje <code>hover</code>,
+								<code>data-vega-unpublished</code>
+							</td>
+							<td>igual, píldoras y acento</td>
+							<td class="ok">existe</td>
+						</tr>
+						<tr>
+							<td>Barra flotante: subir, bajar, duplicar, borrar · puntos «+» con posición</td>
+							<td><code>VisualOverlay</code> → <code>blocks-state</code></td>
+							<td>igual</td>
+							<td class="ok">existe</td>
+						</tr>
+						<tr>
+							<td>Paleta de tipos (arrastrar/clic) y menú de tipos en el «+»</td>
+							<td><code>VisualPalette</code>, <code>type-menu.ts</code></td>
+							<td>popover con icono y descripción</td>
+							<td class="gap">existe; la DESCRIPCIÓN del tipo no está en el manifiesto</td>
+						</tr>
+						<tr>
+							<td>Árbol de bloques con mover/duplicar/borrar y cajón bajo 1180 px</td>
+							<td><code>VisualBlockTree</code></td>
+							<td>igual, restyle</td>
+							<td class="ok">existe</td>
+						</tr>
+						<tr>
+							<td>Inspector con la ficha del bloque y «Guardar» (⌘S)</td>
+							<td><code>VisualInspector</code> → <code>BlockEditor</code></td>
+							<td>igual; campo «en la página» cuando se edita en línea</td>
+							<td class="gap">existe; el indicador «en la página» es nuevo</td>
+						</tr>
+						<tr>
+							<td>
+								Estado de guardado en la barra: sin guardar · Guardando… · último guardado HH:MM
+							</td>
+							<td><code>editor.dirty/saving/savedAt</code></td>
+							<td>igual + error en la barra</td>
+							<td class="gap">existe; el error en la barra es propuesta</td>
+						</tr>
+						<tr>
+							<td>
+								Estado de la página: píldora + «Marcar como publicada» + «Programar…» + revisión
+								previa
+							</td>
+							<td><code>VisualPublishControl</code></td>
+							<td>igual</td>
+							<td class="ok">existe</td>
+						</tr>
+						<tr>
+							<td>Presets Móvil 390 / Tableta 834 / Escritorio 1280 + zoom 50/75/100/Ajustar</td>
+							<td><code>viewport.ts</code></td>
+							<td>igual, segmentado en píldora</td>
+							<td class="ok">existe</td>
+						</tr>
+						<tr>
+							<td>Refresco en vivo sin recargar el marco</td>
+							<td><code>bridge.refresh()</code>, §Live refresh</td>
+							<td>igual</td>
+							<td class="ok">existe</td>
+						</tr>
+						<tr>
+							<td>
+								Errores: sin puente, versión, error del sitio, otro registro, URL inválida, token
+							</td>
+							<td><code>bridge-client.ts</code> (5) + <code>token.error</code></td>
+							<td>
+								tarjeta sobre el escenario con «Reintentar», «Abrir la vista previa», «Volver»
+							</td>
+							<td class="gap">
+								existe; «Abrir la vista previa» como botón es propuesta (hoy se dice en el texto)
+							</td>
+						</tr>
+						<tr>
+							<td>«Solo textos» bajo 900 px</td>
+							<td><code>texts-mode.ts</code>, <code>VisualInspector mode=texts</code></td>
+							<td>igual</td>
+							<td class="ok">existe</td>
+						</tr>
+						<tr>
+							<td>«Publicar» (reconstruir el sitio) y «Vista previa» en la barra del editor</td>
+							<td>
+								<code>PublishButton</code> en la barra de la app; el editor va a pantalla completa
+							</td>
+							<td>dentro de la barra del editor</td>
+							<td class="gap">propuesta de ubicación; la función existe</td>
+						</tr>
+						<tr>
+							<td><b>Edición de texto en línea sobre la página</b></td>
+							<td>
+								NO existe. El contrato lo excluye: «never makes any part of the page
+								<code>contenteditable</code>»
+							</td>
+							<td>
+								doble clic → <code>contenteditable</code> del nodo anotado,
+								<kbd>⏎</kbd>/<kbd>Esc</kbd>, texto plano al borrador del inspector
+							</td>
+							<td class="ko">
+								propuesta, no existe. Exige <code>vega-visual-2</code>:
+								<code>data-vega-field</code> en el sitio, mensajes
+								<code>editField</code> (Vega→sitio) e <code>input</code>/<code>commit</code>/<code
+									>cancel</code
+								>
+								(sitio→Vega), cambio de <code>@vega/astro</code> y del contrato. Decisión de David
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<div class="notes">
+				<div class="note">
+					<b>Tokens</b>Los de Inicio v2 sin cambios. Nuevos, solo del overlay:
+					<code>--v-ol-select</code> (= accent), <code>--v-ol-hover</code> (accent al 55 %),
+					<code>--v-ol-select-ink</code> (blanco en claro 6.39:1; tinta oscura sobre el índigo claro
+					del modo oscuro, 6.33:1), <code>--v-ol-inline</code> / <code>-soft</code> (contorno y
+					cursor #e8562a, gráfico: 3.47:1 ≥ 3:1), <code>--v-ol-inline-text</code> (#bf3f14 como
+					texto: 5.33:1 sobre blanco, 5.11:1 sobre el papel del sitio; en oscuro #ff7a4d, 6.90:1) y
+					<code>--v-stage</code> (escenario). P7 no tiene rol de «edición en línea»: entraría como
+					semántico nuevo o se derivaría de <code>warning</code>, que es ámbar y se confundiría con
+					los avisos.
+				</div>
+				<div class="note">
+					<b>Por qué naranja y no índigo</b>Dos estados simultáneos sobre el mismo bloque
+					(seleccionado y escribiendo) no pueden compartir color. El naranja solo aparece mientras
+					hay un cursor dentro de la página; en cuanto se aplica o cancela, desaparece.
+				</div>
+			</div>
 
-  <!-- ============================ 4. CHECKLIST ============================ -->
-  <h2 class="sec">4 · Checklist de 7 ejes</h2>
-  <ul class="check">
-    <li><b class="ok">Cubierto</b><span><b>Tokens.</b> Los de v2 + 7 de overlay con contraste medido: texto naranja 5.33 / 5.11 / 6.90, contorno naranja 3.47 (gráfico), etiqueta de bloque 6.39 (claro) y 6.33 (oscuro, tinta sobre índigo claro: el blanco daba 2.84 y se descartó).</span></li>
-    <li><b class="gap">PARCIAL</b><span><b>Componentes con todos los estados.</b> Bloque (reposo / hover / seleccionado / no pública / en edición), barra flotante, punto de inserción (reposo / activo con popover), fila del árbol (reposo / hover / seleccionada / sin guardar / no pública), inspector (normal / campo en la página / error), guardado (4 estados), estado de página (borrador / publicada), presets, errores de lienzo (2 de 6). Falta: diálogo de confirmación de borrado, popover de revisión antes de publicar, panel de atajos, cajón del árbol bajo 1180 px, zoom distinto de Ajustar.</span></li>
-    <li><b class="gap">PARCIAL</b><span><b>Responsive.</b> 1440; ≤1180 el inspector baja (el código lo hace cajón: aquí solo se apila); ≤900 «Solo textos», que es lo que se enseña a 390. Falta dibujar tableta con el cajón del árbol abierto.</span></li>
-    <li><b class="ok">Cubierto</b><span><b>Accesibilidad AA.</b> Contrastes medidos; <code>role="toolbar"</code>, <code>aria-current</code>, <code>aria-live</code> en guardado, <code>role="alert"</code> en errores; la vía accesible de mover/crear/borrar sigue siendo el árbol (la barra flotante es atajo); objetivos ≥ 30 px en barra flotante y 44 px en filas; parpadeo anulado con <code>prefers-reduced-motion</code>; la edición en línea tiene equivalente de teclado en el inspector (el mismo campo).</span></li>
-    <li><b class="ok">Cubierto</b><span><b>Casos límite de contenido real.</b> Bloque «No pública», richtext con enlace roto e imagen sin alt (seed real de la sección 2), conflicto de versión, 403 al guardar, bloque en edición con cambios sin guardar al mover el foco (regla: ⏎/Esc, nunca guardado implícito).</span></li>
-    <li><b class="ok">Cubierto</b><span><b>Feedback del sistema.</b> Guardando / guardado con hora / error con Reintentar y los cambios conservados; «Conectado al sitio: 3 bloques»; refresco en vivo sin saltos; errores del puente con salida.</span></li>
-    <li><b class="gap">PARCIAL</b><span><b>Assets.</b> 20 iconos inline (los de v2 más subir/bajar/duplicar/dispositivos); el sitio de ejemplo usa Fraunces (Google Fonts) como tipografía del CLIENTE, no de Vega; galería con tiles simulados.</span></li>
-  </ul>
-</div>
+			<!-- ============================ 4. CHECKLIST ============================ -->
+			<h2 class="sec">4 · Checklist de 7 ejes</h2>
+			<ul class="check">
+				<li>
+					<b class="ok">Cubierto</b
+					><span
+						><b>Tokens.</b> Los de v2 + 7 de overlay con contraste medido: texto naranja 5.33 / 5.11
+						/ 6.90, contorno naranja 3.47 (gráfico), etiqueta de bloque 6.39 (claro) y 6.33 (oscuro,
+						tinta sobre índigo claro: el blanco daba 2.84 y se descartó).</span
+					>
+				</li>
+				<li>
+					<b class="gap">PARCIAL</b
+					><span
+						><b>Componentes con todos los estados.</b> Bloque (reposo / hover / seleccionado / no
+						pública / en edición), barra flotante, punto de inserción (reposo / activo con popover),
+						fila del árbol (reposo / hover / seleccionada / sin guardar / no pública), inspector
+						(normal / campo en la página / error), guardado (4 estados), estado de página (borrador
+						/ publicada), presets, errores de lienzo (2 de 6). Falta: diálogo de confirmación de
+						borrado, popover de revisión antes de publicar, panel de atajos, cajón del árbol bajo
+						1180 px, zoom distinto de Ajustar.</span
+					>
+				</li>
+				<li>
+					<b class="gap">PARCIAL</b
+					><span
+						><b>Responsive.</b> 1440; ≤1180 el inspector baja (el código lo hace cajón: aquí solo se
+						apila); ≤900 «Solo textos», que es lo que se enseña a 390. Falta dibujar tableta con el
+						cajón del árbol abierto.</span
+					>
+				</li>
+				<li>
+					<b class="ok">Cubierto</b
+					><span
+						><b>Accesibilidad AA.</b> Contrastes medidos; <code>role="toolbar"</code>,
+						<code>aria-current</code>, <code>aria-live</code> en guardado,
+						<code>role="alert"</code> en errores; la vía accesible de mover/crear/borrar sigue
+						siendo el árbol (la barra flotante es atajo); objetivos ≥ 30 px en barra flotante y 44
+						px en filas; parpadeo anulado con <code>prefers-reduced-motion</code>; la edición en
+						línea tiene equivalente de teclado en el inspector (el mismo campo).</span
+					>
+				</li>
+				<li>
+					<b class="ok">Cubierto</b
+					><span
+						><b>Casos límite de contenido real.</b> Bloque «No pública», richtext con enlace roto e
+						imagen sin alt (seed real de la sección 2), conflicto de versión, 403 al guardar, bloque
+						en edición con cambios sin guardar al mover el foco (regla: ⏎/Esc, nunca guardado
+						implícito).</span
+					>
+				</li>
+				<li>
+					<b class="ok">Cubierto</b
+					><span
+						><b>Feedback del sistema.</b> Guardando / guardado con hora / error con Reintentar y los
+						cambios conservados; «Conectado al sitio: 3 bloques»; refresco en vivo sin saltos;
+						errores del puente con salida.</span
+					>
+				</li>
+				<li>
+					<b class="gap">PARCIAL</b
+					><span
+						><b>Assets.</b> 20 iconos inline (los de v2 más subir/bajar/duplicar/dispositivos); el
+						sitio de ejemplo usa Fraunces (Google Fonts) como tipografía del CLIENTE, no de Vega;
+						galería con tiles simulados.</span
+					>
+				</li>
+			</ul>
+		</div>
 
-<script>
-  const root = document.documentElement, seg = document.querySelector('.seg');
-  seg.addEventListener('click', (e) => { const b = e.target.closest('button[data-set]'); if (!b) return; root.setAttribute('data-theme', b.dataset.set); seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
-  const clone = document.querySelector('#desktop .ed').cloneNode(true);
-  clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-  document.getElementById('movil').appendChild(clone);
-</script>
-</body>
+		<script>
+			const root = document.documentElement,
+				seg = document.querySelector('.seg');
+			seg.addEventListener('click', (e) => {
+				const b = e.target.closest('button[data-set]');
+				if (!b) return;
+				root.setAttribute('data-theme', b.dataset.set);
+				seg
+					.querySelectorAll('button')
+					.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+			});
+			const clone = document.querySelector('#desktop .ed').cloneNode(true);
+			clone.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+			document.getElementById('movil').appendChild(clone);
+		</script>
+	</body>
 </html>

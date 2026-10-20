@@ -1,606 +1,2578 @@
 <!doctype html>
 <html lang="es" data-theme="auto">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vega · Inicio v2 — lámina de dirección (20 oct 2026)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-/* =====================================================================
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Vega · Inicio v2 — lámina de dirección (20 oct 2026)</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			/* =====================================================================
    TOKENS v2 (prefijo --v-). Delta respecto a v1 en §3.
    ===================================================================== */
-:root {
-  --v-font-sans: "Geist", -apple-system, "Segoe UI", system-ui, sans-serif;
-  --v-font-display: "Bricolage Grotesque", "Geist", system-ui, sans-serif;
-  --v-font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --v-fs-12: 12px; --v-fs-13: 13px; --v-fs-14: 14px; --v-fs-15: 15px; --v-fs-17: 17px;
-  --v-fs-22: 22px; --v-fs-28: 28px; --v-fs-36: 36px; --v-fs-44: 44px;
-  --v-sp-1: 4px; --v-sp-2: 8px; --v-sp-3: 12px; --v-sp-4: 16px; --v-sp-5: 20px; --v-sp-6: 24px; --v-sp-8: 32px; --v-sp-10: 40px; --v-sp-12: 48px;
-  --v-r-sm: 10px; --v-r-md: 16px; --v-r-lg: 22px; --v-r-pill: 999px;
-  --v-topbar-h: 56px; --v-sidebar-w: 248px; --v-inset: 12px;
+			:root {
+				--v-font-sans: 'Geist', -apple-system, 'Segoe UI', system-ui, sans-serif;
+				--v-font-display: 'Bricolage Grotesque', 'Geist', system-ui, sans-serif;
+				--v-font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+				--v-fs-12: 12px;
+				--v-fs-13: 13px;
+				--v-fs-14: 14px;
+				--v-fs-15: 15px;
+				--v-fs-17: 17px;
+				--v-fs-22: 22px;
+				--v-fs-28: 28px;
+				--v-fs-36: 36px;
+				--v-fs-44: 44px;
+				--v-sp-1: 4px;
+				--v-sp-2: 8px;
+				--v-sp-3: 12px;
+				--v-sp-4: 16px;
+				--v-sp-5: 20px;
+				--v-sp-6: 24px;
+				--v-sp-8: 32px;
+				--v-sp-10: 40px;
+				--v-sp-12: 48px;
+				--v-r-sm: 10px;
+				--v-r-md: 16px;
+				--v-r-lg: 22px;
+				--v-r-pill: 999px;
+				--v-topbar-h: 56px;
+				--v-sidebar-w: 248px;
+				--v-inset: 12px;
 
-  --v-canvas: #f3f4f7;
-  --v-surface: #ffffff;
-  --v-surface-raised: #ffffff;
-  --v-glass: rgb(255 255 255 / .72);
-  --v-btn: #eef0f4;
-  --v-hover: #f5f6f9;
-  --v-line: #e3e6ec;
-  --v-line-soft: #edeff3;
-  --v-line-strong: #cbd1da;
-  --v-ink-1: #14171c; --v-ink-2: #5b6472; --v-ink-3: #8a93a1;
-  --v-accent: #4c4ad9; --v-accent-hover: #3e3cc6; --v-accent-ink: #ffffff; --v-accent-text: #4441cf;
-  --v-accent-soft: #ecebfb; --v-accent-line: #c9c8f3; --v-ring: #4c4ad9;
-  --v-brand-a: #4c4ad9; --v-brand-b: #6a5ae0;
-  --v-brand-grad: linear-gradient(135deg, var(--v-brand-a), var(--v-brand-b));
-  --v-halo: radial-gradient(900px 420px at 18% -8%, rgb(76 74 217 / .13), transparent 70%);
-  --v-success: #045a26; --v-success-soft: #e6f0ea; --v-danger: #a91408; --v-danger-soft: #f8e8e6;
-  --v-warning: #684800; --v-warning-soft: #f3ede0; --v-info: #07517d; --v-info-soft: #e6eef3;
-  --v-shadow-1: 0 1px 2px rgb(20 23 28 / .04), 0 4px 16px rgb(20 23 28 / .05);
-  --v-shadow-2: 0 2px 6px rgb(20 23 28 / .06), 0 16px 40px rgb(20 23 28 / .08);
-  --v-shadow-brand: 0 10px 30px rgb(76 74 217 / .28);
-  --v-skeleton: #eaecf1; --v-skeleton-hi: #f6f7f9;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --v-canvas: #0c0e12; --v-surface: #15181d; --v-surface-raised: #1b1f26; --v-glass: rgb(21 24 29 / .72);
-    --v-btn: #1b1f26; --v-hover: #1a1e24; --v-line: #262b33; --v-line-soft: #1f242b; --v-line-strong: #353c47;
-    --v-ink-1: #eceef2; --v-ink-2: #9aa3b1; --v-ink-3: #687180;
-    --v-accent: #5f62ee; --v-accent-hover: #7477f2; --v-accent-ink: #ffffff; --v-accent-text: #9b9ffc;
-    --v-accent-soft: #1f2140; --v-accent-line: #34376a; --v-ring: #9b9ffc;
-    --v-brand-a: #4f52e0; --v-brand-b: #6c5ee6;
-    --v-halo: radial-gradient(900px 420px at 18% -8%, rgb(95 98 238 / .22), transparent 70%);
-    --v-success: #5cbd8e; --v-success-soft: #1a2a23; --v-danger: #ef8078; --v-danger-soft: #2f1f1f;
-    --v-warning: #dfae4d; --v-warning-soft: #2c261a; --v-info: #74b6d6; --v-info-soft: #1a262d;
-    --v-shadow-1: 0 1px 2px rgb(0 0 0 / .4), 0 4px 16px rgb(0 0 0 / .32);
-    --v-shadow-2: 0 2px 6px rgb(0 0 0 / .4), 0 18px 48px rgb(0 0 0 / .5);
-    --v-shadow-brand: 0 10px 30px rgb(95 98 238 / .32);
-    --v-skeleton: #1f242b; --v-skeleton-hi: #262b33;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --v-canvas: #0c0e12; --v-surface: #15181d; --v-surface-raised: #1b1f26; --v-glass: rgb(21 24 29 / .72);
-  --v-btn: #1b1f26; --v-hover: #1a1e24; --v-line: #262b33; --v-line-soft: #1f242b; --v-line-strong: #353c47;
-  --v-ink-1: #eceef2; --v-ink-2: #9aa3b1; --v-ink-3: #687180;
-  --v-accent: #5f62ee; --v-accent-hover: #7477f2; --v-accent-ink: #ffffff; --v-accent-text: #9b9ffc;
-  --v-accent-soft: #1f2140; --v-accent-line: #34376a; --v-ring: #9b9ffc;
-  --v-brand-a: #4f52e0; --v-brand-b: #6c5ee6;
-  --v-halo: radial-gradient(900px 420px at 18% -8%, rgb(95 98 238 / .22), transparent 70%);
-  --v-success: #5cbd8e; --v-success-soft: #1a2a23; --v-danger: #ef8078; --v-danger-soft: #2f1f1f;
-  --v-warning: #dfae4d; --v-warning-soft: #2c261a; --v-info: #74b6d6; --v-info-soft: #1a262d;
-  --v-shadow-1: 0 1px 2px rgb(0 0 0 / .4), 0 4px 16px rgb(0 0 0 / .32);
-  --v-shadow-2: 0 2px 6px rgb(0 0 0 / .4), 0 18px 48px rgb(0 0 0 / .5);
-  --v-shadow-brand: 0 10px 30px rgb(95 98 238 / .32);
-  --v-skeleton: #1f242b; --v-skeleton-hi: #262b33;
-  color-scheme: dark;
-}
+				--v-canvas: #f3f4f7;
+				--v-surface: #ffffff;
+				--v-surface-raised: #ffffff;
+				--v-glass: rgb(255 255 255 / 0.72);
+				--v-btn: #eef0f4;
+				--v-hover: #f5f6f9;
+				--v-line: #e3e6ec;
+				--v-line-soft: #edeff3;
+				--v-line-strong: #cbd1da;
+				--v-ink-1: #14171c;
+				--v-ink-2: #5b6472;
+				--v-ink-3: #8a93a1;
+				--v-accent: #4c4ad9;
+				--v-accent-hover: #3e3cc6;
+				--v-accent-ink: #ffffff;
+				--v-accent-text: #4441cf;
+				--v-accent-soft: #ecebfb;
+				--v-accent-line: #c9c8f3;
+				--v-ring: #4c4ad9;
+				--v-brand-a: #4c4ad9;
+				--v-brand-b: #6a5ae0;
+				--v-brand-grad: linear-gradient(135deg, var(--v-brand-a), var(--v-brand-b));
+				--v-halo: radial-gradient(900px 420px at 18% -8%, rgb(76 74 217 / 0.13), transparent 70%);
+				--v-success: #045a26;
+				--v-success-soft: #e6f0ea;
+				--v-danger: #a91408;
+				--v-danger-soft: #f8e8e6;
+				--v-warning: #684800;
+				--v-warning-soft: #f3ede0;
+				--v-info: #07517d;
+				--v-info-soft: #e6eef3;
+				--v-shadow-1: 0 1px 2px rgb(20 23 28 / 0.04), 0 4px 16px rgb(20 23 28 / 0.05);
+				--v-shadow-2: 0 2px 6px rgb(20 23 28 / 0.06), 0 16px 40px rgb(20 23 28 / 0.08);
+				--v-shadow-brand: 0 10px 30px rgb(76 74 217 / 0.28);
+				--v-skeleton: #eaecf1;
+				--v-skeleton-hi: #f6f7f9;
+				color-scheme: light;
+			}
+			@media (prefers-color-scheme: dark) {
+				:root:not([data-theme='light']) {
+					--v-canvas: #0c0e12;
+					--v-surface: #15181d;
+					--v-surface-raised: #1b1f26;
+					--v-glass: rgb(21 24 29 / 0.72);
+					--v-btn: #1b1f26;
+					--v-hover: #1a1e24;
+					--v-line: #262b33;
+					--v-line-soft: #1f242b;
+					--v-line-strong: #353c47;
+					--v-ink-1: #eceef2;
+					--v-ink-2: #9aa3b1;
+					--v-ink-3: #687180;
+					--v-accent: #5f62ee;
+					--v-accent-hover: #7477f2;
+					--v-accent-ink: #ffffff;
+					--v-accent-text: #9b9ffc;
+					--v-accent-soft: #1f2140;
+					--v-accent-line: #34376a;
+					--v-ring: #9b9ffc;
+					--v-brand-a: #4f52e0;
+					--v-brand-b: #6c5ee6;
+					--v-halo: radial-gradient(900px 420px at 18% -8%, rgb(95 98 238 / 0.22), transparent 70%);
+					--v-success: #5cbd8e;
+					--v-success-soft: #1a2a23;
+					--v-danger: #ef8078;
+					--v-danger-soft: #2f1f1f;
+					--v-warning: #dfae4d;
+					--v-warning-soft: #2c261a;
+					--v-info: #74b6d6;
+					--v-info-soft: #1a262d;
+					--v-shadow-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.32);
+					--v-shadow-2: 0 2px 6px rgb(0 0 0 / 0.4), 0 18px 48px rgb(0 0 0 / 0.5);
+					--v-shadow-brand: 0 10px 30px rgb(95 98 238 / 0.32);
+					--v-skeleton: #1f242b;
+					--v-skeleton-hi: #262b33;
+					color-scheme: dark;
+				}
+			}
+			:root[data-theme='dark'] {
+				--v-canvas: #0c0e12;
+				--v-surface: #15181d;
+				--v-surface-raised: #1b1f26;
+				--v-glass: rgb(21 24 29 / 0.72);
+				--v-btn: #1b1f26;
+				--v-hover: #1a1e24;
+				--v-line: #262b33;
+				--v-line-soft: #1f242b;
+				--v-line-strong: #353c47;
+				--v-ink-1: #eceef2;
+				--v-ink-2: #9aa3b1;
+				--v-ink-3: #687180;
+				--v-accent: #5f62ee;
+				--v-accent-hover: #7477f2;
+				--v-accent-ink: #ffffff;
+				--v-accent-text: #9b9ffc;
+				--v-accent-soft: #1f2140;
+				--v-accent-line: #34376a;
+				--v-ring: #9b9ffc;
+				--v-brand-a: #4f52e0;
+				--v-brand-b: #6c5ee6;
+				--v-halo: radial-gradient(900px 420px at 18% -8%, rgb(95 98 238 / 0.22), transparent 70%);
+				--v-success: #5cbd8e;
+				--v-success-soft: #1a2a23;
+				--v-danger: #ef8078;
+				--v-danger-soft: #2f1f1f;
+				--v-warning: #dfae4d;
+				--v-warning-soft: #2c261a;
+				--v-info: #74b6d6;
+				--v-info-soft: #1a262d;
+				--v-shadow-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.32);
+				--v-shadow-2: 0 2px 6px rgb(0 0 0 / 0.4), 0 18px 48px rgb(0 0 0 / 0.5);
+				--v-shadow-brand: 0 10px 30px rgb(95 98 238 / 0.32);
+				--v-skeleton: #1f242b;
+				--v-skeleton-hi: #262b33;
+				color-scheme: dark;
+			}
 
-/* ===================== Base ===================== */
-* { box-sizing: border-box; }
-html, body { margin: 0; }
-body { font-family: var(--v-font-sans); font-size: var(--v-fs-14); line-height: 1.45; color: var(--v-ink-1); background: var(--v-canvas); -webkit-font-smoothing: antialiased; }
-:focus-visible { outline: 2px solid var(--v-ring); outline-offset: 2px; border-radius: 6px; }
-button, a { font: inherit; } button { cursor: pointer; }
-svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.display { font-family: var(--v-font-display); font-variation-settings: "opsz" 96; letter-spacing: -.03em; }
-.mono { font-family: var(--v-font-mono); font-feature-settings: "tnum" 1; }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; } }
+			/* ===================== Base ===================== */
+			* {
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				margin: 0;
+			}
+			body {
+				font-family: var(--v-font-sans);
+				font-size: var(--v-fs-14);
+				line-height: 1.45;
+				color: var(--v-ink-1);
+				background: var(--v-canvas);
+				-webkit-font-smoothing: antialiased;
+			}
+			:focus-visible {
+				outline: 2px solid var(--v-ring);
+				outline-offset: 2px;
+				border-radius: 6px;
+			}
+			button,
+			a {
+				font: inherit;
+			}
+			button {
+				cursor: pointer;
+			}
+			svg.i {
+				width: 16px;
+				height: 16px;
+				flex: none;
+				stroke: currentColor;
+				fill: none;
+				stroke-width: 1.6;
+				stroke-linecap: round;
+				stroke-linejoin: round;
+			}
+			.display {
+				font-family: var(--v-font-display);
+				font-variation-settings: 'opsz' 96;
+				letter-spacing: -0.03em;
+			}
+			.mono {
+				font-family: var(--v-font-mono);
+				font-feature-settings: 'tnum' 1;
+			}
+			@media (prefers-reduced-motion: reduce) {
+				*,
+				*::before,
+				*::after {
+					animation-duration: 0.001ms !important;
+					animation-iteration-count: 1 !important;
+					transition-duration: 0.001ms !important;
+				}
+			}
 
-/* ===================== Chrome de la LÁMINA ===================== */
-.lam { max-width: 1480px; margin: 0 auto; padding: 0 var(--v-sp-5) var(--v-sp-12); }
-.lam-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--v-sp-3); padding: var(--v-sp-5) 0 var(--v-sp-4); border-bottom: 1px solid var(--v-line); margin-bottom: var(--v-sp-6); }
-.lam-head h1 { font-size: var(--v-fs-17); font-weight: 600; margin: 0; letter-spacing: -.01em; }
-.lam-head .meta { color: var(--v-ink-2); font-size: var(--v-fs-13); } .lam-head .spacer { flex: 1; }
-.seg { display: inline-flex; border: 1px solid var(--v-line); border-radius: var(--v-r-sm); overflow: hidden; background: var(--v-surface); }
-.seg button { border: 0; background: transparent; color: var(--v-ink-2); padding: 6px 12px; font-size: var(--v-fs-13); font-weight: 500; }
-.seg button + button { border-left: 1px solid var(--v-line); }
-.seg button[aria-pressed="true"] { background: var(--v-ink-1); color: var(--v-canvas); }
-.lam h2.sec { font-size: var(--v-fs-13); font-weight: 500; color: var(--v-ink-2); text-transform: uppercase; letter-spacing: .08em; margin: var(--v-sp-12) 0 var(--v-sp-3); }
-.lam h2.sec span { color: var(--v-ink-3); font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 8px; }
-.lam p.lead { max-width: 76ch; color: var(--v-ink-2); margin: 0 0 var(--v-sp-5); }
-.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--v-sp-3); margin-top: var(--v-sp-4); }
-.note { background: var(--v-surface); border: 1px solid var(--v-line); border-radius: var(--v-r-md); padding: var(--v-sp-4); font-size: var(--v-fs-13); color: var(--v-ink-2); }
-.note b { display: block; color: var(--v-ink-1); font-weight: 600; margin-bottom: 4px; }
-.states { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--v-sp-5); }
-@media (max-width: 480px) { .states { grid-template-columns: 1fr; } }
-.state { min-width: 0; } .state.wide { grid-column: 1 / -1; }
-.state > h3 { font-size: var(--v-fs-14); font-weight: 600; margin: 0 0 var(--v-sp-2); } .state > h3 small { font-weight: 400; color: var(--v-ink-2); margin-left: 6px; }
-.state > p { font-size: var(--v-fs-13); color: var(--v-ink-2); margin: 0 0 var(--v-sp-3); max-width: 64ch; }
-.panel { background: var(--v-canvas); background-image: var(--v-halo); border: 1px solid var(--v-line); border-radius: var(--v-r-lg); padding: var(--v-sp-6); min-width: 0; }
-.prop { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; color: var(--v-warning); background: var(--v-warning-soft); border-radius: 999px; padding: 1px 8px; vertical-align: middle; }
-table.spec { width: 100%; border-collapse: collapse; font-size: var(--v-fs-13); background: var(--v-surface); border: 1px solid var(--v-line); border-radius: var(--v-r-sm); overflow: hidden; }
-table.spec th, table.spec td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--v-line); vertical-align: top; }
-table.spec th { font-weight: 500; color: var(--v-ink-2); background: var(--v-canvas); } table.spec tr:last-child td { border-bottom: 0; }
-table.spec code, .note code, .state code { font-family: var(--v-font-mono); font-size: 12px; color: var(--v-ink-1); }
-.ok { color: var(--v-success); font-weight: 500; } .gap { color: var(--v-warning); font-weight: 500; } .ko { color: var(--v-danger); font-weight: 500; }
-.tbl-wrap { overflow-x: auto; border-radius: var(--v-r-sm); }
-.check { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--v-sp-2); }
-.check li { background: var(--v-surface); border: 1px solid var(--v-line); border-radius: var(--v-r-sm); padding: 10px 14px; font-size: var(--v-fs-13); display: grid; grid-template-columns: 110px 1fr; gap: 12px; }
-@media (max-width: 560px) { .check li { grid-template-columns: 1fr; } }
-.frame { border: 1px solid var(--v-line-strong); border-radius: var(--v-r-lg); overflow: hidden; background: var(--v-canvas); box-shadow: var(--v-shadow-1); width: 100%; max-width: 1440px; margin: 0 auto; }
-.frame.phone { max-width: 390px; margin: 0; }
+			/* ===================== Chrome de la LÁMINA ===================== */
+			.lam {
+				max-width: 1480px;
+				margin: 0 auto;
+				padding: 0 var(--v-sp-5) var(--v-sp-12);
+			}
+			.lam-head {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: var(--v-sp-3);
+				padding: var(--v-sp-5) 0 var(--v-sp-4);
+				border-bottom: 1px solid var(--v-line);
+				margin-bottom: var(--v-sp-6);
+			}
+			.lam-head h1 {
+				font-size: var(--v-fs-17);
+				font-weight: 600;
+				margin: 0;
+				letter-spacing: -0.01em;
+			}
+			.lam-head .meta {
+				color: var(--v-ink-2);
+				font-size: var(--v-fs-13);
+			}
+			.lam-head .spacer {
+				flex: 1;
+			}
+			.seg {
+				display: inline-flex;
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-sm);
+				overflow: hidden;
+				background: var(--v-surface);
+			}
+			.seg button {
+				border: 0;
+				background: transparent;
+				color: var(--v-ink-2);
+				padding: 6px 12px;
+				font-size: var(--v-fs-13);
+				font-weight: 500;
+			}
+			.seg button + button {
+				border-left: 1px solid var(--v-line);
+			}
+			.seg button[aria-pressed='true'] {
+				background: var(--v-ink-1);
+				color: var(--v-canvas);
+			}
+			.lam h2.sec {
+				font-size: var(--v-fs-13);
+				font-weight: 500;
+				color: var(--v-ink-2);
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+				margin: var(--v-sp-12) 0 var(--v-sp-3);
+			}
+			.lam h2.sec span {
+				color: var(--v-ink-3);
+				font-weight: 400;
+				text-transform: none;
+				letter-spacing: 0;
+				margin-left: 8px;
+			}
+			.lam p.lead {
+				max-width: 76ch;
+				color: var(--v-ink-2);
+				margin: 0 0 var(--v-sp-5);
+			}
+			.notes {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+				gap: var(--v-sp-3);
+				margin-top: var(--v-sp-4);
+			}
+			.note {
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-md);
+				padding: var(--v-sp-4);
+				font-size: var(--v-fs-13);
+				color: var(--v-ink-2);
+			}
+			.note b {
+				display: block;
+				color: var(--v-ink-1);
+				font-weight: 600;
+				margin-bottom: 4px;
+			}
+			.states {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+				gap: var(--v-sp-5);
+			}
+			@media (max-width: 480px) {
+				.states {
+					grid-template-columns: 1fr;
+				}
+			}
+			.state {
+				min-width: 0;
+			}
+			.state.wide {
+				grid-column: 1 / -1;
+			}
+			.state > h3 {
+				font-size: var(--v-fs-14);
+				font-weight: 600;
+				margin: 0 0 var(--v-sp-2);
+			}
+			.state > h3 small {
+				font-weight: 400;
+				color: var(--v-ink-2);
+				margin-left: 6px;
+			}
+			.state > p {
+				font-size: var(--v-fs-13);
+				color: var(--v-ink-2);
+				margin: 0 0 var(--v-sp-3);
+				max-width: 64ch;
+			}
+			.panel {
+				background: var(--v-canvas);
+				background-image: var(--v-halo);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-lg);
+				padding: var(--v-sp-6);
+				min-width: 0;
+			}
+			.prop {
+				display: inline-flex;
+				align-items: center;
+				gap: 4px;
+				font-size: 11px;
+				font-weight: 500;
+				color: var(--v-warning);
+				background: var(--v-warning-soft);
+				border-radius: 999px;
+				padding: 1px 8px;
+				vertical-align: middle;
+			}
+			table.spec {
+				width: 100%;
+				border-collapse: collapse;
+				font-size: var(--v-fs-13);
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-sm);
+				overflow: hidden;
+			}
+			table.spec th,
+			table.spec td {
+				text-align: left;
+				padding: 9px 12px;
+				border-bottom: 1px solid var(--v-line);
+				vertical-align: top;
+			}
+			table.spec th {
+				font-weight: 500;
+				color: var(--v-ink-2);
+				background: var(--v-canvas);
+			}
+			table.spec tr:last-child td {
+				border-bottom: 0;
+			}
+			table.spec code,
+			.note code,
+			.state code {
+				font-family: var(--v-font-mono);
+				font-size: 12px;
+				color: var(--v-ink-1);
+			}
+			.ok {
+				color: var(--v-success);
+				font-weight: 500;
+			}
+			.gap {
+				color: var(--v-warning);
+				font-weight: 500;
+			}
+			.ko {
+				color: var(--v-danger);
+				font-weight: 500;
+			}
+			.tbl-wrap {
+				overflow-x: auto;
+				border-radius: var(--v-r-sm);
+			}
+			.check {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				display: grid;
+				gap: var(--v-sp-2);
+			}
+			.check li {
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-sm);
+				padding: 10px 14px;
+				font-size: var(--v-fs-13);
+				display: grid;
+				grid-template-columns: 110px 1fr;
+				gap: 12px;
+			}
+			@media (max-width: 560px) {
+				.check li {
+					grid-template-columns: 1fr;
+				}
+			}
+			.frame {
+				border: 1px solid var(--v-line-strong);
+				border-radius: var(--v-r-lg);
+				overflow: hidden;
+				background: var(--v-canvas);
+				box-shadow: var(--v-shadow-1);
+				width: 100%;
+				max-width: 1440px;
+				margin: 0 auto;
+			}
+			.frame.phone {
+				max-width: 390px;
+				margin: 0;
+			}
 
-/* =====================================================================
+			/* =====================================================================
    PRODUCTO v2
    ===================================================================== */
-.shell { container: shell / inline-size; display: flex; flex-direction: column; min-height: 100%; background: var(--v-canvas); background-image: var(--v-halo); background-repeat: no-repeat; }
+			.shell {
+				container: shell / inline-size;
+				display: flex;
+				flex-direction: column;
+				min-height: 100%;
+				background: var(--v-canvas);
+				background-image: var(--v-halo);
+				background-repeat: no-repeat;
+			}
 
-/* ---- Barra superior translúcida ---- */
-.topbar { position: sticky; top: 0; z-index: 5; height: var(--v-topbar-h); display: flex; align-items: center; gap: var(--v-sp-3); padding: 0 var(--v-sp-5); background: var(--v-glass); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); border-bottom: 1px solid var(--v-line); }
-.brand { display: inline-flex; align-items: center; gap: 9px; color: var(--v-ink-1); text-decoration: none; font-family: var(--v-font-display); font-weight: 700; font-size: var(--v-fs-17); letter-spacing: -.02em; padding: 4px 6px 4px 2px; border-radius: var(--v-r-sm); }
-.brand .mark { width: 26px; height: 26px; border-radius: 8px; background: var(--v-brand-grad); color: #fff; display: inline-grid; place-items: center; box-shadow: 0 2px 8px rgb(76 74 217 / .35); }
-.brand .mark svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
-.site { display: inline-flex; align-items: center; gap: 6px; font-size: var(--v-fs-13); color: var(--v-ink-2); font-weight: 500; padding-left: 10px; border-left: 1px solid var(--v-line); margin-left: 2px; }
-.cmd { flex: 0 1 560px; margin-inline: auto; display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px 0 14px; border: 1px solid var(--v-line); border-radius: var(--v-r-pill); background: var(--v-surface); color: var(--v-ink-3); font-size: var(--v-fs-13); box-shadow: var(--v-shadow-1); transition: box-shadow .15s, border-color .15s; }
-.cmd:hover { border-color: var(--v-accent-line); box-shadow: 0 0 0 4px var(--v-accent-soft); }
-.cmd .k { margin-left: auto; font-family: var(--v-font-mono); font-size: 11px; color: var(--v-ink-2); border: 1px solid var(--v-line); border-radius: 6px; padding: 1px 6px; background: var(--v-btn); }
-.cmd .k + .k { margin-left: 0; }
-.conn { display: inline-flex; align-items: center; gap: 7px; font-size: var(--v-fs-13); color: var(--v-ink-2); }
-.conn i { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--v-success); }
-.conn i::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--v-success); opacity: 0; animation: pulse 2.4s ease-out infinite; }
-@keyframes pulse { 0% { transform: scale(.5); opacity: .7; } 100% { transform: scale(1.25); opacity: 0; } }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 36px; padding: 0 16px; border-radius: var(--v-r-pill); border: 1px solid var(--v-line); background: var(--v-surface); color: var(--v-ink-1); font-size: var(--v-fs-13); font-weight: 500; text-decoration: none; white-space: nowrap; }
-.btn:hover { background: var(--v-btn); border-color: var(--v-line-strong); }
-.btn.primary { background: var(--v-brand-grad); border-color: transparent; color: var(--v-accent-ink); box-shadow: 0 1px 2px rgb(76 74 217 / .3); }
-.btn.primary:hover { filter: brightness(1.06); }
-.btn.onbrand { background: rgb(255 255 255 / .96); border-color: transparent; color: var(--v-brand-a); font-weight: 600; }
-.btn.quiet { border-color: transparent; background: transparent; color: var(--v-ink-2); }
-.btn.quiet:hover { background: var(--v-btn); color: var(--v-ink-1); }
-.iconbtn { width: 36px; height: 36px; padding: 0; display: none; }
-.avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--v-accent-soft); color: var(--v-accent-text); font-weight: 600; font-size: 12px; display: inline-grid; place-items: center; border: 1px solid var(--v-accent-line); }
+			/* ---- Barra superior translúcida ---- */
+			.topbar {
+				position: sticky;
+				top: 0;
+				z-index: 5;
+				height: var(--v-topbar-h);
+				display: flex;
+				align-items: center;
+				gap: var(--v-sp-3);
+				padding: 0 var(--v-sp-5);
+				background: var(--v-glass);
+				backdrop-filter: blur(18px) saturate(1.4);
+				-webkit-backdrop-filter: blur(18px) saturate(1.4);
+				border-bottom: 1px solid var(--v-line);
+			}
+			.brand {
+				display: inline-flex;
+				align-items: center;
+				gap: 9px;
+				color: var(--v-ink-1);
+				text-decoration: none;
+				font-family: var(--v-font-display);
+				font-weight: 700;
+				font-size: var(--v-fs-17);
+				letter-spacing: -0.02em;
+				padding: 4px 6px 4px 2px;
+				border-radius: var(--v-r-sm);
+			}
+			.brand .mark {
+				width: 26px;
+				height: 26px;
+				border-radius: 8px;
+				background: var(--v-brand-grad);
+				color: #fff;
+				display: inline-grid;
+				place-items: center;
+				box-shadow: 0 2px 8px rgb(76 74 217 / 0.35);
+			}
+			.brand .mark svg {
+				width: 14px;
+				height: 14px;
+				fill: currentColor;
+				stroke: none;
+			}
+			.site {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				font-size: var(--v-fs-13);
+				color: var(--v-ink-2);
+				font-weight: 500;
+				padding-left: 10px;
+				border-left: 1px solid var(--v-line);
+				margin-left: 2px;
+			}
+			.cmd {
+				flex: 0 1 560px;
+				margin-inline: auto;
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				height: 38px;
+				padding: 0 10px 0 14px;
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-pill);
+				background: var(--v-surface);
+				color: var(--v-ink-3);
+				font-size: var(--v-fs-13);
+				box-shadow: var(--v-shadow-1);
+				transition:
+					box-shadow 0.15s,
+					border-color 0.15s;
+			}
+			.cmd:hover {
+				border-color: var(--v-accent-line);
+				box-shadow: 0 0 0 4px var(--v-accent-soft);
+			}
+			.cmd .k {
+				margin-left: auto;
+				font-family: var(--v-font-mono);
+				font-size: 11px;
+				color: var(--v-ink-2);
+				border: 1px solid var(--v-line);
+				border-radius: 6px;
+				padding: 1px 6px;
+				background: var(--v-btn);
+			}
+			.cmd .k + .k {
+				margin-left: 0;
+			}
+			.conn {
+				display: inline-flex;
+				align-items: center;
+				gap: 7px;
+				font-size: var(--v-fs-13);
+				color: var(--v-ink-2);
+			}
+			.conn i {
+				position: relative;
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: var(--v-success);
+			}
+			.conn i::after {
+				content: '';
+				position: absolute;
+				inset: -4px;
+				border-radius: 50%;
+				border: 1.5px solid var(--v-success);
+				opacity: 0;
+				animation: pulse 2.4s ease-out infinite;
+			}
+			@keyframes pulse {
+				0% {
+					transform: scale(0.5);
+					opacity: 0.7;
+				}
+				100% {
+					transform: scale(1.25);
+					opacity: 0;
+				}
+			}
+			.btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				gap: 7px;
+				height: 36px;
+				padding: 0 16px;
+				border-radius: var(--v-r-pill);
+				border: 1px solid var(--v-line);
+				background: var(--v-surface);
+				color: var(--v-ink-1);
+				font-size: var(--v-fs-13);
+				font-weight: 500;
+				text-decoration: none;
+				white-space: nowrap;
+			}
+			.btn:hover {
+				background: var(--v-btn);
+				border-color: var(--v-line-strong);
+			}
+			.btn.primary {
+				background: var(--v-brand-grad);
+				border-color: transparent;
+				color: var(--v-accent-ink);
+				box-shadow: 0 1px 2px rgb(76 74 217 / 0.3);
+			}
+			.btn.primary:hover {
+				filter: brightness(1.06);
+			}
+			.btn.onbrand {
+				background: rgb(255 255 255 / 0.96);
+				border-color: transparent;
+				color: var(--v-brand-a);
+				font-weight: 600;
+			}
+			.btn.quiet {
+				border-color: transparent;
+				background: transparent;
+				color: var(--v-ink-2);
+			}
+			.btn.quiet:hover {
+				background: var(--v-btn);
+				color: var(--v-ink-1);
+			}
+			.iconbtn {
+				width: 36px;
+				height: 36px;
+				padding: 0;
+				display: none;
+			}
+			.avatar {
+				width: 32px;
+				height: 32px;
+				border-radius: 50%;
+				background: var(--v-accent-soft);
+				color: var(--v-accent-text);
+				font-weight: 600;
+				font-size: 12px;
+				display: inline-grid;
+				place-items: center;
+				border: 1px solid var(--v-accent-line);
+			}
 
-/* ---- Cuerpo: menú flotante + contenido ---- */
-.body { display: grid; grid-template-columns: var(--v-sidebar-w) minmax(0, 1fr); gap: var(--v-inset); padding: var(--v-inset); flex: 1; align-items: start; }
-.sidebar { position: sticky; top: calc(var(--v-topbar-h) + var(--v-inset)); background: var(--v-glass); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--v-line); border-radius: var(--v-r-md); box-shadow: var(--v-shadow-1); padding: var(--v-sp-3); display: flex; flex-direction: column; gap: var(--v-sp-4); min-height: calc(100vh - var(--v-topbar-h) - var(--v-inset) * 2); }
-.navgroup h3 { margin: 0 0 4px 12px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--v-ink-3); }
-.navgroup ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.navgroup a { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 12px; border-radius: var(--v-r-sm); color: var(--v-ink-2); text-decoration: none; font-size: var(--v-fs-14); font-weight: 500; }
-.navgroup a svg { color: var(--v-ink-3); } .navgroup a:hover { background: var(--v-surface); color: var(--v-ink-1); box-shadow: var(--v-shadow-1); }
-.navgroup a .badge { margin-left: auto; font-family: var(--v-font-mono); font-size: 11px; color: var(--v-warning); background: var(--v-warning-soft); border-radius: 999px; padding: 0 7px; line-height: 18px; }
-.sidebar .sys { margin-top: auto; padding-top: var(--v-sp-3); border-top: 1px solid var(--v-line-soft); }
+			/* ---- Cuerpo: menú flotante + contenido ---- */
+			.body {
+				display: grid;
+				grid-template-columns: var(--v-sidebar-w) minmax(0, 1fr);
+				gap: var(--v-inset);
+				padding: var(--v-inset);
+				flex: 1;
+				align-items: start;
+			}
+			.sidebar {
+				position: sticky;
+				top: calc(var(--v-topbar-h) + var(--v-inset));
+				background: var(--v-glass);
+				backdrop-filter: blur(18px);
+				-webkit-backdrop-filter: blur(18px);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-md);
+				box-shadow: var(--v-shadow-1);
+				padding: var(--v-sp-3);
+				display: flex;
+				flex-direction: column;
+				gap: var(--v-sp-4);
+				min-height: calc(100vh - var(--v-topbar-h) - var(--v-inset) * 2);
+			}
+			.navgroup h3 {
+				margin: 0 0 4px 12px;
+				font-size: 11px;
+				font-weight: 600;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				color: var(--v-ink-3);
+			}
+			.navgroup ul {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+				display: grid;
+				gap: 2px;
+			}
+			.navgroup a {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				height: 36px;
+				padding: 0 12px;
+				border-radius: var(--v-r-sm);
+				color: var(--v-ink-2);
+				text-decoration: none;
+				font-size: var(--v-fs-14);
+				font-weight: 500;
+			}
+			.navgroup a svg {
+				color: var(--v-ink-3);
+			}
+			.navgroup a:hover {
+				background: var(--v-surface);
+				color: var(--v-ink-1);
+				box-shadow: var(--v-shadow-1);
+			}
+			.navgroup a .badge {
+				margin-left: auto;
+				font-family: var(--v-font-mono);
+				font-size: 11px;
+				color: var(--v-warning);
+				background: var(--v-warning-soft);
+				border-radius: 999px;
+				padding: 0 7px;
+				line-height: 18px;
+			}
+			.sidebar .sys {
+				margin-top: auto;
+				padding-top: var(--v-sp-3);
+				border-top: 1px solid var(--v-line-soft);
+			}
 
-.content { padding: var(--v-sp-6) var(--v-sp-6) var(--v-sp-12); min-width: 0; }
-.home { max-width: 1160px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--v-sp-6); }
+			.content {
+				padding: var(--v-sp-6) var(--v-sp-6) var(--v-sp-12);
+				min-width: 0;
+			}
+			.home {
+				max-width: 1160px;
+				margin: 0 auto;
+				display: flex;
+				flex-direction: column;
+				gap: var(--v-sp-6);
+			}
 
-/* Cabecera display */
-.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--v-sp-5); flex-wrap: wrap; padding-top: var(--v-sp-3); }
-.hero h1 { margin: 0; font-family: var(--v-font-display); font-variation-settings: "opsz" 96; font-weight: 600; font-size: var(--v-fs-44); line-height: 1.02; letter-spacing: -.035em; }
-.hero h1 em { font-style: normal; color: var(--v-accent-text); }
-.hero .sub { margin: 10px 0 0; color: var(--v-ink-2); font-size: var(--v-fs-14); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.create { display: flex; align-items: center; flex-wrap: wrap; gap: var(--v-sp-2); }
-.create .lbl { font-size: var(--v-fs-13); font-weight: 500; color: var(--v-ink-2); margin-right: 2px; }
-.chip { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px 0 6px; border-radius: var(--v-r-pill); border: 1px solid var(--v-line); background: var(--v-surface); color: var(--v-ink-1); font-size: var(--v-fs-13); font-weight: 500; box-shadow: var(--v-shadow-1); }
-.chip .ic { width: 26px; height: 26px; border-radius: 50%; background: var(--v-accent-soft); color: var(--v-accent-text); display: inline-grid; place-items: center; }
-.chip .ic svg { width: 14px; height: 14px; }
-.chip:hover { border-color: var(--v-accent-line); box-shadow: 0 0 0 4px var(--v-accent-soft); }
+			/* Cabecera display */
+			.hero {
+				display: flex;
+				align-items: flex-end;
+				justify-content: space-between;
+				gap: var(--v-sp-5);
+				flex-wrap: wrap;
+				padding-top: var(--v-sp-3);
+			}
+			.hero h1 {
+				margin: 0;
+				font-family: var(--v-font-display);
+				font-variation-settings: 'opsz' 96;
+				font-weight: 600;
+				font-size: var(--v-fs-44);
+				line-height: 1.02;
+				letter-spacing: -0.035em;
+			}
+			.hero h1 em {
+				font-style: normal;
+				color: var(--v-accent-text);
+			}
+			.hero .sub {
+				margin: 10px 0 0;
+				color: var(--v-ink-2);
+				font-size: var(--v-fs-14);
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+				align-items: center;
+			}
+			.create {
+				display: flex;
+				align-items: center;
+				flex-wrap: wrap;
+				gap: var(--v-sp-2);
+			}
+			.create .lbl {
+				font-size: var(--v-fs-13);
+				font-weight: 500;
+				color: var(--v-ink-2);
+				margin-right: 2px;
+			}
+			.chip {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+				height: 38px;
+				padding: 0 14px 0 6px;
+				border-radius: var(--v-r-pill);
+				border: 1px solid var(--v-line);
+				background: var(--v-surface);
+				color: var(--v-ink-1);
+				font-size: var(--v-fs-13);
+				font-weight: 500;
+				box-shadow: var(--v-shadow-1);
+			}
+			.chip .ic {
+				width: 26px;
+				height: 26px;
+				border-radius: 50%;
+				background: var(--v-accent-soft);
+				color: var(--v-accent-text);
+				display: inline-grid;
+				place-items: center;
+			}
+			.chip .ic svg {
+				width: 14px;
+				height: 14px;
+			}
+			.chip:hover {
+				border-color: var(--v-accent-line);
+				box-shadow: 0 0 0 4px var(--v-accent-soft);
+			}
 
-/* Bento */
-.bento { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: var(--v-sp-4); align-items: stretch; }
-.card { background: var(--v-surface); border: 1px solid var(--v-line); border-radius: var(--v-r-md); box-shadow: var(--v-shadow-1); min-width: 0; }
+			/* Bento */
+			.bento {
+				display: grid;
+				grid-template-columns: 360px minmax(0, 1fr);
+				gap: var(--v-sp-4);
+				align-items: stretch;
+			}
+			.card {
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-md);
+				box-shadow: var(--v-shadow-1);
+				min-width: 0;
+			}
 
-/* Tarjeta de marca: cambios sin publicar */
-.brandcard { position: relative; overflow: hidden; border-radius: var(--v-r-md); background: var(--v-brand-grad); color: #fff; padding: var(--v-sp-5); display: flex; flex-direction: column; gap: var(--v-sp-3); box-shadow: var(--v-shadow-brand); min-height: 220px; }
-.brandcard::before { content: ""; position: absolute; inset: auto -40px -60px auto; width: 240px; height: 240px; border-radius: 50%; background: rgb(255 255 255 / .12); filter: blur(2px); }
-.brandcard .eyebrow { font-size: var(--v-fs-12); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .85; display: flex; align-items: center; gap: 8px; }
-.brandcard .eyebrow i { width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgb(255 255 255 / .3); }
-.brandcard h2 { margin: 0; font-family: var(--v-font-display); font-variation-settings: "opsz" 96; font-weight: 600; font-size: var(--v-fs-28); line-height: 1.05; letter-spacing: -.03em; }
-.brandcard p { margin: 0; font-size: var(--v-fs-13); color: #fff; }
-.brandcard .acts { margin-top: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; position: relative; }
-.brandcard.calm { background: var(--v-surface); color: var(--v-ink-1); box-shadow: var(--v-shadow-1); border: 1px solid var(--v-line); }
-.brandcard.calm::before { display: none; }
-.brandcard.calm .eyebrow { color: var(--v-ink-2); } .brandcard.calm .eyebrow i { background: var(--v-success); box-shadow: 0 0 0 3px var(--v-success-soft); }
-.brandcard.calm p { color: var(--v-ink-2); }
+			/* Tarjeta de marca: cambios sin publicar */
+			.brandcard {
+				position: relative;
+				overflow: hidden;
+				border-radius: var(--v-r-md);
+				background: var(--v-brand-grad);
+				color: #fff;
+				padding: var(--v-sp-5);
+				display: flex;
+				flex-direction: column;
+				gap: var(--v-sp-3);
+				box-shadow: var(--v-shadow-brand);
+				min-height: 220px;
+			}
+			.brandcard::before {
+				content: '';
+				position: absolute;
+				inset: auto -40px -60px auto;
+				width: 240px;
+				height: 240px;
+				border-radius: 50%;
+				background: rgb(255 255 255 / 0.12);
+				filter: blur(2px);
+			}
+			.brandcard .eyebrow {
+				font-size: var(--v-fs-12);
+				font-weight: 600;
+				letter-spacing: 0.04em;
+				text-transform: uppercase;
+				opacity: 0.85;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+			.brandcard .eyebrow i {
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: #fff;
+				box-shadow: 0 0 0 3px rgb(255 255 255 / 0.3);
+			}
+			.brandcard h2 {
+				margin: 0;
+				font-family: var(--v-font-display);
+				font-variation-settings: 'opsz' 96;
+				font-weight: 600;
+				font-size: var(--v-fs-28);
+				line-height: 1.05;
+				letter-spacing: -0.03em;
+			}
+			.brandcard p {
+				margin: 0;
+				font-size: var(--v-fs-13);
+				color: #fff;
+			}
+			.brandcard .acts {
+				margin-top: auto;
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+				align-items: center;
+				position: relative;
+			}
+			.brandcard.calm {
+				background: var(--v-surface);
+				color: var(--v-ink-1);
+				box-shadow: var(--v-shadow-1);
+				border: 1px solid var(--v-line);
+			}
+			.brandcard.calm::before {
+				display: none;
+			}
+			.brandcard.calm .eyebrow {
+				color: var(--v-ink-2);
+			}
+			.brandcard.calm .eyebrow i {
+				background: var(--v-success);
+				box-shadow: 0 0 0 3px var(--v-success-soft);
+			}
+			.brandcard.calm p {
+				color: var(--v-ink-2);
+			}
 
-/* Tiles de pendientes */
-.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--v-sp-3); }
-.tile { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; min-height: 104px; padding: 14px 16px; border-radius: var(--v-r-md); background: var(--v-surface); border: 1px solid var(--v-line); box-shadow: var(--v-shadow-1); color: var(--v-ink-1); text-decoration: none; }
-a.tile:hover { border-color: var(--v-accent-line); box-shadow: 0 0 0 4px var(--v-accent-soft); }
-.tile .lab { font-size: var(--v-fs-12); color: var(--v-ink-2); line-height: 1.3; overflow-wrap: anywhere; }
-.tile .val { font-family: var(--v-font-display); font-variation-settings: "opsz" 96; font-weight: 600; font-size: var(--v-fs-36); line-height: 1; letter-spacing: -.03em; font-feature-settings: "tnum" 1; }
-.tile.warn .val { color: var(--v-warning); } .tile.sched .val { color: var(--v-accent-text); }
-.tile.zero .val { color: var(--v-ink-3); font-weight: 500; } .tile.zero .lab { color: var(--v-ink-3); }
-.tile .chev { position: absolute; top: 12px; right: 12px; color: var(--v-ink-3); width: 14px; height: 14px; }
-.tile .dot { position: absolute; top: 14px; right: 14px; width: 8px; height: 8px; border-radius: 50%; }
-.tile.warn .dot { background: var(--v-warning); } .tile.sched .dot { background: var(--v-accent); }
+			/* Tiles de pendientes */
+			.tiles {
+				display: grid;
+				grid-template-columns: repeat(4, minmax(0, 1fr));
+				gap: var(--v-sp-3);
+			}
+			.tile {
+				position: relative;
+				display: flex;
+				flex-direction: column;
+				justify-content: space-between;
+				gap: 6px;
+				min-height: 104px;
+				padding: 14px 16px;
+				border-radius: var(--v-r-md);
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				box-shadow: var(--v-shadow-1);
+				color: var(--v-ink-1);
+				text-decoration: none;
+			}
+			a.tile:hover {
+				border-color: var(--v-accent-line);
+				box-shadow: 0 0 0 4px var(--v-accent-soft);
+			}
+			.tile .lab {
+				font-size: var(--v-fs-12);
+				color: var(--v-ink-2);
+				line-height: 1.3;
+				overflow-wrap: anywhere;
+			}
+			.tile .val {
+				font-family: var(--v-font-display);
+				font-variation-settings: 'opsz' 96;
+				font-weight: 600;
+				font-size: var(--v-fs-36);
+				line-height: 1;
+				letter-spacing: -0.03em;
+				font-feature-settings: 'tnum' 1;
+			}
+			.tile.warn .val {
+				color: var(--v-warning);
+			}
+			.tile.sched .val {
+				color: var(--v-accent-text);
+			}
+			.tile.zero .val {
+				color: var(--v-ink-3);
+				font-weight: 500;
+			}
+			.tile.zero .lab {
+				color: var(--v-ink-3);
+			}
+			.tile .chev {
+				position: absolute;
+				top: 12px;
+				right: 12px;
+				color: var(--v-ink-3);
+				width: 14px;
+				height: 14px;
+			}
+			.tile .dot {
+				position: absolute;
+				top: 14px;
+				right: 14px;
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+			}
+			.tile.warn .dot {
+				background: var(--v-warning);
+			}
+			.tile.sched .dot {
+				background: var(--v-accent);
+			}
 
-/* Lo último: tarjetas con miniatura */
-.recent-head { display: flex; align-items: baseline; gap: 10px; }
-.recent-head h2 { margin: 0; font-family: var(--v-font-display); font-variation-settings: "opsz" 96; font-weight: 600; font-size: var(--v-fs-22); letter-spacing: -.025em; }
-.recent-head .n { font-family: var(--v-font-mono); font-size: 12px; color: var(--v-ink-2); background: var(--v-btn); border-radius: 999px; padding: 1px 8px; }
-.recent-head .hint { margin-left: auto; font-size: var(--v-fs-12); color: var(--v-ink-3); }
-.cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--v-sp-4); }
-.rc { display: flex; flex-direction: column; gap: 0; border-radius: var(--v-r-md); background: var(--v-surface); border: 1px solid var(--v-line); box-shadow: var(--v-shadow-1); color: var(--v-ink-1); text-decoration: none; overflow: hidden; transition: transform .15s, box-shadow .15s; }
-.rc:hover { transform: translateY(-2px); box-shadow: var(--v-shadow-2); }
-.rc .thumb { position: relative; aspect-ratio: 16 / 10; background: var(--v-btn); overflow: hidden; }
-.rc .thumb .pill { position: absolute; left: 10px; top: 10px; }
-.rc .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; }
-.rc h3 { margin: 0; font-size: var(--v-fs-15); font-weight: 600; letter-spacing: -.01em; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.rc h3.untitled { color: var(--v-ink-2); font-weight: 400; font-style: italic; }
-.rc .meta { display: flex; align-items: center; gap: 6px; font-size: var(--v-fs-12); color: var(--v-ink-2); }
-.rc .meta .when { font-family: var(--v-font-mono); font-feature-settings: "tnum" 1; margin-left: auto; white-space: nowrap; }
-.rc.continue { border-color: var(--v-accent-line); box-shadow: 0 0 0 3px var(--v-accent-soft), var(--v-shadow-1); }
-.rc .cont { position: absolute; right: 10px; top: 10px; font-size: 11px; font-weight: 600; color: var(--v-accent-text); background: var(--v-surface); border-radius: 999px; padding: 2px 8px; }
-/* Miniaturas simuladas (en producto: imagen del campo del tipo) */
-.ph { position: absolute; inset: 0; }
-.ph.a { background: linear-gradient(160deg, #b9c4d2 0%, #6f7f94 55%, #3b4656 100%); }
-.ph.a::after { content: ""; position: absolute; left: 12%; right: 12%; bottom: 0; height: 58%; background: linear-gradient(90deg, #e9e4d8 0 18%, transparent 18% 22%, #ddd5c6 22% 60%, transparent 60% 64%, #cfc6b4 64%); clip-path: polygon(0 100%, 0 20%, 50% 0, 100% 20%, 100% 100%); }
-.ph.b { background: linear-gradient(180deg, #d9e3ea, #8fa7b8); }
-.ph.b::after { content: ""; position: absolute; inset: 30% 10% 0 10%; background: repeating-linear-gradient(90deg, #f1efe8 0 9%, #c8b9a0 9% 12%); border-radius: 6px 6px 0 0; }
-.ph.c { background: linear-gradient(135deg, #e5d9c8, #b7906a 70%, #7d5b3c); }
-.ph.c::after { content: ""; position: absolute; inset: 20% 20% 25% 20%; border: 6px solid rgb(255 255 255 / .55); border-radius: 4px; }
-.ph.d { background: linear-gradient(160deg, #cfd8d3, #5f7d72 60%, #2f4a41); }
-.ph.d::after { content: ""; position: absolute; left: 0; right: 0; bottom: 18%; height: 34%; background: repeating-linear-gradient(0deg, #e8ebe6 0 8px, transparent 8px 14px); opacity: .9; }
-.ph.pg { background: var(--v-accent-soft); color: var(--v-accent-text); display: grid; place-items: center; }
-.ph.pg span { font-family: var(--v-font-display); font-variation-settings: "opsz" 96; font-weight: 700; font-size: 56px; letter-spacing: -.04em; line-height: 1; opacity: .9; }
-.ph.pg.neutral { background: var(--v-btn); color: var(--v-ink-3); }
-.ph.pp { background: linear-gradient(135deg, var(--v-info-soft), var(--v-surface)); display: grid; place-items: center; }
-.ph.pp span { width: 64px; height: 64px; border-radius: 50%; background: var(--v-info); color: #fff; font-weight: 600; font-size: 20px; display: grid; place-items: center; letter-spacing: .02em; }
+			/* Lo último: tarjetas con miniatura */
+			.recent-head {
+				display: flex;
+				align-items: baseline;
+				gap: 10px;
+			}
+			.recent-head h2 {
+				margin: 0;
+				font-family: var(--v-font-display);
+				font-variation-settings: 'opsz' 96;
+				font-weight: 600;
+				font-size: var(--v-fs-22);
+				letter-spacing: -0.025em;
+			}
+			.recent-head .n {
+				font-family: var(--v-font-mono);
+				font-size: 12px;
+				color: var(--v-ink-2);
+				background: var(--v-btn);
+				border-radius: 999px;
+				padding: 1px 8px;
+			}
+			.recent-head .hint {
+				margin-left: auto;
+				font-size: var(--v-fs-12);
+				color: var(--v-ink-3);
+			}
+			.cards {
+				display: grid;
+				grid-template-columns: repeat(4, minmax(0, 1fr));
+				gap: var(--v-sp-4);
+			}
+			.rc {
+				display: flex;
+				flex-direction: column;
+				gap: 0;
+				border-radius: var(--v-r-md);
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				box-shadow: var(--v-shadow-1);
+				color: var(--v-ink-1);
+				text-decoration: none;
+				overflow: hidden;
+				transition:
+					transform 0.15s,
+					box-shadow 0.15s;
+			}
+			.rc:hover {
+				transform: translateY(-2px);
+				box-shadow: var(--v-shadow-2);
+			}
+			.rc .thumb {
+				position: relative;
+				aspect-ratio: 16 / 10;
+				background: var(--v-btn);
+				overflow: hidden;
+			}
+			.rc .thumb .pill {
+				position: absolute;
+				left: 10px;
+				top: 10px;
+			}
+			.rc .body {
+				padding: 12px 14px 14px;
+				display: flex;
+				flex-direction: column;
+				gap: 6px;
+			}
+			.rc h3 {
+				margin: 0;
+				font-size: var(--v-fs-15);
+				font-weight: 600;
+				letter-spacing: -0.01em;
+				line-height: 1.3;
+				display: -webkit-box;
+				-webkit-line-clamp: 2;
+				-webkit-box-orient: vertical;
+				overflow: hidden;
+			}
+			.rc h3.untitled {
+				color: var(--v-ink-2);
+				font-weight: 400;
+				font-style: italic;
+			}
+			.rc .meta {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				font-size: var(--v-fs-12);
+				color: var(--v-ink-2);
+			}
+			.rc .meta .when {
+				font-family: var(--v-font-mono);
+				font-feature-settings: 'tnum' 1;
+				margin-left: auto;
+				white-space: nowrap;
+			}
+			.rc.continue {
+				border-color: var(--v-accent-line);
+				box-shadow:
+					0 0 0 3px var(--v-accent-soft),
+					var(--v-shadow-1);
+			}
+			.rc .cont {
+				position: absolute;
+				right: 10px;
+				top: 10px;
+				font-size: 11px;
+				font-weight: 600;
+				color: var(--v-accent-text);
+				background: var(--v-surface);
+				border-radius: 999px;
+				padding: 2px 8px;
+			}
+			/* Miniaturas simuladas (en producto: imagen del campo del tipo) */
+			.ph {
+				position: absolute;
+				inset: 0;
+			}
+			.ph.a {
+				background: linear-gradient(160deg, #b9c4d2 0%, #6f7f94 55%, #3b4656 100%);
+			}
+			.ph.a::after {
+				content: '';
+				position: absolute;
+				left: 12%;
+				right: 12%;
+				bottom: 0;
+				height: 58%;
+				background: linear-gradient(
+					90deg,
+					#e9e4d8 0 18%,
+					transparent 18% 22%,
+					#ddd5c6 22% 60%,
+					transparent 60% 64%,
+					#cfc6b4 64%
+				);
+				clip-path: polygon(0 100%, 0 20%, 50% 0, 100% 20%, 100% 100%);
+			}
+			.ph.b {
+				background: linear-gradient(180deg, #d9e3ea, #8fa7b8);
+			}
+			.ph.b::after {
+				content: '';
+				position: absolute;
+				inset: 30% 10% 0 10%;
+				background: repeating-linear-gradient(90deg, #f1efe8 0 9%, #c8b9a0 9% 12%);
+				border-radius: 6px 6px 0 0;
+			}
+			.ph.c {
+				background: linear-gradient(135deg, #e5d9c8, #b7906a 70%, #7d5b3c);
+			}
+			.ph.c::after {
+				content: '';
+				position: absolute;
+				inset: 20% 20% 25% 20%;
+				border: 6px solid rgb(255 255 255 / 0.55);
+				border-radius: 4px;
+			}
+			.ph.d {
+				background: linear-gradient(160deg, #cfd8d3, #5f7d72 60%, #2f4a41);
+			}
+			.ph.d::after {
+				content: '';
+				position: absolute;
+				left: 0;
+				right: 0;
+				bottom: 18%;
+				height: 34%;
+				background: repeating-linear-gradient(0deg, #e8ebe6 0 8px, transparent 8px 14px);
+				opacity: 0.9;
+			}
+			.ph.pg {
+				background: var(--v-accent-soft);
+				color: var(--v-accent-text);
+				display: grid;
+				place-items: center;
+			}
+			.ph.pg span {
+				font-family: var(--v-font-display);
+				font-variation-settings: 'opsz' 96;
+				font-weight: 700;
+				font-size: 56px;
+				letter-spacing: -0.04em;
+				line-height: 1;
+				opacity: 0.9;
+			}
+			.ph.pg.neutral {
+				background: var(--v-btn);
+				color: var(--v-ink-3);
+			}
+			.ph.pp {
+				background: linear-gradient(135deg, var(--v-info-soft), var(--v-surface));
+				display: grid;
+				place-items: center;
+			}
+			.ph.pp span {
+				width: 64px;
+				height: 64px;
+				border-radius: 50%;
+				background: var(--v-info);
+				color: #fff;
+				font-weight: 600;
+				font-size: 20px;
+				display: grid;
+				place-items: center;
+				letter-spacing: 0.02em;
+			}
 
-.pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px 0 7px; border-radius: 999px; font-size: var(--v-fs-12); font-weight: 500; white-space: nowrap; background: var(--v-surface); box-shadow: var(--v-shadow-1); }
-.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.pill.pub { color: var(--v-success); } .pill.draft { color: var(--v-ink-2); } .pill.sched { color: var(--v-accent-text); } .pill.overdue { color: var(--v-warning); } .pill.other { color: var(--v-info); }
-.pill.flat { box-shadow: none; } .pill.flat.pub { background: var(--v-success-soft); } .pill.flat.draft { background: var(--v-btn); } .pill.flat.sched { background: var(--v-accent-soft); } .pill.flat.overdue { background: var(--v-warning-soft); }
+			.pill {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				height: 22px;
+				padding: 0 9px 0 7px;
+				border-radius: 999px;
+				font-size: var(--v-fs-12);
+				font-weight: 500;
+				white-space: nowrap;
+				background: var(--v-surface);
+				box-shadow: var(--v-shadow-1);
+			}
+			.pill::before {
+				content: '';
+				width: 6px;
+				height: 6px;
+				border-radius: 50%;
+				background: currentColor;
+			}
+			.pill.pub {
+				color: var(--v-success);
+			}
+			.pill.draft {
+				color: var(--v-ink-2);
+			}
+			.pill.sched {
+				color: var(--v-accent-text);
+			}
+			.pill.overdue {
+				color: var(--v-warning);
+			}
+			.pill.other {
+				color: var(--v-info);
+			}
+			.pill.flat {
+				box-shadow: none;
+			}
+			.pill.flat.pub {
+				background: var(--v-success-soft);
+			}
+			.pill.flat.draft {
+				background: var(--v-btn);
+			}
+			.pill.flat.sched {
+				background: var(--v-accent-soft);
+			}
+			.pill.flat.overdue {
+				background: var(--v-warning-soft);
+			}
 
-/* Estados dentro de tarjeta */
-.cstate { padding: var(--v-sp-8) var(--v-sp-6); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; max-width: 48ch; }
-.cstate .glyph { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--v-btn); color: var(--v-ink-2); margin-bottom: 4px; }
-.cstate .glyph.err { background: var(--v-danger-soft); color: var(--v-danger); }
-.cstate h3 { margin: 0; font-size: var(--v-fs-15); font-weight: 600; } .cstate p { margin: 0; color: var(--v-ink-2); font-size: var(--v-fs-13); } .cstate .btn { margin-top: 6px; }
+			/* Estados dentro de tarjeta */
+			.cstate {
+				padding: var(--v-sp-8) var(--v-sp-6);
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 8px;
+				max-width: 48ch;
+			}
+			.cstate .glyph {
+				width: 40px;
+				height: 40px;
+				border-radius: 12px;
+				display: grid;
+				place-items: center;
+				background: var(--v-btn);
+				color: var(--v-ink-2);
+				margin-bottom: 4px;
+			}
+			.cstate .glyph.err {
+				background: var(--v-danger-soft);
+				color: var(--v-danger);
+			}
+			.cstate h3 {
+				margin: 0;
+				font-size: var(--v-fs-15);
+				font-weight: 600;
+			}
+			.cstate p {
+				margin: 0;
+				color: var(--v-ink-2);
+				font-size: var(--v-fs-13);
+			}
+			.cstate .btn {
+				margin-top: 6px;
+			}
 
-/* Skeleton */
-.sk { background: var(--v-skeleton); border-radius: 6px; position: relative; overflow: hidden; height: 12px; }
-.sk::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, var(--v-skeleton-hi), transparent); animation: sk 1.4s infinite; }
-@keyframes sk { to { transform: translateX(100%); } }
-.sk-card .thumb { aspect-ratio: 16/10; background: var(--v-skeleton); position: relative; overflow: hidden; }
-.sk-card .thumb::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, var(--v-skeleton-hi), transparent); animation: sk 1.4s infinite; }
-.sk-card .body { padding: 12px 14px 14px; display: grid; gap: 8px; }
-.tile.sk-tile .val { width: 44px; height: 32px; border-radius: 8px; } .tile.sk-tile .lab { width: 70%; }
+			/* Skeleton */
+			.sk {
+				background: var(--v-skeleton);
+				border-radius: 6px;
+				position: relative;
+				overflow: hidden;
+				height: 12px;
+			}
+			.sk::after {
+				content: '';
+				position: absolute;
+				inset: 0;
+				transform: translateX(-100%);
+				background: linear-gradient(90deg, transparent, var(--v-skeleton-hi), transparent);
+				animation: sk 1.4s infinite;
+			}
+			@keyframes sk {
+				to {
+					transform: translateX(100%);
+				}
+			}
+			.sk-card .thumb {
+				aspect-ratio: 16/10;
+				background: var(--v-skeleton);
+				position: relative;
+				overflow: hidden;
+			}
+			.sk-card .thumb::after {
+				content: '';
+				position: absolute;
+				inset: 0;
+				transform: translateX(-100%);
+				background: linear-gradient(90deg, transparent, var(--v-skeleton-hi), transparent);
+				animation: sk 1.4s infinite;
+			}
+			.sk-card .body {
+				padding: 12px 14px 14px;
+				display: grid;
+				gap: 8px;
+			}
+			.tile.sk-tile .val {
+				width: 44px;
+				height: 32px;
+				border-radius: 8px;
+			}
+			.tile.sk-tile .lab {
+				width: 70%;
+			}
 
-/* Sitio vacío */
-.empty { max-width: 560px; margin: var(--v-sp-10) auto 0; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
-.empty .glyph { width: 52px; height: 52px; border-radius: 16px; background: var(--v-brand-grad); color: #fff; display: grid; place-items: center; margin-bottom: 6px; box-shadow: var(--v-shadow-brand); }
-.empty .glyph svg { width: 22px; height: 22px; }
-.empty h1 { margin: 0; font-family: var(--v-font-display); font-variation-settings: "opsz" 96; font-size: var(--v-fs-36); font-weight: 600; letter-spacing: -.03em; line-height: 1.05; }
-.empty p { margin: 0; color: var(--v-ink-2); font-size: var(--v-fs-15); } .empty .btn { margin-top: 8px; }
-.offer { margin-top: var(--v-sp-5); width: 100%; background: var(--v-surface); border: 1px solid var(--v-line); border-radius: var(--v-r-md); padding: var(--v-sp-5); box-shadow: var(--v-shadow-1); position: relative; overflow: hidden; }
-.offer::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--v-brand-grad); }
-.offer h2 { margin: 0 0 6px; font-family: var(--v-font-display); font-variation-settings: "opsz" 96; font-size: var(--v-fs-17); font-weight: 600; letter-spacing: -.02em; }
-.offer p { margin: 0 0 8px; font-size: var(--v-fs-13); color: var(--v-ink-2); max-width: 60ch; }
-.offer .acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 8px; } .offer .hint { font-size: var(--v-fs-12); color: var(--v-ink-3); margin: 0; }
+			/* Sitio vacío */
+			.empty {
+				max-width: 560px;
+				margin: var(--v-sp-10) auto 0;
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 10px;
+			}
+			.empty .glyph {
+				width: 52px;
+				height: 52px;
+				border-radius: 16px;
+				background: var(--v-brand-grad);
+				color: #fff;
+				display: grid;
+				place-items: center;
+				margin-bottom: 6px;
+				box-shadow: var(--v-shadow-brand);
+			}
+			.empty .glyph svg {
+				width: 22px;
+				height: 22px;
+			}
+			.empty h1 {
+				margin: 0;
+				font-family: var(--v-font-display);
+				font-variation-settings: 'opsz' 96;
+				font-size: var(--v-fs-36);
+				font-weight: 600;
+				letter-spacing: -0.03em;
+				line-height: 1.05;
+			}
+			.empty p {
+				margin: 0;
+				color: var(--v-ink-2);
+				font-size: var(--v-fs-15);
+			}
+			.empty .btn {
+				margin-top: 8px;
+			}
+			.offer {
+				margin-top: var(--v-sp-5);
+				width: 100%;
+				background: var(--v-surface);
+				border: 1px solid var(--v-line);
+				border-radius: var(--v-r-md);
+				padding: var(--v-sp-5);
+				box-shadow: var(--v-shadow-1);
+				position: relative;
+				overflow: hidden;
+			}
+			.offer::before {
+				content: '';
+				position: absolute;
+				left: 0;
+				top: 0;
+				bottom: 0;
+				width: 4px;
+				background: var(--v-brand-grad);
+			}
+			.offer h2 {
+				margin: 0 0 6px;
+				font-family: var(--v-font-display);
+				font-variation-settings: 'opsz' 96;
+				font-size: var(--v-fs-17);
+				font-weight: 600;
+				letter-spacing: -0.02em;
+			}
+			.offer p {
+				margin: 0 0 8px;
+				font-size: var(--v-fs-13);
+				color: var(--v-ink-2);
+				max-width: 60ch;
+			}
+			.offer .acts {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 8px;
+				margin: 12px 0 8px;
+			}
+			.offer .hint {
+				font-size: var(--v-fs-12);
+				color: var(--v-ink-3);
+				margin: 0;
+			}
 
-/* ---------- Responsive por contenedor ---------- */
-@container shell (max-width: 1180px) {
-  .bento { grid-template-columns: minmax(0, 1fr); }
-  .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-@container shell (max-width: 900px) {
-  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@container shell (max-width: 760px) {
-  .sidebar { display: none; }
-  .body { grid-template-columns: minmax(0, 1fr); padding: 0; }
-  .iconbtn { display: inline-flex; } .cmd { display: none; } .site, .conn span { display: none; }
-  .topbar { padding: 0 var(--v-sp-3); gap: 8px; }
-  .content { padding: var(--v-sp-5) var(--v-sp-4) var(--v-sp-10); }
-  .home { gap: var(--v-sp-5); }
-  .hero h1 { font-size: var(--v-fs-36); }
-  .cmd.mobile { display: flex; margin: 0; flex: 1 1 auto; height: 44px; }
-  .chip { height: 42px; }
-  .brandcard { min-height: 0; }
-  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .tile { min-height: 88px; padding: 12px 14px; } .tile .val { font-size: var(--v-fs-28); }
-  .recent-head .hint { display: none; }
-  .cards { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-  .rc { flex-direction: row; align-items: stretch; }
-  .rc .thumb { aspect-ratio: auto; width: 96px; flex: none; }
-  .rc .thumb .pill, .rc .cont { display: none; }
-  .rc .body { flex: 1; min-width: 0; padding: 10px 12px; justify-content: center; }
-  .rc h3 { font-size: var(--v-fs-14); }
-  .rc .meta { flex-wrap: wrap; } .rc .meta .pill { display: inline-flex; }
-  .ph.pg span { font-size: 32px; } .ph.pp span { width: 40px; height: 40px; font-size: 14px; }
-  .sk-card { flex-direction: row; } .sk-card .thumb { aspect-ratio: auto; width: 96px; }
-  .empty { margin-top: var(--v-sp-4); } .empty h1 { font-size: var(--v-fs-28); }
-}
-.cmd.mobile { display: none; }
-.rc .meta .pill.m { display: none; }
-@container shell (max-width: 760px) { .rc .meta .pill.m { display: inline-flex; height: 18px; font-size: 11px; padding: 0 7px 0 6px; } }
-/* Paneles de estado sin contenedor pliegan con el viewport de la lámina */
-@media (max-width: 760px) {
-  .grid-stack .cards, .grid-stack .tiles, .grid-stack .tiles.two, .grid-stack .bento { grid-template-columns: minmax(0, 1fr); }
-}
-.tiles.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.btn.onbrand { white-space: normal; height: auto; min-height: 36px; padding-block: 6px; text-align: left; }
-</style>
-</head>
-<body>
+			/* ---------- Responsive por contenedor ---------- */
+			@container shell (max-width: 1180px) {
+				.bento {
+					grid-template-columns: minmax(0, 1fr);
+				}
+				.cards {
+					grid-template-columns: repeat(3, minmax(0, 1fr));
+				}
+			}
+			@container shell (max-width: 900px) {
+				.cards {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+				.tiles {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+			}
+			@container shell (max-width: 760px) {
+				.sidebar {
+					display: none;
+				}
+				.body {
+					grid-template-columns: minmax(0, 1fr);
+					padding: 0;
+				}
+				.iconbtn {
+					display: inline-flex;
+				}
+				.cmd {
+					display: none;
+				}
+				.site,
+				.conn span {
+					display: none;
+				}
+				.topbar {
+					padding: 0 var(--v-sp-3);
+					gap: 8px;
+				}
+				.content {
+					padding: var(--v-sp-5) var(--v-sp-4) var(--v-sp-10);
+				}
+				.home {
+					gap: var(--v-sp-5);
+				}
+				.hero h1 {
+					font-size: var(--v-fs-36);
+				}
+				.cmd.mobile {
+					display: flex;
+					margin: 0;
+					flex: 1 1 auto;
+					height: 44px;
+				}
+				.chip {
+					height: 42px;
+				}
+				.brandcard {
+					min-height: 0;
+				}
+				.tiles {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+					gap: 10px;
+				}
+				.tile {
+					min-height: 88px;
+					padding: 12px 14px;
+				}
+				.tile .val {
+					font-size: var(--v-fs-28);
+				}
+				.recent-head .hint {
+					display: none;
+				}
+				.cards {
+					grid-template-columns: minmax(0, 1fr);
+					gap: 10px;
+				}
+				.rc {
+					flex-direction: row;
+					align-items: stretch;
+				}
+				.rc .thumb {
+					aspect-ratio: auto;
+					width: 96px;
+					flex: none;
+				}
+				.rc .thumb .pill,
+				.rc .cont {
+					display: none;
+				}
+				.rc .body {
+					flex: 1;
+					min-width: 0;
+					padding: 10px 12px;
+					justify-content: center;
+				}
+				.rc h3 {
+					font-size: var(--v-fs-14);
+				}
+				.rc .meta {
+					flex-wrap: wrap;
+				}
+				.rc .meta .pill {
+					display: inline-flex;
+				}
+				.ph.pg span {
+					font-size: 32px;
+				}
+				.ph.pp span {
+					width: 40px;
+					height: 40px;
+					font-size: 14px;
+				}
+				.sk-card {
+					flex-direction: row;
+				}
+				.sk-card .thumb {
+					aspect-ratio: auto;
+					width: 96px;
+				}
+				.empty {
+					margin-top: var(--v-sp-4);
+				}
+				.empty h1 {
+					font-size: var(--v-fs-28);
+				}
+			}
+			.cmd.mobile {
+				display: none;
+			}
+			.rc .meta .pill.m {
+				display: none;
+			}
+			@container shell (max-width: 760px) {
+				.rc .meta .pill.m {
+					display: inline-flex;
+					height: 18px;
+					font-size: 11px;
+					padding: 0 7px 0 6px;
+				}
+			}
+			/* Paneles de estado sin contenedor pliegan con el viewport de la lámina */
+			@media (max-width: 760px) {
+				.grid-stack .cards,
+				.grid-stack .tiles,
+				.grid-stack .tiles.two,
+				.grid-stack .bento {
+					grid-template-columns: minmax(0, 1fr);
+				}
+			}
+			.tiles.two {
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+			}
+			.btn.onbrand {
+				white-space: normal;
+				height: auto;
+				min-height: 36px;
+				padding-block: 6px;
+				text-align: left;
+			}
+		</style>
+	</head>
+	<body>
+		<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+			<symbol id="i-star" viewBox="0 0 24 24">
+				<path
+					d="M12 2c.6 5.4 4.6 9.4 10 10-5.4.6-9.4 4.6-10 10-.6-5.4-4.6-9.4-10-10 5.4-.6 9.4-4.6 10-10z"
+				/>
+			</symbol>
+			<symbol id="i-search" viewBox="0 0 24 24">
+				<circle cx="11" cy="11" r="7" />
+				<path d="m20 20-3.5-3.5" />
+			</symbol>
+			<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+			<symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" /></symbol>
+			<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></symbol>
+			<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></symbol>
+			<symbol id="i-pages" viewBox="0 0 24 24">
+				<rect x="4" y="3" width="16" height="18" rx="2" />
+				<path d="M8 8h8M8 12h8M8 16h5" />
+			</symbol>
+			<symbol id="i-proj" viewBox="0 0 24 24">
+				<path d="M3 21h18M5 21V8l7-5 7 5v13" />
+				<path d="M10 21v-6h4v6" />
+			</symbol>
+			<symbol id="i-news" viewBox="0 0 24 24">
+				<path d="M4 5h13v14H6a2 2 0 0 1-2-2z" />
+				<path d="M17 9h3v8a2 2 0 0 1-2 2" />
+				<path d="M8 9h5M8 13h5M8 17h5" />
+			</symbol>
+			<symbol id="i-team" viewBox="0 0 24 24">
+				<circle cx="9" cy="8" r="3.5" />
+				<path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+				<circle cx="17" cy="9" r="2.5" />
+				<path d="M16 15.5a5 5 0 0 1 5.5 4.5" />
+			</symbol>
+			<symbol id="i-link" viewBox="0 0 24 24">
+				<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+				<path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+			</symbol>
+			<symbol id="i-sliders" viewBox="0 0 24 24">
+				<path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+				<circle cx="16" cy="7" r="2" />
+				<circle cx="10" cy="17" r="2" />
+			</symbol>
+			<symbol id="i-image" viewBox="0 0 24 24">
+				<rect x="3" y="4" width="18" height="16" rx="2" />
+				<circle cx="9" cy="10" r="1.6" />
+				<path d="m21 16-5-5-9 9" />
+			</symbol>
+			<symbol id="i-trash" viewBox="0 0 24 24">
+				<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+			</symbol>
+			<symbol id="i-users" viewBox="0 0 24 24">
+				<circle cx="12" cy="8" r="3.5" />
+				<path d="M5 20a7 7 0 0 1 14 0" />
+			</symbol>
+			<symbol id="i-archive" viewBox="0 0 24 24">
+				<rect x="3" y="4" width="18" height="5" rx="1" />
+				<path d="M5 9v10h14V9M10 13h4" />
+			</symbol>
+			<symbol id="i-gear" viewBox="0 0 24 24">
+				<circle cx="12" cy="12" r="3" />
+				<path
+					d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"
+				/>
+			</symbol>
+			<symbol id="i-alert" viewBox="0 0 24 24">
+				<circle cx="12" cy="12" r="9" />
+				<path d="M12 8v5M12 16h.01" />
+			</symbol>
+			<symbol id="i-refresh" viewBox="0 0 24 24">
+				<path d="M20 12a8 8 0 1 1-2.3-5.7L20 8" />
+				<path d="M20 3v5h-5" />
+			</symbol>
+			<symbol id="i-doc" viewBox="0 0 24 24">
+				<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+				<path d="M14 3v5h5M9 13h6M9 17h6" />
+			</symbol>
+			<symbol id="i-box" viewBox="0 0 24 24">
+				<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z" />
+				<path d="M4 7.5 12 12l8-4.5M12 12v9" />
+			</symbol>
+			<symbol id="i-rocket" viewBox="0 0 24 24">
+				<path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2" />
+				<path d="M9 15 15 9" />
+				<path d="M9 15 6 12c1-3 3-6 6-8 3-1 6-1 7 0 1 1 1 4 0 7-2 3-5 5-8 6z" />
+				<circle cx="15" cy="9" r="1.5" />
+			</symbol>
+		</svg>
 
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2c.6 5.4 4.6 9.4 10 10-5.4.6-9.4 4.6-10 10-.6-5.4-4.6-9.4-10-10 5.4-.6 9.4-4.6 10-10z"/></symbol>
-  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
-  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
-  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
-  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
-  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
-  <symbol id="i-pages" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
-  <symbol id="i-proj" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M10 21v-6h4v6"/></symbol>
-  <symbol id="i-news" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5M8 17h5"/></symbol>
-  <symbol id="i-team" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 15.5a5 5 0 0 1 5.5 4.5"/></symbol>
-  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
-  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
-  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/></symbol>
-  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
-  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></symbol>
-  <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/></symbol>
-  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
-  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></symbol>
-  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"/><path d="M20 3v5h-5"/></symbol>
-  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
-  <symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></symbol>
-  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2"/><path d="M9 15 15 9"/><path d="M9 15 6 12c1-3 3-6 6-8 3-1 6-1 7 0 1 1 1 4 0 7-2 3-5 5-8 6z"/><circle cx="15" cy="9" r="1.5"/></symbol>
-</svg>
+		<div class="lam">
+			<header class="lam-head">
+				<h1>Vega · Inicio v2 — lámina de dirección</h1>
+				<span class="meta"
+					>20 oct 2026 · modo dirección · v1 se conserva aparte · contenido de ejemplo: web de un
+					estudio de arquitectura · miniaturas simuladas</span
+				>
+				<span class="spacer"></span>
+				<div class="seg" role="group" aria-label="Modo de color de la lámina">
+					<button type="button" data-set="auto" aria-pressed="true">Auto</button>
+					<button type="button" data-set="light" aria-pressed="false">Claro</button>
+					<button type="button" data-set="dark" aria-pressed="false">Oscuro</button>
+				</div>
+			</header>
 
-<div class="lam">
-  <header class="lam-head">
-    <h1>Vega · Inicio v2 — lámina de dirección</h1>
-    <span class="meta">20 oct 2026 · modo dirección · v1 se conserva aparte · contenido de ejemplo: web de un estudio de arquitectura · miniaturas simuladas</span>
-    <span class="spacer"></span>
-    <div class="seg" role="group" aria-label="Modo de color de la lámina">
-      <button type="button" data-set="auto" aria-pressed="true">Auto</button>
-      <button type="button" data-set="light" aria-pressed="false">Claro</button>
-      <button type="button" data-set="dark" aria-pressed="false">Oscuro</button>
-    </div>
-  </header>
+			<p class="lead">
+				<strong style="color: var(--v-ink-1)"
+					>Dirección v2: cálido, con capas, con carácter.</strong
+				>
+				La v1 era correcta y plana. Aquí la portada es un tablero bento: una tarjeta de marca que
+				dice lo más importante (hay cambios sin publicar), ocho tiles con cifra display, y «Lo
+				último» como tarjetas con miniatura en vez de filas. Display Bricolage Grotesque para saludo
+				y cifras; Geist para la UI. Barra y menú translúcidos sobre un halo de marca. Radios
+				10/16/22, botones en píldora. Sigue siendo un panel de trabajo: la misma funcionalidad, los
+				mismos textos, ningún adorno sin dato detrás.
+			</p>
 
-  <p class="lead"><strong style="color:var(--v-ink-1)">Dirección v2: cálido, con capas, con carácter.</strong> La v1 era correcta y plana. Aquí la portada es un tablero bento: una tarjeta de marca que dice lo más importante (hay cambios sin publicar), ocho tiles con cifra display, y «Lo último» como tarjetas con miniatura en vez de filas. Display Bricolage Grotesque para saludo y cifras; Geist para la UI. Barra y menú translúcidos sobre un halo de marca. Radios 10/16/22, botones en píldora. Sigue siendo un panel de trabajo: la misma funcionalidad, los mismos textos, ningún adorno sin dato detrás.</p>
+			<!-- ============================ 1. PANTALLA COMPLETA ============================ -->
+			<h2 class="sec">
+				1 · Inicio v2, pantalla completa
+				<span>1440 px · sesión de Marta · hay cambios sin publicar · 8 pendientes</span>
+			</h2>
 
-  <!-- ============================ 1. PANTALLA COMPLETA ============================ -->
-  <h2 class="sec">1 · Inicio v2, pantalla completa <span>1440 px · sesión de Marta · hay cambios sin publicar · 8 pendientes</span></h2>
+			<div class="frame" id="desktop">
+				<div class="shell">
+					<header class="topbar">
+						<button class="btn quiet iconbtn" type="button" aria-label="Abrir navegación">
+							<svg class="i"><use href="#i-menu" /></svg>
+						</button>
+						<a class="brand" href="#" aria-label="Inicio"
+							><span class="mark"
+								><svg><use href="#i-star" /></svg></span
+							>Vega</a
+						>
+						<span class="site">Estudio Ágora <span class="prop">propuesta, no existe</span></span>
+						<div class="cmd" role="search">
+							<svg class="i"><use href="#i-search" /></svg><span>Buscar en todo el contenido…</span
+							><span class="k">⌘</span><span class="k">K</span>
+						</div>
+						<button class="btn quiet iconbtn" type="button" aria-label="Búsqueda global">
+							<svg class="i"><use href="#i-search" /></svg>
+						</button>
+						<span class="conn"><i aria-hidden="true"></i><span>Conectado</span></span>
+						<button class="btn primary" type="button">Publicar</button>
+						<button class="avatar" type="button" aria-label="Menú de cuenta">MF</button>
+					</header>
 
-  <div class="frame" id="desktop">
-    <div class="shell">
-      <header class="topbar">
-        <button class="btn quiet iconbtn" type="button" aria-label="Abrir navegación"><svg class="i"><use href="#i-menu"/></svg></button>
-        <a class="brand" href="#" aria-label="Inicio"><span class="mark"><svg><use href="#i-star"/></svg></span>Vega</a>
-        <span class="site">Estudio Ágora <span class="prop">propuesta, no existe</span></span>
-        <div class="cmd" role="search"><svg class="i"><use href="#i-search"/></svg><span>Buscar en todo el contenido…</span><span class="k">⌘</span><span class="k">K</span></div>
-        <button class="btn quiet iconbtn" type="button" aria-label="Búsqueda global"><svg class="i"><use href="#i-search"/></svg></button>
-        <span class="conn"><i aria-hidden="true"></i><span>Conectado</span></span>
-        <button class="btn primary" type="button">Publicar</button>
-        <button class="avatar" type="button" aria-label="Menú de cuenta">MF</button>
-      </header>
+					<div class="body">
+						<nav class="sidebar" aria-label="Navegación principal">
+							<div class="navgroup">
+								<h3>Sitio</h3>
+								<ul>
+									<li>
+										<a href="#"
+											><svg class="i"><use href="#i-pages" /></svg>Páginas</a
+										>
+									</li>
+									<li>
+										<a href="#"
+											><svg class="i"><use href="#i-proj" /></svg>Proyectos</a
+										>
+									</li>
+									<li>
+										<a href="#"
+											><svg class="i"><use href="#i-news" /></svg>Noticias</a
+										>
+									</li>
+									<li>
+										<a href="#"
+											><svg class="i"><use href="#i-team" /></svg>Equipo</a
+										>
+									</li>
+								</ul>
+							</div>
+							<div class="navgroup">
+								<h3>Ajustes del sitio</h3>
+								<ul>
+									<li>
+										<a href="#"
+											><svg class="i"><use href="#i-link" /></svg>Enlaces de navegación</a
+										>
+									</li>
+									<li>
+										<a href="#"
+											><svg class="i"><use href="#i-sliders" /></svg>Ajustes del sitio
+											<span class="badge" title="2 avisos">2</span></a
+										>
+									</li>
+								</ul>
+							</div>
+							<div class="navgroup sys">
+								<ul>
+									<li>
+										<a href="#"
+											><svg class="i"><use href="#i-image" /></svg>Medios</a
+										>
+									</li>
+									<li>
+										<a href="#"
+											><svg class="i"><use href="#i-trash" /></svg>Papelera</a
+										>
+									</li>
+									<li>
+										<a href="#"
+											><svg class="i"><use href="#i-users" /></svg>Editores</a
+										>
+									</li>
+									<li>
+										<a href="#"
+											><svg class="i"><use href="#i-archive" /></svg>Copias</a
+										>
+									</li>
+									<li>
+										<a href="#"
+											><svg class="i"><use href="#i-gear" /></svg>Ajustes</a
+										>
+									</li>
+								</ul>
+							</div>
+						</nav>
 
-      <div class="body">
-        <nav class="sidebar" aria-label="Navegación principal">
-          <div class="navgroup">
-            <h3>Sitio</h3>
-            <ul>
-              <li><a href="#"><svg class="i"><use href="#i-pages"/></svg>Páginas</a></li>
-              <li><a href="#"><svg class="i"><use href="#i-proj"/></svg>Proyectos</a></li>
-              <li><a href="#"><svg class="i"><use href="#i-news"/></svg>Noticias</a></li>
-              <li><a href="#"><svg class="i"><use href="#i-team"/></svg>Equipo</a></li>
-            </ul>
-          </div>
-          <div class="navgroup">
-            <h3>Ajustes del sitio</h3>
-            <ul>
-              <li><a href="#"><svg class="i"><use href="#i-link"/></svg>Enlaces de navegación</a></li>
-              <li><a href="#"><svg class="i"><use href="#i-sliders"/></svg>Ajustes del sitio <span class="badge" title="2 avisos">2</span></a></li>
-            </ul>
-          </div>
-          <div class="navgroup sys">
-            <ul>
-              <li><a href="#"><svg class="i"><use href="#i-image"/></svg>Medios</a></li>
-              <li><a href="#"><svg class="i"><use href="#i-trash"/></svg>Papelera</a></li>
-              <li><a href="#"><svg class="i"><use href="#i-users"/></svg>Editores</a></li>
-              <li><a href="#"><svg class="i"><use href="#i-archive"/></svg>Copias</a></li>
-              <li><a href="#"><svg class="i"><use href="#i-gear"/></svg>Ajustes</a></li>
-            </ul>
-          </div>
-        </nav>
+						<main class="content">
+							<div class="home">
+								<div class="hero">
+									<div>
+										<h1>Buenos días, <em>Marta</em>.</h1>
+										<p class="sub">
+											Martes 20 de octubre <span class="prop">nombre y fecha: propuesta</span>
+										</p>
+									</div>
+									<section class="create" aria-label="Crear">
+										<span class="lbl">Crear</span>
+										<button class="chip" type="button" aria-label="Nuevo: Página">
+											<span class="ic"
+												><svg class="i"><use href="#i-pages" /></svg></span
+											>Página
+										</button>
+										<button class="chip" type="button" aria-label="Nuevo: Proyecto">
+											<span class="ic"
+												><svg class="i"><use href="#i-proj" /></svg></span
+											>Proyecto
+										</button>
+										<button class="chip" type="button" aria-label="Nuevo: Noticia">
+											<span class="ic"
+												><svg class="i"><use href="#i-news" /></svg></span
+											>Noticia
+										</button>
+										<button class="chip" type="button" aria-label="Nuevo: Persona">
+											<span class="ic"
+												><svg class="i"><use href="#i-team" /></svg></span
+											>Persona
+										</button>
+									</section>
+								</div>
+								<div class="cmd mobile" role="search">
+									<svg class="i"><use href="#i-search" /></svg
+									><span>Buscar en todo el contenido…</span>
+								</div>
 
-        <main class="content">
-          <div class="home">
-            <div class="hero">
-              <div>
-                <h1>Buenos días, <em>Marta</em>.</h1>
-                <p class="sub">Martes 20 de octubre <span class="prop">nombre y fecha: propuesta</span></p>
-              </div>
-              <section class="create" aria-label="Crear">
-                <span class="lbl">Crear</span>
-                <button class="chip" type="button" aria-label="Nuevo: Página"><span class="ic"><svg class="i"><use href="#i-pages"/></svg></span>Página</button>
-                <button class="chip" type="button" aria-label="Nuevo: Proyecto"><span class="ic"><svg class="i"><use href="#i-proj"/></svg></span>Proyecto</button>
-                <button class="chip" type="button" aria-label="Nuevo: Noticia"><span class="ic"><svg class="i"><use href="#i-news"/></svg></span>Noticia</button>
-                <button class="chip" type="button" aria-label="Nuevo: Persona"><span class="ic"><svg class="i"><use href="#i-team"/></svg></span>Persona</button>
-              </section>
-            </div>
-            <div class="cmd mobile" role="search"><svg class="i"><use href="#i-search"/></svg><span>Buscar en todo el contenido…</span></div>
+								<section class="bento" aria-label="Pendientes">
+									<div class="brandcard" data-pending="unpublished">
+										<div class="eyebrow">
+											<i aria-hidden="true"></i>Cambios sin publicar en el sitio
+										</div>
+										<h2>Hay cambios que el sitio todavía no enseña.</h2>
+										<p>Última publicación: ayer, 18:40</p>
+										<div class="acts">
+											<button class="btn onbrand" type="button">
+												Publicar ahora <span class="prop">propuesta</span>
+											</button>
+										</div>
+									</div>
+									<div class="tiles">
+										<a class="tile" href="#" data-pending="drafts:proyectos"
+											><span class="val">3</span><span class="lab">Proyectos en borrador</span
+											><svg class="i chev"><use href="#i-arrow" /></svg
+										></a>
+										<a class="tile" href="#" data-pending="drafts:noticias"
+											><span class="val">1</span><span class="lab">Noticias en borrador</span
+											><svg class="i chev"><use href="#i-arrow" /></svg
+										></a>
+										<a class="tile zero" href="#" data-pending="drafts:paginas"
+											><span class="val">0</span><span class="lab">Páginas en borrador</span
+											><svg class="i chev"><use href="#i-arrow" /></svg
+										></a>
+										<div class="tile sched">
+											<span class="val">2</span
+											><span class="lab">Noticias con publicación programada</span
+											><i class="dot" aria-hidden="true"></i>
+										</div>
+										<div class="tile zero">
+											<span class="val">0</span
+											><span class="lab">Páginas con publicación programada</span>
+										</div>
+										<div class="tile warn">
+											<span class="val">7</span><span class="lab">Proyectos sin descripción</span
+											><i class="dot" aria-hidden="true"></i>
+										</div>
+										<div class="tile zero">
+											<span class="val">0</span><span class="lab">Páginas sin descripción</span>
+										</div>
+										<div class="tile warn">
+											<span class="val">24</span
+											><span class="lab">Medios sin texto alternativo</span
+											><i class="dot" aria-hidden="true"></i>
+										</div>
+									</div>
+								</section>
 
-            <section class="bento" aria-label="Pendientes">
-              <div class="brandcard" data-pending="unpublished">
-                <div class="eyebrow"><i aria-hidden="true"></i>Cambios sin publicar en el sitio</div>
-                <h2>Hay cambios que el sitio todavía no enseña.</h2>
-                <p>Última publicación: ayer, 18:40</p>
-                <div class="acts"><button class="btn onbrand" type="button">Publicar ahora <span class="prop">propuesta</span></button></div>
-              </div>
-              <div class="tiles">
-                <a class="tile" href="#" data-pending="drafts:proyectos"><span class="val">3</span><span class="lab">Proyectos en borrador</span><svg class="i chev"><use href="#i-arrow"/></svg></a>
-                <a class="tile" href="#" data-pending="drafts:noticias"><span class="val">1</span><span class="lab">Noticias en borrador</span><svg class="i chev"><use href="#i-arrow"/></svg></a>
-                <a class="tile zero" href="#" data-pending="drafts:paginas"><span class="val">0</span><span class="lab">Páginas en borrador</span><svg class="i chev"><use href="#i-arrow"/></svg></a>
-                <div class="tile sched"><span class="val">2</span><span class="lab">Noticias con publicación programada</span><i class="dot" aria-hidden="true"></i></div>
-                <div class="tile zero"><span class="val">0</span><span class="lab">Páginas con publicación programada</span></div>
-                <div class="tile warn"><span class="val">7</span><span class="lab">Proyectos sin descripción</span><i class="dot" aria-hidden="true"></i></div>
-                <div class="tile zero"><span class="val">0</span><span class="lab">Páginas sin descripción</span></div>
-                <div class="tile warn"><span class="val">24</span><span class="lab">Medios sin texto alternativo</span><i class="dot" aria-hidden="true"></i></div>
-              </div>
-            </section>
+								<section
+									aria-labelledby="h-recent"
+									style="display: flex; flex-direction: column; gap: 14px"
+								>
+									<div class="recent-head">
+										<h2 id="h-recent">Lo último que editaste</h2>
+										<span class="n">8</span
+										><span class="hint"
+											>Guardado en este navegador · miniaturas
+											<span class="prop">propuesta, no existe en Inicio</span></span
+										>
+									</div>
+									<div class="cards">
+										<a class="rc continue" href="#"
+											><div class="thumb">
+												<div class="ph a"></div>
+												<span class="pill pub">Publicado</span><span class="cont">Continuar</span>
+											</div>
+											<div class="body">
+												<h3>Rehabilitación de la Nave 3 del Grao</h3>
+												<div class="meta">
+													Proyecto<span class="pill flat pub m">Publicado</span
+													><span class="when" title="mar 20 oct 2026, 09:48">hace 12 min</span>
+												</div>
+											</div></a
+										>
+										<a class="rc" href="#"
+											><div class="thumb">
+												<div class="ph pg neutral"><span>P</span></div>
+												<span class="pill draft">Borrador</span>
+											</div>
+											<div class="body">
+												<h3>Política de privacidad y cookies</h3>
+												<div class="meta">
+													Página<span class="pill flat draft m">Borrador</span
+													><span class="when" title="mar 20 oct 2026, 08:55">hace 1 h</span>
+												</div>
+											</div></a
+										>
+										<a class="rc" href="#"
+											><div class="thumb">
+												<div class="ph c"></div>
+												<span class="pill sched">Programado · 22 oct</span>
+											</div>
+											<div class="body">
+												<h3
+													title="Hablamos de madera estructural en el Congreso de Arquitectura Sostenible de Barcelona 2026: lo que aprendimos y lo que cambiaremos en los próximos proyectos del estudio"
+												>
+													Hablamos de madera estructural en el Congreso de Arquitectura Sostenible
+													de Barcelona 2026: lo que aprendimos y lo que cambiaremos en los próximos
+													proyectos del estudio
+												</h3>
+												<div class="meta">
+													Noticia<span class="pill flat sched m">Programado</span
+													><span class="when" title="mar 20 oct 2026, 06:30">hace 3 h</span>
+												</div>
+											</div></a
+										>
+										<a class="rc" href="#"
+											><div class="thumb">
+												<div class="ph pp"><span>MF</span></div>
+												<span class="pill pub">Publicado</span>
+											</div>
+											<div class="body">
+												<h3>Marta Ferrer Soler</h3>
+												<div class="meta">
+													Persona<span class="pill flat pub m">Publicado</span
+													><span class="when" title="lun 19 oct 2026, 18:40">ayer</span>
+												</div>
+											</div></a
+										>
+										<a class="rc" href="#"
+											><div class="thumb">
+												<div class="ph b"></div>
+												<span class="pill draft">Borrador</span>
+											</div>
+											<div class="body">
+												<h3>Vivienda unifamiliar en Rocafort</h3>
+												<div class="meta">
+													Proyecto<span class="pill flat draft m">Borrador</span
+													><span class="when" title="lun 19 oct 2026, 11:02">ayer</span>
+												</div>
+											</div></a
+										>
+										<a class="rc" href="#"
+											><div class="thumb">
+												<div class="ph pg neutral"><span>N</span></div>
+												<span class="pill draft">Borrador</span>
+											</div>
+											<div class="body">
+												<h3 class="untitled">(sin título)</h3>
+												<div class="meta">
+													Noticia<span class="pill flat draft m">Borrador</span
+													><span class="when" title="dom 18 oct 2026, 20:15">hace 2 días</span>
+												</div>
+											</div></a
+										>
+										<a class="rc" href="#"
+											><div class="thumb">
+												<div class="ph pg"><span>S</span></div>
+												<span class="pill pub">Publicado</span>
+											</div>
+											<div class="body">
+												<h3>Servicios</h3>
+												<div class="meta">
+													Página<span class="pill flat pub m">Publicado</span
+													><span class="when" title="sáb 17 oct 2026, 13:21">hace 3 días</span>
+												</div>
+											</div></a
+										>
+										<a class="rc" href="#"
+											><div class="thumb">
+												<div class="ph d"></div>
+												<span class="pill overdue">Fecha vencida</span>
+											</div>
+											<div class="body">
+												<h3>Centro cívico de Benimaclet, fase II</h3>
+												<div class="meta">
+													Proyecto<span class="pill flat overdue m">Fecha vencida</span
+													><span class="when" title="mié 14 oct 2026, 17:08">14 oct</span>
+												</div>
+											</div></a
+										>
+									</div>
+								</section>
+							</div>
+						</main>
+					</div>
+				</div>
+			</div>
 
-            <section aria-labelledby="h-recent" style="display:flex;flex-direction:column;gap:14px">
-              <div class="recent-head"><h2 id="h-recent">Lo último que editaste</h2><span class="n">8</span><span class="hint">Guardado en este navegador · miniaturas <span class="prop">propuesta, no existe en Inicio</span></span></div>
-              <div class="cards">
-                <a class="rc continue" href="#"><div class="thumb"><div class="ph a"></div><span class="pill pub">Publicado</span><span class="cont">Continuar</span></div><div class="body"><h3>Rehabilitación de la Nave 3 del Grao</h3><div class="meta">Proyecto<span class="pill flat pub m">Publicado</span><span class="when" title="mar 20 oct 2026, 09:48">hace 12 min</span></div></div></a>
-                <a class="rc" href="#"><div class="thumb"><div class="ph pg neutral"><span>P</span></div><span class="pill draft">Borrador</span></div><div class="body"><h3>Política de privacidad y cookies</h3><div class="meta">Página<span class="pill flat draft m">Borrador</span><span class="when" title="mar 20 oct 2026, 08:55">hace 1 h</span></div></div></a>
-                <a class="rc" href="#"><div class="thumb"><div class="ph c"></div><span class="pill sched">Programado · 22 oct</span></div><div class="body"><h3 title="Hablamos de madera estructural en el Congreso de Arquitectura Sostenible de Barcelona 2026: lo que aprendimos y lo que cambiaremos en los próximos proyectos del estudio">Hablamos de madera estructural en el Congreso de Arquitectura Sostenible de Barcelona 2026: lo que aprendimos y lo que cambiaremos en los próximos proyectos del estudio</h3><div class="meta">Noticia<span class="pill flat sched m">Programado</span><span class="when" title="mar 20 oct 2026, 06:30">hace 3 h</span></div></div></a>
-                <a class="rc" href="#"><div class="thumb"><div class="ph pp"><span>MF</span></div><span class="pill pub">Publicado</span></div><div class="body"><h3>Marta Ferrer Soler</h3><div class="meta">Persona<span class="pill flat pub m">Publicado</span><span class="when" title="lun 19 oct 2026, 18:40">ayer</span></div></div></a>
-                <a class="rc" href="#"><div class="thumb"><div class="ph b"></div><span class="pill draft">Borrador</span></div><div class="body"><h3>Vivienda unifamiliar en Rocafort</h3><div class="meta">Proyecto<span class="pill flat draft m">Borrador</span><span class="when" title="lun 19 oct 2026, 11:02">ayer</span></div></div></a>
-                <a class="rc" href="#"><div class="thumb"><div class="ph pg neutral"><span>N</span></div><span class="pill draft">Borrador</span></div><div class="body"><h3 class="untitled">(sin título)</h3><div class="meta">Noticia<span class="pill flat draft m">Borrador</span><span class="when" title="dom 18 oct 2026, 20:15">hace 2 días</span></div></div></a>
-                <a class="rc" href="#"><div class="thumb"><div class="ph pg"><span>S</span></div><span class="pill pub">Publicado</span></div><div class="body"><h3>Servicios</h3><div class="meta">Página<span class="pill flat pub m">Publicado</span><span class="when" title="sáb 17 oct 2026, 13:21">hace 3 días</span></div></div></a>
-                <a class="rc" href="#"><div class="thumb"><div class="ph d"></div><span class="pill overdue">Fecha vencida</span></div><div class="body"><h3>Centro cívico de Benimaclet, fase II</h3><div class="meta">Proyecto<span class="pill flat overdue m">Fecha vencida</span><span class="when" title="mié 14 oct 2026, 17:08">14 oct</span></div></div></a>
-              </div>
-            </section>
-          </div>
-        </main>
-      </div>
-    </div>
-  </div>
+			<div class="notes">
+				<div class="note">
+					<b>1 · Lo primero es lo que importa</b>«Cambios sin publicar: Sí» deja de ser una celda y
+					pasa a la tarjeta de marca: es el único dato de la portada que pide una acción al sitio
+					entero. Cuando no hay cambios, la tarjeta se calma (superficie normal, punto verde, «Sitio
+					al día»): el degradado solo aparece cuando hay algo que hacer.
+				</div>
+				<div class="note">
+					<b>2 · Cifras con semántica</b>Tiles de 4×2 con la cifra en display de 36 px. Color solo
+					cuando el dato significa algo: ámbar en calidad (sin descripción, sin texto alternativo),
+					índigo en programadas, tinta en borradores, apagado a cero. Las enlazables llevan flecha;
+					las que no, un punto de color.
+				</div>
+				<div class="note">
+					<b>3 · Lo último, en tarjetas</b>Miniatura 16:10 con la pill de estado encima; para tipos
+					sin imagen, tile tipográfico con la inicial (Páginas) o iniciales sobre círculo
+					(Personas). La más reciente lleva anillo de acento y «Continuar». Título a dos líneas con
+					elipsis y <code>title</code> completo.
+				</div>
+				<div class="note">
+					<b>4 · Capas y materia</b>Barra y menú translúcidos (<code>backdrop-filter</code> 18 px)
+					sobre un halo radial de marca en el lienzo; tarjetas con sombra de dos capas y hover que
+					las levanta 2 px. Menú lateral flotante con 12 px de aire, pegado al scroll.
+				</div>
+				<div class="note">
+					<b>5 · Display con carácter</b>Bricolage Grotesque con eje óptico a 96 para saludo, cifras
+					y rótulos de bloque; Geist para todo lo que se lee en pequeño. El nombre en el saludo va
+					en acento: el único color de texto de la cabecera.
+				</div>
+				<div class="note">
+					<b>6 · Lo que es propuesta</b>Nombre de la persona y fecha en el saludo (hoy la sesión
+					expone el correo; el nombre es un hueco), nombre del sitio en la barra, miniaturas en «Lo
+					último» (la carga de Inicio resuelve título y estado, no imagen), «Publicar ahora» en la
+					tarjeta de marca (duplica el botón de la barra) y aviso «2» en Ajustes del sitio (sale de
+					<code>nav.warningsBadge</code>, que ya existe).
+				</div>
+			</div>
 
-  <div class="notes">
-    <div class="note"><b>1 · Lo primero es lo que importa</b>«Cambios sin publicar: Sí» deja de ser una celda y pasa a la tarjeta de marca: es el único dato de la portada que pide una acción al sitio entero. Cuando no hay cambios, la tarjeta se calma (superficie normal, punto verde, «Sitio al día»): el degradado solo aparece cuando hay algo que hacer.</div>
-    <div class="note"><b>2 · Cifras con semántica</b>Tiles de 4×2 con la cifra en display de 36 px. Color solo cuando el dato significa algo: ámbar en calidad (sin descripción, sin texto alternativo), índigo en programadas, tinta en borradores, apagado a cero. Las enlazables llevan flecha; las que no, un punto de color.</div>
-    <div class="note"><b>3 · Lo último, en tarjetas</b>Miniatura 16:10 con la pill de estado encima; para tipos sin imagen, tile tipográfico con la inicial (Páginas) o iniciales sobre círculo (Personas). La más reciente lleva anillo de acento y «Continuar». Título a dos líneas con elipsis y <code>title</code> completo.</div>
-    <div class="note"><b>4 · Capas y materia</b>Barra y menú translúcidos (<code>backdrop-filter</code> 18 px) sobre un halo radial de marca en el lienzo; tarjetas con sombra de dos capas y hover que las levanta 2 px. Menú lateral flotante con 12 px de aire, pegado al scroll.</div>
-    <div class="note"><b>5 · Display con carácter</b>Bricolage Grotesque con eje óptico a 96 para saludo, cifras y rótulos de bloque; Geist para todo lo que se lee en pequeño. El nombre en el saludo va en acento: el único color de texto de la cabecera.</div>
-    <div class="note"><b>6 · Lo que es propuesta</b>Nombre de la persona y fecha en el saludo (hoy la sesión expone el correo; el nombre es un hueco), nombre del sitio en la barra, miniaturas en «Lo último» (la carga de Inicio resuelve título y estado, no imagen), «Publicar ahora» en la tarjeta de marca (duplica el botón de la barra) y aviso «2» en Ajustes del sitio (sale de <code>nav.warningsBadge</code>, que ya existe).</div>
-  </div>
+			<!-- ============================ 2. ESTADOS ============================ -->
+			<h2 class="sec">2 · Estados</h2>
+			<div class="states">
+				<div class="state wide">
+					<h3>
+						Carga <small>skeleton; <code>aria-busy</code></small>
+					</h3>
+					<p>
+						Crear sale del modelo y no espera. La tarjeta de marca espera callada en superficie
+						normal (no se sabe aún si hay cambios); tiles y tarjetas esqueletan.
+					</p>
+					<div class="panel">
+						<div class="grid-stack" style="display: flex; flex-direction: column; gap: 16px">
+							<section class="bento" aria-busy="true">
+								<div class="brandcard calm">
+									<div class="eyebrow">
+										<i aria-hidden="true" style="background: var(--v-ink-3); box-shadow: none"></i
+										>Cambios sin publicar en el sitio
+									</div>
+									<div class="sk" style="width: 70%; height: 24px; border-radius: 8px"></div>
+									<div class="sk" style="width: 40%"></div>
+								</div>
+								<div class="tiles">
+									<div class="tile sk-tile">
+										<span class="sk val"></span><span class="sk lab"></span>
+									</div>
+									<div class="tile sk-tile">
+										<span class="sk val"></span><span class="sk lab"></span>
+									</div>
+									<div class="tile sk-tile">
+										<span class="sk val"></span><span class="sk lab"></span>
+									</div>
+									<div class="tile sk-tile">
+										<span class="sk val"></span><span class="sk lab"></span>
+									</div>
+								</div>
+							</section>
+							<div class="cards" aria-busy="true">
+								<div class="rc sk-card">
+									<div class="thumb"></div>
+									<div class="body">
+										<div class="sk" style="width: 80%; height: 14px"></div>
+										<div class="sk" style="width: 50%"></div>
+									</div>
+								</div>
+								<div class="rc sk-card">
+									<div class="thumb"></div>
+									<div class="body">
+										<div class="sk" style="width: 60%; height: 14px"></div>
+										<div class="sk" style="width: 45%"></div>
+									</div>
+								</div>
+								<div class="rc sk-card">
+									<div class="thumb"></div>
+									<div class="body">
+										<div class="sk" style="width: 90%; height: 14px"></div>
+										<div class="sk" style="width: 40%"></div>
+									</div>
+								</div>
+								<div class="rc sk-card">
+									<div class="thumb"></div>
+									<div class="body">
+										<div class="sk" style="width: 55%; height: 14px"></div>
+										<div class="sk" style="width: 50%"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
 
-  <!-- ============================ 2. ESTADOS ============================ -->
-  <h2 class="sec">2 · Estados</h2>
-  <div class="states">
-    <div class="state wide">
-      <h3>Carga <small>skeleton; <code>aria-busy</code></small></h3>
-      <p>Crear sale del modelo y no espera. La tarjeta de marca espera callada en superficie normal (no se sabe aún si hay cambios); tiles y tarjetas esqueletan.</p>
-      <div class="panel"><div class="grid-stack" style="display:flex;flex-direction:column;gap:16px">
-        <section class="bento" aria-busy="true">
-          <div class="brandcard calm"><div class="eyebrow"><i aria-hidden="true" style="background:var(--v-ink-3);box-shadow:none"></i>Cambios sin publicar en el sitio</div><div class="sk" style="width:70%;height:24px;border-radius:8px"></div><div class="sk" style="width:40%"></div></div>
-          <div class="tiles">
-            <div class="tile sk-tile"><span class="sk val"></span><span class="sk lab"></span></div><div class="tile sk-tile"><span class="sk val"></span><span class="sk lab"></span></div><div class="tile sk-tile"><span class="sk val"></span><span class="sk lab"></span></div><div class="tile sk-tile"><span class="sk val"></span><span class="sk lab"></span></div>
-          </div>
-        </section>
-        <div class="cards" aria-busy="true">
-          <div class="rc sk-card"><div class="thumb"></div><div class="body"><div class="sk" style="width:80%;height:14px"></div><div class="sk" style="width:50%"></div></div></div>
-          <div class="rc sk-card"><div class="thumb"></div><div class="body"><div class="sk" style="width:60%;height:14px"></div><div class="sk" style="width:45%"></div></div></div>
-          <div class="rc sk-card"><div class="thumb"></div><div class="body"><div class="sk" style="width:90%;height:14px"></div><div class="sk" style="width:40%"></div></div></div>
-          <div class="rc sk-card"><div class="thumb"></div><div class="body"><div class="sk" style="width:55%;height:14px"></div><div class="sk" style="width:50%"></div></div></div>
-        </div>
-      </div></div>
-    </div>
+				<div class="state">
+					<h3>Error en «Lo último» <small>el resto sigue</small></h3>
+					<p>
+						<code>role="alert"</code> en el sitio de las tarjetas; se cita la respuesta del
+						servidor.
+					</p>
+					<div class="panel">
+						<div class="grid-stack">
+							<div class="recent-head" style="margin-bottom: 14px">
+								<h2>Lo último que editaste</h2>
+							</div>
+							<div class="card">
+								<div class="cstate" role="alert">
+									<span class="glyph err"
+										><svg class="i"><use href="#i-alert" /></svg
+									></span>
+									<h3>No se pudo cargar lo último que editaste</h3>
+									<p>El servidor ha contestado: <code>503 Service Unavailable</code></p>
+									<button class="btn" type="button">
+										<svg class="i"><use href="#i-refresh" /></svg>Reintentar
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
 
-    <div class="state">
-      <h3>Error en «Lo último» <small>el resto sigue</small></h3>
-      <p><code>role="alert"</code> en el sitio de las tarjetas; se cita la respuesta del servidor.</p>
-      <div class="panel"><div class="grid-stack">
-        <div class="recent-head" style="margin-bottom:14px"><h2>Lo último que editaste</h2></div>
-        <div class="card"><div class="cstate" role="alert"><span class="glyph err"><svg class="i"><use href="#i-alert"/></svg></span><h3>No se pudo cargar lo último que editaste</h3><p>El servidor ha contestado: <code>503 Service Unavailable</code></p><button class="btn" type="button"><svg class="i"><use href="#i-refresh"/></svg>Reintentar</button></div></div>
-      </div></div>
-    </div>
+				<div class="state">
+					<h3>
+						Sitio al día y casos límite <small>«No» · 0 · 999 · 1.284 · etiqueta larga</small>
+					</h3>
+					<p>
+						Sin cambios, la tarjeta de marca se calma. Las cifras grandes se formatean con separador
+						de millar y la etiqueta parte.
+					</p>
+					<div class="panel">
+						<div class="grid-stack" style="display: flex; flex-direction: column; gap: 12px">
+							<div class="brandcard calm" style="min-height: 0">
+								<div class="eyebrow">
+									<i aria-hidden="true"></i>Cambios sin publicar en el sitio
+								</div>
+								<h2>Sitio al día.</h2>
+								<p>Última publicación: hoy, 09:12</p>
+							</div>
+							<div class="tiles two">
+								<a class="tile zero" href="#"
+									><span class="val">0</span><span class="lab">Páginas en borrador</span
+									><svg class="i chev"><use href="#i-arrow" /></svg
+								></a>
+								<a class="tile" href="#"
+									><span class="val">999</span><span class="lab">Noticias en borrador</span
+									><svg class="i chev"><use href="#i-arrow" /></svg
+								></a>
+								<div class="tile warn">
+									<span class="val">1.284</span><span class="lab">Medios sin texto alternativo</span
+									><i class="dot" aria-hidden="true"></i>
+								</div>
+								<div class="tile sched">
+									<span class="val">12</span
+									><span class="lab">Entradas del blog corporativo con publicación programada</span
+									><i class="dot" aria-hidden="true"></i>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
 
-    <div class="state">
-      <h3>Sitio al día y casos límite <small>«No» · 0 · 999 · 1.284 · etiqueta larga</small></h3>
-      <p>Sin cambios, la tarjeta de marca se calma. Las cifras grandes se formatean con separador de millar y la etiqueta parte.</p>
-      <div class="panel"><div class="grid-stack" style="display:flex;flex-direction:column;gap:12px">
-        <div class="brandcard calm" style="min-height:0"><div class="eyebrow"><i aria-hidden="true"></i>Cambios sin publicar en el sitio</div><h2>Sitio al día.</h2><p>Última publicación: hoy, 09:12</p></div>
-        <div class="tiles two">
-          <a class="tile zero" href="#"><span class="val">0</span><span class="lab">Páginas en borrador</span><svg class="i chev"><use href="#i-arrow"/></svg></a>
-          <a class="tile" href="#"><span class="val">999</span><span class="lab">Noticias en borrador</span><svg class="i chev"><use href="#i-arrow"/></svg></a>
-          <div class="tile warn"><span class="val">1.284</span><span class="lab">Medios sin texto alternativo</span><i class="dot" aria-hidden="true"></i></div>
-          <div class="tile sched"><span class="val">12</span><span class="lab">Entradas del blog corporativo con publicación programada</span><i class="dot" aria-hidden="true"></i></div>
-        </div>
-      </div></div>
-    </div>
+				<div class="state wide">
+					<h3>Sin pendientes <small>el bento no existe; «Lo último» sube</small></h3>
+					<p>
+						Sin tarjetas que pintar, la portada es saludo, Crear y las tarjetas de lo último.
+						También «Lo último» vacío: el estado de un primer día.
+					</p>
+					<div class="frame">
+						<div class="shell">
+							<main class="content">
+								<div class="home">
+									<div class="hero">
+										<div>
+											<h1>Buenas tardes, <em>Lucía</em>.</h1>
+											<p class="sub">Martes 20 de octubre</p>
+										</div>
+										<section class="create" aria-label="Crear">
+											<span class="lbl">Crear</span
+											><button class="chip" type="button">
+												<span class="ic"
+													><svg class="i"><use href="#i-pages" /></svg></span
+												>Página</button
+											><button class="chip" type="button">
+												<span class="ic"
+													><svg class="i"><use href="#i-news" /></svg></span
+												>Noticia
+											</button>
+										</section>
+									</div>
+									<section style="display: flex; flex-direction: column; gap: 14px">
+										<div class="recent-head"><h2>Lo último que editaste</h2></div>
+										<div class="card">
+											<div class="cstate">
+												<span class="glyph"
+													><svg class="i"><use href="#i-doc" /></svg
+												></span>
+												<h3>Todavía no has editado nada</h3>
+												<p>
+													Lo que edites en este navegador aparecerá aquí para que puedas retomarlo.
+												</p>
+											</div>
+										</div>
+									</section>
+								</div>
+							</main>
+						</div>
+					</div>
+				</div>
 
-    <div class="state wide">
-      <h3>Sin pendientes <small>el bento no existe; «Lo último» sube</small></h3>
-      <p>Sin tarjetas que pintar, la portada es saludo, Crear y las tarjetas de lo último. También «Lo último» vacío: el estado de un primer día.</p>
-      <div class="frame"><div class="shell"><main class="content"><div class="home">
-        <div class="hero"><div><h1>Buenas tardes, <em>Lucía</em>.</h1><p class="sub">Martes 20 de octubre</p></div>
-          <section class="create" aria-label="Crear"><span class="lbl">Crear</span><button class="chip" type="button"><span class="ic"><svg class="i"><use href="#i-pages"/></svg></span>Página</button><button class="chip" type="button"><span class="ic"><svg class="i"><use href="#i-news"/></svg></span>Noticia</button></section></div>
-        <section style="display:flex;flex-direction:column;gap:14px"><div class="recent-head"><h2>Lo último que editaste</h2></div>
-          <div class="card"><div class="cstate"><span class="glyph"><svg class="i"><use href="#i-doc"/></svg></span><h3>Todavía no has editado nada</h3><p>Lo que edites en este navegador aparecerá aquí para que puedas retomarlo.</p></div></div></section>
-      </div></main></div></div>
-    </div>
+				<div class="state">
+					<h3>Sitio vacío, quien administra <small>con la oferta de historial</small></h3>
+					<p>
+						Menú solo con entradas de sistema. Propuesta: «Ir a Ajustes» visible también con la
+						oferta (hoy se oculta).
+					</p>
+					<div class="frame">
+						<div class="shell">
+							<header class="topbar">
+								<button class="btn quiet iconbtn" type="button" aria-label="Abrir navegación">
+									<svg class="i"><use href="#i-menu" /></svg></button
+								><a class="brand" href="#"
+									><span class="mark"
+										><svg><use href="#i-star" /></svg></span
+									>Vega</a
+								>
+								<div class="cmd" role="search">
+									<svg class="i"><use href="#i-search" /></svg
+									><span>Buscar en todo el contenido…</span><span class="k">⌘</span
+									><span class="k">K</span>
+								</div>
+								<span class="conn"><i aria-hidden="true"></i><span>Conectado</span></span
+								><button class="avatar" type="button" aria-label="Menú de cuenta">DV</button>
+							</header>
+							<div class="body">
+								<nav class="sidebar" aria-label="Navegación principal" style="min-height: 0">
+									<div class="navgroup sys" style="margin-top: 0; padding-top: 0; border: 0">
+										<ul>
+											<li>
+												<a href="#"
+													><svg class="i"><use href="#i-image" /></svg>Medios</a
+												>
+											</li>
+											<li>
+												<a href="#"
+													><svg class="i"><use href="#i-users" /></svg>Editores</a
+												>
+											</li>
+											<li>
+												<a href="#"
+													><svg class="i"><use href="#i-archive" /></svg>Copias</a
+												>
+											</li>
+											<li>
+												<a href="#"
+													><svg class="i"><use href="#i-gear" /></svg>Ajustes</a
+												>
+											</li>
+										</ul>
+									</div>
+								</nav>
+								<main class="content">
+									<div class="empty">
+										<span class="glyph"
+											><svg class="i"><use href="#i-rocket" /></svg
+										></span>
+										<h1>Todavía no hay nada que mostrar</h1>
+										<p>Crea colecciones en tu PocketBase o revisa el manifiesto en Ajustes.</p>
+										<a class="btn primary" href="#">Ir a Ajustes</a>
+										<section class="offer" aria-labelledby="h-off">
+											<h2 id="h-off">Guarda versiones anteriores y recupera registros borrados</h2>
+											<p>
+												Prepara el historial y la papelera para este sitio. Podrás consultar
+												versiones anteriores de tu contenido.
+											</p>
+											<p>
+												Los archivos adjuntos y los enlaces que se eliminan al borrar no se
+												recuperan.
+											</p>
+											<div class="acts">
+												<a class="btn primary" href="#">Preparar historial y papelera</a
+												><button class="btn" type="button">Ahora no</button>
+											</div>
+											<p class="hint">
+												El descarte se guarda en este navegador si su almacenamiento está
+												disponible.
+											</p>
+										</section>
+									</div>
+								</main>
+							</div>
+						</div>
+					</div>
+				</div>
 
-    <div class="state">
-      <h3>Sitio vacío, quien administra <small>con la oferta de historial</small></h3>
-      <p>Menú solo con entradas de sistema. Propuesta: «Ir a Ajustes» visible también con la oferta (hoy se oculta).</p>
-      <div class="frame"><div class="shell">
-        <header class="topbar"><button class="btn quiet iconbtn" type="button" aria-label="Abrir navegación"><svg class="i"><use href="#i-menu"/></svg></button><a class="brand" href="#"><span class="mark"><svg><use href="#i-star"/></svg></span>Vega</a><div class="cmd" role="search"><svg class="i"><use href="#i-search"/></svg><span>Buscar en todo el contenido…</span><span class="k">⌘</span><span class="k">K</span></div><span class="conn"><i aria-hidden="true"></i><span>Conectado</span></span><button class="avatar" type="button" aria-label="Menú de cuenta">DV</button></header>
-        <div class="body">
-          <nav class="sidebar" aria-label="Navegación principal" style="min-height:0"><div class="navgroup sys" style="margin-top:0;padding-top:0;border:0"><ul><li><a href="#"><svg class="i"><use href="#i-image"/></svg>Medios</a></li><li><a href="#"><svg class="i"><use href="#i-users"/></svg>Editores</a></li><li><a href="#"><svg class="i"><use href="#i-archive"/></svg>Copias</a></li><li><a href="#"><svg class="i"><use href="#i-gear"/></svg>Ajustes</a></li></ul></div></nav>
-          <main class="content"><div class="empty">
-            <span class="glyph"><svg class="i"><use href="#i-rocket"/></svg></span>
-            <h1>Todavía no hay nada que mostrar</h1>
-            <p>Crea colecciones en tu PocketBase o revisa el manifiesto en Ajustes.</p>
-            <a class="btn primary" href="#">Ir a Ajustes</a>
-            <section class="offer" aria-labelledby="h-off"><h2 id="h-off">Guarda versiones anteriores y recupera registros borrados</h2><p>Prepara el historial y la papelera para este sitio. Podrás consultar versiones anteriores de tu contenido.</p><p>Los archivos adjuntos y los enlaces que se eliminan al borrar no se recuperan.</p><div class="acts"><a class="btn primary" href="#">Preparar historial y papelera</a><button class="btn" type="button">Ahora no</button></div><p class="hint">El descarte se guarda en este navegador si su almacenamiento está disponible.</p></section>
-          </div></main>
-        </div>
-      </div></div>
-    </div>
+				<div class="state">
+					<h3>Sitio vacío, quien edita <small>sin permisos</small></h3>
+					<p>Sin botón: se le dice a quién acudir.</p>
+					<div class="frame">
+						<div class="shell">
+							<header class="topbar">
+								<button class="btn quiet iconbtn" type="button" aria-label="Abrir navegación">
+									<svg class="i"><use href="#i-menu" /></svg></button
+								><a class="brand" href="#"
+									><span class="mark"
+										><svg><use href="#i-star" /></svg></span
+									>Vega</a
+								>
+								<div class="cmd" role="search">
+									<svg class="i"><use href="#i-search" /></svg
+									><span>Buscar en todo el contenido…</span><span class="k">⌘</span
+									><span class="k">K</span>
+								</div>
+								<span class="conn"><i aria-hidden="true"></i><span>Conectado</span></span
+								><button class="avatar" type="button" aria-label="Menú de cuenta">LR</button>
+							</header>
+							<div class="body">
+								<nav class="sidebar" aria-label="Navegación principal" style="min-height: 0">
+									<div class="navgroup sys" style="margin-top: 0; padding-top: 0; border: 0">
+										<ul>
+											<li>
+												<a href="#"
+													><svg class="i"><use href="#i-image" /></svg>Medios</a
+												>
+											</li>
+										</ul>
+									</div>
+								</nav>
+								<main class="content">
+									<div class="empty">
+										<span
+											class="glyph"
+											style="background: var(--v-btn); color: var(--v-ink-2); box-shadow: none"
+											><svg class="i"><use href="#i-doc" /></svg
+										></span>
+										<h1>Todavía no hay nada que mostrar</h1>
+										<p>Todavía no hay contenido que editar. Habla con quien administre el sitio.</p>
+									</div>
+								</main>
+							</div>
+						</div>
+					</div>
+				</div>
 
-    <div class="state">
-      <h3>Sitio vacío, quien edita <small>sin permisos</small></h3>
-      <p>Sin botón: se le dice a quién acudir.</p>
-      <div class="frame"><div class="shell">
-        <header class="topbar"><button class="btn quiet iconbtn" type="button" aria-label="Abrir navegación"><svg class="i"><use href="#i-menu"/></svg></button><a class="brand" href="#"><span class="mark"><svg><use href="#i-star"/></svg></span>Vega</a><div class="cmd" role="search"><svg class="i"><use href="#i-search"/></svg><span>Buscar en todo el contenido…</span><span class="k">⌘</span><span class="k">K</span></div><span class="conn"><i aria-hidden="true"></i><span>Conectado</span></span><button class="avatar" type="button" aria-label="Menú de cuenta">LR</button></header>
-        <div class="body">
-          <nav class="sidebar" aria-label="Navegación principal" style="min-height:0"><div class="navgroup sys" style="margin-top:0;padding-top:0;border:0"><ul><li><a href="#"><svg class="i"><use href="#i-image"/></svg>Medios</a></li></ul></div></nav>
-          <main class="content"><div class="empty">
-            <span class="glyph" style="background:var(--v-btn);color:var(--v-ink-2);box-shadow:none"><svg class="i"><use href="#i-doc"/></svg></span>
-            <h1>Todavía no hay nada que mostrar</h1>
-            <p>Todavía no hay contenido que editar. Habla con quien administre el sitio.</p>
-          </div></main>
-        </div>
-      </div></div>
-    </div>
+				<div class="state">
+					<h3>Móvil <small>390 px · la misma pantalla por container query</small></h3>
+					<p>
+						Buscador a todo el ancho bajo el saludo; tarjeta de marca; tiles 2×4; «Lo último» como
+						tarjetas horizontales con miniatura de 96 px. Chips a 42 px.
+					</p>
+					<div class="frame phone" id="movil"></div>
+				</div>
+			</div>
 
-    <div class="state">
-      <h3>Móvil <small>390 px · la misma pantalla por container query</small></h3>
-      <p>Buscador a todo el ancho bajo el saludo; tarjeta de marca; tiles 2×4; «Lo último» como tarjetas horizontales con miniatura de 96 px. Chips a 42 px.</p>
-      <div class="frame phone" id="movil"></div>
-    </div>
-  </div>
+			<!-- ============================ 3. TOKENS: DELTA RESPECTO A v1 ============================ -->
+			<h2 class="sec">
+				3 · Tokens → P7: qué cambia respecto a la v1
+				<span
+					>la paleta cromática y los semánticos son los mismos; el mapa de v1 sigue valiendo para
+					ellos</span
+				>
+			</h2>
+			<div class="tbl-wrap">
+				<table class="spec">
+					<thead>
+						<tr>
+							<th>Token v2</th>
+							<th>Valor</th>
+							<th>Rol P7</th>
+							<th>Veredicto</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><code>--v-font-display</code></td>
+							<td>Bricolage Grotesque (opsz 96, 500–700)</td>
+							<td>(ninguno; solo <code>--sans</code> y <code>--mono</code>)</td>
+							<td class="ko">
+								FALTA un rol de familia display. Sin él, la cabecera y las cifras vuelven a la UI y
+								la v2 pierde su carácter
+							</td>
+						</tr>
+						<tr>
+							<td><code>--v-brand-grad</code> · <code>--v-brand-a/b</code></td>
+							<td>135°, #4c4ad9 → #6a5ae0 (oscuro #4f52e0 → #6c5ee6); blanco encima ≥ 4.79:1</td>
+							<td><code>--accent-grad</code> · <code>--brand-a</code> · <code>--brand-b</code></td>
+							<td class="ok">
+								encaja: la v2 SÍ consume la familia de efectos que la v1 retiraba (tarjeta de marca,
+								botón primario, glifo de la marca)
+							</td>
+						</tr>
+						<tr>
+							<td><code>--v-halo</code></td>
+							<td>radial 900×420 en 18 % / −8 %, acento al 13 % (22 % oscuro)</td>
+							<td><code>--halo</code></td>
+							<td class="ok">
+								encaja; hoy vale <code>none</code> en el tema base: cambia el valor por defecto
+							</td>
+						</tr>
+						<tr>
+							<td>(sin uso)</td>
+							<td>—</td>
+							<td>
+								<code>--sheen</code> · <code>--brand-c</code> · <code>--accent-fill</code> ·
+								<code>--brand-edge-opacity</code>
+							</td>
+							<td class="gap">siguen sin consumirse en Inicio</td>
+						</tr>
+						<tr>
+							<td><code>--v-glass</code></td>
+							<td>superficie al 72 % + blur 18 px</td>
+							<td>(derivable: <code>color-mix(in srgb, var(--surface) 72%, transparent)</code>)</td>
+							<td class="gap">
+								no hace falta token nuevo, pero el blur es una decisión de componente que P7 no
+								gobierna
+							</td>
+						</tr>
+						<tr>
+							<td><code>--v-shadow-2</code> · <code>--v-shadow-brand</code></td>
+							<td>2 capas 6 %/8 % · sombra teñida de acento al 28 %</td>
+							<td><code>--shadow-card</code> (única)</td>
+							<td class="ko">
+								FALTA una segunda elevación (hover/levantado) y la sombra teñida; con una sola
+								sombra se pierde la profundidad
+							</td>
+						</tr>
+						<tr>
+							<td><code>--v-r-sm/md/lg/pill</code></td>
+							<td>10 · 16 · 22 · 999</td>
+							<td><code>--r</code> (8)</td>
+							<td class="ko">
+								misma falta que en v1, más grave aquí: los radios generosos son parte del lenguaje
+							</td>
+						</tr>
+						<tr>
+							<td><code>--v-fs-36</code> · <code>--v-fs-44</code></td>
+							<td>escala ampliada por arriba</td>
+							<td><code>--fs-base</code></td>
+							<td class="ko">
+								misma falta que en v1 (escala tipográfica), con dos pasos display más
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<code>--v-inset</code> 12 · <code>--v-sidebar-w</code> 248 ·
+								<code>--v-topbar-h</code> 56
+							</td>
+							<td>menú flotante con aire</td>
+							<td><code>--vega-size-sidebar</code> literal · <code>--topbar-h</code></td>
+							<td class="gap">
+								cambiar valores; el «inset» del menú flotante es un espacio de layout que P7 no
+								tiene
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
 
-  <!-- ============================ 3. TOKENS: DELTA RESPECTO A v1 ============================ -->
-  <h2 class="sec">3 · Tokens → P7: qué cambia respecto a la v1 <span>la paleta cromática y los semánticos son los mismos; el mapa de v1 sigue valiendo para ellos</span></h2>
-  <div class="tbl-wrap"><table class="spec">
-    <thead><tr><th>Token v2</th><th>Valor</th><th>Rol P7</th><th>Veredicto</th></tr></thead>
-    <tbody>
-      <tr><td><code>--v-font-display</code></td><td>Bricolage Grotesque (opsz 96, 500–700)</td><td>(ninguno; solo <code>--sans</code> y <code>--mono</code>)</td><td class="ko">FALTA un rol de familia display. Sin él, la cabecera y las cifras vuelven a la UI y la v2 pierde su carácter</td></tr>
-      <tr><td><code>--v-brand-grad</code> · <code>--v-brand-a/b</code></td><td>135°, #4c4ad9 → #6a5ae0 (oscuro #4f52e0 → #6c5ee6); blanco encima ≥ 4.79:1</td><td><code>--accent-grad</code> · <code>--brand-a</code> · <code>--brand-b</code></td><td class="ok">encaja: la v2 SÍ consume la familia de efectos que la v1 retiraba (tarjeta de marca, botón primario, glifo de la marca)</td></tr>
-      <tr><td><code>--v-halo</code></td><td>radial 900×420 en 18 % / −8 %, acento al 13 % (22 % oscuro)</td><td><code>--halo</code></td><td class="ok">encaja; hoy vale <code>none</code> en el tema base: cambia el valor por defecto</td></tr>
-      <tr><td>(sin uso)</td><td>—</td><td><code>--sheen</code> · <code>--brand-c</code> · <code>--accent-fill</code> · <code>--brand-edge-opacity</code></td><td class="gap">siguen sin consumirse en Inicio</td></tr>
-      <tr><td><code>--v-glass</code></td><td>superficie al 72 % + blur 18 px</td><td>(derivable: <code>color-mix(in srgb, var(--surface) 72%, transparent)</code>)</td><td class="gap">no hace falta token nuevo, pero el blur es una decisión de componente que P7 no gobierna</td></tr>
-      <tr><td><code>--v-shadow-2</code> · <code>--v-shadow-brand</code></td><td>2 capas 6 %/8 % · sombra teñida de acento al 28 %</td><td><code>--shadow-card</code> (única)</td><td class="ko">FALTA una segunda elevación (hover/levantado) y la sombra teñida; con una sola sombra se pierde la profundidad</td></tr>
-      <tr><td><code>--v-r-sm/md/lg/pill</code></td><td>10 · 16 · 22 · 999</td><td><code>--r</code> (8)</td><td class="ko">misma falta que en v1, más grave aquí: los radios generosos son parte del lenguaje</td></tr>
-      <tr><td><code>--v-fs-36</code> · <code>--v-fs-44</code></td><td>escala ampliada por arriba</td><td><code>--fs-base</code></td><td class="ko">misma falta que en v1 (escala tipográfica), con dos pasos display más</td></tr>
-      <tr><td><code>--v-inset</code> 12 · <code>--v-sidebar-w</code> 248 · <code>--v-topbar-h</code> 56</td><td>menú flotante con aire</td><td><code>--vega-size-sidebar</code> literal · <code>--topbar-h</code></td><td class="gap">cambiar valores; el «inset» del menú flotante es un espacio de layout que P7 no tiene</td></tr>
-    </tbody>
-  </table></div>
+			<!-- ============================ 4. CHECKLIST ============================ -->
+			<h2 class="sec">4 · Checklist de 7 ejes</h2>
+			<ul class="check">
+				<li>
+					<b class="ok">Cubierto</b
+					><span
+						><b>Tokens.</b> Misma paleta AA que v1 (texto ≥ 4.70:1) más blanco sobre degradado
+						medido en los dos extremos (6.39 → 5.06 claro; 5.81 → 4.79 oscuro), ámbar sobre ámbar
+						tenue 7.16 / 7.36, índigo sobre índigo tenue 6.15. Tres familias tipográficas, radios
+						10/16/22/píldora, dos elevaciones + sombra de marca, halo.</span
+					>
+				</li>
+				<li>
+					<b class="gap">PARCIAL</b
+					><span
+						><b>Componentes con todos los estados.</b> Tarjeta de marca (activa / calmada /
+						cargando), tile (enlazado / no / cero / aviso / programado / skeleton), tarjeta de
+						registro (con imagen / tipográfica / persona / «Continuar» / skeleton / hover), chip con
+						icono, botón primario-píldora / secundario / sobre marca / silencioso, pill en dos
+						variantes. Falta: menú de cuenta y paleta ⌘K abiertos, los 9 estados de Publicar,
+						densidad compacta.</span
+					>
+				</li>
+				<li>
+					<b class="gap">PARCIAL</b
+					><span
+						><b>Responsive.</b> 1440 y 390 por container query (cortes 1180: bento a una columna y 3
+						tarjetas; 900: 2 tarjetas y tiles 2×n; 760: móvil). Falta dibujar el menú abierto en
+						móvil y el panel ⌘K.</span
+					>
+				</li>
+				<li>
+					<b class="ok">Cubierto</b
+					><span
+						><b>Accesibilidad AA medida.</b> Cifras en §3 y arriba; texto sobre degradado solo
+						blanco pleno (el 85 % se queda en 4.09 y no se usa en pequeño); foco de marca 2 px;
+						chips 38–42 px, tiles ≥ 88 px, filas móviles ≥ 64 px; pulso de conexión y skeleton
+						anulados con <code>prefers-reduced-motion</code>; estado nunca solo por color (pill con
+						texto, punto + color + cifra); miniaturas decorativas (el título es el texto).</span
+					>
+				</li>
+				<li>
+					<b class="ok">Cubierto</b
+					><span
+						><b>Casos límite.</b> Título de 160 caracteres a dos líneas con elipsis y
+						<code>title</code>; «(sin título)»; registros sin imagen (tile tipográfico); 0, 999,
+						1.284; etiqueta larga; «Fecha vencida»; «Programado» con fecha; lista vacía; 8 tiles y 4
+						tiles.</span
+					>
+				</li>
+				<li>
+					<b class="ok">Cubierto</b
+					><span
+						><b>Feedback del sistema.</b> Skeleton por pieza sin bloquear Crear; error local con
+						causa y Reintentar; tarjeta de marca que se calma cuando no hay nada que hacer; pulso de
+						«Conectado»; aviso numérico en el menú con <code>nav.warningsBadge</code>.</span
+					>
+				</li>
+				<li>
+					<b class="gap">PARCIAL</b
+					><span
+						><b>Assets.</b> 24 iconos inline (no están en el registro); miniaturas SIMULADAS con CSS
+						(en producto, imagen del campo del tipo, que hoy Inicio no resuelve); marca: estrella
+						sobre cuadrado con degradado; fuentes Bricolage Grotesque + Geist + Geist Mono por
+						Google Fonts en la lámina, autoalojadas en producto por el CSP.</span
+					>
+				</li>
+			</ul>
+		</div>
 
-  <!-- ============================ 4. CHECKLIST ============================ -->
-  <h2 class="sec">4 · Checklist de 7 ejes</h2>
-  <ul class="check">
-    <li><b class="ok">Cubierto</b><span><b>Tokens.</b> Misma paleta AA que v1 (texto ≥ 4.70:1) más blanco sobre degradado medido en los dos extremos (6.39 → 5.06 claro; 5.81 → 4.79 oscuro), ámbar sobre ámbar tenue 7.16 / 7.36, índigo sobre índigo tenue 6.15. Tres familias tipográficas, radios 10/16/22/píldora, dos elevaciones + sombra de marca, halo.</span></li>
-    <li><b class="gap">PARCIAL</b><span><b>Componentes con todos los estados.</b> Tarjeta de marca (activa / calmada / cargando), tile (enlazado / no / cero / aviso / programado / skeleton), tarjeta de registro (con imagen / tipográfica / persona / «Continuar» / skeleton / hover), chip con icono, botón primario-píldora / secundario / sobre marca / silencioso, pill en dos variantes. Falta: menú de cuenta y paleta ⌘K abiertos, los 9 estados de Publicar, densidad compacta.</span></li>
-    <li><b class="gap">PARCIAL</b><span><b>Responsive.</b> 1440 y 390 por container query (cortes 1180: bento a una columna y 3 tarjetas; 900: 2 tarjetas y tiles 2×n; 760: móvil). Falta dibujar el menú abierto en móvil y el panel ⌘K.</span></li>
-    <li><b class="ok">Cubierto</b><span><b>Accesibilidad AA medida.</b> Cifras en §3 y arriba; texto sobre degradado solo blanco pleno (el 85 % se queda en 4.09 y no se usa en pequeño); foco de marca 2 px; chips 38–42 px, tiles ≥ 88 px, filas móviles ≥ 64 px; pulso de conexión y skeleton anulados con <code>prefers-reduced-motion</code>; estado nunca solo por color (pill con texto, punto + color + cifra); miniaturas decorativas (el título es el texto).</span></li>
-    <li><b class="ok">Cubierto</b><span><b>Casos límite.</b> Título de 160 caracteres a dos líneas con elipsis y <code>title</code>; «(sin título)»; registros sin imagen (tile tipográfico); 0, 999, 1.284; etiqueta larga; «Fecha vencida»; «Programado» con fecha; lista vacía; 8 tiles y 4 tiles.</span></li>
-    <li><b class="ok">Cubierto</b><span><b>Feedback del sistema.</b> Skeleton por pieza sin bloquear Crear; error local con causa y Reintentar; tarjeta de marca que se calma cuando no hay nada que hacer; pulso de «Conectado»; aviso numérico en el menú con <code>nav.warningsBadge</code>.</span></li>
-    <li><b class="gap">PARCIAL</b><span><b>Assets.</b> 24 iconos inline (no están en el registro); miniaturas SIMULADAS con CSS (en producto, imagen del campo del tipo, que hoy Inicio no resuelve); marca: estrella sobre cuadrado con degradado; fuentes Bricolage Grotesque + Geist + Geist Mono por Google Fonts en la lámina, autoalojadas en producto por el CSP.</span></li>
-  </ul>
-</div>
-
-<script>
-  const root = document.documentElement, seg = document.querySelector('.seg');
-  seg.addEventListener('click', (e) => { const b = e.target.closest('button[data-set]'); if (!b) return; root.setAttribute('data-theme', b.dataset.set); seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
-  const clone = document.querySelector('#desktop .shell').cloneNode(true);
-  clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-  clone.querySelectorAll('[aria-labelledby]').forEach(el => el.removeAttribute('aria-labelledby'));
-  document.getElementById('movil').appendChild(clone);
-</script>
-</body>
+		<script>
+			const root = document.documentElement,
+				seg = document.querySelector('.seg');
+			seg.addEventListener('click', (e) => {
+				const b = e.target.closest('button[data-set]');
+				if (!b) return;
+				root.setAttribute('data-theme', b.dataset.set);
+				seg
+					.querySelectorAll('button')
+					.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+			});
+			const clone = document.querySelector('#desktop .shell').cloneNode(true);
+			clone.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+			clone
+				.querySelectorAll('[aria-labelledby]')
+				.forEach((el) => el.removeAttribute('aria-labelledby'));
+			document.getElementById('movil').appendChild(clone);
+		</script>
+	</body>
 </html>
