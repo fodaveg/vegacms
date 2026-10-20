@@ -104,6 +104,7 @@
 		below?: Snippet;
 		/** Aviso NO bloqueante bajo el control (ver cabecera, `page-path-not-unique`), o nada. */
 		notice?: string;
+		inlineActive?: boolean;
 		onChange: (value: FieldInputValue) => void;
 	}
 
@@ -122,6 +123,7 @@
 		action,
 		below,
 		notice,
+		inlineActive = false,
 		onChange
 	}: Props = $props();
 
@@ -150,6 +152,9 @@
 				aria-hidden="true">*</span
 			>{/if}
 	</label>
+	{#if inlineActive}<span class="vega-field-inline-status"
+			>{ctx.t('editor.visual.inline.active')}</span
+		>{/if}
 	<div class="vega-field-control">
 		{#if action}
 			<!-- Control + acción en la MISMA línea (mockup `.slug-row`): el widget ocupa el hueco
@@ -229,6 +234,13 @@
 </div>
 
 <style>
+	.vega-field-inline-status {
+		color: var(--v-ol-inline-text);
+		background: var(--v-ol-inline-soft);
+		border-radius: var(--r);
+		padding: 4px 8px;
+		font-size: 12px;
+	}
 	/* Campo apilado (mockup `.field`): label encima, control debajo, ayuda y error bajo el control.
 	   Sin borde ni padding propios — quien separa una fila de otra es el `gap` del contenedor
 	   (`.vega-fields`/`.vega-fgroup-grid` de `RecordForm.svelte`), como en el mockup. */

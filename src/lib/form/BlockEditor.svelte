@@ -109,6 +109,7 @@
 		onDraftChange?: (record: PreviewDraftRecord) => void;
 		disabled?: boolean;
 		onBusyChange?: (busy: boolean) => void;
+		onSaveError?: (failed: boolean) => void;
 		/** Modo «solo textos» (ver cabecera): pinta solo `text`/`textarea` y nombra el resto. */
 		textsOnly?: boolean;
 		/** Sin permiso de editar (ver cabecera): campos deshabilitados y sin «Guardar». */
@@ -137,6 +138,7 @@
 		onDraftChange = () => {},
 		disabled = false,
 		onBusyChange = () => {},
+		onSaveError = () => {},
 		textsOnly = false,
 		locked = false,
 		contextualHeader,
@@ -433,6 +435,7 @@
 			adoptRecord(saved);
 			onSaved(saved);
 		} catch (err) {
+			onSaveError(true);
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
 			if (isConflictError(vegaErr)) conflict = vegaErr;
 			else if (isFieldValidationError(vegaErr)) backendErrors = mapFieldErrors(vegaErr);
@@ -493,6 +496,65 @@
 		clearFieldError(name);
 	}
 
+	// Inline usa los mismos handlers que la ficha; el snapshot inicial conserva null y undefined.
+	let inlineField = $state<string | null>(null);
+	let inlineOriginal: FieldInputValue;
+	let inlineSource: 'data' | 'record' = 'record';
+
+	function inlineTarget(name: string) {
+		if (
+			inert ||
+			!childType.permissions.update ||
+			childType.readonly ||
+			structuralFields.includes(name)
+		)
+			return null;
+		const item = typed
+			? typedFields.find((item) => item.kind !== 'missing-record' && item.field.name === name)
+			: null;
+		const field = typed
+			? item && item.kind !== 'missing-record'
+				? item.field
+				: null
+			: legacyFields.find((field) => field.name === name);
+		if (!field || field.hidden || field.schema.readonly || !isTextWidget(field.widget)) return null;
+		return { field, source: item?.kind === 'data' ? ('data' as const) : ('record' as const) };
+	}
+
+	/** Inicia una edición autorizada sin crear otro dueño del borrador. */
+	export function beginInline(
+		name: string
+	): { widget: 'text' | 'textarea'; value: string; label: string } | null {
+		const target = inlineTarget(name);
+		if (!target || inlineField !== null) return null;
+		inlineField = name;
+		inlineSource = target.source;
+		inlineOriginal = target.source === 'data' ? dataCurrent[name] : current[name];
+		return {
+			widget: target.field.widget as 'text' | 'textarea',
+			label: target.field.label,
+			value: String(inlineOriginal ?? '')
+		};
+	}
+
+	/** Revalida permisos y campo en cada input, también si cambiaron durante la sesión. */
+	export function updateInline(name: string, value: string): boolean {
+		if (inlineField !== name || !inlineTarget(name)) return false;
+		if (inlineSource === 'data') handleDataFieldChange(name, value);
+		else handleRecordFieldChange(name, value);
+		return true;
+	}
+
+	/** Commit conserva el borrador; cancelar restaura exactamente el valor anterior, sin guardar. */
+	export function finishInline(cancel = false): void {
+		if (inlineField === null) return;
+		if (cancel) {
+			if (inlineSource === 'data') handleDataFieldChange(inlineField, inlineOriginal);
+			else handleRecordFieldChange(inlineField, inlineOriginal);
+		}
+		inlineField = null;
+	}
+
 	function validateTypedForm(): FieldErrorsView {
 		const dataView = validateBlockData(blockType, dataCurrent);
 		const physicalView = validateForm(childType, current);
@@ -509,9 +571,13 @@
 	async function handleSave(): Promise<void> {
 		if (saving || disabled || invalidData || (typed && blockType === null) || !dirty) return;
 
+		onSaveError(false);
 		const clientView = typed ? validateTypedForm() : validateForm(childType, current);
 		clientErrors = clientView;
-		if (Object.keys(clientView.byField).length > 0 || clientView.record) return;
+		if (Object.keys(clientView.byField).length > 0 || clientView.record) {
+			onSaveError(true);
+			return;
+		}
 
 		backendErrors = EMPTY_ERRORS;
 		saving = true;
@@ -529,6 +595,7 @@
 			adoptRecord(saved);
 			onSaved(saved);
 		} catch (err) {
+			onSaveError(true);
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
 			if (isConflictError(vegaErr)) {
 				conflict = vegaErr;
@@ -683,7 +750,8 @@
 						field={item.field}
 						value={dataCurrent[item.field.name]}
 						error={errors.byField[item.field.name] ?? null}
-						disabled={inert}
+						disabled={inert || inlineField === item.field.name}
+						inlineActive={inlineField === item.field.name}
 						typeReadonly={false}
 						stacked
 						onChange={(value) => handleDataFieldChange(item.field.name, value)}
@@ -693,7 +761,10 @@
 						field={item.field}
 						value={current[item.field.name]}
 						error={errors.byField[item.field.name] ?? null}
-						disabled={inert || structuralFields.includes(item.field.name)}
+						disabled={inert ||
+							inlineField === item.field.name ||
+							structuralFields.includes(item.field.name)}
+						inlineActive={inlineField === item.field.name}
 						typeReadonly={false}
 						stacked
 						onChange={(value) => handleRecordFieldChange(item.field.name, value)}
@@ -706,7 +777,8 @@
 					{field}
 					value={current[field.name]}
 					error={errors.byField[field.name] ?? null}
-					disabled={inert}
+					disabled={inert || inlineField === field.name}
+					inlineActive={inlineField === field.name}
 					typeReadonly={false}
 					stacked
 					onChange={(value) => handleRecordFieldChange(field.name, value)}

@@ -1,3 +1,10 @@
+import {
+	INLINE_PROTOCOL,
+	isInlineField,
+	matchesInline,
+	type InlineIdentity,
+	type InlineRequest
+} from './inline-session';
 /**
  * Cliente del puente de EDICIÓN VISUAL: la mitad que vive en Vega del protocolo
  * `vega-visual-1` (§"Visual editing bridge" de `docs/PROJECT-CONTRACT-v1.md`). Puro transporte
@@ -382,6 +389,11 @@ interface VisualBridgeClientOptions {
 	 *  módulo: un segundo dueño del bloque seleccionado es la vía a que las dos mitades enseñen
 	 *  cosas distintas. */
 	onSelect?: (blockId: string) => void;
+	/** Solo el formulario decide si este campo puede editarse. */
+	onInlineBegin?: (blockId: string, field: string) => InlineRequest | null;
+	onInlineInput?: (blockId: string, field: string, value: string) => boolean;
+	onInlineEnd?: (blockId: string, cancel: boolean) => void;
+	onInlineSave?: () => void;
 	/**
 	 * El puntero está sobre ese bloque DENTRO del marco, o sobre ninguno (`null`) — §"Hover" del
 	 * contrato. Mientras el puntero está sobre un iframe de otro origen la ventana de Vega no recibe
@@ -414,6 +426,11 @@ export interface VisualBridgeClient {
 	 * caliente falla, recarga el marco), y un botón de reintentar necesita exactamente esto.
 	 */
 	start(): void;
+	/** Una carga real invalida documento e interacción, conservando el último borrador. */
+	loaded(): void;
+	finishInline(): void;
+	/** Pide el último texto antes de guardar desde la barra; true si espera ese acuse. */
+	saveInline(): boolean;
 	/** Desmontaje: cancela el temporizador pendiente y deja de aceptar mensajes. */
 	stop(): void;
 	handleMessage(event: MessageEventLike): MessageVerdict;
@@ -463,6 +480,34 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 
 	let state: VisualBridgeState = { status: 'idle' };
 	let active = false;
+	let sessionId = crypto.randomUUID();
+	let documentId: string | null = null;
+	let protocol = VISUAL_PROTOCOL_VERSION;
+	let refreshId: string | null = null;
+	let inline: { identity: InlineIdentity; sequence: number } | null = null;
+	let inlineTimer: ReturnType<typeof setTimeout> | null = null;
+	let saveAfterCommit = false;
+
+	function endInline(cancel: boolean, notify = true): void {
+		if (inlineTimer) clearTimeout(inlineTimer);
+		inlineTimer = null;
+		if (!inline) return;
+		const current = inline;
+		inline = null;
+		saveAfterCommit = false;
+		if (notify) post({ type: 'finishField', ...current.identity, cancel });
+		opts.onInlineEnd?.(current.identity.blockId, cancel);
+	}
+
+	function hello(): void {
+		post({
+			vega: VISUAL_PROTOCOL_VERSION,
+			type: 'hello',
+			supportedProtocols: [INLINE_PROTOCOL, VISUAL_PROTOCOL_VERSION],
+			sessionId
+		});
+	}
+
 	let sent = 0;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	// Plazo de un `refresh()` en vuelo (§"Live refresh" del contrato). PROPIO, no comparte `timer`
@@ -497,7 +542,14 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 		try {
 			// Nunca `'*'`: si el marco navegó a otro sitio, escribir a cualquiera entregaría el
 			// mensaje —y con él la existencia de la sesión de edición— a quien esté ahí ahora.
-			frame.postMessage({ vega: VISUAL_PROTOCOL_VERSION, ...message }, expectedOrigin);
+			frame.postMessage(
+				{
+					vega: protocol,
+					...(protocol === INLINE_PROTOCOL ? { sessionId, documentId } : {}),
+					...message
+				},
+				expectedOrigin
+			);
 		} catch {
 			// Un marco desmontado a media tanda de saludos no es un fallo del protocolo: si nadie
 			// contesta, el plazo de `no-bridge` lo dirá con el texto que toca.
@@ -517,6 +569,7 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 		}
 	): void {
 		clearTimer();
+		endInline(false);
 		setState({ status: 'error', kind, ...extra });
 	}
 
@@ -529,7 +582,7 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 		}
 		sent++;
 		setState({ status: 'connecting', attempts: sent });
-		post({ type: 'hello' });
+		hello();
 		timer = setTimeout(tick, helloIntervalMs);
 	}
 
@@ -538,6 +591,29 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 			return state;
 		},
 		expectedOrigin,
+		loaded() {
+			endInline(false);
+			clearTimer();
+			clearRefreshTimer();
+			protocol = VISUAL_PROTOCOL_VERSION;
+			documentId = null;
+			refreshId = null;
+			sessionId = crypto.randomUUID();
+			active = !!expectedOrigin;
+			sent = 0;
+			if (active) tick();
+		},
+		finishInline() {
+			endInline(false);
+		},
+		saveInline() {
+			if (!inline) return false;
+			saveAfterCommit = true;
+			post({ type: 'finishField', ...inline.identity, requestValue: true });
+			if (inlineTimer) clearTimeout(inlineTimer);
+			inlineTimer = setTimeout(() => endInline(false), 2000);
+			return true;
+		},
 
 		start() {
 			// Desde `connecting`/`connected` no se toca nada; desde `idle` o desde un error se
@@ -562,6 +638,7 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 
 		stop() {
 			active = false;
+			endInline(false);
 			clearTimer();
 			clearRefreshTimer();
 			setState({ status: 'idle' });
@@ -572,12 +649,110 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 			if (event.origin !== expectedOrigin) return 'foreign-origin';
 			// El origen solo dice de qué SITIO viene, no de qué ventana: otro marco del mismo
 			// origen (un anuncio, un widget embebido dentro de la propia página de vista previa)
-			// pasaría la comprobación anterior. Cuando las dos partes se pueden resolver, se exige
-			// identidad; si el evento no trae `source`, el origen es lo único que hay.
+			// pasaría la comprobación anterior. Se exige identidad exacta, también en v1.
 			const frame = opts.frame();
-			if (frame && event.source && event.source !== frame) return 'foreign-source';
+			if (!frame || event.source !== frame) return 'foreign-source';
 
-			const parsed = parseSiteMessage(event.data);
+			const raw = event.data as Record<string, unknown> | null;
+			if (raw && raw.vega === INLINE_PROTOCOL) {
+				if (raw.sessionId !== sessionId || typeof raw.documentId !== 'string' || !raw.documentId)
+					return 'out-of-order';
+				if (raw.type !== 'ready' && (protocol !== INLINE_PROTOCOL || raw.documentId !== documentId))
+					return 'out-of-order';
+				if (
+					raw.type === 'ready' &&
+					protocol === INLINE_PROTOCOL &&
+					documentId !== raw.documentId &&
+					(refreshId === null || raw.refreshId !== refreshId)
+				)
+					return 'out-of-order';
+				if (raw.type === 'ready' && refreshId !== null && raw.refreshId !== refreshId)
+					return 'out-of-order';
+				if (raw.type === 'select' && raw.intent === 'edit') {
+					if (
+						state.status !== 'connected' ||
+						!isInlineField(raw.field) ||
+						typeof raw.blockId !== 'string' ||
+						!state.blocks.some((block) => block.id === raw.blockId)
+					)
+						return 'malformed';
+					endInline(false);
+					const value = opts.onInlineBegin?.(raw.blockId, raw.field);
+					if (!value || !documentId) return 'out-of-order';
+					clearRefreshTimer();
+					refreshId = null;
+					const identity = {
+						sessionId,
+						documentId,
+						editId: crypto.randomUUID(),
+						...opts.record,
+						blockId: raw.blockId,
+						field: raw.field
+					};
+					inline = { identity, sequence: -1 };
+					post({ type: 'editField', ...identity, ...value });
+					inlineTimer = setTimeout(() => endInline(false), 2000);
+					return 'accepted';
+				}
+				if (['input', 'commit', 'cancel'].includes(String(raw.type))) {
+					if (
+						!inline ||
+						!matchesInline(raw, inline.identity) ||
+						!Number.isSafeInteger(raw.sequence) ||
+						(raw.sequence as number) <= inline.sequence
+					)
+						return 'out-of-order';
+					if (
+						state.status !== 'connected' ||
+						!state.blocks.some((block) => block.id === inline?.identity.blockId)
+					) {
+						endInline(false);
+						return 'out-of-order';
+					}
+					if (raw.type !== 'cancel' && typeof raw.value !== 'string') return 'malformed';
+					if (
+						inline.sequence === -1 &&
+						(raw.sequence !== 0 || !['input', 'cancel'].includes(String(raw.type)))
+					)
+						return 'out-of-order';
+					if (inlineTimer) clearTimeout(inlineTimer);
+					inlineTimer = null;
+					inline.sequence = raw.sequence as number;
+					if (
+						raw.type !== 'cancel' &&
+						raw.sequence !== 0 &&
+						!opts.onInlineInput?.(
+							inline.identity.blockId,
+							inline.identity.field,
+							raw.value as string
+						)
+					) {
+						endInline(false);
+						return 'out-of-order';
+					}
+					if (raw.type !== 'input') {
+						const save = raw.type === 'commit' && saveAfterCommit;
+						endInline(raw.type === 'cancel', false);
+						if (save) opts.onInlineSave?.();
+					}
+					return 'accepted';
+				}
+				if (raw.type === 'save') {
+					if (
+						state.status !== 'connected' ||
+						raw.collection !== opts.record.collection ||
+						raw.id !== opts.record.id
+					)
+						return 'out-of-order';
+					endInline(false);
+					opts.onInlineSave?.();
+					return 'accepted';
+				}
+			} else if (protocol === INLINE_PROTOCOL && raw?.vega === VISUAL_PROTOCOL_VERSION)
+				return 'out-of-order';
+			const parsed = parseSiteMessage(
+				raw?.vega === INLINE_PROTOCOL ? { ...raw, vega: VISUAL_PROTOCOL_VERSION } : event.data
+			);
 			if (parsed.status === 'foreign') return 'ignored';
 			if (parsed.status === 'malformed') return 'malformed';
 			if (parsed.status === 'version') {
@@ -592,6 +767,12 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 					// `refresh()` en vuelo (§"Live refresh"): lo corta siempre, tanto si el registro
 					// casa como si no. Antes de mirar nada más, para que ningún `return` de abajo
 					// pueda dejarlo pendiente por descuido.
+					if (raw?.vega === INLINE_PROTOCOL) {
+						if (documentId !== raw.documentId) endInline(false);
+						protocol = INLINE_PROTOCOL;
+						documentId = raw.documentId as string;
+						refreshId = null;
+					}
 					const wasRefreshing = refreshTimer !== null;
 					clearRefreshTimer();
 					// El marco tiene que estar pintando EL registro de esta sesión. Es la razón de
@@ -686,8 +867,14 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 		refresh(preview) {
 			// Sin conexión, o el sitio nunca anunció `liveRefresh`: nada que pedir. Quien llama cae a
 			// la recarga entera, que es justo lo que hacía antes de que esta capacidad existiera.
+			if (inline) return true;
 			if (state.status !== 'connected' || !state.liveRefresh) return false;
-			const message: Record<string, unknown> = { type: 'refresh', url: preview.url };
+			refreshId = protocol === INLINE_PROTOCOL ? crypto.randomUUID() : null;
+			const message: Record<string, unknown> = {
+				type: 'refresh',
+				url: preview.url,
+				...(refreshId ? { refreshId } : {})
+			};
 			// Solo se incluye la clave si viene (§contrato: "forwarded without being parsed or
 			// rewritten") — mandar `postToken: undefined` no es lo mismo que omitirla al otro lado.
 			if (preview.postToken !== undefined) message.postToken = preview.postToken;

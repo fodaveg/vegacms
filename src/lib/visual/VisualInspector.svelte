@@ -128,6 +128,7 @@
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
 	import { resolveFocusTarget } from '$lib/form/focus-target';
 	import { focusables } from './a11y-audit';
+	import type { InlineEditor } from './inline-session';
 
 	interface Props {
 		/** Instancia ÚNICA de la pantalla (ver cabecera), nunca construida aquí. */
@@ -137,6 +138,7 @@
 		/** Un bloque se acaba de guardar: la pantalla decide qué hacer (ver cabecera, "Vista previa
 		 *  en vivo"). */
 		onBlockSaved: () => void;
+		onSaveError?: (blockId: string, failed: boolean) => void;
 		/** Presentación (ver cabecera, "Dos modos, un solo `{#each}`"). Default `inspector`. */
 		mode?: 'inspector' | 'texts';
 		/** Solo en `texts`, página sin secciones (lámina 8.5): el botón de vuelta al formulario. */
@@ -152,6 +154,7 @@
 		blocks,
 		selectedId,
 		onBlockSaved,
+		onSaveError,
 		mode = 'inspector',
 		onBack,
 		onClose,
@@ -172,11 +175,21 @@
 	const danglingSelection = $derived(selectedId !== null && selectedRecord === null);
 
 	// ————— Handle `saveSelected()` (ver cabecera) —————
-	let editorRefs = $state<Record<string, { save: () => void } | undefined>>({});
+	let editorRefs = $state<Record<string, InlineEditor | undefined>>({});
 
 	export function saveSelected(): void {
 		if (selectedId === null) return;
 		editorRefs[selectedId]?.save();
+	}
+
+	export function beginInline(blockId: string, field: string) {
+		return editorRefs[blockId]?.beginInline(field) ?? null;
+	}
+	export function updateInline(blockId: string, field: string, value: string): boolean {
+		return editorRefs[blockId]?.updateInline(field, value) ?? false;
+	}
+	export function finishInline(blockId: string, cancel = false): void {
+		editorRefs[blockId]?.finishInline(cancel);
 	}
 
 	// ————— El foco no puede caer a `<body>` al cambiar de bloque (ver cabecera, D1) —————
@@ -384,6 +397,7 @@
 				tabindex="-1"
 			>
 				<BlockEditor
+					onSaveError={(failed) => onSaveError?.(record.id, failed)}
 					bind:this={editorRefs[record.id]}
 					{childType}
 					{blockType}

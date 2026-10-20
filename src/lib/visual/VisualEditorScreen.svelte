@@ -320,6 +320,7 @@
 	import VisualInspector from './VisualInspector.svelte';
 	import VisualColumnResizer from './VisualColumnResizer.svelte';
 	import VisualPublishControl from './VisualPublishControl.svelte';
+	import type { InlineRequest } from './inline-session';
 	import {
 		INSPECTOR_DEFAULT_WIDTH,
 		INSPECTOR_MAX_WIDTH,
@@ -599,8 +600,29 @@
 	// instancia de un COMPONENTE, no un nodo DOM nativo, y el compilador exige que el destino sea
 	// reactivo para poder rastrear la reasignación — se lee de forma imperativa igual que `formEl`,
 	// pero declararlo así calla el aviso `non_reactive_update` sin cambiar nada del criterio.
+	let previewPanelOpen = $state(false);
+	let inlineBlockId = $state<string | null>(null);
+	let saveErrorBlockId = $state<string | null>(null);
+	let previewOpener: HTMLButtonElement | undefined;
+	function saveSelectedBlock(): void {
+		if (bridgeClient?.saveInline()) return;
+		inspectorRef?.saveSelected();
+	}
+	async function closePreviewPanel(): Promise<void> {
+		previewPanelOpen = false;
+		await tick();
+		previewOpener?.focus();
+	}
+
 	let inspectorRef = $state<
-		{ saveSelected: () => void; focusBlock: (id: string) => void } | undefined
+		| {
+				saveSelected: () => void;
+				focusBlock: (id: string) => void;
+				beginInline: (blockId: string, field: string) => InlineRequest | null;
+				updateInline: (blockId: string, field: string, value: string) => boolean;
+				finishInline: (blockId: string, cancel?: boolean) => void;
+		  }
+		| undefined
 	>(undefined);
 	/** Hora del último guardado CONOCIDO en esta sesión de pantalla (ver cabecera, "Estado de
 	 *  guardado en la barra"): `null` hasta el primer guardado real ocurrido aquí. */
@@ -689,6 +711,7 @@
 	 *  llegar por el sitio o por el árbol.
 	 */
 	function handleBlockSelect(blockId: string): void {
+		bridgeClient?.finishInline();
 		selectedBlockId = blockId;
 		inspectorVisible = true;
 		if (treeResizerActive) treeVisible = false;
@@ -764,6 +787,23 @@
 				}
 			},
 			onSelect: handleBlockSelect,
+			onInlineBegin: (blockId, field) => {
+				const target = inspectorRef?.beginInline(blockId, field);
+				if (!target) return null;
+				selectedBlockId = blockId;
+				inlineBlockId = blockId;
+				preview.pauseInline();
+				previewUpdating = false;
+				return target;
+			},
+			onInlineInput: (blockId, field, value) =>
+				inspectorRef?.updateInline(blockId, field, value) ?? false,
+			onInlineEnd: (blockId, cancel) => {
+				inspectorRef?.finishInline(blockId, cancel);
+				inlineBlockId = null;
+				preview.resumeInline();
+			},
+			onInlineSave: saveSelectedBlock,
 			onHover: handlePageHover,
 			// El plazo interno de `refresh()` venció, o el propio puente avisó con
 			// `error/refresh-failed` (ver `bridge-client.ts`): en los dos casos el cambio no aterrizó
@@ -788,7 +828,7 @@
 		}
 		frameLoaded = true;
 		if (tokenState.kind !== 'ready') return;
-		ensureBridgeClient(tokenState.token.url).start();
+		ensureBridgeClient(tokenState.token.url).loaded();
 	}
 
 	function handleMessage(event: MessageEvent): void {
@@ -1147,6 +1187,24 @@
 					</span>
 				{/if}
 
+				<button
+					type="button"
+					class="vega-visual-save"
+					disabled={selectedBlockId === null ||
+						!blocks.isDirty(selectedBlockId) ||
+						blocks.anySaving ||
+						blocks.structuralBusy}
+					onclick={saveSelectedBlock}>{ctx.t('editor.visual.inline.save')}</button
+				>
+				<button
+					type="button"
+					class="vega-visual-fields-link"
+					bind:this={previewOpener}
+					onclick={() => {
+						bridgeClient?.finishInline();
+						previewPanelOpen = true;
+					}}>{ctx.t('editor.visual.inline.preview')}</button
+				>
 				<VisualPublishControl
 					bind:this={publishControlRef}
 					{type}
@@ -1162,6 +1220,17 @@
 	</EditTopBar>
 	<!-- eslint-enable svelte/no-navigation-without-resolve -->
 
+	{#if saveErrorBlockId}
+		<div class="vega-visual-save-error" role="alert">
+			<span>{ctx.t('editor.visual.inline.saveError')}</span>
+			<button
+				type="button"
+				onclick={() => {
+					if (saveErrorBlockId) void openPendingBlock(saveErrorBlockId);
+				}}>{ctx.t('editor.visual.editBlock')}</button
+			>
+		</div>
+	{/if}
 	{#if pendingBlocks.length > 0}
 		<details class="vega-visual-pending">
 			<summary>
@@ -1322,7 +1391,11 @@
 						onclick={toggleHelp}>?</button
 					>
 					<div class="vega-visual-status" aria-live="polite">
-						{#if previewError !== null}
+						{#if inlineBlockId !== null}
+							<span class="vega-visual-inline-state" role="status"
+								>{ctx.t('editor.visual.inline.active')}</span
+							>
+						{:else if previewError !== null}
 							<span class="vega-visual-status-text vega-visual-status-text--error" role="alert">
 								{ctx.t('editor.visual.previewRefreshError', { message: previewError })}
 							</span>
@@ -1412,6 +1485,7 @@
 						     hace falta `z-index`, solo el orden. Una vez visible, no tiene nada que
 						     tapar: pinta "sin bloques todavía" hasta que el puente conteste. -->
 							<VisualOverlay
+								inlineId={inlineBlockId}
 								blocks={overlayBlocks}
 								selectedId={selectedBlockId}
 								highlightedId={highlightedBlockId}
@@ -1466,6 +1540,10 @@
 			class:vega-visual-inspector-shell--hidden={canvasActive && !inspectorVisible}
 		>
 			<VisualInspector
+				onSaveError={(blockId, failed) => {
+					if (failed) saveErrorBlockId = blockId;
+					else if (saveErrorBlockId === blockId) saveErrorBlockId = null;
+				}}
 				bind:this={inspectorRef}
 				{blocks}
 				selectedId={selectedBlockId}
@@ -1503,7 +1581,72 @@
 	/>
 </div>
 
+{#if previewPanelOpen && ctx.port.previewApiUrl}
+	{#await import('$lib/form/PreviewPanel.svelte')}
+		<aside class="vega-visual-help-loading" role="status">{ctx.t('common.loading')}</aside>
+	{:then module}
+		<module.default
+			apiBasePath={ctx.port.previewApiUrl}
+			collection={type.name}
+			recordId={record.id}
+			draft={{
+				record: { id: record.id, fields: { ...record.values } },
+				blocks: blocks.currentDraftRecords()
+			}}
+			refreshToken={contentSavedCount}
+			onClose={() => void closePreviewPanel()}
+		/>
+	{:catch}
+		<aside class="vega-visual-help-loading" role="alert">
+			<p>{ctx.t('common.networkError')}</p>
+			<button
+				type="button"
+				class="vega-visual-help-loading-close"
+				onclick={() => void closePreviewPanel()}>{ctx.t('common.close')}</button
+			>
+		</aside>
+	{/await}
+{/if}
+
 <style>
+	.vega-visual-inline-state {
+		border-radius: var(--r);
+		padding: 0.25rem 0.5rem;
+		background: var(--v-ol-inline-soft);
+		color: var(--v-ol-inline-text);
+		font-weight: 600;
+	}
+	.vega-visual-save {
+		min-height: 44px;
+		padding: 0.5rem 1rem;
+		border: 1px solid var(--btn);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.vega-visual-save:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+	.vega-visual-save-error {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 0.5rem 1rem;
+		color: var(--danger);
+		background: var(--danger-soft);
+	}
+	.vega-visual-save-error button {
+		min-height: 44px;
+		color: inherit;
+		background: transparent;
+		border: 1px solid currentColor;
+		border-radius: var(--r);
+		padding: 0.5rem 1rem;
+	}
+
 	/* A sangre (mismo criterio que `.vega-record-form` de `RecordForm.svelte`, ver su cabecera):
 	   cancela el padding de `.vega-main` (`AppShell.svelte`) con márgenes negativos y ocupa el alto
 	   ENTERO del hueco de contenido — la topbar de la app y el rail se quedan (son la salida, ver
@@ -2019,7 +2162,7 @@
 		min-height: 0;
 		border: 1px solid var(--line);
 		border-radius: var(--r);
-		background: var(--surface);
+		background: var(--v-stage);
 		overflow: hidden;
 	}
 

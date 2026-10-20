@@ -2146,5 +2146,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'review.statusLine.one': 'The review has {count} warning.',
 	'review.statusLine.many': 'The review has {count} warnings.',
 	'review.statusLine.incomplete': 'The review could not be completed.',
-	'review.statusLine.open': 'See the review'
+	'review.statusLine.open': 'See the review',
+	'editor.visual.inline.active': 'In the page',
+	'editor.visual.inline.save': 'Save block',
+	'editor.visual.inline.saveError':
+		'The block could not be saved. Review its fields and try again.',
+	'editor.visual.inline.preview': 'Preview'
 };

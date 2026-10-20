@@ -482,6 +482,8 @@ export interface ResolvedBlockType {
 	 *  siempre (un tipo que se queda sin ningún campo válido tras filtrar los inválidos se
 	 *  descarta ENTERO, no llega aquí con `fields: []`). */
 	fields: ResolvedBlockField[];
+	/** Descripción editorial opcional del catálogo, nunca HTML. */
+	description?: string;
 }
 
 /**

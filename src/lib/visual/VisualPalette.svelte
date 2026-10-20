@@ -89,7 +89,9 @@
 		const query = normalize(search.trim());
 		if (!query) return blocks.blockTypes;
 		return blocks.blockTypes.filter((type) =>
-			normalize([type.label, ...type.fields.map((field) => field.label)].join(' ')).includes(query)
+			normalize(
+				[type.label, type.description ?? '', ...type.fields.map((field) => field.label)].join(' ')
+			).includes(query)
 		);
 	});
 
@@ -171,7 +173,8 @@
 					<span class="vega-palette-copy">
 						<strong>{blockType.label}</strong>
 						<span class="vega-palette-fields"
-							>{blockType.fields.map((field) => field.label).join(' · ')}</span
+							>{blockType.description ??
+								blockType.fields.map((field) => field.label).join(' · ')}</span
 						>
 					</span>
 				</button>
@@ -295,6 +298,7 @@
 		display: -webkit-box;
 		-webkit-box-orient: vertical;
 		-webkit-line-clamp: 2;
+		line-clamp: 2;
 		overflow: hidden;
 		overflow-wrap: anywhere;
 	}

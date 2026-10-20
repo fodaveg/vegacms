@@ -240,6 +240,64 @@ describe('VisualInspector.svelte', () => {
 		vi.restoreAllMocks();
 	});
 
+	test('inline conserva el borrador previo al cancelar y guarda solo por la acción explícita con versión', async () => {
+		const update = vi.fn(async (_type, _id, values) => ({
+			...record('b1', ''),
+			values: { post: 'rec-1', sort: 0, ...values }
+		}));
+		const blocks = fakeBlocksState(
+			{ records: [record('b1', 'Initial')] },
+			childType,
+			structuralFields
+		);
+		mounted = mountInspector(blocks, 'b1', fakeCtx(update));
+		await tick();
+		const inspector = mounted.instance;
+		const control = mounted.target.querySelector<HTMLInputElement>('[data-field="heading"] input')!;
+		control.value = 'Previous draft';
+		control.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		expect(inspector.beginInline('b1', 'heading')).toMatchObject({
+			widget: 'text',
+			value: 'Previous draft'
+		});
+		expect(inspector.updateInline('b1', 'heading', 'Inline draft')).toBe(true);
+		await tick();
+		expect(control.disabled).toBe(true);
+		expect(mounted.target.textContent).toContain('En la página');
+		inspector.finishInline('b1', true);
+		await tick();
+		expect(control.value).toBe('Previous draft');
+		expect(update).not.toHaveBeenCalled();
+		inspector.beginInline('b1', 'heading');
+		inspector.updateInline('b1', 'heading', 'Committed draft');
+		inspector.finishInline('b1');
+		await tick();
+		expect(update).not.toHaveBeenCalled();
+		inspector.saveSelected();
+		await tick();
+		expect(update).toHaveBeenCalledWith(
+			'post_block',
+			'b1',
+			{ heading: 'Committed draft' },
+			{ expectedVersion: recordVersion(record('b1', 'Initial')) }
+		);
+	});
+
+	test('inline rechaza campos estructurales, desconocidos y sin permiso', async () => {
+		const denied = { ...childType, permissions: { ...childType.permissions, update: false } };
+		mounted = mountInspector(
+			fakeBlocksState({ records: [record('b1', 'Initial')] }, denied, structuralFields),
+			'b1',
+			fakeCtx(vi.fn())
+		);
+		await tick();
+		const inspector = mounted.instance;
+		expect(inspector.beginInline('b1', 'heading')).toBeNull();
+		expect(inspector.beginInline('b1', 'post')).toBeNull();
+		expect(inspector.beginInline('b1', 'missing')).toBeNull();
+	});
+
 	test('sin selección: estado vacío que dice qué hacer', () => {
 		const update = vi.fn();
 		const blocks = fakeBlocksState(

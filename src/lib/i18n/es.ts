@@ -2248,5 +2248,10 @@ export const es = {
 	'review.statusLine.one': 'La revisión tiene {count} aviso.',
 	'review.statusLine.many': 'La revisión tiene {count} avisos.',
 	'review.statusLine.incomplete': 'La revisión no se ha podido completar.',
-	'review.statusLine.open': 'Ver la revisión'
+	'review.statusLine.open': 'Ver la revisión',
+	'editor.visual.inline.active': 'En la página',
+	'editor.visual.inline.save': 'Guardar bloque',
+	'editor.visual.inline.saveError':
+		'No se pudo guardar el bloque. Revisa sus campos y vuelve a intentarlo.',
+	'editor.visual.inline.preview': 'Vista previa'
 };

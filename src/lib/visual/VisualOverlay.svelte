@@ -247,6 +247,7 @@
 	interface Props {
 		blocks: VisualBlock[];
 		selectedId: string | null;
+		inlineId?: string | null;
 		highlightedId: string | null;
 		/** Bloques que el sitio describió mal y `bridge-client.ts` descartó del array de arriba
 		 *  (ver `parseBlocks`): se cuentan, no se esconden. */
@@ -272,6 +273,7 @@
 	let {
 		blocks,
 		selectedId,
+		inlineId = null,
 		highlightedId,
 		skippedBlocks,
 		status,
@@ -725,6 +727,7 @@
 			<div
 				class="vega-visual-overlay-box"
 				class:vega-visual-overlay-box--selected={block.id === selectedId}
+				class:vega-visual-overlay-box--inline={block.id === inlineId}
 				class:vega-visual-overlay-box--highlighted={block.id === highlightedId}
 				data-vega-block-id={block.id}
 				style:pointer-events="none"
@@ -1055,7 +1058,7 @@
 		opacity: 1;
 		box-shadow:
 			0 0 0 1px var(--paper),
-			0 0 0 2px var(--accent),
+			0 0 0 2px var(--v-ol-hover),
 			0 0 0 3px var(--ink-hi);
 	}
 
@@ -1066,7 +1069,15 @@
 		opacity: 1;
 		box-shadow:
 			0 0 0 1px var(--paper),
-			0 0 0 3px var(--accent),
+			0 0 0 3px var(--v-ol-select),
+			0 0 0 4px var(--ink-hi);
+	}
+
+	.vega-visual-overlay-box--inline {
+		opacity: 1;
+		box-shadow:
+			0 0 0 1px var(--paper),
+			0 0 0 3px var(--v-ol-inline),
 			0 0 0 4px var(--ink-hi);
 	}
 
@@ -1083,8 +1094,8 @@
 		max-width: calc(100% - 0.5rem);
 		padding: 0.1rem 0.4rem;
 		border-radius: var(--r);
-		background: var(--ink-hi);
-		color: var(--paper);
+		background: var(--v-ol-select);
+		color: var(--v-ol-select-ink);
 		font-size: 0.7rem;
 		font-weight: 600;
 		white-space: nowrap;

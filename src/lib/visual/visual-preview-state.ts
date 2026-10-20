@@ -41,6 +41,7 @@ export function createVisualPreviewState(options: VisualPreviewOptions) {
 	let requestGeneration = 0;
 	let refreshGeneration = 0;
 	let destroyed = false;
+	let paused = false;
 	let draftRevision = 0;
 
 	/** Un 403 del snapshot permite seguir viendo lo guardado. La siguiente edición vuelve a
@@ -68,7 +69,7 @@ export function createVisualPreviewState(options: VisualPreviewOptions) {
 	function scheduleRenew(token: PreviewToken): void {
 		clearRenewTimer();
 		// Una respuesta posterior al desmontaje no debe dejar un timer sin dueño.
-		if (destroyed) return;
+		if (destroyed || paused) return;
 		const delay = Math.min(
 			MAX_RENEW_DELAY_MS,
 			Math.max(0, Date.parse(token.expiresAt) - Date.now() - RENEW_BUFFER_MS)
@@ -78,6 +79,7 @@ export function createVisualPreviewState(options: VisualPreviewOptions) {
 
 	/** Recarga entera: invalida refrescos en vuelo, desmonta el iframe y vuelve a pedir token. */
 	async function requestPreview(preserveCanvas = false): Promise<void> {
+		if (paused) return;
 		const generation = ++requestGeneration;
 		clearRefreshDebounce();
 		refreshGeneration++;
@@ -91,14 +93,16 @@ export function createVisualPreviewState(options: VisualPreviewOptions) {
 		options.onRefreshError?.(null);
 		try {
 			const token = await fetchPreview(draft);
-			if (destroyed || generation !== requestGeneration || revision !== draftRevision) return;
+			if (destroyed || paused || generation !== requestGeneration || revision !== draftRevision)
+				return;
 			options.bridge()?.stop();
 			options.resetFrameLoaded();
 			options.onPreviewToken?.(token);
 			options.setTokenState({ kind: 'ready', token });
 			scheduleRenew(token);
 		} catch (err) {
-			if (destroyed || generation !== requestGeneration || revision !== draftRevision) return;
+			if (destroyed || paused || generation !== requestGeneration || revision !== draftRevision)
+				return;
 			const classified = classifyPreviewError(err);
 			const message =
 				classified.kind === 'http' && classified.message !== null
@@ -122,6 +126,7 @@ export function createVisualPreviewState(options: VisualPreviewOptions) {
 		options.onRefreshError?.(null);
 		const state = options.bridge()?.state;
 		clearRefreshDebounce();
+		if (paused) return;
 		if (!draftEdit && !(state?.status === 'connected' && state.liveRefresh)) {
 			void requestPreview(options.hasCanvas?.() === true);
 			return;
@@ -138,19 +143,23 @@ export function createVisualPreviewState(options: VisualPreviewOptions) {
 
 	/** Entrega el token entero al puente sin modificar el src del iframe. */
 	async function refreshCanvas(opts: { renew?: boolean } = {}): Promise<void> {
+		if (paused) return;
 		const generation = ++refreshGeneration;
 		const revision = draftRevision;
 		try {
 			const token = await fetchPreview(options.getDraft?.());
 			// La renovación se rearma antes de descartar una respuesta tardía mientras sigue montado.
-			if (opts.renew) scheduleRenew(token);
-			if (destroyed || generation !== refreshGeneration || revision !== draftRevision) return;
+			if (opts.renew && !paused) scheduleRenew(token);
+			if (destroyed || paused || generation !== refreshGeneration || revision !== draftRevision)
+				return;
 			options.onPreviewToken?.(token);
+			scheduleRenew(token);
 			if (options.bridge()?.refresh({ url: token.url, postToken: token.postToken }) !== true) {
 				void requestPreview(true);
 			}
 		} catch (err) {
-			if (destroyed || generation !== refreshGeneration || revision !== draftRevision) return;
+			if (destroyed || paused || generation !== refreshGeneration || revision !== draftRevision)
+				return;
 			const classified = classifyPreviewError(err);
 			options.onRefreshError?.(
 				classified.kind === 'http' && classified.message !== null
@@ -193,5 +202,18 @@ export function createVisualPreviewState(options: VisualPreviewOptions) {
 		clearRefreshDebounce();
 	}
 
-	return { requestPreview, scheduleCanvasRefresh, deactivate, dispose };
+	/** Detiene también respuestas ya en vuelo: ninguna puede reemplazar el caret activo. */
+	function pauseInline(): void {
+		paused = true;
+		requestGeneration++;
+		refreshGeneration++;
+		clearRefreshDebounce();
+		clearRenewTimer();
+	}
+	function resumeInline(): void {
+		if (!paused) return;
+		paused = false;
+		scheduleCanvasRefresh({ draftEdit: true });
+	}
+	return { requestPreview, scheduleCanvasRefresh, deactivate, dispose, pauseInline, resumeInline };
 }

@@ -344,9 +344,10 @@ section on the page gets that block's fields opened beside it.
 The division of labour is deliberate and it is the whole design:
 
 - The site owns rendering. Vega never learns the site's CSS, never injects styles, and never
-  makes any part of the page `contenteditable`. Text is typed in Vega's own form controls.
-- Vega owns the editing UI. The bridge reports positions and clicks; it does not know what a
-  field is, never writes to PocketBase, and has no opinion about content.
+  injects editable HTML. Protocol v1 uses Vega's form controls; the negotiated v2 exception
+  below lets the site edit explicitly annotated plain text using that same form draft.
+- Vega owns the editing UI. The bridge reports positions and clicks and, in v2, plain text input for an authorised
+  field. It never writes to PocketBase or owns the persistent draft.
 - Everything Vega believes about the canvas came from a message. There is no fallback path
   that reaches into the frame, because there cannot be one.
 
@@ -443,6 +444,55 @@ visual editing restores the latest manual preference. The mobile drawer remains 
 `layout` is sent at most once per animation frame. Measuring on every scroll event is the
 straightforward way to make a canvas stutter, and the site is the only side that can throttle
 it, because the site is where the scrolling happens.
+
+#### Inline plain text (negotiated v2)
+
+A new site starts with `ready` v1. Vega sends `hello` v1, including
+`supportedProtocols: ['vega-visual-2', 'vega-visual-1']` and a fresh `sessionId`,
+at least once on every frame load even when an early v1 ready arrived. Only that
+opt-in permits a v2 ready with the same sessionId and a `documentId` identifying
+this DOM generation. Old site/new Vega and new site/old Vega stay on v1 without
+inline. After negotiation, late v1 announcements are ignored until the next load.
+
+The actual renderer annotates plain text nodes with `data-vega-field="name"`.
+Names belong to the closest block, never paths, selectors or HTML. `VegaBlocks`
+cannot infer these annotations for a consumer's components. Vega resolves names
+through the manifest and permits only visible, editable, nonstructural `text` or
+`textarea` fields with update permission, whether sourced from data or record.
+
+A v2 `select { blockId, field, intent: 'edit' }` requests editing. Only Vega's
+`editField { sessionId, documentId, editId, collection, id, blockId, field, widget,
+value }` enables `contenteditable="plaintext-only"`. The bridge acknowledges with
+`input` sequence 0. All input/commit/cancel messages carry this complete identity
+and strictly increasing `sequence`; input/commit carry a string value. Both sides
+validate exact source and origin; Vega rechecks the owner and permission on each
+mutation. Missing fields cancel this interaction, not the document. An unacknowledged
+start times out. Stale sessions, documents, edit IDs and sequences are discarded.
+
+`BlockEditor` remains the sole owner of current/dataCurrent. Its controlled
+beginInline/updateInline/finishInline API uses existing field handlers and validation.
+Cancel restores the exact pre-edit draft (including null); commit keeps the new
+value in that draft. Neither writes the backend. The inspector marks the field
+“In the page” and disables its second writer. Explicit Save uses the existing
+save path with expectedVersion and recoverable validation/conflict errors. A Save
+from the parent toolbar first requests `finishField { requestValue: true }` and
+waits for the final commit value; a missing acknowledgement never saves stale text.
+
+Text Enter commits; textarea Enter inserts a newline and Cmd/Ctrl+Enter commits.
+Escape cancels; neither action finalises during IME composition. Blur or a field
+change commits to draft only. Cmd/Ctrl+S transmits explicit save intent to
+saveSelected. Paste and drop insert plain text only; values never use innerHTML.
+
+Starting inline invalidates pending token/debounce/fallback work and site DOM
+replacement. Refresh and renewal stay paused throughout editing, preserving caret
+and focus. Exiting refreshes once with the current draft. V2 refresh/ready messages
+carry a refreshId and documentId; a repeated ready for the same document does not
+cancel editing. Frame navigation invalidates the interaction while preserving the
+last received draft input. Existing dirty navigation guards remain in force.
+
+The complete preview draft still travels encrypted through /token; only the active
+plain-text field travels through this allowlisted bridge. Public pages and shared
+previews never emit the bridge. CSP and all existing preview authorisation remain.
 
 #### Hover (optional)
 
@@ -566,8 +616,8 @@ A **POST** refresh keeps `postToken` exclusively in its request body. It never
 places it in a URL, history state, browser storage or diagnostic message, and
 does not replace the history entry. Live draft refresh therefore does not
 promise that F5 can replay the renewed POST body; preview resumption across such
-a navigation needs a separate contract. The current visual canvas requests
-saved-record GET previews. Refresh error messages must omit token-bearing URLs.
+a navigation needs a separate contract. The current visual canvas requests GET previews for saved records and encrypted POST
+previews for the complete unsaved draft. Refresh error messages must omit token-bearing URLs.
 
 Passing the draft to the frame in the clear would save one round trip and is explicitly not
 recommended: it would break the "must be confidential and bound" obligation above, letting
@@ -1102,3 +1152,10 @@ For cross-origin deployments, Vega still needs the backend URL once (runtime
 connection screen or a minimal static file containing only `backendUrl`). CORS
 must allow the Vega origin to call both `/api/vega/discovery` and the normal
 PocketBase API.
+
+### Block catalogue descriptions
+
+The manifest's `blockTypes.<name>.description` is optional plain text (1–240
+characters). It describes the block in the searchable catalogue; absent or invalid
+descriptions fall back to the declared field labels. Invalid descriptions never
+remove an otherwise valid block type. They do not contain HTML or inferred screenshots.

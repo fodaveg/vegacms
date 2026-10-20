@@ -268,7 +268,15 @@ function resolveBlockType(
 		return null;
 	}
 
-	return { name, label, icon, fields };
+	const description = readKey(
+		obj,
+		'description',
+		readString(1, 240),
+		`/blockTypes/${name}/description`,
+		`description de blockTypes.${name} debe tener entre 1 y 240 caracteres; se ignora.`,
+		warnings
+	);
+	return { name, label, icon, fields, ...(description ? { description } : {}) };
 }
 
 /**

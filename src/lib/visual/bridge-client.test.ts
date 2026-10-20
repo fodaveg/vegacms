@@ -239,6 +239,8 @@ describe('createVisualBridgeClient', () => {
 			onHover: (blockId) => void hovered.push(blockId),
 			onRefreshFailed: () => refreshFailedCount++
 		});
+		const receive = client.handleMessage.bind(client);
+		client.handleMessage = (event) => receive({ source: frame, ...event });
 		return {
 			client,
 			frame,
@@ -253,7 +255,14 @@ describe('createVisualBridgeClient', () => {
 	test('saluda al arrancar y repite un número acotado de veces hasta que llega "ready"', () => {
 		const { client, posted } = harness();
 		client.start();
-		expect(posted).toEqual([{ vega: VISUAL_PROTOCOL_VERSION, type: 'hello' }]);
+		expect(posted).toEqual([
+			expect.objectContaining({
+				vega: VISUAL_PROTOCOL_VERSION,
+				type: 'hello',
+				supportedProtocols: ['vega-visual-2', 'vega-visual-1'],
+				sessionId: expect.any(String)
+			})
+		]);
 		expect(client.state).toEqual({ status: 'connecting', attempts: 1 });
 
 		vi.advanceTimersByTime(100);
@@ -582,7 +591,7 @@ describe('createVisualBridgeClient', () => {
 		expect(targets).toEqual([]);
 
 		client.start();
-		client.handleMessage({ origin: ORIGIN, data: READY });
+		client.handleMessage({ origin: ORIGIN, source: frame, data: READY });
 		client.highlight('blk1');
 		client.scrollTo('blk1');
 		expect(targets).toEqual([ORIGIN, ORIGIN, ORIGIN]);
@@ -641,7 +650,9 @@ describe('createVisualBridgeClient', () => {
 			const { client: connecting, posted: connectingPosted } = harness();
 			connecting.start(); // "connecting", todavía no "connected"
 			expect(connecting.refresh({ url: PREVIEW_URL })).toBe(false);
-			expect(connectingPosted).toEqual([{ vega: VISUAL_PROTOCOL_VERSION, type: 'hello' }]); // solo el saludo
+			expect(connectingPosted).toEqual([
+				expect.objectContaining({ vega: VISUAL_PROTOCOL_VERSION, type: 'hello' })
+			]); // solo el saludo
 
 			const { client: noLive, posted: noLivePosted } = harness();
 			noLive.start();

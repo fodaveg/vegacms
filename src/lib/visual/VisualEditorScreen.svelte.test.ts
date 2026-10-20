@@ -296,7 +296,13 @@ function sendSiteMessage(data: Record<string, unknown>, origin = PREVIEW_ORIGIN)
 	// Sin `source` (ver cabecera de `bridge-client.ts#handleMessage`): el cliente solo compara
 	// `event.source` contra el marco cuando el evento LO TRAE — omitirlo aquí evita tener que
 	// fabricar una identidad de ventana que case con `iframeEl.contentWindow` de jsdom.
-	window.dispatchEvent(new MessageEvent('message', { origin, data }));
+	window.dispatchEvent(
+		new MessageEvent('message', {
+			origin,
+			data,
+			source: document.querySelector('iframe')?.contentWindow
+		})
+	);
 }
 
 /** Conecta el puente hasta `connected` con los bloques dados: ceremonia repetida en varios tests
