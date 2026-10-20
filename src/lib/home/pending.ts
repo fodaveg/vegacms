@@ -166,6 +166,8 @@ export async function loadUnpublishedStatus(
 ): Promise<{
 	hasChanges: boolean | null;
 	lastPublishedAt: string | null;
+	startedAt: string | null;
+	finishedAt: string | null;
 	state: BuildState;
 } | null> {
 	if (!port.buildApiUrl) return null;
@@ -173,7 +175,13 @@ export async function loadUnpublishedStatus(
 		observedStatus ??
 		(await createBuildClient({ apiUrl: port.buildApiUrl, token, fetcher }).fetchStatus());
 	if (status.state === 'running' || status.state === 'failed')
-		return { hasChanges: null, lastPublishedAt: status.lastPublishedAt, state: status.state };
+		return {
+			hasChanges: null,
+			lastPublishedAt: status.lastPublishedAt,
+			startedAt: status.startedAt,
+			finishedAt: status.finishedAt,
+			state: status.state
+		};
 	const result = await detectUnpublishedChanges(
 		port,
 		model.types.map((type) => type.schema),
@@ -182,6 +190,8 @@ export async function loadUnpublishedStatus(
 	return {
 		hasChanges: result.hasChanges,
 		lastPublishedAt: status.lastPublishedAt,
+		startedAt: status.startedAt,
+		finishedAt: status.finishedAt,
 		state: status.state
 	};
 }

@@ -14,6 +14,7 @@ import type { ContentModel } from '$lib/model/types';
 import { field, model, type } from './fixture';
 import { serializeRecentEdits, type RecentEdit } from './recent-edits';
 import { announceSiteUpdateStatus } from '$lib/shell/site-update';
+import PublishButton from '$lib/shell/PublishButton.svelte';
 
 import HomePage from '../../routes/+page.svelte';
 
@@ -112,7 +113,7 @@ function mountHome(
 		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
 	}) as Record<string, never>;
 	mounted = { target, instance };
-	return { target, list, nav };
+	return { target, list, nav, ctx };
 }
 
 async function settle(): Promise<void> {
@@ -524,6 +525,47 @@ describe('portada: cambios sin publicar en el sitio', () => {
 		expect(card?.classList.contains('calm')).toBe(true);
 	});
 
+	test('un primer GET diferido del botón superior detecta un build arrancado después de cargar Inicio', async () => {
+		stubBuildStatus({ state: 'ok', lastPublishedAt: '2026-10-01T09:00:00.000Z' });
+		const { target, ctx } = mountHome({
+			model: EDITED_MODEL,
+			buildApiUrl: BUILD_URL,
+			list: lastEdited('2026-10-01 08:00:00.000Z')
+		});
+		await settle();
+		const card = unpublishedCard(target);
+		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.upToDate');
+
+		let resolveStatus!: (response: Response) => void;
+		const delayed = new Promise<Response>((resolve) => (resolveStatus = resolve));
+		const fetcher = vi.fn(() => delayed);
+		vi.stubGlobal('fetch', fetcher);
+		const topbarTarget = document.createElement('div');
+		document.body.appendChild(topbarTarget);
+		const topbarButton = mount(PublishButton, {
+			target: topbarTarget,
+			context: new Map([[VEGA_CONTEXT_KEY, ctx]])
+		});
+		try {
+			await settle();
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			await settle();
+			expect(fetcher).toHaveBeenCalledTimes(1);
+			expect(card?.querySelector('h2')?.textContent).toBe('home.pending.upToDate');
+			resolveStatus(
+				new Response(JSON.stringify({ state: 'running', startedAt: '2026-10-01T10:00:00.000Z' }), {
+					status: 200,
+					headers: { 'Content-Type': 'application/json' }
+				})
+			);
+			await settle();
+			expect(card?.querySelector('h2')?.textContent).toBe('home.pending.buildRunning');
+		} finally {
+			await unmount(topbarButton);
+			topbarTarget.remove();
+		}
+	});
+
 	test('una actualización observada desde cualquiera de los botones refresca titular y fecha', async () => {
 		stubBuildStatus({ state: 'ok', lastPublishedAt: '2026-10-01T09:00:00.000Z' });
 		const { target } = mountHome({
@@ -556,6 +598,17 @@ describe('portada: cambios sin publicar en el sitio', () => {
 		await settle();
 		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.buildRunning');
 		expect(card?.classList.contains('calm')).toBe(false);
+		// El otro poller devuelve tarde el resultado del run anterior.
+		announceSiteUpdateStatus(BUILD_URL, {
+			state: 'ok',
+			startedAt: '2026-10-01T08:58:00.000Z',
+			finishedAt: '2026-10-01T09:00:00.000Z',
+			lastPublishedAt: '2026-10-01T09:00:00.000Z',
+			logUrl: null,
+			detail: null
+		});
+		await settle();
+		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.buildRunning');
 
 		announceSiteUpdateStatus(BUILD_URL, {
 			state: 'ok',
@@ -568,6 +621,16 @@ describe('portada: cambios sin publicar en el sitio', () => {
 		await settle();
 		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.upToDate');
 		expect(card?.classList.contains('calm')).toBe(true);
+		announceSiteUpdateStatus(BUILD_URL, {
+			state: 'running',
+			startedAt: '2026-10-01T10:00:00.000Z',
+			finishedAt: null,
+			lastPublishedAt: '2026-10-01T09:00:00.000Z',
+			logUrl: null,
+			detail: null
+		});
+		await settle();
+		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.upToDate');
 		expect(card?.querySelector('.published-at')?.textContent).toContain(
 			'home.pending.lastPublished'
 		);

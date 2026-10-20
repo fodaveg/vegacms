@@ -89,7 +89,7 @@
 			onStatus(next) {
 				if (!current()) return;
 				const changed =
-					status !== null && siteUpdateStatusKey(status) !== siteUpdateStatusKey(next);
+					status === null || siteUpdateStatusKey(status) !== siteUpdateStatusKey(next);
 				status = next;
 				if (changed && ctx.port.buildApiUrl) announceSiteUpdateStatus(ctx.port.buildApiUrl, next);
 				fetchProblem = null;

@@ -5,7 +5,12 @@
 	import type { BuildState, BuildStatus } from '$lib/backend/build-client';
 	import Icon from '$lib/icons/Icon.svelte';
 	import PublishButton from '$lib/shell/PublishButton.svelte';
-	import { onSiteUpdateStatus, siteUpdateStatusKey } from '$lib/shell/site-update';
+	import {
+		isStaleSiteUpdateStatus,
+		onSiteUpdateStatus,
+		siteUpdateStatusKey,
+		type SiteUpdateStatus
+	} from '$lib/shell/site-update';
 	import {
 		loadPendingCount,
 		loadUnpublishedStatus,
@@ -27,7 +32,13 @@
 	let unpublished = $state<
 		| 'loading'
 		| 'error'
-		| { hasChanges: boolean | null; lastPublishedAt: string | null; state: BuildState }
+		| {
+				hasChanges: boolean | null;
+				lastPublishedAt: string | null;
+				startedAt: string | null;
+				finishedAt: string | null;
+				state: BuildState;
+		  }
 		| null
 	>(hasBuild ? 'loading' : null);
 	const lastPublished = $derived.by(() => {
@@ -39,6 +50,7 @@
 	let alive = false;
 	let publicationGeneration = 0;
 	let observedStatusKey: string | null = null;
+	let latestStatus: SiteUpdateStatus | null = null;
 
 	/** Reintenta una cifra sin bloquear las demás tarjetas. */
 	async function loadCard(card: PendingCard): Promise<void> {
@@ -59,6 +71,8 @@
 			? {
 					hasChanges: null,
 					lastPublishedAt: observedStatus.lastPublishedAt,
+					startedAt: observedStatus.startedAt,
+					finishedAt: observedStatus.finishedAt,
 					state: observedStatus.state
 				}
 			: 'loading';
@@ -70,7 +84,13 @@
 				undefined,
 				observedStatus
 			);
-			if (alive && generation === publicationGeneration) unpublished = value;
+			if (alive && generation === publicationGeneration) {
+				unpublished = value;
+				if (value) {
+					latestStatus = value;
+					observedStatusKey = siteUpdateStatusKey(value);
+				}
+			}
 		} catch {
 			if (alive && generation === publicationGeneration) unpublished = 'error';
 		}
@@ -84,6 +104,8 @@
 			? onSiteUpdateStatus(ctx.port.buildApiUrl, (status) => {
 					const key = siteUpdateStatusKey(status);
 					if (key === observedStatusKey) return;
+					if (latestStatus && isStaleSiteUpdateStatus(latestStatus, status)) return;
+					latestStatus = status;
 					observedStatusKey = key;
 					void loadUnpublished(status);
 				})

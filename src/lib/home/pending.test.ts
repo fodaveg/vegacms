@@ -249,6 +249,8 @@ describe('loadUnpublishedChanges', () => {
 		await expect(loadUnpublishedStatus(port, model([EDITED]), 't', fetcher)).resolves.toEqual({
 			hasChanges: false,
 			lastPublishedAt,
+			startedAt: null,
+			finishedAt: null,
 			state: 'ok'
 		});
 	});
@@ -267,6 +269,8 @@ describe('loadUnpublishedChanges', () => {
 			).resolves.toEqual({
 				hasChanges: null,
 				lastPublishedAt: '2026-10-01T09:00:00.000Z',
+				startedAt: null,
+				finishedAt: null,
 				state
 			});
 			expect(port.list).not.toHaveBeenCalled();

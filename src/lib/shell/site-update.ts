@@ -6,13 +6,43 @@ import type { BuildStatus } from '$lib/backend/build-client';
  *  El aviso entre shell y portada transporta el estado del servidor, nunca una suposición de éxito. */
 const STATUS_EVENT = 'vega:site-update-status';
 
-export function siteUpdateStatusKey(status: BuildStatus): string {
+export type SiteUpdateStatus = Pick<
+	BuildStatus,
+	'state' | 'startedAt' | 'finishedAt' | 'lastPublishedAt'
+>;
+
+export function siteUpdateStatusKey(status: SiteUpdateStatus): string {
 	return JSON.stringify([
 		status.state,
 		status.startedAt,
 		status.finishedAt,
 		status.lastPublishedAt
 	]);
+}
+
+function instant(value: string | null): number | null {
+	const parsed = value === null ? NaN : Date.parse(value);
+	return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** Dos pollers pueden responder en orden inverso. Solo se descarta una observación cuando las
+ * marcas del servidor prueban que pertenece a un run anterior o a una fase ya superada. */
+export function isStaleSiteUpdateStatus(
+	current: SiteUpdateStatus,
+	next: SiteUpdateStatus
+): boolean {
+	const currentStart = instant(current.startedAt);
+	const nextStart = instant(next.startedAt);
+	if (currentStart !== null && nextStart !== null) {
+		if (nextStart < currentStart) return true;
+		if (nextStart > currentStart) return false;
+		if (current.state !== 'running' && next.state === 'running') return true;
+		const currentFinish = instant(current.finishedAt);
+		const nextFinish = instant(next.finishedAt);
+		return currentFinish !== null && nextFinish !== null && nextFinish < currentFinish;
+	}
+	const nextFinish = instant(next.finishedAt);
+	return currentStart !== null && nextFinish !== null && nextFinish < currentStart;
 }
 
 export function announceSiteUpdateStatus(apiUrl: string, status: BuildStatus): void {
@@ -36,11 +66,6 @@ export interface SiteUpdateObservation {
 	baseline: BuildStatus;
 	/** A new server start observed while running; the client clock is not publication evidence. */
 	runningStartedAt: number | null;
-}
-
-function instant(value: string | null): number | null {
-	const parsed = value === null ? NaN : Date.parse(value);
-	return Number.isFinite(parsed) ? parsed : null;
 }
 
 /** Remember only a server start newer than the previous run (or the first observed start). */

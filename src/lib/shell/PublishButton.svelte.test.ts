@@ -121,6 +121,24 @@ afterEach(async () => {
 });
 
 describe('PublishButton — site update observation', () => {
+	test('el primer GET diferido anuncia un build ya running al montar el botón', async () => {
+		const response = deferred<Response>();
+		const seen: string[] = [];
+		const stop = onSiteUpdateStatus('https://pb.test/api/vega-build', (status) =>
+			seen.push(status.state)
+		);
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => response.promise)
+		);
+		mounted = mountButton(fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build' }));
+		await flush();
+		expect(seen).toEqual([]);
+		response.resolve(jsonResponse(RUNNING));
+		await flush();
+		expect(seen).toEqual(['running']);
+		stop();
+	});
 	test('absent capability renders nothing and sends no requests', async () => {
 		const fetcher = vi.fn();
 		await start(fetcher, fakeCtx({ buildApiUrl: null }));
@@ -168,7 +186,7 @@ describe('PublishButton — site update observation', () => {
 		await vi.advanceTimersByTimeAsync(4000);
 		await tick();
 		expect(state()).toBe('ok');
-		expect(seen).toEqual(['running', 'ok']);
+		expect(seen).toEqual(['ok', 'running', 'ok']);
 		stop();
 		expect(trigger().disabled).toBe(false);
 		await vi.advanceTimersByTimeAsync(120000);
