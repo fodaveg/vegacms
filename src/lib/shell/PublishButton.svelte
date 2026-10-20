@@ -17,6 +17,7 @@
 		type SiteUpdateObservation
 	} from './site-update';
 	import Icon from '$lib/icons/Icon.svelte';
+	let { home = false }: { home?: boolean } = $props();
 
 	const ctx = getVegaContext();
 	const client = ctx.port.buildApiUrl
@@ -253,7 +254,7 @@
 		)
 	);
 	const actionLabel = $derived(
-		ctx.t(retryAllowed ? 'topbar.publish.again' : 'topbar.publish.ready')
+		ctx.t(retryAllowed ? 'topbar.publish.again' : home ? 'home.publishNow' : 'topbar.publish.ready')
 	);
 	const lastPublishedLabel = $derived.by(() => {
 		const date = status?.lastPublishedAt ? new Date(status.lastPublishedAt) : null;
@@ -271,7 +272,7 @@
 </script>
 
 {#if client}
-	<div class="vega-publish" data-state={uiState}>
+	<div class="vega-publish" class:home data-state={uiState}>
 		<details class="vega-publish-state">
 			<summary
 				><span
@@ -432,6 +433,22 @@
 		flex-basis: 100%;
 		margin: 0;
 		color: var(--ink);
+	}
+	.vega-publish.home {
+		max-width: 100%;
+		color: inherit;
+	}
+	.vega-publish.home .vega-publish-state summary {
+		color: inherit;
+	}
+	.vega-publish.home .vega-publish-trigger {
+		min-height: 42px;
+		padding-inline: var(--sp-4);
+		border-color: var(--accent-line);
+		border-radius: var(--r-pill);
+		background: var(--surface);
+		color: var(--accent-text);
+		font-size: var(--fs-13);
 	}
 	@media (max-width: 768px) {
 		.vega-publish {

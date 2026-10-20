@@ -198,6 +198,9 @@
 		flex: 1;
 		min-height: 0;
 		position: relative;
+		gap: var(--sp-3);
+		padding: var(--sp-3);
+		background: var(--bg);
 	}
 
 	.vega-main {
@@ -209,16 +212,25 @@
 		   atmósfera radial MUY tenue de la marca, `background-attachment: fixed` (no se desplaza
 		   con el scroll interno de `.vega-main`). En paletas planas (brasa) el motor resuelve
 		   `--halo` a `none` y queda el `--paper` liso de siempre, degradado limpio. */
-		padding: 1.75rem 2rem 2.5rem;
+		padding: var(--sp-6) var(--sp-6) var(--sp-12);
 		/* Contenedor de los hijos `position:absolute` (los `.vega-visually-hidden`, popovers…): sin
 		   esto su bloque contenedor es el documento y los que caen al fondo del contenido (a miles de
 		   px dentro del scroll de `.vega-main`) estiran el documento (`scrollHeight` 1308 sobre 844 en
 		   Ajustes a 390 px) → SEGUNDO scroll anidado, un hueco gris al final y la barra de Guardar
 		   fuera de la vista. El único scroll es el de `.vega-main`. */
 		position: relative;
-		background-color: var(--paper);
+		background-color: var(--bg);
 		background-image: var(--halo);
 		background-attachment: fixed;
 		overflow-y: auto;
+	}
+
+	@media (max-width: 768px) {
+		.vega-body {
+			padding: 0;
+		}
+		.vega-main {
+			padding: var(--sp-4);
+		}
 	}
 </style>

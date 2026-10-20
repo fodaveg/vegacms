@@ -444,7 +444,7 @@ export const DENSITY = {
 		'gap-field': '1.75rem',
 		'pad-card': '1.5rem',
 		'sidebar-item-h': '40px',
-		'topbar-h': '54px'
+		'topbar-h': '56px'
 	},
 	compact: {
 		'row-h': '36px',
@@ -485,7 +485,12 @@ export function resolveComponentTokens(theme, mode) {
 		accent: theme.roles.accent,
 		accentInk: theme.roles.accentInk,
 		accentText: resolveAccentText(theme, mode, ink),
-		'accent-soft': resolveAccentSoft(theme, mode, paper)
+		'accent-soft': resolveAccentSoft(theme, mode, paper),
+		'v-ol-select': theme.roles.accent,
+		'v-ol-select-ink': theme.roles.accentInk,
+		'v-ol-inline-text': resolveAccentText(theme, mode, ink),
+		'v-ol-inline-soft': resolveAccentSoft(theme, mode, paper),
+		'v-stage': paper
 	};
 	for (const key of SEMANTIC_KEYS) {
 		tokens[key] = SEMANTICS[mode][key].text;
@@ -503,6 +508,9 @@ export function resolveComponentTokens(theme, mode) {
  */
 export const COMPONENT_CONTRAST_PAIRS = [
 	['accentInk', 'accent'],
+	['v-ol-select-ink', 'v-ol-select'],
+	['v-ol-inline-text', 'v-ol-inline-soft'],
+	['v-ol-inline-text', 'v-stage'],
 	['accentText', 'paper'],
 	['accentText', 'surface'],
 	['accentText', 'surface-2'],
@@ -540,7 +548,24 @@ export function emittedTokenNames() {
 		'sans',
 		'mono',
 		'r',
+		'r-sm',
+		'r-md',
+		'r-lg',
+		'r-pill',
 		'shadow-card',
+		'shadow-raised',
+		'shadow-brand',
+		'glass',
+		'display',
+		...['12', '13', '14', '15', '17', '22', '28', '36', '44'].map((step) => `fs-${step}`),
+		...['1', '2', '3', '4', '5', '6', '8', '10', '12'].map((step) => `sp-${step}`),
+		'v-ol-select',
+		'v-ol-select-ink',
+		'v-ol-hover',
+		'v-ol-inline',
+		'v-ol-inline-text',
+		'v-ol-inline-soft',
+		'v-stage',
 		...Object.keys(DENSITY.comfortable),
 		'tint',
 		'accent',
@@ -670,7 +695,11 @@ export function themeToCss(theme) {
  * compartidos por modo (D-P7.2) — puros color-mix contra `var(--paper)`, que cada tema ya fija
  * en su propio bloque `[data-theme][data-mode]`. */
 export function globalCss() {
-	let css = `:root {\n\t--sans: -apple-system, 'Segoe UI', system-ui, sans-serif;\n\t--mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;\n\t--r: 8px;\n\t--accent-grad: linear-gradient(115deg, var(--accent), var(--accent-hover));\n\t--sheen: linear-gradient(100deg, var(--accent), var(--accent-text));\n\t--accent-fill: var(--accent);\n\t--halo: none;\n\t--brand-a: var(--accent);\n\t--brand-b: var(--accent);\n\t--brand-c: var(--accent);\n\t--brand-edge-opacity: 0.35;\n}\n`;
+	let css = `:root {\n\t--sans: 'Geist', -apple-system, 'Segoe UI', system-ui, sans-serif;\n\t--display: 'Bricolage Grotesque', 'Geist', system-ui, sans-serif;\n\t--mono: 'Geist Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;\n\t--r: 8px;\n\t--r-sm: 10px;\n\t--r-md: 16px;\n\t--r-lg: 22px;\n\t--r-pill: 999px;\n\t--accent-grad: linear-gradient(115deg, var(--accent), var(--accent-hover));\n\t--sheen: linear-gradient(100deg, var(--accent), var(--accent-text));\n\t--accent-fill: var(--accent);\n\t--halo: none;\n\t--brand-a: var(--accent);\n\t--brand-b: var(--accent);\n\t--brand-c: var(--accent);\n\t--brand-edge-opacity: 0.35;\n\t--glass: color-mix(in srgb, var(--surface) 72%, transparent);\n\t--v-ol-select: var(--accent);\n\t--v-ol-select-ink: var(--accent-ink);\n\t--v-ol-hover: var(--accent-soft);\n\t--v-ol-inline: var(--accent-text);\n\t--v-ol-inline-text: var(--accent-text);\n\t--v-ol-inline-soft: var(--accent-soft);\n\t--v-stage: var(--paper);\n}\n`;
+	for (const step of [12, 13, 14, 15, 17, 22, 28, 36, 44])
+		css += `:root { --fs-${step}: ${step}px; }\n`;
+	for (const step of [1, 2, 3, 4, 5, 6, 8, 10, 12])
+		css += `:root { --sp-${step}: ${step * 4}px; }\n`;
 
 	const comfDecls = Object.entries(DENSITY.comfortable).map(([k, v]) => `--${k}: ${v};`);
 	css += `:root {\n\t${comfDecls.join('\n\t')}\n}\n`;
@@ -678,7 +707,12 @@ export function globalCss() {
 	css += `[data-density='compact'] {\n\t${compDecls.join('\n\t')}\n}\n`;
 
 	for (const mode of ['light', 'dark']) {
-		const decls = [`--shadow-card: ${SHADOW_CARD[mode]};`];
+		const decls = [
+			`--shadow-card: ${SHADOW_CARD[mode]};`,
+			`--shadow-raised: ${mode === 'light' ? '0 2px 6px rgb(0 0 0 / 0.06), 0 16px 40px rgb(0 0 0 / 0.08)' : '0 2px 6px rgb(0 0 0 / 0.4), 0 18px 48px rgb(0 0 0 / 0.5)'};`,
+			`--shadow-brand: 0 10px 30px color-mix(in srgb, var(--accent) ${mode === 'light' ? '28%' : '32%'}, transparent);`,
+			`--halo: radial-gradient(900px 420px at 18% -8%, color-mix(in srgb, var(--accent) ${mode === 'light' ? '13%' : '22%'}, transparent), transparent 70%);`
+		];
 		for (const key of SEMANTIC_KEYS) {
 			const def = SEMANTICS[mode][key];
 			decls.push(`--${key}: ${def.text};`);

@@ -336,8 +336,11 @@
 		/* Inset lateral (mockup: los items de nav flotan con ~0.6rem de margen a cada lado, no van a
 		   sangre): antes el padding horizontal era 0 y las cajas activa/hover tocaban los bordes. */
 		padding: var(--vega-space-gutter);
-		border-right: 1px solid var(--line);
-		background: var(--sidebar);
+		border: 1px solid var(--line);
+		border-radius: var(--r-md);
+		background: var(--glass);
+		backdrop-filter: blur(18px);
+		box-shadow: var(--shadow-card);
 		overflow-y: auto;
 	}
 

@@ -221,17 +221,94 @@ export const THEME_TOKENS: readonly ThemeToken[] = [
 
 	// ————— Forma/tipo (globales, no conmutan por tema ni densidad) —————
 	{ name: 'r', family: 'forma', description: 'Radio (8px).', themeWritable: false },
+	{ name: 'r-sm', family: 'forma', description: 'Radio pequeño (10px).', themeWritable: false },
+	{ name: 'r-md', family: 'forma', description: 'Radio de tarjeta (16px).', themeWritable: false },
+	{ name: 'r-lg', family: 'forma', description: 'Radio amplio (22px).', themeWritable: false },
+	{ name: 'r-pill', family: 'forma', description: 'Radio de píldora.', themeWritable: false },
 	{
 		name: 'shadow-card',
 		family: 'forma',
 		description: 'Sombra de tarjeta (por modo).',
 		themeWritable: false
 	},
+	{
+		name: 'shadow-raised',
+		family: 'forma',
+		description: 'Elevación de hover.',
+		themeWritable: false
+	},
+	{
+		name: 'shadow-brand',
+		family: 'forma',
+		description: 'Sombra teñida de marca.',
+		themeWritable: false
+	},
+	{
+		name: 'glass',
+		family: 'forma',
+		description: 'Superficie translúcida del shell.',
+		themeWritable: false
+	},
 	{ name: 'sans', family: 'forma', description: 'Familia UI.', themeWritable: false },
+	{
+		name: 'display',
+		family: 'forma',
+		description: 'Familia de títulos y cifras.',
+		themeWritable: false
+	},
 	{
 		name: 'mono',
 		family: 'forma',
 		description: 'Familia mono (valores canónicos published/draft).',
+		themeWritable: false
+	},
+	...['12', '13', '14', '15', '17', '22', '28', '36', '44'].map((step) => ({
+		name: `fs-${step}`,
+		family: 'forma' as const,
+		description: `Escala tipográfica ${step}px.`,
+		themeWritable: false
+	})),
+	...['1', '2', '3', '4', '5', '6', '8', '10', '12'].map((step) => ({
+		name: `sp-${step}`,
+		family: 'forma' as const,
+		description: `Paso de espacio ${step}.`,
+		themeWritable: false
+	})),
+	{
+		name: 'v-ol-select',
+		family: 'marca',
+		description: 'Selección de bloque.',
+		themeWritable: false
+	},
+	{
+		name: 'v-ol-select-ink',
+		family: 'marca',
+		description: 'Texto sobre selección de bloque.',
+		themeWritable: false
+	},
+	{ name: 'v-ol-hover', family: 'marca', description: 'Hover de bloque.', themeWritable: false },
+	{
+		name: 'v-ol-inline',
+		family: 'marca',
+		description: 'Borde de edición inline.',
+		themeWritable: false
+	},
+	{
+		name: 'v-ol-inline-text',
+		family: 'marca',
+		description: 'Texto activo inline.',
+		themeWritable: false
+	},
+	{
+		name: 'v-ol-inline-soft',
+		family: 'marca',
+		description: 'Fondo de edición inline.',
+		themeWritable: false
+	},
+	{
+		name: 'v-stage',
+		family: 'papel',
+		description: 'Lienzo del sitio en el editor.',
 		themeWritable: false
 	},
 

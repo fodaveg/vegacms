@@ -4,7 +4,7 @@ import type { Query } from '$lib/backend/query';
 import { VegaError } from '$lib/backend/errors';
 import { loadRecentRows } from './recent-load';
 import type { RecentEdit } from './recent-edits';
-import { model, type } from './fixture';
+import { field, model, type } from './fixture';
 
 function page(items: VegaRecord[]): Page<VegaRecord> {
 	return { items, page: 1, perPage: 30, totalItems: items.length, totalPages: 1 };
@@ -66,6 +66,24 @@ describe('loadRecentRows', () => {
 			fields: ['title', 'status']
 		});
 		expect(port.get).not.toHaveBeenCalled();
+	});
+
+	test('proyecta el campo de imagen social para mostrar una miniatura real', async () => {
+		const withImage = model([
+			type('posts', {
+				social: { imageField: 'cover' },
+				fields: [field('cover', { type: 'file', multiple: false } as never)]
+			})
+		]);
+		const port = fakePort({ posts: [record('posts', 'p1')] });
+
+		await loadRecentRows(port, withImage, [edit('posts', 'p1', 1)]);
+
+		expect(port.list).toHaveBeenCalledWith('posts', {
+			filter: { kind: 'cond', field: 'id', op: 'in', value: ['p1'] },
+			perPage: 1,
+			fields: ['title', 'cover']
+		});
 	});
 
 	test('un registro borrado se cae de la lista y va a gone', async () => {

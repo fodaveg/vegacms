@@ -6,7 +6,7 @@
  * que este fichero en `+layout.svelte`). El shim de color ya no hace falta y se ha borrado entero:
  * ningún `.svelte`/`.ts` de la app pinta con `--vega-color-*`.
  *
- * Lo que queda aquí son solo dos cosas:
+ * Lo que queda aquí son las reglas transversales del documento y las fuentes autoalojadas.
  * 1. Dos tamaños SIN equivalente en el vocabulario §3 porque no son de rol: el ANCHO del sidebar
  *    (§3 solo tiene `sidebar-item-h`, el alto de un item) y un "gutter" genérico (§3 no define
  *    espaciados de layout, solo paddings/gaps de campo). Huecos reales del contrato — se
@@ -16,6 +16,28 @@
  *    `prefers-reduced-motion`) que no son alias de nada.
  */
 
+/* Fuentes variables OFL: Vite resuelve las URL con el base path de la instalación. */
+@font-face {
+	font-family: Geist;
+	src: url('../assets/fonts/Geist.ttf') format('truetype');
+	font-weight: 100 900;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Geist Mono';
+	src: url('../assets/fonts/GeistMono.ttf') format('truetype');
+	font-weight: 100 900;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Bricolage Grotesque';
+	src: url('../assets/fonts/BricolageGrotesque.ttf') format('truetype');
+	font-weight: 200 800;
+	font-display: swap;
+}
+
 :root {
 	color-scheme: light dark;
 }
@@ -23,12 +45,12 @@
 /* Huecos del vocabulario §3 (ver cabecera): sin equivalente de rol, valores literales por
    densidad, igual que antes de F7w-a. */
 html[data-density='comfortable'] {
-	--vega-size-sidebar: 236px;
-	--vega-space-gutter: 1rem;
+	--vega-size-sidebar: 248px;
+	--vega-space-gutter: 0.75rem;
 }
 
 html[data-density='compact'] {
-	--vega-size-sidebar: 200px;
+	--vega-size-sidebar: 216px;
 	--vega-space-gutter: 0.65rem;
 }
 
@@ -43,11 +65,7 @@ body {
 	   fondos"): es el único sitio que lo pinta. */
 	background: var(--bg);
 	color: var(--ink);
-	font-family:
-		system-ui,
-		-apple-system,
-		'Segoe UI',
-		sans-serif;
+	font-family: var(--sans);
 }
 
 /* El atributo `hidden` tiene que ocultar SIEMPRE, y por eso lleva `!important`.

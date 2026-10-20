@@ -148,8 +148,8 @@ export function pendingCards(model: ContentModel, now: number = Date.now()): Pen
 }
 
 /**
- * «Cambios sin publicar en el sitio»: `true`/`false` si se puede saber, `null` si no (ningún tipo
- * con fecha de última edición legible, ver `detectUnpublishedChanges`). Solo tiene sentido si el
+ * Estado de publicación del sitio: cambios conocidos o `null` si no hay fecha de edición
+ * legible (ver `detectUnpublishedChanges`), y fecha de la última publicación. Solo tiene sentido si el
  * proyecto anuncia `build` (`port.buildApiUrl`); sin él la tarjeta no existe y esto no se llama.
  *
  * Coste: un `GET` al estado del build (de ahí sale la fecha de la última publicación) más la
@@ -157,12 +157,12 @@ export function pendingCards(model: ContentModel, now: number = Date.now()): Pen
  * edición. Es el mismo cálculo que hace el botón «Publicar» de la barra superior, repetido aquí
  * porque ese botón no comparte su resultado. Rechaza si el estado del build no se puede leer.
  */
-export async function loadUnpublishedChanges(
+export async function loadUnpublishedStatus(
 	port: BackendPort,
 	model: ContentModel,
 	token: string,
 	fetcher?: typeof fetch
-): Promise<boolean | null> {
+): Promise<{ hasChanges: boolean | null; lastPublishedAt: string | null } | null> {
 	if (!port.buildApiUrl) return null;
 	const client = createBuildClient({ apiUrl: port.buildApiUrl, token, fetcher });
 	const status = await client.fetchStatus();
@@ -171,7 +171,17 @@ export async function loadUnpublishedChanges(
 		model.types.map((type) => type.schema),
 		status.lastPublishedAt
 	);
-	return result.hasChanges;
+	return { hasChanges: result.hasChanges, lastPublishedAt: status.lastPublishedAt };
+}
+
+/** Compatibilidad con quien solo necesita la pista de cambios, sin la fecha de publicación. */
+export async function loadUnpublishedChanges(
+	port: BackendPort,
+	model: ContentModel,
+	token: string,
+	fetcher?: typeof fetch
+): Promise<boolean | null> {
+	return (await loadUnpublishedStatus(port, model, token, fetcher))?.hasChanges ?? null;
 }
 
 /** El número de una tarjeta: `totalItems` de su única consulta. Rechaza si la consulta falla. */

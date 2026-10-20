@@ -68,6 +68,12 @@ describe('1. El catálogo completo pasa el gate AA en claro y oscuro', () => {
 		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['accentText', 'surface-2']);
 	});
 
+	test('selección e inline tienen pares AA propios en la superficie del editor', () => {
+		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['v-ol-select-ink', 'v-ol-select']);
+		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['v-ol-inline-text', 'v-ol-inline-soft']);
+		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['v-ol-inline-text', 'v-stage']);
+	});
+
 	test('COMPONENT_CONTRAST_PAIRS incluye danger sobre danger-soft, paper y surface (sin excepción)', () => {
 		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['danger', 'danger-soft']);
 		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['danger', 'paper']);

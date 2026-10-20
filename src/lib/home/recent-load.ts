@@ -31,11 +31,14 @@ interface RecentRowsResult {
 	gone: RecentEditRef[];
 }
 
-/** Campos que la tabla necesita de `type` (título, estado y fecha de publicación programada). */
+/** Campos de cada tarjeta (título, estado, fecha y miniatura declarada por el tipo). */
 function projectionFor(type: ResolvedContentType): string[] {
-	return [type.titleField, type.statusField, type.publishAtField ?? null].filter(
-		(name): name is string => typeof name === 'string'
-	);
+	return [
+		type.titleField,
+		type.statusField,
+		type.publishAtField ?? null,
+		type.social?.imageField ?? null
+	].filter((name): name is string => typeof name === 'string');
 }
 
 /** El tipo de `collection` si la portada puede enseñar sus registros a esta sesión. */

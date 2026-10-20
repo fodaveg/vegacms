@@ -1,5 +1,5 @@
 /**
- * La portada (`/`) montada con un puerto de mentira, en cada estado de la lámina 1 del lote 12:
+ * Inicio (`/`) montado con un puerto de mentira, con estados y tarjetas de la lámina v2:
  * con lista, vacía, cargando, error con «Reintentar», sin permiso para crear, sitio sin
  * colecciones; más las tarjetas de pendientes y la limpieza de un registro borrado.
  */
@@ -100,7 +100,8 @@ function mountHome(
 			list,
 			get: vi.fn(async () => {
 				throw VegaError.notFound();
-			})
+			}),
+			fileUrl: vi.fn((_record, _field, filename) => `/images/${filename}`)
 		} as unknown as BackendPort,
 		feedback: { toast: vi.fn(), reportError: vi.fn(), reportConnectivity: vi.fn() },
 		nav
@@ -149,7 +150,7 @@ afterEach(async () => {
 });
 
 describe('portada: lo último que editaste', () => {
-	test('con lista: una fila por registro, la más reciente primero, cada una a su registro', async () => {
+	test('con lista: una tarjeta por registro, la más reciente primero, cada una a su registro', async () => {
 		seed([
 			{ collection: 'pages', id: 'g1', savedAt: 300 },
 			{ collection: 'posts', id: 'p1', savedAt: 200 },
@@ -159,33 +160,55 @@ describe('portada: lo último que editaste', () => {
 		await settle();
 
 		expect(recentState(target)).toBe('ready');
-		expect(target.querySelector('h1')?.textContent).toBe('home.title');
-		const rows = [...target.querySelectorAll('tbody tr')];
-		expect(rows.map((row) => row.querySelector('a')?.getAttribute('href'))).toEqual([
+		expect(target.querySelector('h1')?.textContent).toMatch(/^home.greeting./);
+		expect(target.querySelector('.hero p')?.textContent).toContain('Vega de prueba');
+		const rows = [...target.querySelectorAll('[data-home-recent="ready"] a.card')];
+		expect(rows.map((row) => row.getAttribute('href'))).toEqual([
 			'/c/pages/g1',
 			'/c/posts/p1',
 			'/c/posts/p2'
 		]);
-		expect(rows.map((row) => row.querySelectorAll('td')[1]?.textContent?.trim())).toEqual([
+		expect(rows.map((row) => row.querySelector('.meta span')?.textContent?.trim())).toEqual([
 			'Página',
 			'Entrada',
 			'Entrada'
 		]);
 		// Título vacío: «(sin título)», como en el listado.
-		expect(rows[2]?.querySelector('a')?.textContent?.trim()).toBe('list.untitled');
-		// Estado de ahora, leído del servidor; un tipo sin estado pinta la raya.
-		expect(rows[1]?.querySelector('.vega-status-badge')?.textContent?.trim()).toBe('Borrador');
-		expect(rows[0]?.querySelector('.vega-col-status')?.textContent?.trim()).toBe('—');
-		// Cuatro columnas fijas, sin ordenación ni acción de fila.
-		expect(target.querySelectorAll('thead th')).toHaveLength(4);
-		expect(target.querySelector('tbody button')).toBeNull();
+		expect(rows[2]?.querySelector('h3')?.textContent?.trim()).toBe('list.untitled');
+		// Estado actual y fallback tipográfico cuando el tipo no declara imagen.
+		expect(rows[1]?.querySelector('.pill')?.textContent?.trim()).toBe('Borrador');
+		expect(rows[0]?.querySelector('.pill')).toBeNull();
+		expect(rows[0]?.querySelector('.fallback')?.textContent).toBe('P');
+		expect(rows[0]?.querySelector('.continue-label')?.textContent).toBe('home.recent.continue');
 		// Una list por colección de la lista, no un get por registro.
 		expect(list.mock.calls.filter(([, query]) => isRecentQuery(query))).toHaveLength(2);
 
-		rows[1]
-			?.querySelector('a')
-			?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+		rows[1]?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
 		expect(nav.toRecord).toHaveBeenCalledWith('posts', 'p1');
+	});
+
+	test('miniatura desde el campo de imagen del tipo; si falla, conserva el fallback', async () => {
+		const imageType = type('posts', {
+			labelSingular: 'Entrada',
+			social: { imageField: 'cover' },
+			fields: [field('cover', { type: 'file', multiple: false } as never)]
+		});
+		seed([{ collection: 'posts', id: 'p1', savedAt: 10 }]);
+		const { target } = mountHome({
+			model: model([imageType]),
+			list: async (_collection, query) =>
+				isRecentQuery(query)
+					? page([{ id: 'p1', type: 'posts', values: { title: 'Foto', cover: 'foto.webp' } }])
+					: page([])
+		});
+		await settle();
+
+		const thumb = target.querySelector('[data-home-recent="ready"] .thumb');
+		const img = thumb?.querySelector('img');
+		expect(img?.getAttribute('src')).toBe('/images/foto.webp');
+		expect(thumb?.querySelector('.fallback')?.textContent).toBe('E');
+		img?.dispatchEvent(new Event('error'));
+		expect(img?.hidden).toBe(true);
 	});
 
 	test('1.1 sin nada editado: estado vacío sin botón y ninguna consulta de recientes', async () => {
@@ -233,7 +256,7 @@ describe('portada: lo último que editaste', () => {
 		await settle();
 
 		expect(recentState(target)).toBe('ready');
-		expect(target.querySelectorAll('tbody tr')).toHaveLength(1);
+		expect(target.querySelectorAll('[data-home-recent="ready"] a.card')).toHaveLength(1);
 	});
 
 	test('un registro borrado se cae de la lista y del registro local', async () => {
@@ -245,7 +268,9 @@ describe('portada: lo último que editaste', () => {
 		await settle();
 
 		expect(
-			[...target.querySelectorAll('tbody a')].map((link) => link.getAttribute('href'))
+			[...target.querySelectorAll('[data-home-recent="ready"] a.card')].map((link) =>
+				link.getAttribute('href')
+			)
 		).toEqual(['/c/posts/p1']);
 		expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')).toEqual([
 			{ collection: 'posts', id: 'p1', savedAt: 100 }
@@ -362,11 +387,11 @@ describe('portada: pendientes', () => {
 		const drafts = target.querySelector('[data-pending="drafts:posts"]');
 		expect(drafts?.tagName).toBe('A');
 		expect(drafts?.getAttribute('href')).toBe('/c/posts?status=draft');
-		expect(drafts?.querySelector('.vega-home-pending-value')?.textContent).toBe('3');
+		expect(drafts?.querySelector('strong')?.textContent).toBe('3');
 		expect(drafts?.getAttribute('data-zero')).toBe('false');
 		const media = target.querySelector('[data-pending="media-alt:vega_media"]');
 		expect(media?.tagName).toBe('DIV');
-		expect(media?.querySelector('.vega-home-pending-value')?.textContent).toBe('0');
+		expect(media?.querySelector('strong')?.textContent).toBe('0');
 		expect(media?.getAttribute('data-zero')).toBe('true');
 		// Una list de un registro por tarjeta.
 		const counting = list.mock.calls.filter(([, query]) => !isRecentQuery(query));
@@ -374,7 +399,7 @@ describe('portada: pendientes', () => {
 		expect(counting.every(([, query]) => query?.perPage === 1)).toBe(true);
 	});
 
-	test('si una tarjeta falla, las demás se pintan', async () => {
+	test('si una tarjeta falla, ofrece reintento sin ocultar las demás', async () => {
 		const fallback = defaultList({ posts: 3 });
 		const { target } = mountHome({
 			list: async (collection, query) => {
@@ -384,7 +409,12 @@ describe('portada: pendientes', () => {
 		});
 		await settle();
 
-		expect(pendingKeys(target)).toEqual(['drafts:posts', 'description:posts']);
+		expect(pendingKeys(target)).toEqual([
+			'drafts:posts',
+			'description:posts',
+			'media-alt:vega_media'
+		]);
+		expect(target.querySelector('[data-pending="media-alt:vega_media"] button')).not.toBeNull();
 	});
 
 	test('sin ningún dato pendiente en el proyecto, el bloque no ocupa sitio', async () => {
@@ -395,7 +425,7 @@ describe('portada: pendientes', () => {
 		expect(pendingKeys(target)).toEqual([]);
 	});
 
-	test('si fallan todas, el bloque desaparece', async () => {
+	test('si fallan todas, las tarjetas conservan sus reintentos', async () => {
 		const { target } = mountHome({
 			list: async () => {
 				throw VegaError.network();
@@ -403,7 +433,7 @@ describe('portada: pendientes', () => {
 		});
 		await settle();
 
-		expect(target.querySelector('#vega-home-pending-title')).toBeNull();
+		expect(target.querySelectorAll('.tiles button')).toHaveLength(3);
 	});
 
 	test('sin build anunciado no existe la tarjeta de cambios sin publicar', async () => {
@@ -418,7 +448,7 @@ describe('portada: pendientes', () => {
 		await settle();
 
 		const drafts = target.querySelector('[data-pending="drafts:posts"]');
-		expect(drafts?.querySelector('.vega-home-pending-value')?.textContent).toBe('…');
+		expect(drafts?.querySelector('strong')?.textContent).toBe('…');
 		expect(drafts?.getAttribute('aria-busy')).toBe('true');
 		expect(drafts?.getAttribute('data-zero')).toBe('false');
 	});
@@ -457,7 +487,7 @@ describe('portada: cambios sin publicar en el sitio', () => {
 		return target.querySelector('[data-pending="unpublished"]');
 	}
 
-	test('con ediciones posteriores a la última publicación dice «Sí»', async () => {
+	test('con ediciones posteriores a la última publicación ofrece el flujo existente', async () => {
 		stubBuildStatus({ state: 'ok', lastPublishedAt: '2026-10-01T09:00:00.000Z' });
 		const { target } = mountHome({
 			model: EDITED_MODEL,
@@ -468,17 +498,16 @@ describe('portada: cambios sin publicar en el sitio', () => {
 
 		const card = unpublishedCard(target);
 		expect(card?.tagName).toBe('DIV');
-		expect(card?.querySelector('.vega-home-pending-value')?.textContent).toBe(
-			'home.pending.unpublishedYes'
+		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.unpublishedHeadline');
+		expect(card?.querySelector('.published-at')?.textContent).toContain(
+			'home.pending.lastPublished'
 		);
-		expect(card?.querySelector('.vega-home-pending-label')?.textContent).toBe(
-			'home.pending.unpublished'
-		);
-		expect(card?.getAttribute('data-zero')).toBe('false');
+		expect(card?.querySelector('.eyebrow')?.textContent).toBe('home.pending.unpublished');
+		expect(card?.querySelector('.vega-publish-trigger')).not.toBeNull();
 		expect(card?.getAttribute('aria-busy')).toBe('false');
 	});
 
-	test('sin nada que publicar dice «No» y se pinta atenuada', async () => {
+	test('sin nada que publicar muestra estado calmado', async () => {
 		stubBuildStatus({ state: 'ok', lastPublishedAt: '2026-10-01T09:00:00.000Z' });
 		const { target } = mountHome({
 			model: EDITED_MODEL,
@@ -488,13 +517,11 @@ describe('portada: cambios sin publicar en el sitio', () => {
 		await settle();
 
 		const card = unpublishedCard(target);
-		expect(card?.querySelector('.vega-home-pending-value')?.textContent).toBe(
-			'home.pending.unpublishedNo'
-		);
-		expect(card?.getAttribute('data-zero')).toBe('true');
+		expect(card?.querySelector('h2')?.textContent).toBe('home.pending.upToDate');
+		expect(card?.classList.contains('calm')).toBe(true);
 	});
 
-	test('mientras lo calcula, la tarjeta está con «…»', async () => {
+	test('mientras lo calcula, la tarjeta comunica carga', async () => {
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(() => new Promise(() => {}))
@@ -503,29 +530,33 @@ describe('portada: cambios sin publicar en el sitio', () => {
 		await settle();
 
 		const card = unpublishedCard(target);
-		expect(card?.querySelector('.vega-home-pending-value')?.textContent).toBe('…');
+		expect(card?.querySelector('h2')?.textContent).toBe('common.loading');
 		expect(card?.getAttribute('aria-busy')).toBe('true');
 	});
 
-	test('si el estado del build falla, la tarjeta se retira (y con ella el bloque)', async () => {
+	test('si el estado del build falla, la tarjeta permite reintentar', async () => {
 		stubBuildStatus(null);
 		const { target } = mountHome({ model: EDITED_MODEL, buildApiUrl: BUILD_URL });
 		await settle();
 
-		expect(unpublishedCard(target)).toBeNull();
-		expect(target.querySelector('#vega-home-pending-title')).toBeNull();
+		expect(unpublishedCard(target)?.querySelector('h2')?.textContent).toBe(
+			'home.pending.unpublishedError'
+		);
+		expect(unpublishedCard(target)?.querySelector('button.retry')).not.toBeNull();
 	});
 
-	test('si no se puede saber (ningún tipo con fecha de edición), no se pinta', async () => {
+	test('si no se puede saber, el estado queda explícitamente desconocido', async () => {
 		stubBuildStatus({ state: 'ok', lastPublishedAt: null });
 		const { target } = mountHome({ model: model([type('tags')]), buildApiUrl: BUILD_URL });
 		await settle();
 
-		expect(unpublishedCard(target)).toBeNull();
+		expect(unpublishedCard(target)?.querySelector('h2')?.textContent).toBe(
+			'home.pending.unpublishedUnknown'
+		);
 	});
 });
 
-describe('portada: tabla de lo último que editaste', () => {
+describe('portada: tarjetas de lo último que editaste', () => {
 	test('Cmd/Ctrl/Mayús o botón central: deja al navegador abrir el enlace, sin navegar aquí', async () => {
 		seed([{ collection: 'posts', id: 'p1', savedAt: 1 }]);
 		const { target, nav } = mountHome();
@@ -540,7 +571,7 @@ describe('portada: tabla de lo último que editaste', () => {
 		};
 		document.addEventListener('click', observe);
 		try {
-			const link = target.querySelector('tbody a');
+			const link = target.querySelector('[data-home-recent="ready"] a.card');
 			for (const init of [
 				{ metaKey: true },
 				{ ctrlKey: true },
@@ -571,8 +602,8 @@ describe('portada: tabla de lo último que editaste', () => {
 		});
 		await settle();
 
-		const link = target.querySelector('tbody a');
-		expect(link?.textContent?.trim()).toBe('n1');
+		const link = target.querySelector('[data-home-recent="ready"] a.card');
+		expect(link?.querySelector('h3')?.textContent?.trim()).toBe('n1');
 		expect(link?.getAttribute('href')).toBe('/c/notes/n1');
 	});
 
@@ -582,7 +613,7 @@ describe('portada: tabla de lo último que editaste', () => {
 		const { target } = mountHome();
 		await settle();
 
-		const cell = target.querySelector('tbody td.vega-cell-mono span');
+		const cell = target.querySelector('[data-home-recent="ready"] time.when');
 		expect(cell?.textContent?.trim()).not.toBe('');
 		expect(cell?.getAttribute('title')).toMatch(/2026/);
 	});

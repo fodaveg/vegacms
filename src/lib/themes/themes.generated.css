@@ -1,9 +1,14 @@
 /* GENERADO por scripts/build-themes.mjs — NO EDITAR */
 
 :root {
-	--sans: -apple-system, 'Segoe UI', system-ui, sans-serif;
-	--mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+	--sans: 'Geist', -apple-system, 'Segoe UI', system-ui, sans-serif;
+	--display: 'Bricolage Grotesque', 'Geist', system-ui, sans-serif;
+	--mono: 'Geist Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
 	--r: 8px;
+	--r-sm: 10px;
+	--r-md: 16px;
+	--r-lg: 22px;
+	--r-pill: 999px;
 	--accent-grad: linear-gradient(115deg, var(--accent), var(--accent-hover));
 	--sheen: linear-gradient(100deg, var(--accent), var(--accent-text));
 	--accent-fill: var(--accent);
@@ -12,6 +17,68 @@
 	--brand-b: var(--accent);
 	--brand-c: var(--accent);
 	--brand-edge-opacity: 0.35;
+	--glass: color-mix(in srgb, var(--surface) 72%, transparent);
+	--v-ol-select: var(--accent);
+	--v-ol-select-ink: var(--accent-ink);
+	--v-ol-hover: var(--accent-soft);
+	--v-ol-inline: var(--accent-text);
+	--v-ol-inline-text: var(--accent-text);
+	--v-ol-inline-soft: var(--accent-soft);
+	--v-stage: var(--paper);
+}
+:root {
+	--fs-12: 12px;
+}
+:root {
+	--fs-13: 13px;
+}
+:root {
+	--fs-14: 14px;
+}
+:root {
+	--fs-15: 15px;
+}
+:root {
+	--fs-17: 17px;
+}
+:root {
+	--fs-22: 22px;
+}
+:root {
+	--fs-28: 28px;
+}
+:root {
+	--fs-36: 36px;
+}
+:root {
+	--fs-44: 44px;
+}
+:root {
+	--sp-1: 4px;
+}
+:root {
+	--sp-2: 8px;
+}
+:root {
+	--sp-3: 12px;
+}
+:root {
+	--sp-4: 16px;
+}
+:root {
+	--sp-5: 20px;
+}
+:root {
+	--sp-6: 24px;
+}
+:root {
+	--sp-8: 32px;
+}
+:root {
+	--sp-10: 40px;
+}
+:root {
+	--sp-12: 48px;
 }
 :root {
 	--row-h: 44px;
@@ -21,7 +88,7 @@
 	--gap-field: 1.75rem;
 	--pad-card: 1.5rem;
 	--sidebar-item-h: 40px;
-	--topbar-h: 54px;
+	--topbar-h: 56px;
 }
 [data-density='compact'] {
 	--row-h: 36px;
@@ -35,6 +102,13 @@
 }
 [data-mode='light'] {
 	--shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 3px 12px rgb(0 0 0 / 0.04);
+	--shadow-raised: 0 2px 6px rgb(0 0 0 / 0.06), 0 16px 40px rgb(0 0 0 / 0.08);
+	--shadow-brand: 0 10px 30px color-mix(in srgb, var(--accent) 28%, transparent);
+	--halo: radial-gradient(
+		900px 420px at 18% -8%,
+		color-mix(in srgb, var(--accent) 13%, transparent),
+		transparent 70%
+	);
 	--success: #045a26;
 	--success-soft: color-mix(in oklab, #045a26 10%, var(--paper));
 	--danger: #a91408;
@@ -46,6 +120,13 @@
 }
 [data-mode='dark'] {
 	--shadow-card: 0 1px 3px rgb(0 0 0 / 0.4), 0 5px 16px rgb(0 0 0 / 0.28);
+	--shadow-raised: 0 2px 6px rgb(0 0 0 / 0.4), 0 18px 48px rgb(0 0 0 / 0.5);
+	--shadow-brand: 0 10px 30px color-mix(in srgb, var(--accent) 32%, transparent);
+	--halo: radial-gradient(
+		900px 420px at 18% -8%,
+		color-mix(in srgb, var(--accent) 22%, transparent),
+		transparent 70%
+	);
 	--success: #5cbd8e;
 	--success-soft: color-mix(in oklab, #5cbd8e 17%, var(--paper));
 	--danger: #ef8078;

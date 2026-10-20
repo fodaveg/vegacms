@@ -22,11 +22,25 @@ interface Harness {
 	nav: { toIndex: ReturnType<typeof vi.fn>; toSettings: ReturnType<typeof vi.fn> };
 }
 
-function mountTopbar(): Harness {
+function mountTopbar(withSearch = false): Harness {
 	const nav = { toIndex: vi.fn(), toSettings: vi.fn() };
+	const searchable = {
+		name: 'posts',
+		titleField: 'title',
+		listFields: ['title'],
+		schema: { fields: [{ name: 'title', type: 'text' }] }
+	};
 	const ctx = {
-		port: { buildApiUrl: null },
-		model: { site: { name: 'Sitio de prueba' }, types: [], nav: { groups: [] } },
+		port: { buildApiUrl: null, list: vi.fn() },
+		model: {
+			site: { name: 'Sitio de prueba' },
+			types: withSearch ? [searchable] : [],
+			nav: {
+				groups: withSearch
+					? [{ items: [{ kind: 'collection', type: 'posts', label: 'Entradas' }] }]
+					: []
+			}
+		},
 		session: { token: 'tok', user: { id: 'u1', email: 'ana@vega.test' }, expiresAt: null },
 		t: (key: string, params?: Record<string, string | number>) => t('es', key, params),
 		locale: 'es',
@@ -105,6 +119,23 @@ describe('Topbar.svelte: densidad en el menú de cuenta y marca como enlace', ()
 		expect(menu()).toBeNull();
 		await openMenu();
 		expect(h.target.querySelectorAll('[role="menuitemradio"]')).toHaveLength(2);
+	});
+
+	test('⌘K y Ctrl+K enfocan la búsqueda y el antiguo / sigue disponible', async () => {
+		h = mountTopbar(true);
+		await tick();
+		const input = h.target.querySelector<HTMLInputElement>('[role="combobox"]');
+		expect(input).not.toBeNull();
+		const press = (key: string, options: KeyboardEventInit = {}) =>
+			document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, ...options }));
+		press('k', { metaKey: true });
+		expect(document.activeElement).toBe(input);
+		input?.blur();
+		press('k', { ctrlKey: true });
+		expect(document.activeElement).toBe(input);
+		input?.blur();
+		press('/');
+		expect(document.activeElement).toBe(input);
 	});
 
 	test('el menú abre con la densidad vigente marcada (aria-checked) y un rótulo de grupo', async () => {

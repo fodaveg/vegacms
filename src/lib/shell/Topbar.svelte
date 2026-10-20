@@ -242,7 +242,7 @@
 		aria-label={ctx.t('topbar.home.label')}
 		onclick={handleBrandClick}
 	>
-		<VegaLogo size={20} />
+		<span class="vega-topbar-mark"><VegaLogo size={16} /></span>
 		<span class="vega-topbar-brand">Vega</span>
 		<span class="vega-topbar-sitename">{ctx.model.site.name}</span>
 	</a>
@@ -347,13 +347,15 @@
 <style>
 	.vega-topbar {
 		position: relative;
+		z-index: 5;
 		display: flex;
 		align-items: center;
 		gap: var(--vega-space-gutter);
 		height: var(--topbar-h);
 		flex-shrink: 0;
 		padding: 0 var(--vega-space-gutter);
-		background: var(--surface-2);
+		background: var(--glass);
+		backdrop-filter: blur(18px) saturate(1.4);
 	}
 
 	/* Hilo iridiscente bajo la topbar (mockups aquelarre-*.html, firma de David): sustituye la
@@ -376,8 +378,7 @@
 		right: 0;
 		bottom: 0;
 		height: 1.5px;
-		background: var(--sheen);
-		opacity: var(--brand-edge-opacity);
+		background: var(--line);
 	}
 
 	.vega-topbar-menu {
@@ -407,7 +408,7 @@
 		   color de enlace); solo se nota con el foco (anillo `--ring`, como el resto de la app). */
 		color: inherit;
 		text-decoration: none;
-		border-radius: 6px;
+		border-radius: var(--r-sm);
 	}
 
 	.vega-topbar-site:focus-visible {
@@ -417,18 +418,36 @@
 
 	/* «Vega»: la marca fija, sans (no --mono — es prosa, no un valor canónico). */
 	.vega-topbar-brand {
-		font-weight: 650;
+		font-family: var(--display);
+		font-size: var(--fs-17);
+		font-weight: 700;
 		letter-spacing: -0.02em;
 		color: var(--ink-hi);
+	}
+
+	.vega-topbar-mark {
+		display: inline-grid;
+		place-items: center;
+		flex: none;
+		width: 26px;
+		height: 26px;
+		border-radius: 8px;
+		background: var(--accent-grad);
+		box-shadow: var(--shadow-brand);
+	}
+	.vega-topbar-mark :global(svg) {
+		filter: brightness(0) invert(1);
 	}
 
 	/* El nombre del sitio (M, mockup `.brand .site`): valor canónico del manifiesto (como un slug
 	   o un id) → --mono, mismo criterio que el resto de valores canónicos de la app (ids, slugs,
 	   fechas ISO) — pero TENUE (--ink-2), para no competir con la marca fija de al lado. */
 	.vega-topbar-sitename {
-		font-family: var(--mono);
-		font-weight: 450;
-		font-size: 0.85em;
+		padding-left: 10px;
+		border-left: 1px solid var(--line);
+		font-family: var(--sans);
+		font-weight: 500;
+		font-size: var(--fs-13);
 		color: var(--ink-2);
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -474,12 +493,13 @@
 	}
 
 	.vega-topbar-avatar {
-		width: 28px;
-		height: 28px;
+		width: 32px;
+		height: 32px;
 		flex-shrink: 0;
 		border-radius: 50%;
-		background: var(--accent);
-		color: var(--accent-ink);
+		background: var(--accent-soft);
+		color: var(--accent-text);
+		border: 1px solid var(--accent-line);
 		display: grid;
 		place-items: center;
 		font-size: 0.72rem;
@@ -546,9 +566,10 @@
 		min-width: 10rem;
 		padding: 0.3rem;
 		border: 1px solid var(--line);
-		border-radius: 8px;
-		background: var(--surface);
-		box-shadow: var(--shadow-card);
+		border-radius: var(--r-md);
+		background: var(--glass);
+		backdrop-filter: blur(18px);
+		box-shadow: var(--shadow-raised);
 	}
 
 	.vega-topbar-user-menu a {
@@ -677,7 +698,7 @@
 	   (§4.2): topbar compacta a íconos, el hamburguesa aparece. CSS `@media` no admite `var()`, así
 	   que el valor se replica; si P7 lo cambia, cambiarlo EN LOS TRES ficheros. */
 	@media (max-width: 768px) {
-		.vega-topbar--build {
+		.vega-topbar {
 			display: grid;
 			grid-template-columns: 44px minmax(0, 1fr) auto auto auto;
 			height: auto;
@@ -686,8 +707,17 @@
 			padding-block: 0.35rem;
 		}
 
-		.vega-topbar--build .vega-topbar-actions {
+		.vega-topbar-actions {
 			display: contents;
+		}
+
+		.vega-topbar :global(.vega-search-root) {
+			grid-column: 1 / -1;
+			grid-row: 2;
+		}
+
+		.vega-topbar--build :global(.vega-search-root) {
+			grid-row: 3;
 		}
 
 		.vega-topbar-publication {

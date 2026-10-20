@@ -1,7 +1,12 @@
 import { describe, expect, test, vi } from 'vitest';
 import type { BackendPort } from '$lib/backend/port';
 import { validateQuery } from '$lib/backend/query';
-import { loadPendingCount, loadUnpublishedChanges, pendingCards } from './pending';
+import {
+	loadPendingCount,
+	loadUnpublishedChanges,
+	loadUnpublishedStatus,
+	pendingCards
+} from './pending';
 import { creatableTypes, navContentTypes } from './home-types';
 import { field, model, type } from './fixture';
 
@@ -234,6 +239,17 @@ describe('loadUnpublishedChanges', () => {
 		const port = editedPort('2026-10-01 08:00:00.000Z');
 
 		await expect(loadUnpublishedChanges(port, model([EDITED]), 't', fetcher)).resolves.toBe(false);
+	});
+
+	test('la tarjeta recibe la fecha real del mismo estado que calculó los cambios', async () => {
+		const lastPublishedAt = '2026-10-01T09:00:00.000Z';
+		const fetcher = statusFetcher({ state: 'ok', lastPublishedAt });
+		const port = editedPort('2026-10-01 08:00:00.000Z');
+
+		await expect(loadUnpublishedStatus(port, model([EDITED]), 't', fetcher)).resolves.toEqual({
+			hasChanges: false,
+			lastPublishedAt
+		});
 	});
 
 	test('ningún tipo con fecha de edición legible: null («no lo sé»), no un false', async () => {

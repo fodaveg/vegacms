@@ -55,6 +55,7 @@ export function model(
 	extra: Partial<Record<keyof ContentModel, unknown>> = {}
 ): ContentModel {
 	return {
+		site: { name: 'Vega de prueba', defaultTheme: null, locale: 'es' },
 		types,
 		revisions: { enabled: false, keepPerRecord: 20, trashDays: 30 },
 		nav: {
