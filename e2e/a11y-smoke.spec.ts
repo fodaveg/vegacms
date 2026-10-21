@@ -161,12 +161,17 @@ test('barra richtext: una entrada Tab, flechas entre botones y selector final co
 	await page.keyboard.press('Shift+Tab');
 	await expect(bold).toBeFocused();
 	// El select conserva la selección nativa, no se interpreta como navegación de herramientas.
+	// Con la búsqueda por tecla del propio select: las flechas no valen en todas las plataformas
+	// (en macOS, Chromium abre el desplegable con ↓ en vez de cambiar el valor; medido en main
+	// 5479002, donde esta comprobación fallaba igual).
 	await page.keyboard.press('End');
-	await page.keyboard.press('ArrowDown');
+	await page.keyboard.press('t');
 	await expect(select).toHaveValue('1');
 	await expect(editor.locator('h1')).toHaveText('Texto de teclado');
 	await select.focus();
-	await page.keyboard.press('Home');
+	// Pausa > 1 s: la búsqueda por tecla acumula lo tecleado dentro de ese margen.
+	await page.waitForTimeout(1100);
+	await page.keyboard.press('p');
 	await expect(select).toHaveValue('paragraph');
 	await expect(editor.locator('p').first()).toHaveText('Texto de teclado');
 	await expect(editor.locator('h1')).toHaveCount(0);
@@ -790,8 +795,11 @@ test('UX12: árbol, inspector y overlay miden los 21 temas en ambos modos y dens
 	await page.goto('/c/paginas/pagina_1/visual');
 	await expect(page.locator('.vega-visual-status-text')).toContainText('Conectado');
 	const structure = page.getByRole('button', { name: 'Estructura', exact: true });
-	await expect(structure).toHaveAttribute('aria-expanded', 'false');
-	// El lienzo abre el inspector; «Estructura» carga el árbol sin cambiar esa selección.
+	// A ≥1180 px la estructura está abierta de entrada (lámina «edición en vivo»: los dos paneles
+	// a la vista); si una preferencia guardada la plegó, se abre como haría una persona.
+	if ((await structure.getAttribute('aria-expanded')) !== 'true') await structure.click();
+	await expect(structure).toHaveAttribute('aria-expanded', 'true');
+	// El lienzo abre el inspector y el árbol refleja esa selección sin cambiarla.
 	await page
 		.frameLocator('iframe.vega-visual-frame')
 		.locator('[data-vega-block-id=seccion_1]')
@@ -799,8 +807,10 @@ test('UX12: árbol, inspector y overlay miden los 21 temas en ambos modos y dens
 	await expect(
 		page.locator('.vega-inspector-body:not([hidden]) .vega-widget-text').first()
 	).toBeVisible();
-	await structure.click();
-	await expect(structure).toHaveAttribute('aria-expanded', 'true');
+	await expect(page.locator('[data-vega-tree-row=seccion_1]')).toHaveAttribute(
+		'aria-current',
+		'true'
+	);
 	await expect(page.locator('.vega-tree-row')).toHaveCount(3);
 	await expect(
 		page.locator('.vega-visual-overlay-toolbar-btn:not(:disabled)').first()
@@ -900,7 +910,9 @@ test.describe('UX12: toolbar táctil sobre bloque estrecho', () => {
 				'true'
 			);
 			for (const zoom of ['50', '75', '100']) {
-				await page.locator('.vega-visual-zoom-select').selectOption(zoom);
+				// Zoom de la barra (antes un `<select>`): el disparador abre su menú de niveles.
+				await page.locator('.vega-visual-zoom-trigger').click();
+				await page.getByRole('menuitemradio', { name: `${zoom} %`, exact: true }).click();
 				const boundaryHeight = await page
 					.locator('.vega-visual-stage')
 					.evaluate((el) => parseFloat((el as HTMLElement).style.height) - 1);
