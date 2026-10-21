@@ -15,10 +15,14 @@ jobs:
   release:
     runs-on: ubuntu-latest
     # El candidato solo puede leer código y registrar la procedencia de sus artefactos.
+    # `checks: read` + `actions: read`: solo para el primer paso, que lee el gate de `ci.yml` de
+    # este mismo commit (check-run y el workflow al que pertenece).
     permissions:
       contents: read
       id-token: write
       attestations: write
+      checks: read
+      actions: read
     outputs:
       version: ${{ steps.version.outputs.version }}
     # El release NO se publica hasta que la matriz de contrato PB (mínimo 0.26.0 D-P1.3 + pineada
@@ -26,6 +30,70 @@ jobs:
     # ejercido nunca ese mínimo sería mentir en el metadato. `needs` serializa el orden.
     needs: pb-contract-matrix
     steps:
+      # El tag apunta a un commit que normalmente ya pasó `pnpm gate` en `ci.yml` (job `gate`, al
+      # empujarlo a `main`): repetirlo aquí sobre el MISMO SHA no añade garantía y cuesta el runner
+      # entero. Este paso busca ese check-run (de `ci.yml`, no solo por nombre) y decide:
+      #   - en curso → espera a que acabe, sondeando cada 30 s, como mucho 30 min;
+      #   - `success` → `ran=skip`: el gate de este job se salta (y lo dice el log);
+      #   - `failure` → el release falla aquí, sin publicar nada;
+      #   - no existe, otra conclusión (`cancelled`, `timed_out`…), se agota la espera o falla la
+      #     consulta → `ran=run`: el gate corre aquí como siempre.
+      # Nunca salta el gate por un error propio: cualquier duda deja `run`.
+      - name: Buscar el gate de CI de este commit
+        id: ci-gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          run_gate() {
+            echo "::notice::$1 Se corre el gate en el release."
+            echo "ran=run" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+          # Check-run más reciente llamado `gate` cuyo job pertenece a `.github/workflows/ci.yml`:
+          # imprime "<status> <conclusion> <url>" o nada si no hay ninguno. Falla si falla la API.
+          ci_gate() {
+            local ids id run_id path
+            ids=$(gh api "repos/$REPO/commits/$SHA/check-runs?check_name=gate&filter=all&per_page=100" \
+              --jq '[.check_runs[] | select(.app.slug == "github-actions")]
+                    | sort_by(.id) | reverse | .[].id') || return 1
+            for id in $ids; do
+              run_id=$(gh api "repos/$REPO/actions/jobs/$id" --jq '.run_id') || return 1
+              path=$(gh api "repos/$REPO/actions/runs/$run_id" --jq '.path') || return 1
+              if [ "$path" = ".github/workflows/ci.yml" ]; then
+                gh api "repos/$REPO/check-runs/$id" \
+                  --jq '"\(.status) \(.conclusion // "-") \(.html_url)"' || return 1
+                return 0
+              fi
+            done
+          }
+          deadline=$(( $(date +%s) + 30 * 60 ))
+          while :; do
+            found=$(ci_gate) || run_gate "No se pudo consultar el gate de CI de $SHA."
+            [ -n "$found" ] || run_gate "No hay gate de ci.yml para $SHA."
+            read -r status conclusion url <<< "$found"
+            [ "$status" = "completed" ] && break
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              run_gate "El gate de CI ($url) sigue «${status}» tras 30 min."
+            fi
+            echo "Gate de CI en curso ($status): $url. Nuevo intento en 30 s."
+            sleep 30
+          done
+          case "$conclusion" in
+            success)
+              echo "::notice::El gate de CI ya pasó sobre $SHA ($url): el release no lo repite."
+              echo "ran=skip" >> "$GITHUB_OUTPUT"
+              ;;
+            failure)
+              echo "::error::El gate de CI falló sobre $SHA ($url): no se publica este release."
+              exit 1
+              ;;
+            *)
+              run_gate "El gate de CI terminó en «${conclusion}» ($url)."
+              ;;
+          esac
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -82,21 +150,35 @@ jobs:
 
       # Mismo criterio que `ci.yml`: `pnpm gate` incluye `pnpm test:e2e`, así que el navegador
       # tiene que estar instalado ANTES o el gate fallaría aquí también.
+      # Este paso y los dos de PocketBase solo existen para el gate: se saltan con él.
       - name: Install Playwright browser (Chromium)
+        if: steps.ci-gate.outputs.ran != 'skip'
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Download PocketBase binary (contract suite, versión pineada)
+        if: steps.ci-gate.outputs.ran != 'skip'
         run: pnpm pb:download
 
       # Mismo guard anti-falso-verde que en `ci.yml` (L-P8.5): sin esto, un `pnpm pb:download`
       # que falla en silencio dejaría pasar un release cuyo gate nunca ejerció PB real.
       - name: Verify PocketBase binary is present and executable
+        if: steps.ci-gate.outputs.ran != 'skip'
         run: pnpm check-pb-binary
 
       # `pnpm gate` = check + lint + test + build + e2e. Un release NUNCA se publica sin pasar el
-      # MISMO gate que un PR normal; además deja `build/` listo para empaquetar más abajo.
+      # MISMO gate que un PR normal; además deja `build/` listo para empaquetar más abajo. Si ese
+      # gate ya pasó en `ci.yml` sobre este SHA (paso `ci-gate`), no se repite.
       - name: Run gate (check + lint + TS/Go tests + build + e2e)
+        if: steps.ci-gate.outputs.ran != 'skip'
         run: pnpm gate
+
+      # Gate ya validado en CI: el `build/` que empaquetan los pasos siguientes lo deja aquí
+      # `pnpm build`, la misma receta que corre dentro del gate.
+      - name: Build (gate ya validado en CI)
+        if: steps.ci-gate.outputs.ran == 'skip'
+        run: |
+          echo "Gate de CI ya verde sobre $GITHUB_SHA: se construye build/ sin repetir el gate."
+          pnpm build
 
       # Mismo presupuesto de bundle que `ci.yml` (D-P8.6): un release que se pasa del presupuesto
       # no se publica.
