@@ -1008,6 +1008,11 @@
 		white-space: nowrap;
 	}
 
+	/* El icono `chevron` apunta a la derecha; un desplegable lo enseña hacia abajo. */
+	.vega-texts-index :global(svg) {
+		transform: rotate(90deg);
+	}
+
 	.vega-texts-index-select {
 		position: absolute;
 		inset: 0;
