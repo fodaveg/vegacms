@@ -82,7 +82,11 @@ test.describe('sección "Acerca de" (P8·F2 — versión + rango de servidor PB 
 		// No fijamos el número exacto (lo hornea `package.json#version` — un bump legítimo no debe
 		// romper el test); sí exigimos el formato "Vega v<semver> · PocketBase <rango>", que prueba
 		// que AMBOS globals se hornearon y se interpolaron por i18n (no quedaron como `{version}`).
-		await expect(about).toContainText(/Vega v\d+\.\d+\.\d+ · PocketBase /);
+		// SemVer 2.0 completo: admite prerelease y build (`0.14.0-dev.20261020`) y rechaza lo que
+		// no lo es (`1.2`, `1.2.3-`, prerelease numérico con cero a la izquierda como `-01`).
+		await expect(about).toContainText(
+			/Vega v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)? · PocketBase /
+		);
 	});
 });
 
