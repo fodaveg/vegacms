@@ -360,9 +360,13 @@ export function resolveNeutral(theme, mode, key) {
 	return mixOklab(theme.roles.tint, pct, BASE_NEUTRALS[mode][key]);
 }
 
-/** `--accent-text`: el override del tema si lo declara, o un derivado con suficiente tinta
- * neutra para conservar AA en todo el catálogo, incluidos amarillos, pasteles y monocromos. */
+/** `--accent-text`: el override del modo (`modes.<modo>.accentText`), el del tema
+ * (`roles.accentText`) o un derivado con suficiente tinta neutra para conservar AA en todo el
+ * catálogo, incluidos amarillos, pasteles y monocromos. El override por modo existe porque un
+ * mismo índigo no se lee igual como texto sobre blanco que sobre el papel oscuro. */
 export function resolveAccentText(theme, mode, ink) {
+	const modeOverride = theme.modes?.[mode]?.accentText;
+	if (modeOverride) return modeOverride;
 	if (theme.roles.accentText) return theme.roles.accentText;
 	const pct = 45;
 	return mixOklab(theme.roles.accent, pct, ink);
@@ -430,6 +434,90 @@ function resolveSemanticSoft(mode, key, paper) {
 	return mixOklab(def.softFrom, def.softPct, paper);
 }
 
+// ── Editor visual: escenario y edición en línea (lámina `edicion-en-vivo.html`) ─
+
+/** Matiz OKLCH (grados, 0–360) de un hex: decide si el acento del tema choca con el naranja. */
+export function oklchHue(hex) {
+	const [, a, b] = hexToOklab(hex);
+	return ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
+}
+
+function hueDistance(a, b) {
+	const d = Math.abs(a - b) % 360;
+	return d > 180 ? 360 - d : d;
+}
+
+/**
+ * Edición en línea: un color PROPIO, distinto de la selección (acento) y del aviso (ámbar). La
+ * lámina lo fija en naranja porque seleccionar («este bloque», índigo) y escribir («este campo»)
+ * pueden coincidir sobre el mismo bloque y no pueden compartir color. Con un acento cálido
+ * (naranjas, terracotas, cereza, miel) el naranja se confundiría con la selección, así que esos
+ * temas usan el violeta alternativo: misma semántica, matiz alejado del acento y del ámbar.
+ * `line` es gráfico (contorno y cursor, ≥3:1 sobre el escenario); `text` es texto (≥4.5:1).
+ */
+export const INLINE_EDIT = {
+	warm: {
+		light: { line: '#e8562a', text: '#bf3f14' },
+		dark: { line: '#ff7a4d', text: '#ff7a4d' }
+	},
+	cool: {
+		light: { line: '#7c3aed', text: '#6d28d9' },
+		dark: { line: '#b18cff', text: '#b18cff' }
+	}
+};
+
+/** Peso del naranja en su fondo tenue, mezclado sobre el papel (opaco: el gate lo puede medir). */
+const INLINE_SOFT_PCT = { light: 12, dark: 16 };
+
+/** Por debajo de esta distancia de matiz el acento se confundiría con el naranja de edición. */
+const INLINE_MIN_HUE_DISTANCE = 45;
+
+/** Variante de edición en línea para un tema: naranja salvo que el acento ya sea cálido. */
+export function inlineEditFamily(theme) {
+	const distance = hueDistance(oklchHue(theme.roles.accent), oklchHue(INLINE_EDIT.warm.light.line));
+	return distance < INLINE_MIN_HUE_DISTANCE ? 'cool' : 'warm';
+}
+
+/**
+ * Escenario del editor visual: la superficie sobre la que el sitio del cliente es una hoja. Es el
+ * fondo de la app con un velo de tinta (más oscuro en claro, un punto más claro en oscuro, como la
+ * lámina: #e6e8ee sobre #f3f4f7 y #101318 sobre #0c0e12), nunca el `--paper` de las fichas.
+ */
+const STAGE_INK_PCT = { light: 6, dark: 3 };
+
+export function resolveStage(theme, mode) {
+	return mixOklab(
+		resolveNeutral(theme, mode, 'ink'),
+		STAGE_INK_PCT[mode],
+		resolveNeutral(theme, mode, 'bg')
+	);
+}
+
+/**
+ * Ajusta un color hacia la tinta del modo, en pasos del 2 %, hasta que cumple `min` contra TODOS
+ * los fondos. Los papeles tintados del catálogo son más oscuros que el blanco de la lámina, así
+ * que el naranja de referencia (#bf3f14, 5.33:1 sobre blanco) no basta en todos: cada tema recibe
+ * el mismo matiz con la tinta justa para seguir siendo AA, nunca un umbral rebajado.
+ */
+function fitAgainst(base, ink, backgrounds, min) {
+	for (let pct = 0; pct <= 80; pct += 2) {
+		const candidate = pct === 0 ? base : mixOklab(ink, pct, base);
+		if (backgrounds.every((bg) => contrastRatio(candidate, bg) >= min)) return candidate;
+	}
+	return mixOklab(ink, 80, base);
+}
+
+/** Tokens finales de edición en línea para un tema y modo (los mismos que emite `themeToCss`). */
+export function resolveInlineEdit(theme, mode, paper) {
+	const pair = INLINE_EDIT[inlineEditFamily(theme)][mode];
+	const ink = resolveNeutral(theme, mode, 'ink');
+	const surface = resolveNeutral(theme, mode, 'surface');
+	const line = fitAgainst(pair.line, ink, [paper, surface], 3);
+	const soft = mixOklab(line, INLINE_SOFT_PCT[mode], paper);
+	const text = fitAgainst(pair.text, ink, [soft, paper, surface, resolveStage(theme, mode)], 4.5);
+	return { line, text, soft };
+}
+
 // ── Densidad (§7 — dos bloques de tokens, ortogonales a tema y modo) ───────
 
 /** Cómoda (default, C2 "los números del aire") / Compacta ("la C original"), §7: ~8 tokens,
@@ -471,6 +559,7 @@ const SHADOW_CARD = {
 export function resolveComponentTokens(theme, mode) {
 	const paper = resolveNeutral(theme, mode, 'paper');
 	const ink = resolveNeutral(theme, mode, 'ink');
+	const inline = resolveInlineEdit(theme, mode, paper);
 	const tokens = {
 		bg: resolveNeutral(theme, mode, 'bg'),
 		sidebar: resolveNeutral(theme, mode, 'sidebar'),
@@ -488,9 +577,10 @@ export function resolveComponentTokens(theme, mode) {
 		'accent-soft': resolveAccentSoft(theme, mode, paper),
 		'v-ol-select': theme.roles.accent,
 		'v-ol-select-ink': theme.roles.accentInk,
-		'v-ol-inline-text': resolveAccentText(theme, mode, ink),
-		'v-ol-inline-soft': resolveAccentSoft(theme, mode, paper),
-		'v-stage': paper
+		'v-ol-inline': inline.line,
+		'v-ol-inline-text': inline.text,
+		'v-ol-inline-soft': inline.soft,
+		'v-stage': resolveStage(theme, mode)
 	};
 	for (const key of SEMANTIC_KEYS) {
 		tokens[key] = SEMANTICS[mode][key].text;
@@ -511,6 +601,8 @@ export const COMPONENT_CONTRAST_PAIRS = [
 	['v-ol-select-ink', 'v-ol-select'],
 	['v-ol-inline-text', 'v-ol-inline-soft'],
 	['v-ol-inline-text', 'v-stage'],
+	['v-ol-inline-text', 'paper'],
+	['v-ol-inline-text', 'surface'],
 	['accentText', 'paper'],
 	['accentText', 'surface'],
 	['accentText', 'surface-2'],
@@ -535,6 +627,16 @@ export const COMPONENT_CONTRAST_PAIRS = [
 		[key, 'surface'],
 		[key, `${key}-soft`]
 	])
+];
+
+/**
+ * Pares GRÁFICOS (contorno/cursor sobre fondo) que el gate exige a ≥3:1 (WCAG 2.2 §1.4.11): el
+ * contorno de edición en línea se dibuja sobre las superficies controladas del inspector. Sobre el
+ * sitio del cliente (otro origen) Vega no conoce el fondo y no hay número que prometer.
+ */
+export const COMPONENT_GRAPHIC_PAIRS = [
+	['v-ol-inline', 'paper'],
+	['v-ol-inline', 'surface']
 ];
 
 /**
@@ -652,9 +754,11 @@ export function themeToCss(theme) {
 	for (const mode of ['light', 'dark']) {
 		const ink = resolveNeutral(theme, mode, 'ink');
 		const paper = resolveNeutral(theme, mode, 'paper');
-		const accentTextDecl = roles.accentText
-			? roles.accentText
-			: 'color-mix(in oklab, var(--accent) 45%, var(--ink))';
+		const accentTextDecl =
+			theme.modes?.[mode]?.accentText ??
+			roles.accentText ??
+			'color-mix(in oklab, var(--accent) 45%, var(--ink))';
+		const inline = resolveInlineEdit(theme, mode, paper);
 		const accentSoftPct = mode === 'light' ? 12 : 20;
 		const accentHoverDecl =
 			mode === 'light'
@@ -675,6 +779,12 @@ export function themeToCss(theme) {
 				override ?? `color-mix(in oklab, var(--tint) ${pct}%, ${BASE_NEUTRALS[mode][key]})`;
 			decls.push(`--${key}: ${value};`);
 		}
+		decls.push(
+			`--v-stage: color-mix(in oklab, var(--ink) ${STAGE_INK_PCT[mode]}%, var(--bg));`,
+			`--v-ol-inline: ${inline.line};`,
+			`--v-ol-inline-text: ${inline.text};`,
+			`--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) ${INLINE_SOFT_PCT[mode]}%, var(--paper));`
+		);
 
 		const modeSelector =
 			id === FALLBACK_THEME_ID
@@ -695,7 +805,7 @@ export function themeToCss(theme) {
  * compartidos por modo (D-P7.2) — puros color-mix contra `var(--paper)`, que cada tema ya fija
  * en su propio bloque `[data-theme][data-mode]`. */
 export function globalCss() {
-	let css = `:root {\n\t--sans: 'Geist', -apple-system, 'Segoe UI', system-ui, sans-serif;\n\t--display: 'Bricolage Grotesque', 'Geist', system-ui, sans-serif;\n\t--mono: 'Geist Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;\n\t--r: 8px;\n\t--r-sm: 10px;\n\t--r-md: 16px;\n\t--r-lg: 22px;\n\t--r-pill: 999px;\n\t--accent-grad: linear-gradient(115deg, var(--accent), var(--accent-hover));\n\t--sheen: linear-gradient(100deg, var(--accent), var(--accent-text));\n\t--accent-fill: var(--accent);\n\t--halo: none;\n\t--brand-a: var(--accent);\n\t--brand-b: var(--accent);\n\t--brand-c: var(--accent);\n\t--brand-edge-opacity: 0.35;\n\t--glass: color-mix(in srgb, var(--surface) 72%, transparent);\n\t--v-ol-select: var(--accent);\n\t--v-ol-select-ink: var(--accent-ink);\n\t--v-ol-hover: var(--accent-soft);\n\t--v-ol-inline: var(--accent-text);\n\t--v-ol-inline-text: var(--accent-text);\n\t--v-ol-inline-soft: var(--accent-soft);\n\t--v-stage: var(--paper);\n}\n`;
+	let css = `:root {\n\t--sans: 'Geist', -apple-system, 'Segoe UI', system-ui, sans-serif;\n\t--display: 'Bricolage Grotesque', 'Geist', system-ui, sans-serif;\n\t--mono: 'Geist Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;\n\t--r: 8px;\n\t--r-sm: 10px;\n\t--r-md: 16px;\n\t--r-lg: 22px;\n\t--r-pill: 999px;\n\t--accent-grad: linear-gradient(115deg, var(--accent), var(--accent-hover));\n\t--sheen: linear-gradient(100deg, var(--accent), var(--accent-text));\n\t--accent-fill: var(--accent);\n\t--halo: none;\n\t--brand-a: var(--accent);\n\t--brand-b: var(--accent);\n\t--brand-c: var(--accent);\n\t--brand-edge-opacity: 0.35;\n\t--glass: color-mix(in srgb, var(--surface) 72%, transparent);\n\t--v-ol-select: var(--accent);\n\t--v-ol-select-ink: var(--accent-ink);\n\t--v-ol-hover: color-mix(in srgb, var(--accent) 55%, transparent);\n}\n`;
 	for (const step of [12, 13, 14, 15, 17, 22, 28, 36, 44])
 		css += `:root { --fs-${step}: ${step}px; }\n`;
 	for (const step of [1, 2, 3, 4, 5, 6, 8, 10, 12])
@@ -908,9 +1018,14 @@ export function validateSchema(theme, errors) {
 			errors.push(`${where}: modes.${modeName} debe ser un objeto`);
 			continue;
 		}
-		const ALLOWED_MODE = new Set(['tintBg', 'neutrals']);
+		const ALLOWED_MODE = new Set(['tintBg', 'neutrals', 'accentText']);
 		for (const key of Object.keys(mode)) {
 			if (!ALLOWED_MODE.has(key)) errors.push(`${where}: modes.${modeName}.${key} no permitido`);
+		}
+		if (mode.accentText != null && !HEX_RE.test(mode.accentText)) {
+			errors.push(
+				`${where}: modes.${modeName}.accentText no es un color hex válido (${mode.accentText})`
+			);
 		}
 		if (mode.tintBg != null && !MIX_PERCENT_RE.test(mode.tintBg)) {
 			errors.push(`${where}: modes.${modeName}.tintBg no es un porcentaje válido (${mode.tintBg})`);
@@ -1077,6 +1192,14 @@ export function validateComponentContrast(theme, errors) {
 			if (c < 4.5) {
 				errors.push(
 					`${id} (${mode}): ${textKey} (${textHex}) sobre ${bgKey} (${bgHex}) = ${c.toFixed(2)}:1 — necesita ≥4.5:1 (AA)`
+				);
+			}
+		}
+		for (const [lineKey, bgKey] of COMPONENT_GRAPHIC_PAIRS) {
+			const c = contrastRatio(tokens[lineKey], tokens[bgKey]);
+			if (c < 3) {
+				errors.push(
+					`${id} (${mode}): ${lineKey} (${tokens[lineKey]}) sobre ${bgKey} (${tokens[bgKey]}) = ${c.toFixed(2)}:1 — un contorno necesita ≥3:1 (WCAG 1.4.11)`
 				);
 			}
 		}

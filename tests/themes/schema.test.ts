@@ -67,6 +67,11 @@ describe('1. Casos puntuales de validateSchema', () => {
 		).toBe(true);
 	});
 
+	test('modes.<modo>.accentText: hex válido pasa, valor no hex no', () => {
+		expect(isValid(makeTheme({ modes: { dark: { accentText: '#9b9ffc' } } }))).toBe(true);
+		expect(isValid(makeTheme({ modes: { light: { accentText: 'indigo' } } }))).toBe(false);
+	});
+
 	test('clave raíz desconocida → inválido', () => {
 		expect(isValid(makeTheme({ unknownKey: true }))).toBe(false);
 	});

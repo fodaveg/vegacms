@@ -6,8 +6,62 @@
 	"group": "frios",
 	"aliases": ["grafito"],
 	"roles": {
-		"tint": "#4f6bd6",
-		"accent": "#4f6bd6",
+		"tint": "#4c4ad9",
+		"accent": "#4c4ad9",
 		"accentInk": "#ffffff"
+	},
+	"derived": {
+		"accentLine": "color-mix(in oklab, #4c4ad9 25%, var(--line))"
+	},
+	"modes": {
+		"light": {
+			"accentText": "#4441cf",
+			"neutrals": {
+				"bg": "#f3f4f7",
+				"sidebar": "#f5f6f9",
+				"paper": "#ffffff",
+				"surface-2": "#ffffff",
+				"surface": "#ffffff",
+				"line": "#e3e6ec",
+				"line-soft": "#edeff3",
+				"line-strong": "#cbd1da",
+				"ring": "#4c4ad9",
+				"ink-hi": "#14171c",
+				"ink": "#14171c",
+				"ink-2": "#5b6472",
+				"ink-3": "#8a93a1"
+			}
+		},
+		"dark": {
+			"accentText": "#9b9ffc",
+			"neutrals": {
+				"bg": "#0c0e12",
+				"sidebar": "#0e1116",
+				"paper": "#15181d",
+				"surface-2": "#15181d",
+				"surface": "#15181d",
+				"btn": "#1b1f26",
+				"active": "#20242c",
+				"line": "#262b33",
+				"line-soft": "#1f242b",
+				"line-strong": "#353c47",
+				"ring": "#9b9ffc",
+				"ink-hi": "#eceef2",
+				"ink": "#eceef2",
+				"ink-2": "#9aa3b1",
+				"ink-3": "#687180"
+			}
+		}
+	},
+	"effects": {
+		"fillGrad": {
+			"angle": 135,
+			"stops": [
+				{ "color": "#4c4ad9", "at": "0%" },
+				{ "color": "#6a5ae0", "at": "100%" }
+			]
+		},
+		"brandStops": ["#4c4ad9", "#6a5ae0", "#8a7cf0"],
+		"slots": { "fill": "fillGrad" }
 	}
 }

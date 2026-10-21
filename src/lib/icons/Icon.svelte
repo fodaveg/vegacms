@@ -20,9 +20,12 @@
 		size?: number;
 		/** Presente ⇒ icono informativo con `aria-label`; ausente ⇒ decorativo (`aria-hidden`). */
 		title?: string;
+		/** Grosor del trazo en unidades del `viewBox`. Default 2; Inicio v2 y la edición en vivo
+		 *  dibujan su chrome a 1.6 (láminas del 20 oct 2026). */
+		strokeWidth?: number;
 	}
 
-	let { id, size = 20, title }: Props = $props();
+	let { id, size = 20, title, strokeWidth = 2 }: Props = $props();
 
 	const resolvedId = $derived(iconRegistry.has(id) ? id : 'generic');
 </script>
@@ -33,7 +36,7 @@
 	height={size}
 	fill="none"
 	stroke="currentColor"
-	stroke-width="2"
+	stroke-width={strokeWidth}
 	stroke-linecap="round"
 	stroke-linejoin="round"
 	role={title ? 'img' : 'presentation'}
@@ -47,6 +50,18 @@
 		<rect x="3" y="4" width="18" height="5" rx="1" />
 		<path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9" />
 		<line x1="10" y1="13" x2="14" y2="13" />
+	{:else if resolvedId === 'arrow-down'}
+		<!-- Bajar un bloque (edición en vivo, `i-dn`): flecha con asta, no el chevron de menú. -->
+		<path d="M12 5v14M6 13l6 6 6-6" />
+	{:else if resolvedId === 'arrow-up'}
+		<!-- Subir un bloque (edición en vivo, `i-up`). -->
+		<path d="M12 19V5M6 11l6-6 6 6" />
+	{:else if resolvedId === 'arrow-up-right'}
+		<!-- Flecha ↗ de los tiles enlazables de Inicio v2 (`i-arrow`): «ir al listado». -->
+		<path d="M7 17 17 7M9 7h8v8" />
+	{:else if resolvedId === 'back'}
+		<!-- Volver (barra del editor, `i-back`): chevron a la izquierda. -->
+		<path d="M15 6l-6 6 6 6" />
 	{:else if resolvedId === 'box'}
 		<!-- Caja/cubo isométrico (nav de contenido, p.ej. "Proyectos"), calcado del mockup
 		     aquelarre-dark.html (`.nav-item` de Proyectos). -->
@@ -65,6 +80,10 @@
 		     cualquier icono de "copiar" sin depender de un set externo (§2.7). -->
 		<rect x="8" y="8" width="12" height="12" rx="2" />
 		<path d="M4 16V6a2 2 0 0 1 2-2h10" />
+	{:else if resolvedId === 'desktop'}
+		<!-- Escritorio (selector de dispositivo del editor, `i-desk`). -->
+		<rect x="3" y="4" width="18" height="12" rx="2" />
+		<path d="M8 20h8M12 16v4" />
 	{:else if resolvedId === 'document'}
 		<path d="M6 2h7l5 5v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" />
 		<polyline points="13 2 13 7 18 7" />
@@ -74,6 +93,17 @@
 		     representa "un registro"), para no confundir "abrir el registro" con "ver cómo queda". -->
 		<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" />
 		<circle cx="12" cy="12" r="3" />
+	{:else if resolvedId === 'gear'}
+		<!-- Engranaje (Ajustes de Vega en el menú lateral y el de cuenta, `i-gear`): distinto de
+		     `settings` (deslizadores), que queda para el singleton «Ajustes del sitio». -->
+		<circle cx="12" cy="12" r="3" />
+		<path
+			d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"
+		/>
+	{:else if resolvedId === 'keyboard'}
+		<!-- Teclado (atajos del editor, `i-kbd`). -->
+		<rect x="3" y="6" width="18" height="12" rx="2" />
+		<path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10" />
 	{:else if resolvedId === 'link'}
 		<!-- Cadena: enlace en las barras de richtext y Markdown, mismo trazo que el set. -->
 		<path
@@ -98,6 +128,10 @@
 		<line x1="4" y1="6" x2="20" y2="6" />
 		<line x1="4" y1="12" x2="20" y2="12" />
 		<line x1="4" y1="18" x2="20" y2="18" />
+	{:else if resolvedId === 'mobile'}
+		<!-- Móvil (selector de dispositivo del editor, `i-mob`). -->
+		<rect x="7" y="2" width="10" height="20" rx="2" />
+		<path d="M11 18h2" />
 	{:else if resolvedId === 'more'}
 		<!-- «Más acciones» (lámina 7 del Lote 12, el único icono nuevo del lote): tres puntos en el
 		     mismo lienzo de 24. Círculos de radio 1 (4 px de punto con el trazo), que es el peso al
@@ -105,15 +139,33 @@
 		<circle cx="5" cy="12" r="1" />
 		<circle cx="12" cy="12" r="1" />
 		<circle cx="19" cy="12" r="1" />
+	{:else if resolvedId === 'news'}
+		<!-- Noticia (modelo de contenido, `i-news`): periódico con columna. -->
+		<path d="M4 5h13v14H6a2 2 0 0 1-2-2z" />
+		<path d="M17 9h3v8a2 2 0 0 1-2 2" />
+		<path d="M8 9h5M8 13h5M8 17h5" />
+	{:else if resolvedId === 'pages'}
+		<!-- Páginas (modelo de contenido, `i-pages`): hoja con renglones. -->
+		<rect x="4" y="3" width="16" height="18" rx="2" />
+		<path d="M8 8h8M8 12h8M8 16h5" />
+	{:else if resolvedId === 'pen'}
+		<!-- Lápiz (editar en la página, `i-pen`). -->
+		<path d="M4 20h4l10-10-4-4L4 16z" />
+		<path d="m12.5 7.5 4 4" />
 	{:else if resolvedId === 'plus'}
 		<line x1="12" y1="5" x2="12" y2="19" />
 		<line x1="5" y1="12" x2="19" y2="12" />
+	{:else if resolvedId === 'project'}
+		<!-- Proyecto (modelo de contenido, `i-proj`): edificio con puerta. -->
+		<path d="M3 21h18M5 21V8l7-5 7 5v13" />
+		<path d="M10 21v-6h4v6" />
 	{:else if resolvedId === 'publish'}
-		<!-- Cohete: publicar contenido o reconstruir el sitio; upload conserva subir ficheros. -->
-		<path
-			d="M8 16c-1-4 3-10 12-12 0 9-6 13-10 12l-2-2zM8 10H4l-2 5 6-1M14 16v4l-5 2 1-6M5 18l-2 3 4-1"
-		/>
-		<circle cx="15" cy="9" r="2" />
+		<!-- Cohete: publicar contenido o reconstruir el sitio; upload conserva subir ficheros.
+		     Trazo de la lámina de Inicio v2 (`i-rocket`, glifo del sitio vacío). -->
+		<path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2" />
+		<path d="M9 15 15 9" />
+		<path d="M9 15 6 12c1-3 3-6 6-8 3-1 6-1 7 0 1 1 1 4 0 7-2 3-5 5-8 6z" />
+		<circle cx="15" cy="9" r="1.5" />
 	{:else if resolvedId === 'search'}
 		<circle cx="10" cy="10" r="6" />
 		<line x1="21" y1="21" x2="15" y2="15" />
@@ -122,10 +174,20 @@
 		<circle cx="9" cy="7" r="2" />
 		<line x1="4" y1="17" x2="20" y2="17" />
 		<circle cx="15" cy="17" r="2" />
+	{:else if resolvedId === 'tablet'}
+		<!-- Tableta (selector de dispositivo del editor, `i-tab`). -->
+		<rect x="4" y="3" width="16" height="18" rx="2" />
+		<path d="M11 17h2" />
 	{:else if resolvedId === 'tag'}
 		<!-- Etiqueta (nav de contenido, p.ej. "Etiquetas"), calcado del mockup aquelarre-dark.html. -->
 		<path d="M20 12l-8 8-8-8 8-8 3 3" />
 		<circle cx="15" cy="9" r="1.4" fill="currentColor" stroke="none" />
+	{:else if resolvedId === 'team'}
+		<!-- Equipo / personas (modelo de contenido, `i-team`): dos siluetas. -->
+		<circle cx="9" cy="8" r="3.5" />
+		<path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+		<circle cx="17" cy="9" r="2.5" />
+		<path d="M16 15.5a5 5 0 0 1 5.5 4.5" />
 	{:else if resolvedId === 'trash'}
 		<!-- `#lote-integridad` Fase B (§10.2): papelera de registros/assets borrados — cubo clásico
 		     con tapa y dos rayas verticales, distinto del icono `close`/`warning` de peligro (esto es

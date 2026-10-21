@@ -10,6 +10,12 @@
  * (`NavItem.icon === null` → `generic`; singleton sin icono → `settings`, contrato P2 §4.8) y
  * un puñado de acciones comunes que P4/P5 reutilizarán (crear, buscar, cerrar, ok, duplicar).
  * Ampliable sin romper compatibilidad: añadir un id nuevo nunca invalida un manifiesto existente.
+ *
+ * Inicio v2 y la edición en vivo (láminas del 20 oct 2026) añaden los que no tenían equivalente:
+ * flecha ↗ de los tiles, engranaje de Ajustes, páginas/proyecto/noticia/equipo para el modelo, y
+ * para el editor teclado, lápiz, dispositivos, subir/bajar y volver. Los que ya existían se
+ * reutilizan con su id: deslizadores = `settings`, cohete = `publish`, ojo = `eye`, duplicar =
+ * `copy`, imagen = `media`, documento = `document`, reintentar = `update`, aviso = `generic`.
  */
 
 /**
@@ -30,25 +36,39 @@ export interface IconRegistry {
  */
 const ICON_IDS = [
 	'archive',
+	'arrow-down',
+	'arrow-up',
+	'arrow-up-right',
+	'back',
 	'box',
 	'check',
 	'chevron',
 	'close',
 	'copy',
+	'desktop',
 	'document',
 	'eye',
+	'gear',
 	'generic',
+	'keyboard',
 	'link',
 	'list',
 	'logout',
 	'media',
 	'menu',
+	'mobile',
 	'more',
+	'news',
+	'pages',
+	'pen',
 	'plus',
+	'project',
 	'publish',
 	'search',
 	'settings',
+	'tablet',
 	'tag',
+	'team',
 	'trash',
 	'update',
 	'upload',
