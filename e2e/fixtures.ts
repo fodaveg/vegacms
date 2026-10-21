@@ -138,12 +138,15 @@ export async function loginAsDemo(
  * tenía pantalla y saltaba al primer elemento del menú (con la semilla de demo,
  * `/c/site_info/new`); por eso tantos specs esperaban esa URL tras `loginAsDemo`.
  *
- * Exige la ruta Y el `h1` «Inicio»: solo la URL no prueba nada, porque el layout ya está en `/`
- * mientras resuelve sesión y modelo.
+ * Exige la ruta Y la portada pintada: solo la URL no prueba nada, porque el layout ya está en `/`
+ * mientras resuelve sesión y modelo. Desde Inicio v2 el `h1` es el saludo («Buenos días…») o,
+ * en un sitio sin colecciones, «Todavía no hay nada que mostrar»: ya no hay un `h1` «Inicio».
  */
 export async function waitForHome(page: import('@playwright/test').Page): Promise<void> {
 	await page.waitForURL((url) => url.pathname === '/');
-	await expect(page.getByRole('heading', { level: 1, name: 'Inicio', exact: true })).toBeVisible();
+	await expect(
+		page.getByRole('main').locator('.vega-home, .vega-empty-nav').getByRole('heading', { level: 1 })
+	).toBeVisible();
 }
 
 /**

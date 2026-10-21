@@ -359,16 +359,18 @@
 		display: none;
 	}
 
-	/* Píldora de 38 px de la lámina (`.cmd`). */
+	/* Píldora de 38 px de la lámina (`.cmd`); en densidad compacta (barra de 44 px) baja lo justo
+	   para que el contorno de foco quepa dentro de la ventana. El borde es `ink-2`, no la hairline
+	   de la lámina: es el límite de un campo y el audit UX12 lo exige a ≥3:1. */
 	.vega-search {
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		height: 38px;
+		height: min(38px, calc(var(--topbar-h) - 12px));
 		box-sizing: border-box;
 		padding: 0 10px 0 14px;
 		background: var(--surface);
-		border: 1px solid var(--line);
+		border: 1px solid var(--ink-2);
 		border-radius: var(--r-pill);
 		color: var(--ink-2);
 		font-size: var(--fs-13);
@@ -380,10 +382,14 @@
 
 	/* Anillo tenue de acento al pasar o escribir (lámina `.cmd:hover`), con tokens: sin
 	   `color-mix` fuera de `src/lib/themes/` (check-theme-coverage). */
-	.vega-search:hover,
-	.vega-search:focus-within {
-		border-color: var(--accent-line);
+	.vega-search:hover:not(:focus-within) {
 		box-shadow: 0 0 0 4px var(--accent-soft);
+	}
+
+	/* Escribiendo manda el contorno de foco (`:has(input:focus-visible)`, abajo): sin el anillo
+	   tenue, que rebajaría el contraste del contorno (UX12 en `a11y-smoke.spec.ts`). */
+	.vega-search:focus-within {
+		box-shadow: var(--shadow-raised);
 	}
 
 	.vega-search:has(input:focus-visible) {
