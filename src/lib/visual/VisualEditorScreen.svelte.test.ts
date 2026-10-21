@@ -292,6 +292,26 @@ function mountScreen(
 	return { target, instance };
 }
 
+/** Lámina «edición en vivo»: el zoom se elige en el menú que abre «1280 px · N %» de la barra. */
+async function chooseZoom(target: HTMLElement, level: 'fit' | '50' | '75' | '100'): Promise<void> {
+	const trigger = target.querySelector<HTMLButtonElement>('.vega-visual-zoom-trigger')!;
+	if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click();
+	await tick();
+	const items = Array.from(
+		target.querySelectorAll<HTMLButtonElement>('.vega-visual-zoom-menu [role="menuitemradio"]')
+	);
+	const index = ['fit', '50', '75', '100'].indexOf(level);
+	items[index]!.click();
+	await tick();
+}
+
+/** Y el tamaño de pantalla, en el segmentado Móvil/Tableta/Escritorio. */
+function screenButton(target: HTMLElement, preset: 'mobile' | 'tablet' | 'desktop') {
+	return target.querySelectorAll<HTMLButtonElement>('.vega-visual-segm button')[
+		['mobile', 'tablet', 'desktop'].indexOf(preset)
+	]!;
+}
+
 function sendSiteMessage(data: Record<string, unknown>, origin = PREVIEW_ORIGIN): void {
 	// Sin `source` (ver cabecera de `bridge-client.ts#handleMessage`): el cliente solo compara
 	// `event.source` contra el marco cuando el evento LO TRAE — omitirlo aquí evita tener que
@@ -382,7 +402,7 @@ describe('VisualEditorScreen.svelte', () => {
 		expect(iframe?.src).toBe(TOKEN_URL);
 	});
 
-	test('Estructura se descarga al abrir y permanece montada al plegar', async () => {
+	test('en escritorio ancho Estructura se ve al entrar y permanece montada al plegar', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type, RECORD, false);
@@ -390,16 +410,19 @@ describe('VisualEditorScreen.svelte', () => {
 		const toggle = mounted.target.querySelector<HTMLButtonElement>(
 			'.vega-visual-panel-toggle--tree'
 		)!;
-		expect(toggle.getAttribute('aria-expanded')).toBe('false');
-		expect(mounted.target.querySelector('.vega-tree-panel')).toBeNull();
-		toggle.click();
+		// Lámina «edición en vivo»: el panel izquierdo está a la vista desde el principio.
+		expect(toggle.getAttribute('aria-expanded')).toBe('true');
 		await import('./VisualBlockTree.svelte');
 		await tick();
-		expect(toggle.getAttribute('aria-expanded')).toBe('true');
 		expect(mounted.target.querySelector('.vega-tree-panel')).not.toBeNull();
+		// Plegarlo no lo desmonta: ni árbol ni borradores se pierden (audit del 19 oct).
 		toggle.click();
 		await tick();
+		expect(toggle.getAttribute('aria-expanded')).toBe('false');
 		expect(mounted.target.querySelector('.vega-tree-panel')).not.toBeNull();
+		expect(
+			mounted.target.querySelector('.vega-visual-tree-shell--hidden .vega-tree-panel')
+		).not.toBeNull();
 	});
 
 	test('entre 900 y 1180 px carga el árbol que contiene el disparador del cajón', async () => {
@@ -414,17 +437,19 @@ describe('VisualEditorScreen.svelte', () => {
 		expect(mounted.target.querySelector('.vega-tree-toggle')).not.toBeNull();
 	});
 
-	test('la cabecera vuelve al listado y ofrece Campos de página con enlaces reales', async () => {
+	test('la barra vuelve al formulario y la miga al listado, con enlaces reales', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 		const { ctx, type } = await setup();
 		mounted = mountScreen(ctx, type);
 		await flush();
+		// Lámina «edición en vivo»: «Volver al formulario» a la izquierda y «Páginas / Inicio».
 		const back = mounted.target.querySelector<HTMLAnchorElement>('.vega-visual-back')!;
-		const fields = mounted.target.querySelector<HTMLAnchorElement>('.vega-visual-fields-link')!;
-		expect(back.getAttribute('href')).toBe('/c/post');
-		expect(fields.getAttribute('href')).toBe('/c/post/rec-1');
+		const list = mounted.target.querySelector<HTMLAnchorElement>('.vega-visual-crumbs a')!;
+		expect(back.getAttribute('href')).toBe('/c/post/rec-1');
+		expect(back.textContent).toContain(translate('es', 'editor.visual.back'));
+		expect(list.getAttribute('href')).toBe('/c/post');
 		back.click();
-		fields.click();
+		list.click();
 		expect(ctx.nav.toList).toHaveBeenCalledWith('post');
 		expect(ctx.nav.toRecord).toHaveBeenCalledWith('post', 'rec-1');
 	});
@@ -435,7 +460,7 @@ describe('VisualEditorScreen.svelte', () => {
 		mounted = mountScreen(ctx, type);
 		await flush();
 
-		const message = mounted.target.querySelector('.vega-visual-overlay--error');
+		const message = mounted.target.querySelector('.vega-visual-cerr');
 		expect(message?.textContent).toContain(translate('es', 'common.networkError'));
 		expect(message?.textContent).not.toContain('Failed to fetch');
 	});
@@ -446,7 +471,7 @@ describe('VisualEditorScreen.svelte', () => {
 		mounted = mountScreen(ctx, type);
 		await flush();
 
-		const message = mounted.target.querySelector('.vega-visual-overlay--error');
+		const message = mounted.target.querySelector('.vega-visual-cerr');
 		expect(message?.textContent).toContain('503');
 		expect(message?.textContent).not.toContain(translate('es', 'common.networkError'));
 	});
@@ -544,18 +569,22 @@ describe('VisualEditorScreen.svelte', () => {
 		sendSiteMessage({ vega: 'vega-visual-99', type: 'ready' });
 		await tick();
 
-		const status = mounted.target.querySelector('.vega-visual-status');
-		expect(status?.textContent).toContain(
+		// Lámina «edición en vivo»: el error del puente es una tarjeta sobre el escenario.
+		const card = mounted.target.querySelector('.vega-visual-cerr');
+		expect(card?.textContent).toContain(
 			translate('es', 'editor.visual.error.protocolVersion.title')
 		);
-		const retryButton = mounted.target.querySelector<HTMLButtonElement>('.vega-visual-retry');
+		const retryButton = card?.querySelector<HTMLButtonElement>('.vega-visual-cerr-retry');
 		expect(retryButton).not.toBeNull();
 
 		retryButton?.click();
 		await tick();
 
 		// `start()` reengancha desde el error (ver `bridge-client.ts`): vuelve a "conectando".
-		expect(status?.textContent).toContain(translate('es', 'editor.visual.connecting'));
+		expect(mounted.target.querySelector('.vega-visual-cerr')).toBeNull();
+		expect(mounted.target.querySelector('.vega-visual-status')?.textContent).toContain(
+			translate('es', 'editor.visual.connecting')
+		);
 	});
 
 	test('renovar el token PARA el puente: la barra no puede seguir diciendo "conectado" con el marco ya desmontado', async () => {
@@ -611,7 +640,7 @@ describe('VisualEditorScreen.svelte', () => {
 		mounted = mountScreen(ctx, type);
 		await flush();
 
-		expect(mounted.target.querySelector('.vega-visual-overlay--error')).not.toBeNull();
+		expect(mounted.target.querySelector('.vega-visual-cerr')).not.toBeNull();
 		expect(mounted.target.querySelector('.vega-visual-status')?.textContent?.trim()).toBe('');
 	});
 
@@ -631,7 +660,7 @@ describe('VisualEditorScreen.svelte', () => {
 
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		expect(mounted.target.querySelector('iframe')).toBeNull();
-		const error = mounted.target.querySelector('.vega-visual-overlay--error');
+		const error = mounted.target.querySelector('.vega-visual-cerr');
 		expect(error?.getAttribute('role')).toBe('alert');
 		expect(error?.textContent).toContain(
 			translate('es', 'editor.visual.token.error', {
@@ -783,7 +812,9 @@ describe('VisualEditorScreen.svelte', () => {
 		expect(second.querySelector('.vega-conflict')).not.toBeNull();
 		expect(input.value).toBe('Mi titular');
 		expect((await port.get('post_block', 'b2')).values.heading).toBe('El titular de Ana');
-		expect(mounted.target.querySelector('.vega-visual-dirty')).not.toBeNull();
+		// La barra lo dice con el error de guardado (lámina «edición en vivo»), que manda sobre el
+		// aviso de borradores pendientes mientras no se resuelva.
+		expect(mounted.target.querySelector('.vega-visual-savestate--err')).not.toBeNull();
 	});
 
 	test('un borrador de la ficha ancha sobrevive a estrechar la ventana, y a volver a ensanchar', async () => {
@@ -1599,8 +1630,10 @@ describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
 	async function openPanels(target: HTMLElement, narrowTree = false): Promise<void> {
 		target.querySelector<HTMLButtonElement>('.vega-tree-row')!.click();
 		await tick();
-		if (!narrowTree) {
-			target.querySelector<HTMLButtonElement>('.vega-visual-panel-toggle--tree')!.click();
+		const toggle = target.querySelector<HTMLButtonElement>('.vega-visual-panel-toggle--tree');
+		// En escritorio ancho la estructura ya está abierta al entrar (lámina «edición en vivo»).
+		if (!narrowTree && toggle?.getAttribute('aria-expanded') !== 'true') {
+			toggle!.click();
 			await tick();
 		}
 	}
@@ -1627,7 +1660,8 @@ describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
 		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);
 		await flush();
-		expect(mounted.target.querySelectorAll('.vega-col-resizer')).toHaveLength(0);
+		// Al entrar ya se ve la estructura (y su manilla); el inspector aparece al elegir un bloque.
+		expect(mounted.target.querySelectorAll('.vega-col-resizer')).toHaveLength(1);
 		await openPanels(mounted.target);
 
 		const handles = mounted.target.querySelectorAll('.vega-col-resizer');
@@ -1664,12 +1698,15 @@ describe('VisualEditorScreen.svelte — manillas de ancho de columna', () => {
 
 		setTreeNarrow(false);
 		await tick();
-		mounted.target.querySelector<HTMLButtonElement>('.vega-visual-panel-toggle--tree')!.click();
+		const toggle = mounted.target.querySelector<HTMLButtonElement>(
+			'.vega-visual-panel-toggle--tree'
+		)!;
+		if (toggle.getAttribute('aria-expanded') !== 'true') toggle.click();
 		await tick();
 		expect(mounted.target.querySelectorAll('.vega-col-resizer')).toHaveLength(2);
 	});
 
-	test('sin preferencia guardada: los anchos de partida de siempre (280/320)', async () => {
+	test('sin preferencia guardada: los anchos de partida de la lámina (264/340)', async () => {
 		stubMatchMedia(false, false);
 		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);
@@ -2130,7 +2167,8 @@ describe('VisualEditorScreen.svelte — borrador en el lienzo', () => {
 		]);
 		mounted = mountScreen(ctx, type);
 		await flush();
-		expect(mounted.target.querySelectorAll('.vega-col-resizer')).toHaveLength(0);
+		// Solo la manilla de la estructura, abierta al entrar; el inspector aún no.
+		expect(mounted.target.querySelectorAll('.vega-col-resizer')).toHaveLength(1);
 
 		const input = await editHeading(mounted.target, 'Hero sin guardar');
 		await vi.advanceTimersByTimeAsync(400);
@@ -2155,7 +2193,7 @@ describe('VisualEditorScreen.svelte — borrador en el lienzo', () => {
 		expect(mounted.target.querySelector('.vega-visual-inspector-shell--hidden')).not.toBeNull();
 		const reopen = Array.from(
 			mounted.target.querySelectorAll<HTMLButtonElement>('.vega-visual-panel-toggle')
-		).find((button) => button.textContent?.includes('Editar bloque'))!;
+		).find((button) => button.getAttribute('aria-label') === 'Editar bloque')!;
 		expect(document.activeElement).toBe(reopen);
 		reopen.click();
 		await tick();
@@ -2387,29 +2425,36 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		expect(stage.style.transform).toBe(`scale(${700 / 1280})`); // ajustar de partida
 		expect(parseFloat(stage.style.height)).toBeCloseTo(500 / (700 / 1280));
 
-		const zoom = mounted.target.querySelector<HTMLSelectElement>('.vega-visual-zoom-select')!;
-		zoom.value = '50';
-		zoom.dispatchEvent(new Event('change', { bubbles: true }));
-		await tick();
+		const zoomTrigger = mounted.target.querySelector<HTMLButtonElement>(
+			'.vega-visual-zoom-trigger'
+		)!;
+		expect(zoomTrigger.textContent).toContain('1280 px · 55 %');
+		await chooseZoom(mounted.target, '50');
 
 		// El ancho de LAYOUT no se movió ni un píxel: solo cambió `transform`. Es la landmine
 		// central de la tarea (ver cabecera del componente) — si esto fallara, el overlay se
 		// despegaría del iframe.
 		expect(stage.style.width).toBe('1280px');
 		expect(stage.style.transform).toBe('scale(0.5)');
-		expect(zoom.value).toBe('50');
+		expect(zoomTrigger.textContent).toContain('1280 px · 50 %');
 		// La opción Ajustar ofrece el ajuste DISPONIBLE, independiente del nivel manual activo.
-		for (const level of ['50', '75', '100']) {
-			zoom.value = level;
-			zoom.dispatchEvent(new Event('change', { bubbles: true }));
+		for (const level of ['50', '75', '100'] as const) {
+			await chooseZoom(mounted.target, level);
+			zoomTrigger.click();
 			await tick();
-			expect(zoom.querySelector('option[value="fit"]')?.textContent).toBe('Ajustar · 55 %');
+			expect(
+				mounted.target.querySelector('.vega-visual-zoom-menu [role="menuitemradio"]')?.textContent
+			).toBe('Ajustar · 55 %');
+			expect(
+				mounted.target
+					.querySelector('.vega-visual-zoom-menu [aria-checked="true"]')
+					?.textContent?.trim()
+			).toBe(`${level} %`);
 			expect(stage.style.transform).toBe(`scale(${Number(level) / 100})`);
 		}
 
-		zoom.value = 'fit';
-		zoom.dispatchEvent(new Event('change', { bubbles: true }));
-		await tick();
+		await chooseZoom(mounted.target, 'fit');
+		expect(mounted.target.querySelector('.vega-visual-zoom-menu')).toBeNull();
 		expect(stage.style.transform).toBe(`scale(${700 / 1280})`);
 		canvasRect.mockReturnValue({ ...canvasEl.getBoundingClientRect(), width: 900, right: 900 });
 		resize.triggerResize();
@@ -2430,15 +2475,15 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		await flush();
 
 		const stage = mounted.target.querySelector<HTMLElement>('.vega-visual-stage')!;
-		const screen = mounted.target.querySelector<HTMLSelectElement>('.vega-visual-view-select')!;
-		screen.value = 'mobile';
-		screen.dispatchEvent(new Event('change', { bubbles: true }));
+		screenButton(mounted.target, 'mobile').click();
 		await tick();
 		expect(stage.style.width).toBe('390px');
-		expect(screen.selectedOptions[0].textContent).toContain('390');
+		expect(screenButton(mounted.target, 'mobile').getAttribute('aria-pressed')).toBe('true');
+		expect(mounted.target.querySelector('.vega-visual-zoom-trigger')?.textContent).toContain(
+			'390 px'
+		);
 
-		screen.value = 'tablet';
-		screen.dispatchEvent(new Event('change', { bubbles: true }));
+		screenButton(mounted.target, 'tablet').click();
 		await tick();
 		expect(stage.style.width).toBe('834px');
 	});
@@ -2561,7 +2606,10 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		const deleteSpy = vi.spyOn(port, 'delete');
 		mounted = mountScreen(ctx, type, RECORD, false);
 		await flush();
-		expect(mounted.target.querySelector('.vega-tree-panel')).toBeNull();
+		// La estructura se ve al entrar; se pliega para reproducir «no abierta».
+		mounted.target.querySelector<HTMLButtonElement>('.vega-visual-panel-toggle--tree')!.click();
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-tree-shell--hidden')).not.toBeNull();
 		await connectBridge(mounted.target, [
 			{ id: 'b1', type: 'hero' },
 			{ id: 'b2', type: 'gallery' }
@@ -2635,57 +2683,71 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		expect(mounted.target.querySelector('[role="dialog"]')).toBeNull(); // tampoco el panel
 	});
 
-	test.each(['.vega-visual-view-select', '.vega-visual-zoom-select'])(
-		'los selectores nativos conservan selección y estructura; CtrlS sigue guardando (%s)',
-		async (selector) => {
-			vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
-			const { ctx, type, port } = await setup([
-				{ id: 'b1', heading: 'Hero', sort: 0 },
-				{ id: 'b2', heading: 'Features', sort: 1 }
-			]);
-			mounted = mountScreen(ctx, type);
-			await flush();
-			await connectBridge(mounted.target, [
-				{ id: 'b1', type: 'hero' },
-				{ id: 'b2', type: 'gallery' }
-			]);
-			sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
-			await tick();
-			const select = mounted.target.querySelector<HTMLSelectElement>(selector)!;
-			select.focus();
-			for (const key of ['ArrowDown', 'ArrowUp', 'Delete', 'Backspace', 'Escape', '?']) {
-				const event = new KeyboardEvent('keydown', {
-					key,
-					altKey: key.startsWith('Arrow'),
-					bubbles: true,
-					cancelable: true
-				});
-				select.dispatchEvent(event);
-				await flush();
-				expect(event.defaultPrevented).toBe(false); // el control conserva su gesto nativo
-				expect(
-					mounted.target
-						.querySelector('[data-vega-tree-row="b1"]')
-						?.classList.contains('vega-tree-row--selected')
-				).toBe(true);
-				expect(mounted.target.querySelector('.vega-delete-confirm')).toBeNull();
-				expect(mounted.target.querySelector('[role="dialog"]')).toBeNull();
-			}
-			const rows = await port.list('post_block', {
-				sort: [{ field: 'sort', dir: 'asc' }],
-				perPage: 50
+	test('el menú de zoom de la barra conserva sus teclas, selección y estructura; CtrlS sigue guardando', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' }
+		]);
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
+		await tick();
+		mounted.target.querySelector<HTMLButtonElement>('.vega-visual-zoom-trigger')!.click();
+		await tick();
+		const select = mounted.target.querySelector<HTMLElement>(
+			'.vega-visual-zoom-menu [role="menuitemradio"]'
+		)!;
+		select.focus();
+		for (const key of ['Delete', 'Backspace', '?', 'ArrowDown', 'ArrowUp']) {
+			const event = new KeyboardEvent('keydown', {
+				key,
+				altKey: key.startsWith('Arrow'),
+				bubbles: true,
+				cancelable: true
 			});
-			expect(rows.items.map((r) => r.id)).toEqual(['b1', 'b2']);
-			await editHeading(mounted.target, 'Guardado desde selector');
-			select.focus();
-			select.dispatchEvent(
-				new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true, cancelable: true })
-			);
+			select.dispatchEvent(event);
 			await flush();
-			expect((await port.get('post_block', 'b1')).values.heading).toBe('Guardado desde selector');
-			expect(mounted.target.querySelector('.vega-visual-pending')).toBeNull();
+			// Supr/Retroceso/? siguen siendo del control; las flechas mueven el foco DEL MENÚ.
+			if (!key.startsWith('Arrow')) expect(event.defaultPrevented).toBe(false);
+			expect(
+				mounted.target
+					.querySelector('[data-vega-tree-row="b1"]')
+					?.classList.contains('vega-tree-row--selected')
+			).toBe(true);
+			expect(mounted.target.querySelector('.vega-delete-confirm')).toBeNull();
+			expect(mounted.target.querySelector('[role="dialog"]')).toBeNull();
 		}
-	);
+		const rows = await port.list('post_block', {
+			sort: [{ field: 'sort', dir: 'asc' }],
+			perPage: 50
+		});
+		expect(rows.items.map((r) => r.id)).toEqual(['b1', 'b2']);
+		// Escape cierra el menú sin deseleccionar el bloque.
+		select.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+		);
+		await tick();
+		expect(mounted.target.querySelector('.vega-visual-zoom-menu')).toBeNull();
+		expect(
+			mounted.target
+				.querySelector('[data-vega-tree-row="b1"]')
+				?.classList.contains('vega-tree-row--selected')
+		).toBe(true);
+		await editHeading(mounted.target, 'Guardado desde selector');
+		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-visual-zoom-trigger')!;
+		trigger.focus();
+		trigger.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true, cancelable: true })
+		);
+		await flush();
+		expect((await port.get('post_block', 'b1')).values.heading).toBe('Guardado desde selector');
+		expect(mounted.target.querySelector('.vega-visual-pending')).toBeNull();
+	});
 
 	test('⌘S SÍ guarda con el foco DENTRO de un campo de texto (la única excepción)', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
@@ -2820,9 +2882,11 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		)!;
 		save.click();
 		await flush();
-		expect(mounted.target.querySelector('.vega-visual-pending summary')?.textContent).toContain(
-			'1 bloque sin guardar'
+		// El error manda en la barra, con «Reintentar» (lámina «edición en vivo»).
+		expect(mounted.target.querySelector('.vega-visual-savestate--err')?.textContent).toContain(
+			'No se pudo guardar'
 		);
+		expect(mounted.target.querySelector('.vega-visual-retry')).not.toBeNull();
 		expect(
 			mounted.target.querySelector<HTMLInputElement>(
 				'.vega-inspector-body:not([hidden]) input[type="text"]'
@@ -2892,59 +2956,61 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		await flush();
 
 		expect(mounted.target.querySelector('.vega-visual-saved-at--saving')).toBeNull();
-		expect(mounted.target.querySelector('.vega-visual-local-state')?.textContent).toContain(
-			translate('es', 'editor.savedOnServer')
-		);
+		// Lámina: «último guardado HH:MM» con su punto verde, sin la frase larga de antes.
+		expect(mounted.target.querySelector('.vega-visual-savestate--saved')).not.toBeNull();
 		const savedAtEl = mounted.target.querySelector('.vega-visual-saved-at');
 		expect(savedAtEl).not.toBeNull();
 		expect(savedAtEl!.textContent).not.toBe('');
 	});
 
-	test('el documento mantiene su H1 largo al seleccionar bloques y los controles pertenecen a la vista previa', async () => {
+	test('el documento mantiene su H1 largo al seleccionar bloques y el tamaño de pantalla va en la barra', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 		const { ctx, type } = await setup([{ id: 'b1', heading: 'Bloque seleccionado', sort: 0 }]);
 		const title = 'Una página con un título muy largo que conserva su identidad '.repeat(6);
 		mounted = mountScreen(ctx, type, { ...RECORD, values: { title } });
 		await flush();
-		const docbar = mounted.target.querySelector('.vega-edit-top')!;
-		expect(docbar.querySelector('h1')?.textContent).toBe(title);
-		expect(docbar.querySelector('select')).toBeNull();
-		const preview = mounted.target.querySelector('[role="region"][aria-label="Vista previa"]')!;
-		const view = preview.querySelector<HTMLSelectElement>('select[aria-label="Vista"]')!;
-		expect(Array.from(view.options).map((option) => option.value)).toEqual([
-			'mobile',
-			'tablet',
-			'desktop'
+		// Barra ÚNICA del editor (lámina «edición en vivo»): sin `<select>` nativos; el tamaño de
+		// pantalla es un segmentado Móvil/Tableta/Escritorio y la anchura con zoom, su texto.
+		const bar = mounted.target.querySelector('.vega-visual-bar')!;
+		expect(bar.querySelector('h1')?.textContent).toBe(title);
+		expect(mounted.target.querySelector('select')).toBeNull();
+		const presets = Array.from(bar.querySelectorAll<HTMLButtonElement>('.vega-visual-segm button'));
+		expect(presets.map((button) => button.textContent?.trim())).toEqual([
+			'Móvil',
+			'Tableta',
+			'Escritorio'
 		]);
-		expect(view.selectedOptions[0].textContent).toContain('1280 px');
+		expect(presets[2].getAttribute('aria-pressed')).toBe('true');
+		expect(bar.querySelector('.vega-visual-zoom-trigger')?.textContent).toContain('1280 px');
 		mounted.target.querySelector<HTMLButtonElement>('.vega-tree-row')!.click();
 		await tick();
-		expect(docbar.querySelector('h1')?.textContent).toBe(title);
-		expect(docbar.querySelector('.vega-visual-breadcrumbs')?.textContent).toContain(
-			'Bloque seleccionado'
-		);
+		expect(bar.querySelector('h1')?.textContent).toBe(title);
 	});
 
 	// ————— Migas —————
 
-	test('migas: colección › documento, y el bloque seleccionado si lo hay (nunca un guion)', async () => {
+	test('migas: colección / documento, estables al seleccionar un bloque (nunca un guion)', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		mounted = mountScreen(ctx, type);
 		await flush();
 
+		// Lámina «edición en vivo»: «Páginas / Inicio». El bloque elegido lo dicen el inspector
+		// (tipo y posición) y el árbol, no las migas.
 		const crumbs = () =>
-			Array.from(mounted!.target.querySelectorAll('.vega-visual-breadcrumbs li')).map(
-				(li) => li.textContent
+			Array.from(mounted!.target.querySelectorAll('.vega-visual-crumbs > :not([aria-hidden])')).map(
+				(el) => el.textContent?.trim()
 			);
 		expect(mounted.target.querySelector('h1')?.textContent).toBe('Hola mundo');
-		expect(crumbs()).toEqual([type.label]);
+		expect(crumbs()).toEqual([type.label, 'Hola mundo']);
 
 		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }]);
 		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
 		await tick();
 
-		expect(mounted.target.querySelector('h1')?.textContent).toBe('Hola mundo');
-		expect(crumbs()).toEqual([type.label, 'Hero']);
+		expect(crumbs()).toEqual([type.label, 'Hola mundo']);
+		expect(mounted.target.querySelector('#vega-inspector-heading')?.textContent?.trim()).toBe(
+			'Hero'
+		);
 	});
 });

@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { createVisualBridgeClient } from './bridge-client';
-import { isInlineField } from './inline-session';
+import { isInlineField, parseInlineRect } from './inline-session';
 
-function setup() {
+function setup(extra: Partial<Parameters<typeof createVisualBridgeClient>[0]> = {}) {
 	const posted: Record<string, unknown>[] = [];
 	const frame = { postMessage: (value: unknown) => posted.push(value as Record<string, unknown>) };
 	const begin = vi.fn(() => ({ widget: 'text' as const, value: '' }));
@@ -16,7 +16,8 @@ function setup() {
 		onInlineBegin: begin,
 		onInlineInput: input,
 		onInlineEnd: end,
-		onInlineSave: save
+		onInlineSave: save,
+		...extra
 	});
 	client.start();
 	const sessionId = posted[0].sessionId;
@@ -76,6 +77,32 @@ describe('inline v2', () => {
 			'out-of-order'
 		);
 		expect(h.input).toHaveBeenCalledExactlyOnceWith('b', 'heading', 'Draft');
+		h.client.stop();
+	});
+	test('editField carries Vega colours when the host resolves them, and none otherwise', () => {
+		const withColours = setup({
+			inlineAppearance: () => ({ outline: 'computed-outline', soft: 'computed-soft' })
+		});
+		expect(withColours.start()).toMatchObject({
+			type: 'editField',
+			appearance: { outline: 'computed-outline', soft: 'computed-soft' }
+		});
+		withColours.client.stop();
+		const without = setup({ inlineAppearance: () => null });
+		expect(without.start()).not.toHaveProperty('appearance');
+		without.client.stop();
+	});
+	test('input rect reaches the host from the acknowledgement on; malformed rects are dropped', () => {
+		const onInlineRect = vi.fn();
+		const h = setup({ onInlineRect });
+		const edit = h.start();
+		const rect = { top: 10, left: 20, width: 300, height: 40 };
+		h.receive({ ...edit, type: 'input', sequence: 0, rect });
+		expect(onInlineRect).toHaveBeenCalledWith('b', rect);
+		h.receive({ ...edit, type: 'input', sequence: 1, value: 'x', rect: { top: 'NaN' } });
+		expect(onInlineRect).toHaveBeenCalledOnce();
+		expect(parseInlineRect({ top: 1, left: 2, width: -1, height: 3 })).toBeNull();
+		expect(parseInlineRect({ top: 1, left: 2, width: Infinity, height: 3 })).toBeNull();
 		h.client.stop();
 	});
 	test('commit is draft-only; repeated ready does not end editing; explicit save is separate', () => {

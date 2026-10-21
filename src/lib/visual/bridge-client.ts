@@ -2,7 +2,10 @@ import {
 	INLINE_PROTOCOL,
 	isInlineField,
 	matchesInline,
+	parseInlineRect,
+	type InlineAppearance,
 	type InlineIdentity,
+	type InlineRect,
 	type InlineRequest
 } from './inline-session';
 /**
@@ -392,8 +395,14 @@ interface VisualBridgeClientOptions {
 	/** Solo el formulario decide si este campo puede editarse. */
 	onInlineBegin?: (blockId: string, field: string) => InlineRequest | null;
 	onInlineInput?: (blockId: string, field: string, value: string) => boolean;
+	/** Caja del campo que se escribe (`input.rect`, opcional en el sitio): dónde va la pista. */
+	onInlineRect?: (blockId: string, rect: InlineRect) => void;
 	onInlineEnd?: (blockId: string, cancel: boolean) => void;
 	onInlineSave?: () => void;
+	/** Colores de la pista de edición para `editField.appearance`, leídos de los tokens vigentes en
+	 *  el momento de entrar (el autor puede haber cambiado de tema). `null` = el sitio usa su valor
+	 *  por defecto documentado. */
+	inlineAppearance?: () => InlineAppearance | null;
 	/**
 	 * El puntero está sobre ese bloque DENTRO del marco, o sobre ninguno (`null`) — §"Hover" del
 	 * contrato. Mientras el puntero está sobre un iframe de otro origen la ventana de Vega no recibe
@@ -690,7 +699,13 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 						field: raw.field
 					};
 					inline = { identity, sequence: -1 };
-					post({ type: 'editField', ...identity, ...value });
+					const appearance = opts.inlineAppearance?.() ?? null;
+					post({
+						type: 'editField',
+						...identity,
+						...value,
+						...(appearance ? { appearance } : {})
+					});
 					inlineTimer = setTimeout(() => endInline(false), 2000);
 					return 'accepted';
 				}
@@ -718,6 +733,11 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 					if (inlineTimer) clearTimeout(inlineTimer);
 					inlineTimer = null;
 					inline.sequence = raw.sequence as number;
+					if (raw.type === 'input') {
+						// También el acuse (secuencia 0): la pista se coloca en cuanto el campo se abre.
+						const rect = parseInlineRect(raw.rect);
+						if (rect) opts.onInlineRect?.(inline.identity.blockId, rect);
+					}
 					if (
 						raw.type !== 'cancel' &&
 						raw.sequence !== 0 &&

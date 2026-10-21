@@ -460,26 +460,60 @@ cannot infer these annotations for a consumer's components. Vega resolves names
 through the manifest and permits only visible, editable, nonstructural `text` or
 `textarea` fields with update permission, whether sourced from data or record.
 
-A v2 `select { blockId, field, intent: 'edit' }` requests editing. Only Vega's
+**Entry.** One click on any part of a block, annotated text included, is the plain
+v1 `select { blockId }`: it selects the block and never starts typing. A double
+click on an annotated text (or Enter/F2 on it once focused, see below) sends a v2
+`select { blockId, field, intent: 'edit' }`, which requests editing. Only Vega's
 `editField { sessionId, documentId, editId, collection, id, blockId, field, widget,
-value }` enables `contenteditable="plaintext-only"`. The bridge acknowledges with
-`input` sequence 0. All input/commit/cancel messages carry this complete identity
-and strictly increasing `sequence`; input/commit carry a string value. Both sides
+value, label?, appearance? }` enables `contenteditable="plaintext-only"`. The caret
+lands where the author double-clicked (end of the text for keyboard entry); nothing
+is pre-selected. A click inside the field being typed only moves the caret; a click
+elsewhere in the page first commits that edit to the draft, then selects.
+
+The bridge acknowledges with `input` sequence 0. All input/commit/cancel messages
+carry this complete identity and strictly increasing `sequence`; input/commit carry
+a string value. Every `input` may also carry `rect { top, left, width, height }`,
+the field's box in the same frame coordinates as block rects, so Vega can place its
+hint under the text; it is optional and malformed rects are ignored. Both sides
 validate exact source and origin; Vega rechecks the owner and permission on each
 mutation. Missing fields cancel this interaction, not the document. An unacknowledged
 start times out. Stale sessions, documents, edit IDs and sequences are discarded.
 
+**Editing cue.** While a field is typed the site outlines it and tints it, distinct
+from the selection outline Vega draws outside the frame. Vega sends its theme's
+colours as `appearance { outline, soft }`, resolved at the moment of entry: `outline` is the
+computed `--v-ol-inline`, `soft` that colour at 14 % alpha (the page keeps its own theme, so
+Vega's opaque `--v-ol-inline-soft`, mixed with Vega's paper, is not used inside it). The site accepts
+only colour syntax (hex or one colour function, never `var()`/`url()`) and applies
+it through CSSOM (`element.style`, valid under a CSP without inline styles),
+restoring every property on exit. Without `appearance` the site uses the
+documented default: outline and caret `#e8562a`, fill `rgb(232 86 42 / 0.12)`. The
+system `Highlight` colour is never used: it reads as a text selection. Vega shows
+a hint below the field: “<Field> · typing in the page ⏎ apply (⇧⏎ line break in a
+textarea) Esc cancel”.
+
 `BlockEditor` remains the sole owner of current/dataCurrent. Its controlled
 beginInline/updateInline/finishInline API uses existing field handlers and validation.
 Cancel restores the exact pre-edit draft (including null); commit keeps the new
-value in that draft. Neither writes the backend. The inspector marks the field
-“In the page” and disables its second writer. Explicit Save uses the existing
-save path with expectedVersion and recoverable validation/conflict errors. A Save
-from the parent toolbar first requests `finishField { requestValue: true }` and
-waits for the final commit value; a missing acknowledgement never saves stale text.
+value in that draft. Neither writes the backend. The inspector field stays enabled:
+it reflects every keystroke typed in the page, is outlined in the same orange and
+marked “● in the page” beside its label. Typing in that inspector field takes over:
+Vega ends the page session first (`finishField` without `requestValue`, so the
+site posts nothing more) and the typed draft is kept; no late page input can
+overwrite it. «Discard» returns the block to its last saved values without a
+backend call, ending a page session first the same way. Explicit Save uses the
+existing save path with expectedVersion and recoverable validation/conflict errors.
+A Save from the parent toolbar first requests `finishField { requestValue: true }`
+and waits for the final commit value; a missing acknowledgement never saves stale
+text.
 
-Text Enter commits; textarea Enter inserts a newline and Cmd/Ctrl+Enter commits.
-Escape cancels; neither action finalises during IME composition. Blur or a field
+Enter applies (commits to the draft) in both `text` and `textarea`; Cmd/Ctrl+Enter
+also applies. Shift+Enter is the only line break and only in a `textarea`, inserted
+as a plain `\n` text node; in a `text` field it applies like Enter. Sites render
+textarea fields with `white-space: pre-line` or `pre-wrap` so saved breaks show.
+(Before 21 October 2026 a textarea took Enter as a newline; changed to match the
+live-editing sheet, where ⏎ always applies.)
+Escape cancels and restores the text the page showed; neither action finalises during IME composition. Blur or a field
 change commits to draft only. Blur and a toolbar Save requested during composition
 wait for compositionend and its final value. The final-value wait has no short
 timeout: Save stays available to retry; frame navigation, stop or bridge error
@@ -496,6 +530,12 @@ and focus. Exiting refreshes once with the current draft. V2 refresh/ready messa
 carry a refreshId and documentId; a repeated ready for the same document does not
 cancel editing. Frame navigation invalidates the interaction while preserving the
 last received draft input. Existing dirty navigation guards remain in force.
+Selecting another block from Vega's tree, overlay or keyboard, opening the
+classic preview, or a bridge error ends the page session with `finishField`
+without `requestValue`: every `input` already received stays in the draft, nothing
+is saved, and only a composition the IME had not yet committed is dropped. A
+click on another block inside the page commits first (see Entry). None of these
+paths writes the backend.
 
 The complete preview draft still travels encrypted through /token; only the active
 plain-text field travels through this allowlisted bridge. Public pages and shared

@@ -101,6 +101,10 @@
 		compact?: boolean;
 		/** Mutex externo: incluye los guardados del formulario y las mutaciones de bloques. */
 		disabled?: boolean;
+		/** Barra del editor visual (lámina «edición en vivo», `.statusgrp`): píldora de estado y
+		 *  acciones discretas; la etiqueta «Página ·» queda para el lector de pantalla y la nota de
+		 *  alcance se dice en el título de la píldora. */
+		bar?: boolean;
 	}
 
 	let {
@@ -113,7 +117,8 @@
 		onReviewDescribe,
 		onChange,
 		compact = false,
-		disabled = false
+		disabled = false,
+		bar = false
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -479,17 +484,31 @@
 {#if statusField !== null}
 	<span
 		class="vega-visual-publish"
+		class:vega-visual-publish--bar={bar}
 		role={canEdit ? 'group' : undefined}
 		aria-label={canEdit ? ctx.t('editor.visual.status.groupLabel') : undefined}
 	>
 		{#if tag && !compact}
-			<span class="vega-visual-publication-label">{ctx.t('editor.pageState')} ·</span>
-			<span class="vega-visual-publish-tag" data-status={tag.raw} data-status-kind={tag.kind}>
+			<span class="vega-visual-publication-label" class:vega-visual-publish-sr={bar}
+				>{ctx.t('editor.pageState')} ·</span
+			>
+			<span
+				class="vega-visual-publish-tag"
+				data-status={tag.raw}
+				data-status-kind={tag.kind}
+				title={bar
+					? ctx.t(
+							ctx.port.buildApiUrl
+								? 'editor.publicationScope.build'
+								: 'editor.publicationScope.site'
+						)
+					: undefined}
+			>
 				{tag.label}
 			</span>
 		{/if}
 
-		{#if !compact}
+		{#if !compact && !bar}
 			<details class="vega-publication-scope">
 				<summary>{ctx.t('editor.publicationScope.label')}</summary>
 				<p>
@@ -504,7 +523,7 @@
 			<button
 				type="button"
 				class="vega-visual-publish-btn"
-				class:vega-visual-publish-btn--primary={target === 'published'}
+				class:vega-visual-publish-btn--primary={target === 'published' && !bar}
 				bind:this={actionEl}
 				aria-disabled={phase === 'changing' || disabled ? 'true' : undefined}
 				aria-expanded={asksConfirmation || phase === 'confirming'
@@ -514,7 +533,7 @@
 				data-status-target={target}
 				onclick={() => void requestChange()}
 			>
-				{#if target === 'published'}<Icon id="publish" size={16} />{/if}
+				{#if target === 'published' && !bar}<Icon id="publish" size={16} />{/if}
 				{actionLabel}
 			</button>
 
@@ -697,6 +716,48 @@
 		gap: 0.5rem;
 		padding-left: 0.75rem;
 		border-left: 1px solid var(--line);
+	}
+
+	/* Barra del editor visual (lámina `.statusgrp`): sin filete, la píldora la pone quien la
+	   contiene; acciones discretas a 30 px, como `.btn.sm.quiet`. */
+	.vega-visual-publish--bar {
+		gap: 6px;
+		padding-left: 0;
+		border-left: 0;
+		flex-wrap: nowrap;
+	}
+
+	.vega-visual-publish--bar .vega-visual-publish-btn {
+		height: 30px;
+		padding: 0 10px;
+		border-color: transparent;
+		border-radius: var(--r-pill);
+		background: transparent;
+		color: var(--ink-2);
+		font-size: var(--fs-12);
+		font-weight: 500;
+	}
+
+	@media (max-width: 900px) {
+		.vega-visual-publish--bar .vega-visual-publish-schedule {
+			display: none;
+		}
+	}
+
+	.vega-visual-publish--bar .vega-visual-publish-btn:hover:not([aria-disabled='true']) {
+		border-color: transparent;
+		background: var(--btn);
+		color: var(--ink-hi);
+	}
+
+	.vega-visual-publish-sr {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
 	}
 
 	/* Misma píldora que `.vega-editor-tag` de `RecordForm.svelte` (el CSS con ámbito no cruza). */

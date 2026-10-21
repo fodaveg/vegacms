@@ -120,8 +120,19 @@
 		 *  dentro de la ficha. El consumidor aporta presentación, nunca otro dueño del guardado.
 		 *  Sin snippet, el formulario clásico conserva su acción al pie. */
 		contextualHeader?: Snippet<
-			[name: string, state: string, save: Snippet | undefined, id: string]
+			[name: string, state: string, save: Snippet | undefined, id: string, dirty: boolean]
 		>;
+		/** El autor toca en la ficha el MISMO campo que está escribiendo en la página: el anfitrión
+		 *  cierra la sesión en línea (sin cancelar: lo escrito ya está en el borrador) ANTES de que se
+		 *  aplique este cambio, para que ningún `input` tardío del sitio lo pise. */
+		onInlineTakeover?: (field: string) => void;
+		/** Dónde va `contextualHeader`: arriba (por defecto) o al pie de la ficha, tras los campos (el
+		 *  inspector visual lo usa como pie con Guardar/Descartar, lámina «edición en vivo»). Mismo
+		 *  snippet y mismo orden de foco que se ve: el DOM sigue a la presentación. */
+		contextualPlacement?: 'top' | 'bottom';
+		/** Antes de guardar: `true` = otro dueño lo resuelve (el editor visual espera el valor final de
+		 *  una edición en línea abierta y guarda él al recibirlo). Sin él, guarda como siempre. */
+		beforeSave?: () => boolean;
 	}
 
 	let {
@@ -142,7 +153,10 @@
 		textsOnly = false,
 		locked = false,
 		contextualHeader,
-		fullFormHref
+		fullFormHref,
+		onInlineTakeover = () => {},
+		contextualPlacement = 'top',
+		beforeSave
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -488,6 +502,13 @@
 		}
 	}
 
+	/** Cambio que viene de la FICHA (no del sitio): si ese campo se está escribiendo en la página,
+	 *  la ficha gana y la sesión en línea termina conservando el borrador (ver `onInlineTakeover`). */
+	function fromForm(name: string, apply: () => void): void {
+		if (inlineField === name) onInlineTakeover(name);
+		apply();
+	}
+
 	function handleRecordFieldChange(name: string, value: FieldInputValue): void {
 		current = { ...current, [name]: value };
 		clearFieldError(name);
@@ -572,6 +593,7 @@
 
 	async function handleSave(): Promise<void> {
 		if (saving || disabled || invalidData || (typed && blockType === null) || !dirty) return;
+		if (beforeSave?.()) return;
 
 		onSaveError(false);
 		const clientView = typed ? validateTypedForm() : validateForm(childType, current);
@@ -627,20 +649,25 @@
 		if (inert || !dirty || (typed && blockType === null)) return;
 		void handleSave();
 	}
+
+	/**
+	 * «Descartar» del inspector visual: vuelve al último estado GUARDADO de esta ficha, sin tocar el
+	 * servidor (no relee; para eso está «Descartar y recargar» del aviso de conflicto). Una edición en
+	 * línea abierta sobre esta ficha se cierra antes (`onInlineTakeover`), para que ningún `input`
+	 * tardío del sitio reescriba el borrador recién descartado.
+	 */
+	export function discard(): void {
+		if (saving || !dirty) return;
+		if (inlineField !== null) onInlineTakeover(inlineField);
+		current = { ...baseline };
+		dataCurrent = { ...dataBaseline };
+		clientErrors = EMPTY_ERRORS;
+		backendErrors = EMPTY_ERRORS;
+		onSaveError(false);
+	}
 </script>
 
-{#snippet saveButton()}
-	<button
-		type="button"
-		class="vega-block-save-button"
-		disabled={inert || !dirty || (typed && blockType === null)}
-		onclick={handleSave}
-	>
-		{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
-	</button>
-{/snippet}
-
-<div class="vega-block-fields">
+{#snippet contextual()}
 	{#if contextualHeader}
 		{@render contextualHeader(
 			name ?? blockType?.label ?? childType.label,
@@ -658,9 +685,25 @@
 									: 'editor.noLocalChanges'
 			),
 			hasTexts && !locked && (!typed || blockType !== null) ? saveButton : undefined,
-			record.id
+			record.id,
+			dirty && !saving
 		)}
 	{/if}
+{/snippet}
+
+{#snippet saveButton()}
+	<button
+		type="button"
+		class="vega-block-save-button"
+		disabled={inert || !dirty || (typed && blockType === null)}
+		onclick={handleSave}
+	>
+		{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
+	</button>
+{/snippet}
+
+<div class="vega-block-fields">
+	{#if contextualPlacement === 'top'}{@render contextual()}{/if}
 	{#if typed && blockType === null}
 		<section class="vega-block-readonly" role="status">
 			<p>
@@ -753,24 +796,24 @@
 						field={item.field}
 						value={dataCurrent[item.field.name]}
 						error={errors.byField[item.field.name] ?? null}
-						disabled={inert || inlineField === item.field.name}
+						disabled={inert}
 						inlineActive={inlineField === item.field.name}
 						typeReadonly={false}
 						stacked
-						onChange={(value) => handleDataFieldChange(item.field.name, value)}
+						onChange={(value) =>
+							fromForm(item.field.name, () => handleDataFieldChange(item.field.name, value))}
 					/>
 				{:else}
 					<FieldRow
 						field={item.field}
 						value={current[item.field.name]}
 						error={errors.byField[item.field.name] ?? null}
-						disabled={inert ||
-							inlineField === item.field.name ||
-							structuralFields.includes(item.field.name)}
+						disabled={inert || structuralFields.includes(item.field.name)}
 						inlineActive={inlineField === item.field.name}
 						typeReadonly={false}
 						stacked
-						onChange={(value) => handleRecordFieldChange(item.field.name, value)}
+						onChange={(value) =>
+							fromForm(item.field.name, () => handleRecordFieldChange(item.field.name, value))}
 					/>
 				{/if}
 			{/each}
@@ -780,11 +823,12 @@
 					{field}
 					value={current[field.name]}
 					error={errors.byField[field.name] ?? null}
-					disabled={inert || inlineField === field.name}
+					disabled={inert}
 					inlineActive={inlineField === field.name}
 					typeReadonly={false}
 					stacked
-					onChange={(value) => handleRecordFieldChange(field.name, value)}
+					onChange={(value) =>
+						fromForm(field.name, () => handleRecordFieldChange(field.name, value))}
 				/>
 			{/each}
 		{/if}
@@ -816,6 +860,7 @@
 			<div class="vega-block-actions">{@render saveButton()}</div>
 		{/if}
 	{/if}
+	{#if contextualPlacement === 'bottom'}{@render contextual()}{/if}
 </div>
 
 <style>

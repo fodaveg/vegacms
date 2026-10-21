@@ -248,6 +248,13 @@
 		blocks: VisualBlock[];
 		selectedId: string | null;
 		inlineId?: string | null;
+		/** Pista de la edición en línea (lámina, `.inl-hint`): qué campo se escribe y cómo salir. `rect`
+		 *  en las coordenadas de `block.rect` (las del marco). `null` fuera de una edición. */
+		inlineHint?: {
+			label: string;
+			widget: 'text' | 'textarea';
+			rect: { top: number; left: number; width: number; height: number };
+		} | null;
 		highlightedId: string | null;
 		/** Bloques que el sitio describió mal y `bridge-client.ts` descartó del array de arriba
 		 *  (ver `parseBlocks`): se cuentan, no se esconden. */
@@ -274,6 +281,7 @@
 		blocks,
 		selectedId,
 		inlineId = null,
+		inlineHint = null,
 		highlightedId,
 		skippedBlocks,
 		status,
@@ -289,6 +297,11 @@
 
 	/** `type` de cada bloque contra el vocabulario que el sitio anuncia (ver cabecera). Un `Set`
 	 *  por render evita un `includes` lineal por bloque cuando la lista de renderers crece. */
+	/** Tipos declarados por nombre: la etiqueta del contorno dice «Texto», no «texto». */
+	const blockTypeByName = $derived(
+		new Map((blocksState.blockTypes ?? []).map((blockType) => [blockType.name, blockType]))
+	);
+
 	const decoratedBlocks = $derived.by(() => {
 		const rendered = renderedBlockTypes ? new Set(renderedBlockTypes) : null;
 		return blocks.map((block) => ({
@@ -345,16 +358,12 @@
 	const structuralGuard = $derived(
 		blocksState.anyDirty || blocksState.anySaving || blocksState.structuralBusy
 	);
-	/** Hueco desde el borde SUPERIOR del bloque seleccionado hasta la barra, hacia DENTRO.
-	 *
-	 *  Antes iba hacia fuera (`rect.top - 44`, o sea flotando ENCIMA del contorno) y se veía mal:
-	 *  entre dos bloques pegados no hay hueco, así que la barra del bloque elegido caía dentro del
-	 *  ANTERIOR y parecía pertenecerle. Lo cazó una captura, no el gate — un test que comprueba
-	 *  que la barra existe y apunta al bloque correcto pasa igual con la barra pintada encima del
-	 *  vecino. Dentro y arriba no tiene ese problema: el bloque seleccionado siempre tiene su
-	 *  propia altura por debajo, y de paso desaparece el recorte del bloque pegado al borde de
-	 *  arriba, que es lo que obligaba al `Math.max(0, …)`. */
-	const TOOLBAR_INSET = 8;
+	/** Hueco desde el borde DERECHO del bloque seleccionado hasta la barra (lámina, `.tb { right:
+	 *  12px }`). La barra se centra SOBRE el borde superior del contorno (lámina, `top: -18px` con
+	 *  36 px de alto): así se lee como parte de ESE contorno y no del bloque de encima, que era el
+	 *  fallo de la versión que flotaba entera por fuera (`rect.top - 44`). Un bloque pegado al borde
+	 *  de arriba la baja lo justo para no recortarla (ver `.vega-visual-overlay-toolbar`). */
+	const TOOLBAR_INSET = 12;
 	/** Ancho de la barra, independiente del zoom, para mantener todas las acciones en el lienzo. */
 	let toolbarWidth = $state(0);
 
@@ -382,28 +391,29 @@
 	}
 
 	/** Las acciones comparten control y foco; solo borrar admite borradores pendientes. */
+	// Orden de la lámina (`.tb`): subir, bajar | duplicar, borrar.
 	const selectedActions = $derived([
-		{
-			key: 'duplicate',
-			label: 'editor.blocks.duplicateLabel',
-			icon: 'copy',
-			disabled: structuralGuard,
-			run: handleDuplicateSelected
-		},
 		{
 			key: 'up',
 			label: 'editor.blocks.moveUpLabel',
-			icon: 'chevron',
+			icon: 'arrow-up',
 			disabled: structuralGuard || selectedIndex <= 0,
 			run: () => handleMoveSelected(-1)
 		},
 		{
 			key: 'down',
 			label: 'editor.blocks.moveDownLabel',
-			icon: 'chevron',
+			icon: 'arrow-down',
 			disabled:
 				structuralGuard || selectedIndex < 0 || selectedIndex >= blocksState.records.length - 1,
 			run: () => handleMoveSelected(1)
+		},
+		{
+			key: 'duplicate',
+			label: 'editor.blocks.duplicateLabel',
+			icon: 'copy',
+			disabled: structuralGuard,
+			run: handleDuplicateSelected
 		},
 		{
 			key: 'delete',
@@ -724,6 +734,7 @@
 	     abajo. -->
 	<div class="vega-visual-overlay-boxes" aria-hidden="true">
 		{#each decoratedBlocks as { block, unsupported } (block.id)}
+			{@const declared = blockTypeByName.get(block.type)}
 			<div
 				class="vega-visual-overlay-box"
 				class:vega-visual-overlay-box--selected={block.id === selectedId}
@@ -740,7 +751,10 @@
 					class="vega-visual-overlay-label"
 					class:vega-visual-overlay-label--unsupported={unsupported}
 				>
-					{block.type}
+					<!-- Lámina «edición en vivo», `.lbl`: icono y NOMBRE del tipo («Texto»), no su id. Sin
+					     vocabulario que lo nombre, el id que manda el sitio. -->
+					<Icon id={declared?.icon ?? 'document'} size={12} strokeWidth={1.8} />
+					{declared?.label ?? block.type}
 					{#if unsupported}
 						<Icon id="warning" size={12} />
 						<span>({ctx.t('editor.visual.overlay.unsupported')})</span>
@@ -756,6 +770,25 @@
 		{/each}
 	</div>
 
+	{#if inlineHint}
+		<!-- Pista de la edición en línea: decorativa para el lector de pantalla (el foco está DENTRO
+		     del marco, en el textbox con nombre que pone el sitio; la ficha anuncia «en la página»). -->
+		<p
+			class="vega-visual-inline-hint"
+			aria-hidden="true"
+			style:top="{inlineHint.rect.top + inlineHint.rect.height + 10}px"
+			style:left="{Math.max(4, inlineHint.rect.left)}px"
+		>
+			<b>{inlineHint.label}</b> · {ctx.t('editor.visual.inline.typing')}
+			<kbd>⏎</kbd>
+			{ctx.t('editor.visual.inline.apply')}
+			{#if inlineHint.widget === 'textarea'}<kbd>⇧⏎</kbd>
+				{ctx.t('editor.visual.inline.newline')}{/if}
+			<kbd>Esc</kbd>
+			{ctx.t('editor.visual.inline.cancel')}
+		</p>
+	{/if}
+
 	<!-- Barra flotante del seleccionado (ver cabecera, "Duplicar/mover/borrar"): HERMANA del grupo
 	     de cajas, no `aria-hidden` — controles de verdad. El contenedor NO fija `pointer-events`
 	     (hereda `none` del raíz); solo cada `<button>` lo pone en `auto`. -->
@@ -767,7 +800,7 @@
 			style:--toolbar-width="{toolbarWidth}px"
 			role="group"
 			aria-label={ctx.t('editor.visual.overlay.toolbar.label', { label })}
-			style:top="{selectedBridgeBlock.rect.top + TOOLBAR_INSET}px"
+			style:--toolbar-top="{selectedBridgeBlock.rect.top}px"
 			style:--toolbar-right="{selectedBridgeBlock.rect.left +
 				selectedBridgeBlock.rect.width -
 				TOOLBAR_INSET}px"
@@ -790,7 +823,12 @@
 			>
 				<span aria-hidden="true">⠿</span>
 			</button>
+			<span class="vega-visual-overlay-toolbar-sep" aria-hidden="true"></span>
 			{#each selectedActions as action (action.key)}
+				{#if action.key === 'duplicate'}<span
+						class="vega-visual-overlay-toolbar-sep"
+						aria-hidden="true"
+					></span>{/if}
 				{#if action.key !== 'duplicate' || blocksState.blockDuplicateAllowed}
 					<button
 						type="button"
@@ -801,12 +839,8 @@
 						aria-label={ctx.t(action.label, { label })}
 						onclick={() => void action.run()}
 					>
-						<span
-							class="vega-visual-overlay-toolbar-icon"
-							class:vega-visual-overlay-toolbar-icon--up={action.key === 'up'}
-							class:vega-visual-overlay-toolbar-icon--down={action.key === 'down'}
-						>
-							<Icon id={action.icon} size={14} />
+						<span class="vega-visual-overlay-toolbar-icon">
+							<Icon id={action.icon} size={15} strokeWidth={1.6} />
 						</span>
 					</button>
 				{/if}
@@ -904,6 +938,13 @@
 				{@const destination = insertionLabel(point.position)}
 				{@const upward = insertMenuOpensUpward(point)}
 				{@const touchTop = insertTouchTop(point)}
+				{@const pill =
+					selectedBridgeIndex >= 0 &&
+					(point.position === selectedBridgeIndex || point.position === selectedBridgeIndex + 1)}
+				{@const positionText = ctx.t('editor.visual.overlay.insertLabel', {
+					position: recordIndexForInsertion(point.position) + 1,
+					total: blocksState.records.length + 1
+				})}
 				<!-- Con menú de tipos (`hasTypeMenu`), mismo contrato APG que `.vega-tree-add` de
 				     `VisualBlockTree.svelte`: `aria-haspopup`/`aria-expanded`/`aria-controls` en el
 				     disparador. Sin menú (modo homogéneo), ninguno de los tres — igual que el botón
@@ -911,6 +952,7 @@
 				<button
 					type="button"
 					class="vega-visual-overlay-insert"
+					class:vega-visual-overlay-insert--pill={pill}
 					style:--insert-top="{point.top}px"
 					style:--insert-touch-top="{touchTop}px"
 					style:pointer-events="auto"
@@ -920,11 +962,14 @@
 						? insertMenuPosition === point.position
 						: undefined}
 					aria-controls={blocksState.hasTypeMenu ? insertMenuId(point.position) : undefined}
-					aria-label={destination}
+					aria-label={pill ? `${positionText}: ${destination}` : destination}
 					title={destination}
 					onclick={(event) => handleInsertClick(point.position, event)}
 				>
-					<Icon id="plus" size={14} />
+					<Icon id="plus" size={14} strokeWidth={2} />
+					<!-- Lámina `.ins`: en los dos huecos del bloque seleccionado el «+» dice su posición;
+					     el resto se queda en un punto, para no llenar la página de rótulos. -->
+					{#if pill}<span class="vega-visual-overlay-insert-text">{positionText}</span>{/if}
 				</button>
 				{#if blocksState.hasTypeMenu && insertMenuPosition === point.position}
 					<!-- Mismo algoritmo de foco que el menú "Añadir sección" que existía antes en
@@ -956,7 +1001,12 @@
 						onfocusout={handleInsertMenuFocusOut}
 					>
 						<p class="vega-visual-insert-destination" title={destination}>
-							<span>{destination}</span>
+							<span
+								>{ctx.t('editor.visual.insert.menuTitle', {
+									position: recordIndexForInsertion(point.position) + 1,
+									total: blocksState.records.length + 1
+								})}</span
+							>
 						</p>
 						<div role="presentation" class="vega-visual-insert-options">
 							{#each blocksState.blockTypes as blockType (blockType.name)}
@@ -968,8 +1018,15 @@
 									style:pointer-events="auto"
 									onclick={() => handleInsertMenuSelect(point.position, blockType)}
 								>
-									{#if blockType.icon}<Icon id={blockType.icon} size={14} />{/if}
-									{blockType.label}
+									<!-- Lámina «Añadir bloque: paleta de tipos»: icono en baldosa, nombre y
+									     descripción del tipo (`blockTypes[].description`, opcional). -->
+									<span class="vega-visual-insert-ic" aria-hidden="true"
+										><Icon id={blockType.icon ?? 'document'} size={16} strokeWidth={1.6} /></span
+									>
+									<span class="vega-visual-insert-copy">
+										<b>{blockType.label}</b>
+										{#if blockType.description}<small>{blockType.description}</small>{/if}
+									</span>
 								</button>
 							{/each}
 						</div>
@@ -1034,73 +1091,120 @@
 		inset: 0;
 	}
 
-	/* Doble trazo `--paper`/`--ink-hi` (ver cabecera, "Doble trazo, siempre"): el primer
-	   `box-shadow` es el anillo INTERIOR (pegado al borde del `rect`), el segundo el EXTERIOR —
-	   entre los dos, un píxel de cada tono, así que uno de los dos siempre se lee contra
-	   cualquier fondo del sitio. `--accent` de en medio en highlighted/selected es solo el color de
-	   ESTADO: si desapareciera contra un fondo dado, el bracket claro/oscuro sigue marcando el
-	   borde igual. */
+	/* Contorno (lámina «edición en vivo», `.blk::before`): una caja interior 4 px dentro del bloque,
+	   radio 8. Reposo invisible; al pasar, trazo fino del acento al 55 % (`--v-ol-hover`);
+	   seleccionado, 2 px de `--v-ol-select` y un halo suave. Los grosores se multiplican por
+	   `--menu-scale` (1/zoom): miden lo mismo en pantalla a cualquier zoom. La edición en línea
+	   NO cambia el contorno: su naranja va dentro de la página, sobre el texto que se escribe. */
 	.vega-visual-overlay-box {
 		position: absolute;
 		/* Solo el bloque activo o bajo el puntero enmarca el sitio. Los nodos se conservan para
 		   que el puente y los tests sigan mapeando todos los ids sin montar otra capa. */
 		opacity: 0;
-		/* `pointer-events: none` también INLINE aquí (ver el marcado): la instrucción es "en el
-		   contenedor Y en las cajas", explícito en las dos, no heredado de una — así una caja no
-		   se rompe si algún día se mueve fuera de este árbol. */
-		border-radius: calc(var(--r) / 2);
-		box-shadow:
-			0 0 0 1px var(--paper),
-			0 0 0 2px var(--ink-hi);
+	}
+
+	.vega-visual-overlay-box::before {
+		content: '';
+		position: absolute;
+		inset: calc(4px * var(--menu-scale));
+		border: calc(1.5px * var(--menu-scale)) solid transparent;
+		border-radius: calc(8px * var(--menu-scale));
+		pointer-events: none;
 	}
 
 	.vega-visual-overlay-box--highlighted {
 		opacity: 1;
-		box-shadow:
-			0 0 0 1px var(--paper),
-			0 0 0 2px var(--v-ol-hover),
-			0 0 0 3px var(--ink-hi);
 	}
 
-	/* Seleccionada gana sobre resaltada si algún día coinciden (mismo bloque en las dos): un
-	   anillo más grueso, no un color distinto — la etiqueta ya dice el tipo, el grosor dice
-	   "esta es la que tienes abierta". */
-	.vega-visual-overlay-box--selected {
-		opacity: 1;
-		box-shadow:
-			0 0 0 1px var(--paper),
-			0 0 0 3px var(--v-ol-select),
-			0 0 0 4px var(--ink-hi);
+	.vega-visual-overlay-box--highlighted::before {
+		border-color: var(--v-ol-hover);
 	}
 
+	.vega-visual-overlay-box--selected,
 	.vega-visual-overlay-box--inline {
 		opacity: 1;
-		box-shadow:
-			0 0 0 1px var(--paper),
-			0 0 0 3px var(--v-ol-inline),
-			0 0 0 4px var(--ink-hi);
 	}
 
-	/* Relleno OPACO (ver cabecera): no necesita bracket, un fondo sólido ya es inmune a lo que
-	   haya detrás. `--ink-hi`/`--paper` es el mismo par medido ≥4.5:1 que el contorno, aquí como
-	   fondo/tinta en vez de trazo. */
+	.vega-visual-overlay-box--selected::before,
+	.vega-visual-overlay-box--inline::before {
+		border: calc(2px * var(--menu-scale)) solid var(--v-ol-select);
+		box-shadow: 0 0 0 calc(4px * var(--menu-scale)) var(--accent-soft);
+	}
+
+	/* Pista de la edición en línea (lámina, `.inl-hint`): píldora bajo el campo, con el nombre del
+	   campo en el naranja de edición como TEXTO (`--v-ol-inline-text`, medido ≥4.5:1). Conserva su
+	   tamaño físico con cualquier zoom, como la barra flotante. */
+	.vega-visual-inline-hint {
+		position: absolute;
+		z-index: 4;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 28px;
+		margin: 0;
+		padding: 0 10px;
+		border: 1px solid var(--line);
+		border-radius: var(--r-pill);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
+		color: var(--ink-2);
+		font-family: var(--sans);
+		font-size: 11px;
+		white-space: nowrap;
+		transform: scale(var(--menu-scale));
+		transform-origin: top left;
+	}
+
+	.vega-visual-inline-hint b {
+		color: var(--v-ol-inline-text);
+		font-weight: 600;
+	}
+
+	.vega-visual-inline-hint kbd {
+		padding: 0 4px;
+		border: 1px solid var(--line);
+		border-radius: 4px;
+		background: var(--btn);
+		color: var(--ink-hi);
+		font-family: var(--mono);
+		font-size: 10px;
+	}
+
+	/* Etiqueta del tipo (lámina `.lbl`): píldora sobre el borde superior, icono + nombre. Sólida
+	   en el seleccionado (`--v-ol-select` + `--v-ol-select-ink`, medido ≥4.5:1 en los dos modos);
+	   al pasar, clara con borde de acento. Tamaño físico constante con cualquier zoom. */
 	.vega-visual-overlay-label {
 		position: absolute;
 		top: 0;
-		left: 0;
+		left: calc(12px * var(--menu-scale));
+		z-index: 3;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.25rem;
-		max-width: calc(100% - 0.5rem);
-		padding: 0.1rem 0.4rem;
-		border-radius: var(--r);
+		gap: 6px;
+		height: 22px;
+		max-width: calc(100% / var(--menu-scale) - 24px);
+		padding: 0 9px;
+		border: 1px solid transparent;
+		border-radius: var(--r-pill);
 		background: var(--v-ol-select);
 		color: var(--v-ol-select-ink);
-		font-size: 0.7rem;
+		box-shadow: var(--shadow-card);
+		font-family: var(--sans);
+		font-size: 11px;
 		font-weight: 600;
+		letter-spacing: 0.01em;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		transform: translateY(-50%) scale(var(--menu-scale));
+		transform-origin: left center;
+	}
+
+	.vega-visual-overlay-box--highlighted:not(.vega-visual-overlay-box--selected)
+		.vega-visual-overlay-label {
+		border-color: var(--accent-line);
+		background: var(--surface);
+		color: var(--accent-text);
 	}
 
 	/* Par `warning`/`warning-soft`, mismo gate (ver cabecera): separa "tipo no soportado" del eje
@@ -1151,54 +1255,61 @@
 		color: var(--warning);
 	}
 
-	/* Barra flotante del seleccionado (ver cabecera, "Duplicar/mover/borrar"): posicionada por
-	   `top`/`left` en línea (mismo sistema de coordenadas que `.vega-visual-overlay-box`, ver el
-	   marcado), NUNCA `pointer-events` propio — lo hereda `none` del raíz, solo cada botón lo
+	/* Barra flotante del seleccionado (lámina `.tb`): píldora horizontal centrada SOBRE el borde
+	   superior del contorno, pegada a su derecha (`--toolbar-right`). `transform-origin: right
+	   center` + `translate(-100%, -50%)` deja su borde derecho en `left` y su centro vertical en
+	   `top` a cualquier escala. Un bloque pegado al borde de arriba la baja lo justo para no
+	   recortarla. NUNCA `pointer-events` propio: lo hereda `none` del raíz, solo cada botón lo
 	   reactiva (ver cabecera, "DOS capas nuevas"). */
 	.vega-visual-overlay-toolbar {
 		position: absolute;
+		z-index: 4;
+		top: max(var(--toolbar-top), calc(20px * var(--menu-scale)));
 		left: clamp(
 			calc((var(--toolbar-width) + 4px) * var(--menu-scale)),
 			var(--toolbar-right),
 			calc(100% - 4px * var(--menu-scale))
 		);
-		max-width: calc(100% / var(--menu-scale) - 8px);
-		flex-wrap: wrap;
-		/* `left` viene con el borde DERECHO del bloque (ver el marcado): esto la trae de vuelta su
-		   propio ancho, que es lo que la deja pegada a la derecha DENTRO del contorno sin tener
-		   que medir la barra en JS. La esquina izquierda ya la ocupa la etiqueta del tipo de
-		   bloque (`.vega-visual-overlay-label`). */
-		transform: translateX(-100%) scale(var(--menu-scale));
-		transform-origin: top right;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.15rem;
-		padding: 0.2rem;
-		border-radius: var(--r);
+		gap: 2px;
+		padding: 3px;
+		border: 1px solid var(--line);
+		border-radius: var(--r-pill);
 		background: var(--surface);
-		box-shadow: var(--shadow-card);
+		box-shadow: var(--shadow-raised);
+		font-family: var(--sans);
+		transform: translate(-100%, -50%) scale(var(--menu-scale));
+		transform-origin: right center;
+	}
+
+	.vega-visual-overlay-toolbar-sep {
+		width: 1px;
+		height: 18px;
+		margin: 0 3px;
+		background: var(--line);
 	}
 
 	.vega-visual-overlay-toolbar-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 1.7rem;
-		height: 1.7rem;
+		display: grid;
+		place-items: center;
+		width: 30px;
+		height: 30px;
+		padding: 0;
 		border: 0;
-		border-radius: calc(var(--r) / 1.5);
+		border-radius: var(--r-pill);
 		background: transparent;
 		color: var(--ink-2);
 		cursor: pointer;
 	}
 
 	.vega-visual-overlay-toolbar-btn:hover:not(:disabled) {
-		background: var(--active);
-		color: var(--ink);
+		background: var(--btn);
+		color: var(--ink-hi);
 	}
 
 	.vega-visual-overlay-toolbar-btn:focus-visible {
-		outline: 2px solid var(--ink);
+		outline: 2px solid var(--ring);
 		outline-offset: 2px;
 	}
 
@@ -1212,26 +1323,13 @@
 		color: var(--danger);
 	}
 
-	/* Mismo truco que `.vega-tree-action-icon` de `VisualBlockTree.svelte`: el `chevron` apunta a
-	   la derecha por defecto, rotado -90°/90° da arriba/abajo sin un glifo nuevo. */
 	.vega-visual-overlay-toolbar-icon {
 		display: inline-flex;
 	}
 
-	.vega-visual-overlay-toolbar-icon--up {
-		transform: rotate(-90deg);
-	}
-
-	.vega-visual-overlay-toolbar-icon--down {
-		transform: rotate(90deg);
-	}
-
-	/* Puntos de inserción (ver cabecera): un botón circular pequeño, centrado horizontalmente,
-	   sobre cada coordenada Y calculada en el script. `left: 50%` + `translate` en vez de un ancho
-	   del 100% con icono centrado: así la línea entre contornos no reclama el ancho entero como
-	   zona clicable — un punto concreto es más honesto que una franja invisible del ancho del
-	   lienzo capturando el puntero de un `hover` que no puede detectar (ver cabecera del
-	   componente, "El resalte por RATÓN lo DICE el sitio"). */
+	/* Puntos de inserción (ver cabecera): un punto «+» centrado en cada hueco; en los dos huecos
+	   del bloque seleccionado, la píldora de la lámina (`.ins`) con su posición y una línea a cada
+	   lado. Nunca una franja del ancho del lienzo capturando el puntero. */
 	.vega-visual-overlay-insert-points {
 		position: absolute;
 		inset: 0;
@@ -1241,25 +1339,60 @@
 		position: absolute;
 		top: var(--insert-top);
 		left: 50%;
+		z-index: 4;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 1.6rem;
-		height: 1.6rem;
-		border: 1px solid var(--line);
-		border-radius: 50%;
+		gap: 6px;
+		width: 24px;
+		height: 24px;
+		padding: 0;
+		border: 1px solid var(--accent-line);
+		border-radius: var(--r-pill);
 		background: var(--surface);
-		color: var(--ink-2);
+		color: var(--accent-text);
 		box-shadow: var(--shadow-card);
+		font-family: var(--sans);
+		font-size: 11px;
+		font-weight: 600;
+		white-space: nowrap;
 		cursor: pointer;
-		/* El escenario escala iframe y overlay juntos; el botón conserva su tamaño físico
-		   también con ratón (a 50%, sin compensación quedaba en apenas 12.8 px). */
+		/* El escenario escala iframe y overlay juntos; el botón conserva su tamaño físico. */
 		transform: translate(-50%, -50%) scale(var(--menu-scale));
 	}
 
-	.vega-visual-overlay-insert:hover:not([aria-disabled='true']) {
+	.vega-visual-overlay-insert--pill {
+		width: auto;
+		height: 28px;
+		padding: 0 10px 0 6px;
+	}
+
+	.vega-visual-overlay-insert--pill::before,
+	.vega-visual-overlay-insert--pill::after {
+		content: '';
+		position: absolute;
+		top: 50%;
+		width: 120px;
+		height: 1.5px;
+		background: var(--accent-line);
+		pointer-events: none;
+	}
+
+	.vega-visual-overlay-insert--pill::before {
+		right: 100%;
+		margin-right: 6px;
+	}
+
+	.vega-visual-overlay-insert--pill::after {
+		left: 100%;
+		margin-left: 6px;
+	}
+
+	.vega-visual-overlay-insert:hover:not([aria-disabled='true']),
+	.vega-visual-overlay-insert[aria-expanded='true'] {
 		border-color: var(--accent);
-		color: var(--accent);
+		background: var(--accent);
+		color: var(--accent-ink);
 	}
 
 	/* El exterior es el sitio del cliente: el doble trazo mantiene el foco sobre cualquier foto. */
@@ -1274,13 +1407,10 @@
 		opacity: 0.4;
 	}
 
-	/* Menú de tipos del punto de inserción (defecto "el `+` crea sin preguntar el tipo", ver
-	   cabecera del script): mismo lenguaje visual que llevaba el menú "Añadir sección" que existía
-	   antes en `VisualBlockTree.svelte` (tarjeta con `--surface`/`--shadow-card`, ítems en columna)
-	   — misma FAMILIA de menú, pero anclado a `point.top` (coordenadas del lienzo) en vez de a
-	   `top: 100%` de un botón en flujo normal, así que necesita su propio
-	   `top`/`left`/`margin`/`transform` en vez de heredar el suyo. La lista interior recibe el puntero para desplazar sus opciones; el destino permanece fuera
-	   de ese scroll y el resto del overlay sigue sin interceptar la página. */
+	/* Menú de tipos del punto de inserción (lámina «Añadir bloque: paleta de tipos», `.pop`): tarjeta
+	   elevada anclada al eje del «+», con título de posición y una fila por tipo con icono en
+	   baldosa, nombre y descripción. La lista interior recibe el puntero para desplazarse; el resto
+	   del overlay sigue sin interceptar la página. */
 	.vega-visual-overlay-insert-menu {
 		top: var(--insert-top);
 		position: absolute;
@@ -1292,14 +1422,15 @@
 		display: flex;
 		flex-direction: column;
 		box-sizing: border-box;
-		width: min(22rem, calc(90% / var(--menu-scale)));
-		max-height: min(18rem, calc(var(--menu-space, 100vh) - 0.9rem / var(--menu-scale)));
+		width: min(300px, calc(90% / var(--menu-scale)));
+		max-height: min(22rem, calc(var(--menu-space, 100vh) - 0.9rem / var(--menu-scale)));
 		overflow: hidden;
-		padding: 0.3rem;
+		padding: 8px;
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: var(--r-md);
 		background: var(--surface);
-		box-shadow: var(--shadow-card);
+		box-shadow: var(--shadow-raised);
+		font-family: var(--sans);
 	}
 
 	/* Abre hacia ARRIBA (ver `insertMenuOpensUpward` del script): mismo `top` de partida que la
@@ -1323,10 +1454,12 @@
 	.vega-visual-insert-destination {
 		flex-shrink: 0;
 		margin: 0;
-		padding: 0.45rem 0.6rem;
-		color: var(--ink-hi);
-		font-size: 0.85rem;
-		font-weight: 650;
+		padding: 6px 8px 8px;
+		color: var(--ink-3);
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
 		overflow-wrap: anywhere;
 	}
 
@@ -1353,22 +1486,60 @@
 	.vega-visual-overlay-insert-menu-item {
 		display: flex;
 		align-items: center;
-		gap: 0.45rem;
+		gap: 12px;
+		width: 100%;
+		padding: 8px;
 		border: 0;
-		background: none;
-		padding: 0.45rem 0.6rem;
-		border-radius: 6px;
-		color: var(--ink);
+		border-radius: var(--r-sm);
+		background: transparent;
+		color: var(--ink-hi);
 		font: inherit;
-		font-size: 0.85rem;
 		text-align: left;
 		cursor: pointer;
 		overflow-wrap: anywhere;
 	}
 
+	.vega-visual-insert-ic {
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 34px;
+		height: 34px;
+		border-radius: 9px;
+		background: var(--btn);
+		color: var(--ink-2);
+	}
+
+	.vega-visual-insert-copy {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.vega-visual-insert-copy b {
+		font-size: var(--fs-13);
+		font-weight: 600;
+	}
+
+	.vega-visual-insert-copy small {
+		color: var(--ink-3);
+		font-size: 11px;
+	}
+
 	.vega-visual-overlay-insert-menu-item:hover,
 	.vega-visual-overlay-insert-menu-item:focus-visible {
-		background: var(--active);
+		background: var(--accent-soft);
+		outline: none;
+	}
+
+	.vega-visual-overlay-insert-menu-item:focus-visible {
+		box-shadow: inset 0 0 0 2px var(--ring);
+	}
+
+	.vega-visual-overlay-insert-menu-item:hover .vega-visual-insert-ic,
+	.vega-visual-overlay-insert-menu-item:focus-visible .vega-visual-insert-ic {
+		background: var(--surface);
+		color: var(--accent-text);
 	}
 
 	/* El asa es lo único de la barra que se agarra: el cursor lo dice antes de intentarlo. */
@@ -1480,6 +1651,11 @@
 			width: 44px;
 			height: 44px;
 			flex-shrink: 0;
+		}
+
+		.vega-visual-overlay-insert--pill {
+			width: auto;
+			padding: 0 14px 0 10px;
 		}
 	}
 </style>

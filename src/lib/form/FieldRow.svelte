@@ -143,6 +143,7 @@
 	class:vega-field-row--title={isTitleField}
 	class:vega-field-row--slug={isSlugField}
 	class:vega-field-row--path={isPathField}
+	class:vega-field-row--inline={inlineActive}
 	data-field={field.name}
 	data-widget={field.widget}
 >
@@ -152,8 +153,8 @@
 				aria-hidden="true">*</span
 			>{/if}
 	</label>
-	{#if inlineActive}<span class="vega-field-inline-status"
-			>{ctx.t('editor.visual.inline.active')}</span
+	{#if inlineActive}<span class="vega-field-inline-status" role="status"
+			><i aria-hidden="true"></i>{ctx.t('editor.visual.inline.active')}</span
 		>{/if}
 	<div class="vega-field-control">
 		{#if action}
@@ -234,12 +235,37 @@
 </div>
 
 <style>
+	/* Edición en línea (lámina «edición en vivo», `.f label .live` + `input.live`): el MISMO campo se
+	   está escribiendo sobre la página. El control sigue habilitado y refleja cada pulsación (una
+	   sola fuente de verdad, el borrador de `BlockEditor`); el aviso va a la derecha de la etiqueta,
+	   en la misma línea, sin tocar la estructura de la fila (`> label` lo usan otras reglas). */
+	.vega-field-row--inline {
+		position: relative;
+	}
 	.vega-field-inline-status {
+		position: absolute;
+		top: 0;
+		right: 0;
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		font-size: 11px;
+		font-weight: 600;
+		line-height: 1.4;
 		color: var(--v-ol-inline-text);
-		background: var(--v-ol-inline-soft);
-		border-radius: var(--r);
-		padding: 4px 8px;
-		font-size: 12px;
+	}
+	.vega-field-inline-status i {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: currentColor;
+	}
+	.vega-field-row--inline > label {
+		padding-right: 7.5rem;
+	}
+	.vega-field-row--inline :global(:is(input, textarea)) {
+		border-color: var(--v-ol-inline);
+		box-shadow: 0 0 0 3px var(--v-ol-inline-soft);
 	}
 	/* Campo apilado (mockup `.field`): label encima, control debajo, ayuda y error bajo el control.
 	   Sin borde ni padding propios — quien separa una fila de otra es el `gap` del contenedor
