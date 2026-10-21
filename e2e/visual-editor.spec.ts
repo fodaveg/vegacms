@@ -2039,10 +2039,18 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 					const measured = await target.evaluate((el) => {
 						const box = el.getBoundingClientRect();
 						const canvas = el.closest('.vega-visual-canvas')!.getBoundingClientRect();
-						const center = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+						// Una píldora de hueco del seleccionado deja pasar el puntero en reposo (no puede
+						// tapar su contenido) y solo lo atrapa en su «+»: ese es el objetivo que se mide.
+						const hitArea = el.querySelector('.vega-visual-overlay-insert-hit') ?? el;
+						const area = hitArea.getBoundingClientRect();
+						const center = document.elementFromPoint(
+							area.x + area.width / 2,
+							area.y + area.height / 2
+						);
 						return {
 							label: el.getAttribute('aria-label') ?? el.textContent,
 							box: box.toJSON(),
+							area: area.toJSON(),
 							canvas: canvas.toJSON(),
 							hit: center === el || el.contains(center)
 						};
@@ -2050,6 +2058,8 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 					evidence.push({ width, zoom, ...measured });
 					expect(measured.box.width, measured.label ?? '').toBeGreaterThanOrEqual(43.99);
 					expect(measured.box.height, measured.label ?? '').toBeGreaterThanOrEqual(43.99);
+					expect(measured.area.width, measured.label ?? '').toBeGreaterThanOrEqual(43.99);
+					expect(measured.area.height, measured.label ?? '').toBeGreaterThanOrEqual(43.99);
 					expect(measured.hit, measured.label ?? '').toBe(true);
 					expect(measured.box.left).toBeGreaterThanOrEqual(Math.max(0, measured.canvas.left) - 1);
 					expect(measured.box.right).toBeLessThanOrEqual(
@@ -2072,7 +2082,12 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 								Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top) > 0.5
 						).toBe(false);
 					}
-				await page.locator('.vega-visual-overlay-insert').nth(1).click();
+				// Hueco de debajo del seleccionado: su píldora se toca por el «+» (ver arriba).
+				await page
+					.locator('.vega-visual-overlay-insert')
+					.nth(1)
+					.locator('.vega-visual-overlay-insert-hit')
+					.click();
 				const menu = page.getByRole('menu');
 				await expect(menu).toBeVisible();
 				await expect(menu.getByRole('menuitem')).toHaveCount(3);

@@ -1798,5 +1798,13 @@
 			width: auto;
 			padding: 0 14px 0 10px;
 		}
+
+		/* En reposo la píldora del seleccionado solo atrapa el puntero en su «+»: con dedo, ese
+		   objetivo mide los 44 px físicos de los demás. */
+		.vega-visual-overlay-insert-hit {
+			width: 44px;
+			height: 44px;
+			margin-left: -10px;
+		}
 	}
 </style>
