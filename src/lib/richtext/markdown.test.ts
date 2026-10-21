@@ -10,7 +10,13 @@
  * (`vite.config.ts`) — no necesita jsdom, a diferencia de `sanitize.test.ts`.
  */
 import { describe, expect, test } from 'vitest';
-import { parseMarkdown, serializeMarkdown } from './markdown';
+import type { JSONContent } from '@tiptap/core';
+import {
+	applyLinkClassLists,
+	findUnsafeMarkdownFragment,
+	parseMarkdown,
+	serializeMarkdown
+} from './markdown';
 
 /** Round-trip: MD → doc TipTap → MD, comparado sin el salto de línea final. */
 function roundTrip(markdown: string): string {
@@ -82,5 +88,89 @@ describe('MUST FIX seguridad — esquemas de URI peligrosos NUNCA sobreviven el 
 		expect(roundTrip('![alt](https://example.com/x.png "un título")\n')).toBe(
 			'![alt](https://example.com/x.png "un título")'
 		);
+	});
+});
+
+/**
+ * Vista previa con lista de clases detrás de un enlace (QA de fodaveg, 21 oct 2026): sus botones
+ * se escriben `[Contacto](/contacto){.btn}` y la vista previa del widget no debe enseñar `{.btn}`
+ * como texto. `applyLinkClassLists` lo aplica como `class` de la marca `link`, solo con clases.
+ */
+describe('vista previa: `{.clase}` detrás de un enlace es su clase', () => {
+	/** Nodos de texto del primer párrafo, con la clase de su enlace (o `null` si no es enlace). */
+	function preview(markdown: string): { text: string; link: string | null; cls: unknown }[] {
+		const doc = applyLinkClassLists(parseMarkdown(markdown));
+		const paragraph = doc.content?.[0] as JSONContent;
+		return (paragraph.content ?? []).map((node) => {
+			const link = node.marks?.find((mark) => mark.type === 'link');
+			return {
+				text: node.text ?? '',
+				link: (link?.attrs?.href as string | undefined) ?? null,
+				cls: link?.attrs?.class ?? null
+			};
+		});
+	}
+
+	test('`[Contacto](/contacto){.btn}`: enlace con class="btn" y sin texto `{.btn}`', () => {
+		expect(preview('[Contacto](/contacto){.btn}')).toEqual([
+			{ text: 'Contacto', link: '/contacto', cls: 'btn' }
+		]);
+	});
+
+	test('varias clases y texto detrás: solo se consume la lista', () => {
+		expect(preview('Escríbeme: [Contacto](/contacto){.btn .btn-solid} y hablamos')).toEqual([
+			{ text: 'Escríbeme: ', link: null, cls: null },
+			{ text: 'Contacto', link: '/contacto', cls: 'btn btn-solid' },
+			{ text: ' y hablamos', link: null, cls: null }
+		]);
+	});
+
+	test('el enlace partido por otra marca recibe la clase entero', () => {
+		const nodes = preview('[**Con**tacto](/contacto){.btn}');
+		expect(nodes.map((node) => [node.text, node.cls])).toEqual([
+			['Con', 'btn'],
+			['tacto', 'btn']
+		]);
+	});
+
+	test('dos enlaces: la lista es solo del que la lleva pegada', () => {
+		expect(preview('[Uno](/a) y [Dos](/b){.btn}').map((node) => node.cls)).toEqual([
+			null,
+			null,
+			'btn'
+		]);
+	});
+
+	test.each([
+		['un id', '[A](/a){#principal}'],
+		['un atributo', '[A](/a){target=_blank}'],
+		['clase con atributo', '[A](/a){.btn onclick=alert(1)}'],
+		['comillas', '[A](/a){.btn" onmouseover="x}'],
+		['clase que empieza por cifra', '[A](/a){.1btn}'],
+		['separada por un espacio', '[A](/a) {.btn}']
+	])('no es una lista de clases (%s): se queda como texto y sin clase', (_label, markdown) => {
+		const nodes = preview(markdown);
+		expect(nodes.some((node) => node.cls !== null)).toBe(false);
+		expect(nodes.map((node) => node.text).join('')).toBe(markdown.replace('[A](/a)', 'A'));
+	});
+
+	test('sin enlace delante, `{.btn}` es texto', () => {
+		expect(preview('Texto {.btn}')).toEqual([{ text: 'Texto {.btn}', link: null, cls: null }]);
+	});
+
+	test('dentro de código no hay enlace que clasificar', () => {
+		expect(preview('`[A](/a){.btn}`').map((node) => node.text)).toEqual(['[A](/a){.btn}']);
+	});
+
+	test('la regla de guardado no cambia: `{.btn}` es Markdown permitido y un destino peligroso sigue rechazado', () => {
+		expect(findUnsafeMarkdownFragment('[Contacto](/contacto){.btn}')).toBeNull();
+		expect(findUnsafeMarkdownFragment('[x](javascript:alert(1)){.btn}')).not.toBeNull();
+	});
+
+	test('no muta el documento que recibe', () => {
+		const doc = parseMarkdown('[Contacto](/contacto){.btn}');
+		const before = JSON.stringify(doc);
+		applyLinkClassLists(doc);
+		expect(JSON.stringify(doc)).toBe(before);
 	});
 });

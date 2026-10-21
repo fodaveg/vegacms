@@ -14,7 +14,7 @@
 	 * `onChange`, and external value changes are reconciled without replacing the textarea cursor.
 	 */
 	import { onMount, tick, untrack } from 'svelte';
-	import type { Editor } from '@tiptap/core';
+	import type { Editor, JSONContent } from '@tiptap/core';
 	import type { MarkdownExtensionStorage, MarkdownManager } from '@tiptap/markdown';
 	import type { WidgetProps } from './types';
 	import { fieldIds } from '../field-ids';
@@ -88,6 +88,10 @@
 	let previewContainer: HTMLDivElement;
 	let previewEditor = $state.raw<Editor | null>(null);
 	let markdownManager = $state.raw<MarkdownManager | null>(null);
+	/** Markdown → documento de la vista previa (`parsePreviewMarkdown`: el `{.btn}` detrás de un
+	 *  enlace es su clase, no texto). Llega con el chunk perezoso de TipTap; solo pinta, nunca
+	 *  toca el valor del campo. */
+	let toPreviewDoc: (markdown: string) => JSONContent = () => ({ type: 'doc', content: [] });
 	let mode = $state<EditorMode>('split');
 	let lastEmitted = untrack(() => (typeof value === 'string' ? value : ''));
 	const wordCount = $derived(countMarkdownWords(draft));
@@ -116,16 +120,12 @@
 		mode = validStoredMode ?? (window.matchMedia('(max-width: 720px)').matches ? 'write' : 'split');
 
 		(async () => {
-			const [{ Editor: EditorCtor }, { createMarkdownExtensions }] = await Promise.all([
-				import('@tiptap/core'),
-				import('$lib/richtext/markdown')
-			]);
+			const [{ Editor: EditorCtor }, { createMarkdownExtensions, parsePreviewMarkdown }] =
+				await Promise.all([import('@tiptap/core'), import('$lib/richtext/markdown')]);
 			if (disposed) return;
-			previewEditor = new EditorCtor({
+			const editor = new EditorCtor({
 				element: previewContainer,
 				extensions: createMarkdownExtensions(),
-				content: draft,
-				contentType: 'markdown',
 				editable: false,
 				editorProps: {
 					attributes: {
@@ -134,7 +134,11 @@
 					}
 				}
 			});
-			markdownManager = (previewEditor.storage.markdown as MarkdownExtensionStorage).manager;
+			const manager = (editor.storage.markdown as MarkdownExtensionStorage).manager;
+			toPreviewDoc = (markdown) => parsePreviewMarkdown(markdown, manager);
+			editor.commands.setContent(toPreviewDoc(draft), { emitUpdate: false });
+			previewEditor = editor;
+			markdownManager = manager;
 			unsafeFragment = findUnsafeMarkdown(draft, markdownManager);
 			if (!unsafeUriError && draft !== lastEmitted) {
 				lastEmitted = draft;
@@ -168,7 +172,7 @@
 		if (!editor) return;
 
 		const frame = requestAnimationFrame(() => {
-			editor.commands.setContent(content, { contentType: 'markdown', emitUpdate: false });
+			editor.commands.setContent(toPreviewDoc(content), { emitUpdate: false });
 		});
 
 		return () => cancelAnimationFrame(frame);

@@ -218,6 +218,14 @@ lo que se guarda:
 HTML dentro de un bloque de código (`` `<div>` `` o un bloque entre ```) es código, no HTML, y no
 cuenta.
 
+La vista previa del campo (pestañas «Vista» y «Dividido») entiende además una lista de clases
+pegada detrás de un enlace, la forma de kramdown y `markdown-it-attrs` que usan algunos sitios para
+sus botones: `[Contacto](/contacto){.btn}` o `[Contacto](/contacto){.btn .btn-solid}` se ven como
+un enlace con esas clases, no con `{.btn}` como texto. Solo clases (`.nombre`, empezando por una
+letra): una lista con otra cosa (`{#id}`, `{target=_blank}`, `{.btn onclick=…}`) o separada del
+enlace por un espacio se enseña tal cual. Es solo la vista previa: lo que se guarda es el texto
+escrito, byte a byte, y pintar esas clases en la web le toca al renderizador Markdown del sitio.
+
 ## Bloques ordenables y heterogéneos (`blocks` y `blockTypes`)
 
 PocketBase no tiene campos repetidores, así que el contenido compuesto —una página hecha de

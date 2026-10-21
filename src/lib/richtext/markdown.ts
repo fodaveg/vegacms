@@ -50,6 +50,78 @@ export function serializeMarkdown(content: JSONContent): string {
 	return getManager().serialize(content);
 }
 
+/** Lista de clases detrás de un enlace, al principio del texto que lo sigue: `{.btn}` o
+ *  `{.btn .btn-solid}`. Solo clases con nombre de identificador CSS sencillo; `{#id}`,
+ *  `{target=_blank}` o una mezcla no casan y se quedan como texto. */
+const LINK_CLASS_LIST = /^\{[ \t]*(\.[A-Za-z][\w-]*(?:[ \t]+\.[A-Za-z][\w-]*)*)[ \t]*\}/;
+
+type Mark = NonNullable<JSONContent['marks']>[number];
+
+function linkMarkOf(node: JSONContent | undefined): Mark | undefined {
+	if (node?.type !== 'text') return undefined;
+	return node.marks?.find((mark) => mark.type === 'link');
+}
+
+function sameLink(a: Mark | undefined, b: Mark): boolean {
+	return a !== undefined && a.attrs?.href === b.attrs?.href && a.attrs?.title === b.attrs?.title;
+}
+
+/** Aplica, SOLO para la vista previa, la sintaxis de atributos de enlace que algunos sitios dan a
+ *  su Markdown (kramdown, `markdown-it-attrs`): `[Contacto](/contacto){.btn}` pinta un enlace con
+ *  `class="btn"` en lugar de enseñar `{.btn}` como texto (QA de fodaveg, 21 oct 2026).
+ *
+ *  Transforma el documento ya parseado (JSON de ProseMirror), no el lexer: `@tiptap/markdown`
+ *  registra sus tokenizadores propios en la instancia GLOBAL de `marked`, la misma que usa la regla
+ *  de guardado (`findUnsafeMarkdownFragment`), y la vista previa no debe cambiar qué se acepta.
+ *  Lo que se guarda sigue siendo el texto escrito, byte a byte: el widget no reserializa nunca.
+ *
+ *  Las clases pasan por `LINK_CLASS_LIST` (identificadores sencillos) y llegan al DOM como el
+ *  atributo `class` de la marca `link`, que ProseMirror escribe con `setAttribute`: no hay ningún
+ *  camino para otro atributo ni para HTML. Pura y sin DOM; devuelve un documento nuevo. */
+export function applyLinkClassLists(doc: JSONContent): JSONContent {
+	if (!doc.content) return doc;
+	const content: JSONContent[] = [];
+	for (const original of doc.content) {
+		let node = applyLinkClassLists(original);
+		const previousLink = linkMarkOf(content.at(-1));
+		const match =
+			previousLink && node.type === 'text' && !linkMarkOf(node)
+				? LINK_CLASS_LIST.exec(node.text ?? '')
+				: null;
+		if (previousLink && match) {
+			const className = match[1]
+				.split(/[ \t]+/)
+				.map((name) => name.slice(1))
+				.join(' ');
+			// Todo el texto del enlace, aunque lo partan otras marcas (`[**Con**tacto](/c){.btn}`).
+			for (
+				let i = content.length - 1;
+				i >= 0 && sameLink(linkMarkOf(content[i]), previousLink);
+				i--
+			) {
+				const marks = content[i].marks ?? [];
+				content[i] = {
+					...content[i],
+					marks: marks.map((mark) =>
+						mark.type === 'link' ? { ...mark, attrs: { ...mark.attrs, class: className } } : mark
+					)
+				};
+			}
+			const rest = (node.text ?? '').slice(match[0].length);
+			if (rest === '') continue;
+			node = { ...node, text: rest };
+		}
+		content.push(node);
+	}
+	return { ...doc, content };
+}
+
+/** Markdown crudo → documento de la VISTA PREVIA: `parse` del gestor del editor de vista previa y
+ *  después `applyLinkClassLists`. */
+export function parsePreviewMarkdown(markdown: string, manager: MarkdownManager): JSONContent {
+	return applyLinkClassLists(manager.parse(markdown));
+}
+
 /** Primer fragmento de HTML o destino peligroso de `markdown`, o `null` si es seguro. El MISMO
  *  lexer que monta el widget (mismas extensiones), sin `Editor` ni DOM: lo usan los caminos de
  *  guardado (`form/markdown-safety.ts`), que lo cargan perezosamente como el propio widget. */
