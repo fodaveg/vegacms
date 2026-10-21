@@ -680,6 +680,10 @@
 	 * plegada se despliega), y el foco va al primer campo con error QUE SE PINTA, con el resumen
 	 * (`editor.blocks.form.errorSummary`) anunciado como alerta. Un error de un campo que «Solo
 	 * textos» no pinta lo dice su propio banner (`hiddenErrorLabels`).
+	 *
+	 * El `import()` de `focus-target` puede resolverse una tarea después, cuando el error ya se ve:
+	 * si para entonces el foco se ha movido (quien edita saltó a otra sección con «Ir a sección»),
+	 * no se le roba — mismo criterio que `focusField` de `RecordForm`.
 	 */
 	async function revealFirstError(view: FieldErrorsView): Promise<void> {
 		onReveal();
@@ -687,7 +691,9 @@
 		const visible = new Set(visibleFieldNames);
 		const first = fieldOrder.find((name) => name in view.byField && visible.has(name));
 		if (!first || !rootEl) return;
+		const origin = document.activeElement;
 		const { resolveFocusTarget } = await import('./focus-target');
+		if (!rootEl || document.activeElement !== origin) return;
 		const target = resolveFocusTarget(rootEl, first, String(initialRecord.id));
 		target?.focus();
 		target?.scrollIntoView?.({ block: 'center' });
