@@ -336,7 +336,8 @@
 	let scheduleOpening = $state(false);
 	let scheduleRequest = 0;
 	import { describeScheduleControl, formatScheduleMoment } from './schedule';
-	import ConflictNotice from './ConflictNotice.svelte';
+	// Perezoso: el aviso solo se descarga si hay conflicto (ver `ConflictNoticeLoader.svelte`).
+	import ConflictNotice from './ConflictNoticeLoader.svelte';
 	import { classifyRecordSaveError, sendRecord } from './record-save';
 	import FormPublishControl from './FormPublishControl.svelte';
 	import { captureEditorIdentity, currentEditorIdentity } from './deferred-editor-identity';

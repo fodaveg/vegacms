@@ -809,7 +809,8 @@ describe('VisualEditorScreen.svelte', () => {
 
 		// Falló cerrado: el aviso de edición concurrente vive DENTRO de la sección, nada se escribió
 		// y el borrador sigue en el campo. Mismo `BlockEditor`, mismo contrato que la ficha ancha.
-		expect(second.querySelector('.vega-conflict')).not.toBeNull();
+		// El aviso se descarga al haber conflicto (`ConflictNoticeLoader.svelte`): se espera a él.
+		await vi.waitFor(() => expect(second.querySelector('.vega-conflict')).not.toBeNull());
 		expect(input.value).toBe('Mi titular');
 		expect((await port.get('post_block', 'b2')).values.heading).toBe('El titular de Ana');
 		// La barra lo dice con el error de guardado (lámina «edición en vivo»), que manda sobre el

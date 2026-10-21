@@ -91,7 +91,8 @@
 	import { diffRecordValues } from '$lib/revisions/diff';
 	import { threeWayDiff, toComparableValues, touchedBlockData } from './conflict';
 	import FieldRow from './FieldRow.svelte';
-	import ConflictNotice from './ConflictNotice.svelte';
+	// Perezoso: el aviso solo se descarga si hay conflicto (ver `ConflictNoticeLoader.svelte`).
+	import ConflictNotice from './ConflictNoticeLoader.svelte';
 
 	interface Props {
 		/** Tipo físico de la colección hija (p. ej. `landing_block`). */

@@ -1105,9 +1105,10 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 		await settle();
 		await settle();
 
-		// Falló cerrado: aviso en la ficha, nada escrito, el borrador intacto.
+		// Falló cerrado: aviso en la ficha, nada escrito, el borrador intacto. El aviso se descarga
+		// al haber conflicto (`ConflictNoticeLoader.svelte`): se espera a que esté, no a N microtareas.
+		await vi.waitFor(() => expect(row.querySelector('.vega-conflict')).not.toBeNull());
 		const notice = row.querySelector<HTMLElement>('.vega-conflict');
-		expect(notice).not.toBeNull();
 		expect(title.value).toBe('Portada mía');
 		expect((await mounted.port.get('landing_block', 'b1')).values.data).toMatchObject({
 			title: 'Portada inicial'
