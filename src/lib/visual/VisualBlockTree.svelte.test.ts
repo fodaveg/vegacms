@@ -373,8 +373,9 @@ describe('VisualBlockTree.svelte', () => {
 
 		const empty = fakeBlocksState({ records: [] });
 		mounted = mountTree(empty, null);
-		expect(mounted.target.querySelector('.vega-tree-notice')?.textContent).toContain(
-			'Todavía no hay'
+		// El rótulo del manifiesto («Bloques») va a mitad de frase: sin su mayúscula de título.
+		expect(mounted.target.querySelector('.vega-tree-notice')?.textContent?.trim()).toBe(
+			'Todavía no hay bloques.'
 		);
 	});
 

@@ -5,7 +5,23 @@
 
 import { beforeAll, describe, expect, test } from 'vitest';
 import { ensureLocaleLoaded, t as translate, type Locale } from '$lib/i18n';
-import { fieldDisplayLabel, statusValueLabel } from './default-labels';
+import { fieldDisplayLabel, labelInSentence, statusValueLabel } from './default-labels';
+
+describe('labelInSentence: un rótulo a mitad de frase', () => {
+	test('baja solo la mayúscula inicial de un rótulo de título', () => {
+		expect(labelInSentence('Secciones de página', 'es')).toBe('secciones de página');
+		expect(labelInSentence('Page sections', 'en')).toBe('page sections');
+		expect(labelInSentence('Écrans de Lyon', 'fr')).toBe('écrans de Lyon');
+	});
+
+	test('respeta siglas, minúsculas y rótulos de una letra', () => {
+		expect(labelInSentence('FAQ', 'es')).toBe('FAQ');
+		expect(labelInSentence('PDFs', 'en')).toBe('PDFs');
+		expect(labelInSentence('bloques', 'es')).toBe('bloques');
+		expect(labelInSentence('X', 'es')).toBe('X');
+		expect(labelInSentence('', 'es')).toBe('');
+	});
+});
 
 const tFor = (locale: Locale) => (key: string, params?: Record<string, string | number>) =>
 	translate(locale, key, params);

@@ -143,6 +143,7 @@
 	 * solo escritor" que `selectedBlockId` (ver la cabecera de `VisualEditorScreen.svelte`).
 	 */
 	import { getVegaContext } from '$lib/app-context';
+	import { labelInSentence } from '$lib/model/default-labels';
 	import Icon from '$lib/icons/Icon.svelte';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import { hasFileValues } from '$lib/revisions/restore';
@@ -399,7 +400,9 @@
 			<p class="vega-tree-notice" aria-live="polite">{ctx.t('common.loading')}</p>
 		{:else if blocks.records.length === 0}
 			<p class="vega-tree-notice">
-				{ctx.t('editor.blocks.empty', { label: blocks.childType?.label ?? headingText })}
+				{ctx.t('editor.blocks.empty', {
+					label: labelInSentence(blocks.childType?.label ?? headingText, ctx.locale)
+				})}
 			</p>
 		{:else}
 			<ul class="vega-tree-list">

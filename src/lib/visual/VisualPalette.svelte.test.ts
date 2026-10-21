@@ -199,6 +199,12 @@ describe('VisualPalette.svelte', () => {
 				el.querySelector('strong')?.textContent?.trim()
 			)
 		).toEqual(types.map((type) => type.label));
+		// El nombre se lee entero también si no cabe en la baldosa (QA de fodaveg, «Imagen co…»).
+		expect(
+			Array.from(mounted.target.querySelectorAll<HTMLElement>('.vega-palette-item')).map(
+				(el) => el.title
+			)
+		).toEqual(types.map((type) => type.label));
 	});
 
 	test('sin menú de tipos (modo homogéneo), no se pinta nada', () => {

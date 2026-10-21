@@ -172,6 +172,7 @@
 					draggable={!structuralGuard}
 					disabled={structuralGuard}
 					aria-describedby={blocks.anyDirty ? 'vega-palette-pending' : 'vega-palette-where'}
+					title={blockType.label}
 					ondragstart={(event) => handleDragStart(event, blockType)}
 					ondragend={onDragEnd}
 					onclick={() => void createAtEnd(blockType)}
@@ -297,11 +298,20 @@
 		max-width: 100%;
 	}
 
+	/* El nombre se lee ENTERO (QA de fodaveg, 21 oct 2026: «Entradas …», «Imagen co…»): hasta tres
+	   líneas, partiendo palabras con guion del idioma de la interfaz (`<html lang>`) solo si una no
+	   cabe en la baldosa. Un nombre aún más largo se recorta al final de la tercera línea y se lee
+	   completo en el `title` de la baldosa y en su nombre accesible. */
 	.vega-palette-copy strong {
-		font-weight: 500;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 3;
+		line-clamp: 3;
 		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		font-weight: 500;
+		line-height: 1.25;
+		hyphens: auto;
+		overflow-wrap: break-word;
 	}
 
 	/* La descripción no se pinta en la baldosa (lámina), pero sigue en su nombre accesible. */

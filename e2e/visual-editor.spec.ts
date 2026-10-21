@@ -424,9 +424,8 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 			'Tu contenido, en tu servidor'
 		);
 		await expect(page.locator('#vega-inspector-heading')).toHaveText('Texto');
-		await expect(page.locator('.vega-inspector-title small')).toHaveText(
-			'Sección 2 de 3 · seccion_2'
-		);
+		await expect(page.locator('.vega-inspector-title small')).toHaveText('Sección 2 de 3');
+		await expect(page.locator('.vega-inspector-title small')).toHaveAttribute('title', 'seccion_2');
 		await expect(headingInput(page)).toHaveValue('Tu contenido, en tu servidor');
 		// Aserción que el hallazgo original esquivaba (ver la cabecera de `headingInput`): el arreglo
 		// namespacea el id por `record.id` (`field-ids.ts`/`field-scope.ts`), así que con el SEGUNDO

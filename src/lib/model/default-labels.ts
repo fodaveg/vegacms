@@ -29,6 +29,22 @@ export function fieldDisplayLabel(
 }
 
 /**
+ * Un rótulo del manifiesto DENTRO de una frase («Todavía no hay {label}.»). El manifiesto lo
+ * escribe para ir solo, como título («Secciones de página»), y a mitad de frase esa mayúscula
+ * inicial es una errata (QA de fodaveg, 21 oct 2026). Se baja la PRIMERA letra y nada más: el resto
+ * del rótulo se respeta tal cual. Una sigla se deja como está (las dos primeras letras en
+ * mayúscula: «FAQ», «PDFs»), igual que un rótulo de una sola letra.
+ */
+export function labelInSentence(label: string, locale: string): string {
+	const [first, second] = Array.from(label);
+	if (first === undefined || second === undefined) return label;
+	const isUpper = (ch: string) =>
+		ch !== ch.toLocaleLowerCase(locale) && ch === ch.toLocaleUpperCase(locale);
+	if (!isUpper(first) || isUpper(second)) return label;
+	return first.toLocaleLowerCase(locale) + label.slice(first.length);
+}
+
+/**
  * Etiqueta visible de un valor del campo de estado: la del manifiesto (`statusLabels`), si no la
  * del catálogo para los valores convencionales (`status.value.<raw>`: `draft`, `published`) y,
  * por último, el valor crudo.

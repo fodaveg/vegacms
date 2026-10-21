@@ -335,6 +335,18 @@ describe('VisualInspector.svelte', () => {
 		expect(inspector.beginInline('b1', 'missing')).toBeNull();
 	});
 
+	test('la cabecera dice la posición sin el id crudo; el id queda en el title', () => {
+		const blocks = fakeBlocksState(
+			{ records: [record('b1', 'Hero'), record('b2', 'Features')] },
+			childType,
+			structuralFields
+		);
+		mounted = mountInspector(blocks, 'b2', fakeCtx(vi.fn()));
+		const position = mounted.target.querySelector<HTMLElement>('.vega-inspector-title small')!;
+		expect(position.textContent?.trim()).toBe('Sección 2 de 2');
+		expect(position.title).toBe('b2');
+	});
+
 	test('sin selección: estado vacío que dice qué hacer', () => {
 		const update = vi.fn();
 		const blocks = fakeBlocksState(

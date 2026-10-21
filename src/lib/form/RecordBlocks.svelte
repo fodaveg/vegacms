@@ -45,6 +45,7 @@
 	import type { RecordId } from '$lib/backend/types';
 	import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
 	import { getVegaContext } from '$lib/app-context';
+	import { labelInSentence } from '$lib/model/default-labels';
 	import type { PreviewDraftRecord } from '$lib/backend/preview-client';
 	import { createReorderDndController, dropIndicatorEdge } from '$lib/list/reorder-dnd';
 	import { hasFileValues } from '$lib/revisions/restore';
@@ -298,7 +299,10 @@
 		{:else if blocks.loading}
 			<p class="vega-blocks-notice" aria-live="polite">{ctx.t('common.loading')}</p>
 		{:else if blocks.records.length === 0}
-			<p class="vega-blocks-notice">{ctx.t('editor.blocks.empty', { label: type.label })}</p>
+			<!-- El rótulo va a mitad de frase: «Todavía no hay secciones de página.» -->
+			<p class="vega-blocks-notice">
+				{ctx.t('editor.blocks.empty', { label: labelInSentence(type.label, ctx.locale) })}
+			</p>
 		{:else}
 			<ul class="vega-blocks-list">
 				{#each blocks.records as record, i (record.id)}

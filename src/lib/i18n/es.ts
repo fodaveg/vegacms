@@ -2265,7 +2265,7 @@ export const es = {
 	'editor.visual.inline.typing': 'escribiendo en la página',
 	'editor.visual.inline.apply': 'aplicar',
 	'editor.visual.inline.cancel': 'cancelar',
-	'editor.visual.inspector.position': 'Sección {position} de {total} · {id}',
+	'editor.visual.inspector.position': 'Sección {position} de {total}',
 	'editor.visual.inspector.discard': 'Descartar',
 	'editor.visual.inspector.saveFailed': 'No se pudo guardar. Tus cambios siguen aquí.',
 	'editor.visual.bar.saveError': 'No se pudo guardar «{label}»',

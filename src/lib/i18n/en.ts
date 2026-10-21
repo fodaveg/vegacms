@@ -2163,7 +2163,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.inline.typing': 'typing in the page',
 	'editor.visual.inline.apply': 'apply',
 	'editor.visual.inline.cancel': 'cancel',
-	'editor.visual.inspector.position': 'Section {position} of {total} · {id}',
+	'editor.visual.inspector.position': 'Section {position} of {total}',
 	'editor.visual.inspector.discard': 'Discard',
 	'editor.visual.inspector.saveFailed': 'Could not save. Your changes are still here.',
 	'editor.visual.bar.saveError': 'Could not save «{label}»',

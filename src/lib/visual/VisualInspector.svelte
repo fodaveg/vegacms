@@ -124,6 +124,7 @@
 	 */
 	import { tick, type Snippet } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
+	import { labelInSentence } from '$lib/model/default-labels';
 	import BlockEditor from '$lib/form/BlockEditor.svelte';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
 	import { resolveFocusTarget } from '$lib/form/focus-target';
@@ -384,11 +385,12 @@
 				<h2 id="vega-inspector-heading" bind:this={headingEl} tabindex="-1">
 					{selectedType?.label ?? blocks.blockTitle(selectedRecord)}
 				</h2>
-				<small
+				<!-- Posición en la página, sin el id crudo (QA de fodaveg, 21 oct 2026: «Sección 1 de 1
+				     · a2xiakqxtua8tk4»); el id queda en el `title` para quien lo necesite. -->
+				<small title={selectedRecord.id}
 					>{ctx.t('editor.visual.inspector.position', {
 						position,
-						total: blocks.records.length,
-						id: selectedRecord.id
+						total: blocks.records.length
 					})}</small
 				>
 			</div>
@@ -433,7 +435,9 @@
 			</div>
 		{:else}
 			<p class="vega-inspector-notice">
-				{ctx.t('editor.blocks.empty', { label: blocks.childType?.label ?? '' })}
+				{ctx.t('editor.blocks.empty', {
+					label: labelInSentence(blocks.childType?.label ?? '', ctx.locale)
+				})}
 			</p>
 		{/if}
 	{:else if !texts && selectedRecord === null}
