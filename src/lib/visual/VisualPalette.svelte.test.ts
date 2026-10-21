@@ -54,6 +54,17 @@ const GALLERY_TYPE = {
 		}
 	]
 } as ResolvedBlockType;
+/** Relleno para pasar del umbral del buscador (más de 6 tipos): con menos, la paleta de la lámina
+ *  enseña solo las baldosas. Ninguno casa con las búsquedas de los tests. */
+const FILLER_TYPES = Array.from(
+	{ length: 6 },
+	(_, index) =>
+		({
+			...GALLERY_TYPE,
+			name: `relleno-${index}`,
+			label: `Relleno ${index + 1}`
+		}) as ResolvedBlockType
+);
 
 function record(id: string, heading: string): VegaRecord {
 	return { id, type: 'post_block', values: { heading } };
@@ -176,7 +187,13 @@ describe('VisualPalette.svelte', () => {
 		}));
 		mounted = mountPalette({ blocks: fakeBlocksState({ hasTypeMenu: true, blockTypes: types }) });
 		await tick();
-		expect(mounted.target.querySelector('h2')?.textContent).toBe('Añadir al final');
+		expect(mounted.target.querySelector('h2')?.textContent).toBe('Añadir sección');
+		// «al final» sigue diciéndose: es la descripción accesible de cada baldosa.
+		const where = mounted.target
+			.querySelector('.vega-palette-item')
+			?.getAttribute('aria-describedby')
+			?.split(' ')[0];
+		expect(where && document.getElementById(where)?.textContent?.trim()).toBe('Añadir al final');
 		expect(
 			Array.from(mounted.target.querySelectorAll('.vega-palette-item')).map((el) =>
 				el.querySelector('strong')?.textContent?.trim()
@@ -224,11 +241,19 @@ describe('VisualPalette.svelte', () => {
 		expect(items[1].querySelector('.vega-palette-fields')?.textContent).toBe('Imagen');
 	});
 
+	test('con pocos tipos no hay buscador: las baldosas ya se ven todas (lámina)', () => {
+		mounted = mountPalette({
+			blocks: fakeBlocksState({ hasTypeMenu: true, blockTypes: [HERO_TYPE, GALLERY_TYPE] })
+		});
+		expect(mounted.target.querySelector('input[type="search"]')).toBeNull();
+		expect(mounted.target.querySelectorAll('.vega-palette-item')).toHaveLength(2);
+	});
+
 	test('busca por tipo o campo declarado sin perder la acción de crear', async () => {
 		const handleCreate = vi.fn(async () => {});
 		const blocks = fakeBlocksState({
 			hasTypeMenu: true,
-			blockTypes: [HERO_TYPE, GALLERY_TYPE],
+			blockTypes: [HERO_TYPE, GALLERY_TYPE, ...FILLER_TYPES],
 			handleCreate
 		});
 		mounted = mountPalette({ blocks });
@@ -247,7 +272,7 @@ describe('VisualPalette.svelte', () => {
 
 	test('sin coincidencias muestra vacío y conserva el buscador', async () => {
 		mounted = mountPalette({
-			blocks: fakeBlocksState({ hasTypeMenu: true, blockTypes: [HERO_TYPE] })
+			blocks: fakeBlocksState({ hasTypeMenu: true, blockTypes: [HERO_TYPE, ...FILLER_TYPES] })
 		});
 		const search = mounted.target.querySelector<HTMLInputElement>('input[type="search"]')!;
 		search.value = 'galeria';
@@ -270,7 +295,10 @@ describe('VisualPalette.svelte', () => {
 			}))
 		};
 		mounted = mountPalette({
-			blocks: fakeBlocksState({ hasTypeMenu: true, blockTypes: [longType, GALLERY_TYPE] })
+			blocks: fakeBlocksState({
+				hasTypeMenu: true,
+				blockTypes: [longType, GALLERY_TYPE, ...FILLER_TYPES]
+			})
 		});
 		const search = mounted.target.querySelector<HTMLInputElement>('input[type="search"]')!;
 		search.value = 'campo 8';

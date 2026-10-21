@@ -151,6 +151,9 @@
 		/** El autor escribe en la ficha el campo que se está editando en la página (ver
 		 *  `BlockEditor#onInlineTakeover`): la pantalla cierra la sesión del puente. */
 		onInlineTakeover?: (blockId: string, field: string) => void;
+		/** Guardar de una ficha con una edición en línea abierta: `true` si la pantalla se encarga (pide
+		 *  al sitio el valor final y guarda al recibirlo, ver `BlockEditor#beforeSave`). */
+		interceptSave?: (blockId: string) => boolean;
 		fullFormHref?: string;
 	}
 
@@ -164,6 +167,7 @@
 		onClose,
 		onSelectBlock,
 		onInlineTakeover,
+		interceptSave,
 		fullFormHref
 	}: Props = $props();
 	const ctx = getVegaContext();
@@ -179,12 +183,21 @@
 	/** Ver cabecera, "Selección que no casa": distingue el id-fantasma de "nada elegido todavía". */
 	const danglingSelection = $derived(selectedId !== null && selectedRecord === null);
 
+	/** Fichas cuyo último guardado falló: el pie lo dice dentro de la ficha (lámina, «No se pudo
+	 *  guardar… Tus cambios siguen aquí»), además del aviso de la barra. */
+	let saveFailed = $state<Record<string, boolean>>({});
+
 	// ————— Handle `saveSelected()` (ver cabecera) —————
 	let editorRefs = $state<Record<string, InlineEditor | undefined>>({});
 
 	export function saveSelected(): void {
 		if (selectedId === null) return;
 		editorRefs[selectedId]?.save();
+	}
+
+	/** «Reintentar» del error de guardado de la barra: guarda ESA ficha aunque ya no esté abierta. */
+	export function saveBlock(id: string): void {
+		editorRefs[id]?.save();
 	}
 
 	/** «Descartar» del pie (lámina «edición en vivo»): vuelve la ficha seleccionada a lo guardado. */
@@ -307,6 +320,11 @@
 	     Descartar vuelve a lo guardado sin tocar el servidor. Va tras los campos en el DOM, igual
 	     que se ve: el orden de tabulación sigue a la presentación. -->
 	<footer class="vega-block-context vega-block-context--foot">
+		{#if saveFailed[id]}
+			<p class="vega-inspector-alert" role="alert">
+				<Icon id="generic" size={14} />{ctx.t('editor.visual.inspector.saveFailed')}
+			</p>
+		{/if}
 		{#if save}{@render save()}{/if}
 		{#if save}
 			<button
@@ -323,43 +341,13 @@
 	</footer>
 {/snippet}
 
-{#snippet blockHeader(name: string, state: string, save: Snippet | undefined, id: string)}
-	<header class="vega-block-context">
-		<div class="vega-block-context-name">
-			<h3 id="vega-texts-title-{id}" class="vega-block-context-title" title={name}>{name}</h3>
-			<p class="vega-block-context-state" role="status">{state}</p>
-		</div>
-		{#if texts}
-			{#if blocks.records.length > 1 && onSelectBlock}
-				<select
-					class="vega-texts-index"
-					aria-label={ctx.t('editor.visual.texts.jump')}
-					value={id}
-					onchange={(event) => {
-						const destination = event.currentTarget.value;
-						// Es navegación: al volver, esta cabecera sigue describiendo SU sección.
-						event.currentTarget.value = id;
-						onSelectBlock?.(destination);
-					}}
-				>
-					{#each blocks.records as item, index (item.id)}
-						<option value={item.id}
-							>{index + 1}/{blocks.records.length} · {sectionTitle(item)} — {blocks.blockTitle(
-								item
-							)}</option
-						>
-					{/each}
-				</select>
-			{:else}
-				<span class="vega-texts-single"
-					>{blocks.records.findIndex((item) => item.id === id) + 1}/{blocks.records.length} · {sectionTitle(
-						blocks.records.find((item) => item.id === id)!
-					)}</span
-				>
-			{/if}
-		{/if}
+{#snippet textsFooter(_name: string, state: string, save: Snippet | undefined)}
+	<!-- «Solo textos» (lámina, `.tcard .acts`): Guardar al pie de su tarjeta; el estado sigue para
+	     el lector de pantalla y la marca «sin guardar» va en la cabecera de la tarjeta. -->
+	<footer class="vega-block-context vega-block-context--texts">
 		{#if save}{@render save()}{/if}
-	</header>
+		<p class="vega-block-context-state" role="status">{state}</p>
+	</footer>
 {/snippet}
 
 <div
@@ -465,8 +453,48 @@
 				data-block-id={record.id}
 				tabindex="-1"
 			>
+				{#if texts}
+					<!-- Cabecera de la tarjeta (lámina, `.tcard .head`): icono y TIPO de la sección y la
+					     marca de «sin guardar»; el título del bloque queda como `title`. -->
+					<header class="vega-texts-head">
+						<span class="vega-texts-ic" aria-hidden="true"
+							><Icon id={blockType?.icon ?? 'document'} size={14} strokeWidth={1.6} /></span
+						>
+						<h3 id="vega-texts-title-{record.id}" title={blocks.blockTitle(record)}>
+							{sectionTitle(record)}
+						</h3>
+						{#if blocks.records.length > 1 && onSelectBlock}
+							<!-- Índice de secciones (ya existía en «Solo textos»; la lámina lo da por «igual»). -->
+							<select
+								class="vega-texts-index"
+								aria-label={ctx.t('editor.visual.texts.jump')}
+								value={record.id}
+								onchange={(event) => {
+									const destination = event.currentTarget.value;
+									// Es navegación: al volver, esta cabecera sigue describiendo SU sección.
+									event.currentTarget.value = record.id;
+									onSelectBlock?.(destination);
+								}}
+							>
+								{#each blocks.records as item, index (item.id)}
+									<option value={item.id}
+										>{index + 1}/{blocks.records.length} · {sectionTitle(item)} — {blocks.blockTitle(
+											item
+										)}</option
+									>
+								{/each}
+							</select>
+						{/if}
+						{#if blocks.isDirty(record.id)}<span class="vega-texts-dirty"
+								>{ctx.t('editor.dirty')}</span
+							>{/if}
+					</header>
+				{/if}
 				<BlockEditor
-					onSaveError={(failed) => onSaveError?.(record.id, failed)}
+					onSaveError={(failed) => {
+						saveFailed = { ...saveFailed, [record.id]: failed };
+						onSaveError?.(record.id, failed);
+					}}
 					bind:this={editorRefs[record.id]}
 					{childType}
 					{blockType}
@@ -485,9 +513,10 @@
 					onBusyChange={(saving) => blocks.setSaving(record.id, saving)}
 					textsOnly={texts}
 					{fullFormHref}
-					contextualHeader={texts ? blockHeader : blockFooter}
-					contextualPlacement={texts ? 'top' : 'bottom'}
+					contextualHeader={texts ? textsFooter : blockFooter}
+					contextualPlacement="bottom"
 					onInlineTakeover={(field) => onInlineTakeover?.(record.id, field)}
+					beforeSave={() => interceptSave?.(record.id) ?? false}
 					{locked}
 				/>
 			</section>
@@ -523,14 +552,16 @@
 		background: var(--surface);
 	}
 
+	/* El estado de la ficha ya lo pinta la barra (punto + texto): aquí queda para el lector de
+	   pantalla y el pie enseña solo el atajo, como la lámina. */
 	.vega-block-context--foot .vega-block-context-state {
-		flex: 1;
-		min-width: 0;
-		margin: 0;
-		text-align: right;
-		color: var(--ink-3);
-		font-family: var(--mono);
-		font-size: 11px;
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
 	}
 
 	.vega-block-context--foot :global(.vega-block-save-button) {
@@ -553,6 +584,25 @@
 		color: var(--ink-2);
 		box-shadow: none;
 		cursor: not-allowed;
+	}
+
+	/* Error al guardar dentro de la ficha (lámina, `.alert.err`): ocupa su propia línea del pie. */
+	.vega-inspector-alert {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		flex-basis: 100%;
+		margin: 0 0 var(--sp-2);
+		padding: 10px 12px;
+		border-radius: var(--r-sm);
+		background: var(--danger-soft);
+		color: var(--danger);
+		font-size: var(--fs-12);
+		line-height: 1.4;
+	}
+
+	.vega-block-context--foot {
+		flex-wrap: wrap;
 	}
 
 	.vega-inspector-discard {
@@ -585,6 +635,7 @@
 
 	.vega-inspector-shortcut {
 		flex-shrink: 0;
+		margin-left: auto;
 		color: var(--ink-3);
 		font-family: var(--mono);
 		font-size: 11px;
@@ -602,24 +653,6 @@
 		.vega-block-context {
 			padding-block: 0.25rem;
 		}
-	}
-
-	.vega-block-context-name {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.vega-block-context-title {
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-		overflow: hidden;
-		overflow-wrap: anywhere;
-		margin: 0;
-		color: var(--ink-hi);
-		font-size: 0.95em;
-		font-weight: 650;
 	}
 
 	.vega-block-context-state {
@@ -706,7 +739,7 @@
 		min-width: 0;
 	}
 
-	.vega-inspector-head--block h2 {
+	.vega-inspector-head.vega-inspector-head--block h2 {
 		font-family: var(--display);
 		font-size: var(--fs-17);
 		font-weight: 600;
@@ -763,27 +796,26 @@
 	/* Aviso informativo de la lámina (`.vega-admin-notice--info` de `admin.css`, que esta pantalla
 	   no carga): mismos tokens, misma caja. El título deja la versalita del inspector. */
 	.vega-inspector-head--texts {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		padding: 0.75rem 1rem;
-		border: 1px solid var(--info);
-		border-radius: var(--r);
-		background: var(--info-soft);
+		display: block;
+		padding: 0 2px;
+		border: 0;
+		background: transparent;
 	}
 
 	.vega-inspector-head--texts h2 {
-		font-size: 1em;
-		font-weight: 600;
+		display: inline;
+		font-size: var(--fs-13);
+		font-weight: 700;
 		letter-spacing: normal;
 		text-transform: none;
 		color: var(--ink-hi);
 	}
 
 	.vega-inspector-intro {
-		margin: 0;
-		color: var(--ink);
-		font-size: 0.88rem;
+		display: inline;
+		margin: 0 0 0 0.3em;
+		color: var(--ink-2);
+		font-size: var(--fs-13);
 	}
 
 	.vega-inspector-notice {
@@ -809,7 +841,17 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--gap-field);
-		padding: 0.9rem;
+		padding: 14px 16px 0;
+	}
+
+	/* En el inspector la ficha llena el panel y su pie (Guardar/Descartar) queda abajo del todo,
+	   pegado mientras los campos se desplazan (lámina, `.insp .acts`). */
+	.vega-inspector-body:not(.vega-inspector-body--texts) {
+		flex: 1 0 auto;
+	}
+
+	.vega-inspector-body:not(.vega-inspector-body--texts) > :global(.vega-block-fields) {
+		flex: 1 0 auto;
 	}
 
 	/* Tarjeta de sección en «solo textos» (lámina 8): `.vega-fsection` de `RecordForm.svelte`, los
@@ -818,34 +860,111 @@
 		gap: 0.75rem;
 		padding: var(--pad-card);
 		border: 1px solid var(--line);
-		border-radius: var(--r);
-		background: var(--paper);
+		border-radius: var(--r-md);
+		background: var(--surface);
 		box-shadow: var(--shadow-card);
 		min-width: 0;
 	}
 
+	/* Tarjeta de «Solo textos» (lámina, `.tcard`): cabecera con icono y tipo, Guardar al pie. */
+	.vega-texts-head {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin: calc(var(--pad-card) * -1) calc(var(--pad-card) * -1) 0;
+		padding: 12px 14px;
+		border-bottom: 1px solid var(--line-soft);
+	}
+
+	.vega-texts-ic {
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 28px;
+		height: 28px;
+		border-radius: 8px;
+		background: var(--accent-soft);
+		color: var(--accent-text);
+	}
+
+	.vega-texts-head h3 {
+		flex: 1;
+		min-width: 0;
+		margin: 0;
+		color: var(--ink-hi);
+		font-size: var(--fs-14);
+		font-weight: 600;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	/* Índice de secciones (ya existía en «Solo textos»): compacto, a la derecha de la cabecera. */
 	.vega-texts-index {
-		width: 5rem;
-		min-height: 44px;
-		flex-shrink: 0;
+		flex: none;
+		width: 4.5rem;
+		min-height: 30px;
+		padding: 0 6px;
 		border: 1px solid var(--line);
-		border-radius: var(--r);
+		border-radius: var(--r-pill);
 		background: var(--surface);
-		color: var(--ink);
+		color: var(--ink-2);
 		font: inherit;
-		font-size: 0.8em;
+		font-size: var(--fs-12);
 	}
 
 	.vega-texts-index:focus-visible {
-		outline: 2px solid var(--ink);
+		outline: 2px solid var(--ring);
 		outline-offset: 2px;
 	}
 
-	.vega-texts-single {
-		max-width: 5rem;
-		font-size: 0.75em;
-		color: var(--ink-2);
-		overflow-wrap: anywhere;
+	@media (pointer: coarse) {
+		.vega-texts-index {
+			min-height: 44px;
+		}
+	}
+
+	.vega-texts-dirty {
+		flex: none;
+		color: var(--warning);
+		font-size: 11px;
+	}
+
+	.vega-block-context--texts {
+		position: static;
+		padding: 0;
+		border: 0;
+		background: transparent;
+	}
+
+	.vega-block-context--texts .vega-block-context-state {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+	}
+
+	.vega-block-context--texts :global(.vega-block-save-button) {
+		min-width: 0;
+		min-height: 30px;
+		padding: 0 12px;
+		border: 1px solid var(--line);
+		border-radius: var(--r-pill);
+		background: var(--surface);
+		color: var(--ink-hi);
+		font: inherit;
+		font-size: var(--fs-12);
+		font-weight: 500;
+		cursor: pointer;
+	}
+
+	.vega-block-context--texts :global(.vega-block-save-button:not(:disabled)) {
+		border-color: transparent;
+		background: var(--accent-grad);
+		color: var(--accent-ink);
 	}
 
 	/* Página sin secciones (lámina 8.5): la caja de la antigua pantalla de salida de

@@ -548,6 +548,8 @@ export const es = {
 	// «900 px» del texto son el mismo punto de corte que `NARROW_QUERY` en `VisualEditorScreen`.
 	'editor.visual.insert.start': 'Añadir al principio',
 	'editor.visual.insert.end': 'Añadir al final',
+	'editor.visual.palette.title': 'Añadir sección',
+	'editor.visual.insert.menuTitle': 'Insertar en la posición {position} de {total}',
 	'editor.visual.paletteSearch.label': 'Buscar bloques',
 	'editor.visual.paletteSearch.placeholder': 'Buscar por tipo o campo',
 	'editor.visual.paletteSearch.empty': 'No hay bloques que coincidan.',
@@ -2256,6 +2258,11 @@ export const es = {
 	'editor.visual.inline.cancel': 'cancelar',
 	'editor.visual.inspector.position': 'Sección {position} de {total} · {id}',
 	'editor.visual.inspector.discard': 'Descartar',
+	'editor.visual.inspector.saveFailed': 'No se pudo guardar. Tus cambios siguen aquí.',
+	'editor.visual.bar.saveError': 'No se pudo guardar «{label}»',
+	'editor.visual.zoom.trigger': 'Anchura {width} px y zoom {percent} %: cambiar el zoom',
+	'editor.visual.openPreview': 'Abrir la vista previa',
+	'editor.visual.canvas.tokenTitle': 'No se pudo cargar la página del sitio',
 	'editor.visual.inspector.shortcut': 'Guardar con ⌘S o Ctrl+S',
 	'editor.visual.inline.save': 'Guardar bloque',
 	'editor.visual.inline.saveError':

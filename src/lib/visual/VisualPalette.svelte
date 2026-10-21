@@ -81,6 +81,9 @@
 
 	let { blocks, onStructuralChange, onDragStart, onDragEnd }: Props = $props();
 	const ctx = getVegaContext();
+	/** A partir de cuántos tipos aparece el buscador: con un vocabulario corto, las baldosas ya se ven
+	 *  todas de un vistazo (lámina «edición en vivo», `.palette`). */
+	const PALETTE_SEARCH_MIN = 6;
 	let search = $state('');
 
 	/** Solo el manifiesto alimenta el catálogo. Se busca por etiqueta y campos declarados, con
@@ -138,18 +141,24 @@
 {#if blocks.hasTypeMenu && !blocks.hidden}
 	<div class="vega-palette-panel" role="region" aria-labelledby="vega-palette-heading">
 		<div class="vega-palette-head">
-			<h2 id="vega-palette-heading">{ctx.t('editor.visual.insert.end')}</h2>
+			<h2 id="vega-palette-heading">{ctx.t('editor.visual.palette.title')}</h2>
 		</div>
-		<label class="vega-palette-search-label" for="vega-palette-search">
-			{ctx.t('editor.visual.paletteSearch.label')}
-		</label>
-		<input
-			id="vega-palette-search"
-			class="vega-palette-search"
-			type="search"
-			bind:value={search}
-			placeholder={ctx.t('editor.visual.paletteSearch.placeholder')}
-		/>
+		<!-- Dónde cae una baldosa pulsada: al final de la página (el «+» del lienzo elige posición). -->
+		<p class="vega-palette-sr" id="vega-palette-where">{ctx.t('editor.visual.insert.end')}</p>
+		{#if blocks.blockTypes.length > PALETTE_SEARCH_MIN}
+			<!-- Catálogo buscable (audit del 19 oct): solo cuando el vocabulario es largo; con pocos
+			     tipos la lámina «edición en vivo» enseña las baldosas sin buscador. -->
+			<label class="vega-palette-search-label" for="vega-palette-search">
+				{ctx.t('editor.visual.paletteSearch.label')}
+			</label>
+			<input
+				id="vega-palette-search"
+				class="vega-palette-search"
+				type="search"
+				bind:value={search}
+				placeholder={ctx.t('editor.visual.paletteSearch.placeholder')}
+			/>
+		{/if}
 		{#if blocks.anyDirty}
 			<p class="vega-palette-notice" id="vega-palette-pending">
 				{ctx.t('editor.visual.pending.palette')}
@@ -162,17 +171,17 @@
 					class="vega-palette-item"
 					draggable={!structuralGuard}
 					disabled={structuralGuard}
-					aria-describedby={blocks.anyDirty ? 'vega-palette-pending' : undefined}
+					aria-describedby={blocks.anyDirty ? 'vega-palette-pending' : 'vega-palette-where'}
 					ondragstart={(event) => handleDragStart(event, blockType)}
 					ondragend={onDragEnd}
 					onclick={() => void createAtEnd(blockType)}
 				>
 					<span class="vega-palette-icon" aria-hidden="true">
-						{#if blockType.icon}<Icon id={blockType.icon} size={18} />{/if}
+						<Icon id={blockType.icon ?? 'document'} size={18} strokeWidth={1.6} />
 					</span>
 					<span class="vega-palette-copy">
 						<strong>{blockType.label}</strong>
-						<span class="vega-palette-fields"
+						<span class="vega-palette-fields vega-palette-sr"
 							>{blockType.description ??
 								blockType.fields.map((field) => field.label).join(' · ')}</span
 						>
@@ -187,135 +196,135 @@
 {/if}
 
 <style>
+	/* Lámina «edición en vivo», `.palette`: «Añadir sección» con una baldosa por tipo (icono y
+	   nombre), arrastrable o pulsable. La descripción del tipo sigue en el nombre accesible. */
 	.vega-palette-panel {
 		display: flex;
 		flex-direction: column;
 		flex-shrink: 0;
-		border-bottom: 1px solid var(--line);
+		border-bottom: 1px solid var(--line-soft);
 	}
 
 	.vega-palette-head {
-		padding: 0.75rem 0.9rem 0.4rem;
+		padding: 14px 16px 8px;
 	}
 
 	.vega-palette-head h2 {
 		margin: 0;
-		font-size: 0.76em;
-		font-weight: 650;
-		letter-spacing: 0.09em;
+		color: var(--ink-3);
+		font-size: var(--fs-12);
+		font-weight: 600;
+		letter-spacing: 0.06em;
 		text-transform: uppercase;
-		color: var(--ink-2);
 	}
 
 	.vega-palette-notice {
 		margin: 0;
-		padding: 0 0.9rem 0.75rem;
-		color: var(--ink);
-		font-size: 0.8em;
+		padding: 0 16px 8px;
+		color: var(--ink-2);
+		font-size: var(--fs-12);
 		overflow-wrap: anywhere;
 	}
 
 	.vega-palette-search-label {
-		padding: 0 0.9rem 0.25rem;
-		font-size: 0.75rem;
-		font-weight: 600;
+		padding: 0 16px 4px;
 		color: var(--ink-2);
+		font-size: var(--fs-12);
+		font-weight: 600;
 	}
 
 	.vega-palette-search {
-		margin: 0 0.9rem 0.65rem;
-		min-height: 2.75rem;
-		padding: 0.5rem 0.65rem;
+		margin: 0 12px 8px;
+		min-height: 34px;
+		padding: 0 12px;
 		border: 1px solid var(--line);
-		border-radius: var(--r);
+		border-radius: var(--r-sm);
 		background: var(--surface);
 		color: var(--ink);
 		font: inherit;
+		font-size: var(--fs-13);
 	}
 
 	.vega-palette-search:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--ring);
 		outline-offset: 2px;
 	}
 
 	.vega-palette-list {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr);
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		grid-auto-rows: max-content;
 		align-content: start;
-		gap: 0.4rem;
-		padding: 0 0.9rem 0.75rem;
+		gap: 6px;
+		padding: 0 12px 12px;
 		max-height: 18rem;
 		overflow-y: auto;
 	}
 
 	.vega-palette-item {
 		display: flex;
-		align-items: flex-start;
-		gap: 0.65rem;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
 		min-width: 0;
-		min-height: 3.25rem;
-		padding: 0.55rem 0.65rem;
-		border: 1px solid var(--line);
-		border-radius: var(--r);
-		background: var(--surface);
-		color: var(--ink);
+		padding: 10px 6px;
+		border: 1px dashed var(--line-strong);
+		border-radius: var(--r-sm);
+		background: transparent;
+		color: var(--ink-2);
 		font: inherit;
-		text-align: left;
-		overflow: hidden;
+		font-size: 11px;
+		font-weight: 500;
+		text-align: center;
 		cursor: grab;
 	}
 
-	.vega-palette-icon {
-		display: grid;
-		place-items: center;
-		flex: 0 0 2rem;
-		min-height: 2rem;
-		border-radius: calc(var(--r) / 2);
-		background: var(--paper);
+	.vega-palette-item:hover:not(:disabled) {
+		border-style: solid;
+		border-color: var(--accent-line);
+		background: var(--accent-soft);
 		color: var(--accent-text);
+	}
+
+	.vega-palette-icon {
+		display: inline-flex;
 	}
 
 	.vega-palette-copy {
 		display: flex;
 		flex-direction: column;
-		gap: 0.15rem;
 		min-width: 0;
-		overflow: hidden;
+		max-width: 100%;
 	}
 
 	.vega-palette-copy strong {
-		font-size: 0.82rem;
-		font-weight: 600;
-		overflow-wrap: anywhere;
+		font-weight: 500;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
-	.vega-palette-fields {
-		color: var(--ink-2);
-		font-size: 0.74rem;
-		line-height: 1.3;
-		max-height: 2.6em;
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
+	/* La descripción no se pinta en la baldosa (lámina), pero sigue en su nombre accesible. */
+	.vega-palette-sr {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
 		overflow: hidden;
-		overflow-wrap: anywhere;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
 	}
 
 	.vega-palette-empty {
+		grid-column: 1 / -1;
 		margin: 0;
 		padding: 0.65rem;
 		color: var(--ink-2);
-		font-size: 0.8rem;
-	}
-
-	.vega-palette-item:hover:not(:disabled) {
-		border-color: var(--line-strong);
+		font-size: var(--fs-12);
 	}
 
 	.vega-palette-item:focus-visible {
-		outline: 2px solid var(--ink);
+		outline: 2px solid var(--ring);
 		outline-offset: 2px;
 	}
 
@@ -327,7 +336,8 @@
 	/* Objetivo táctil 44×44 (checklist de accesibilidad, ver `scripts/check-touch-targets.mjs`): con
 	   ratón/trackpad el tamaño de contenido + padding ya basta. */
 	@media (pointer: coarse) {
-		.vega-palette-item {
+		.vega-palette-item,
+		.vega-palette-search {
 			min-height: 44px;
 		}
 	}

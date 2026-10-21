@@ -821,7 +821,8 @@ async function flush(): Promise<void> {
 async function openStructure(target: HTMLElement, expectedRows: number): Promise<void> {
 	const toggle = target.querySelector<HTMLButtonElement>('.vega-visual-panel-toggle--tree');
 	expect(toggle).not.toBeNull();
-	toggle!.click();
+	// Lámina «edición en vivo»: en escritorio ancho la estructura ya se ve al entrar.
+	if (toggle!.getAttribute('aria-expanded') !== 'true') toggle!.click();
 	await tick();
 	expect(toggle!.getAttribute('aria-expanded')).toBe('true');
 	await vi.waitFor(() => {

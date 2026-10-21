@@ -733,9 +733,10 @@ describe('VisualOverlay.svelte', () => {
 		const trigger = mounted.target.querySelector<HTMLButtonElement>('.vega-visual-overlay-insert')!;
 		trigger.click();
 		await tick();
-		expect(mounted.target.querySelector('[role="menu"]')?.textContent).toContain(
-			'Añadir al principio'
-		);
+		// Lámina: el menú se titula con la posición; el destino sigue en su nombre accesible.
+		const menu = mounted.target.querySelector('[role="menu"]');
+		expect(menu?.getAttribute('aria-label')).toContain('Añadir al principio');
+		expect(menu?.textContent).toContain('Insertar en la posición 1 de 2');
 		expect(document.activeElement?.getAttribute('role')).toBe('menuitem');
 		state.anyDirty = true;
 		await tick();

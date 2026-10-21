@@ -22,19 +22,18 @@ export interface VisualColumnWidths {
  *  encima de `TREE_MAX_WIDTH` la lista deja de aportar más que el lienzo que le quita. */
 export const TREE_MIN_WIDTH = 220;
 export const TREE_MAX_WIDTH = 480;
-/** El ancho fijo de antes de este encargo (`VisualEditorScreen.svelte`, `280px`). */
-export const TREE_DEFAULT_WIDTH = 280;
+/** Ancho de partida del panel izquierdo de la lámina «edición en vivo» (`.edbody`, 264 px). */
+export const TREE_DEFAULT_WIDTH = 264;
 
 /** Mismo criterio para el inspector (columna derecha): por debajo de `INSPECTOR_MIN_WIDTH` un
  *  campo de texto normal ya no tiene sitio para escribir; por encima de `INSPECTOR_MAX_WIDTH`
  *  empieza a comerse el lienzo. */
 export const INSPECTOR_MIN_WIDTH = 260;
 export const INSPECTOR_MAX_WIDTH = 520;
-/** El ancho fijo de antes de este encargo (`VisualEditorScreen.svelte`, `320px`). */
-export const INSPECTOR_DEFAULT_WIDTH = 320;
+/** Ancho de partida del inspector de la lámina «edición en vivo» (`.edbody`, 340 px). */
+export const INSPECTOR_DEFAULT_WIDTH = 340;
 
-/** Anchos de partida: los mismos valores fijos que tenía el grid antes de este encargo, así que
- *  quien no toca nunca las manillas ve exactamente la pantalla de siempre. */
+/** Anchos de partida: los de la lámina; quien no toca nunca las manillas ve esa pantalla. */
 export const DEFAULT_COLUMN_WIDTHS: VisualColumnWidths = {
 	tree: TREE_DEFAULT_WIDTH,
 	inspector: INSPECTOR_DEFAULT_WIDTH

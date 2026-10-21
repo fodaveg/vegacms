@@ -516,6 +516,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// "Text only" mode (batch 12, sheet 8), see `es.ts` for the full rationale.
 	'editor.visual.insert.start': 'Add at the start',
 	'editor.visual.insert.end': 'Add at the end',
+	'editor.visual.palette.title': 'Add a section',
+	'editor.visual.insert.menuTitle': 'Insert at position {position} of {total}',
 	'editor.visual.paletteSearch.label': 'Search blocks',
 	'editor.visual.paletteSearch.placeholder': 'Search by type or field',
 	'editor.visual.paletteSearch.empty': 'No matching blocks.',
@@ -2154,6 +2156,11 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.inline.cancel': 'cancel',
 	'editor.visual.inspector.position': 'Section {position} of {total} · {id}',
 	'editor.visual.inspector.discard': 'Discard',
+	'editor.visual.inspector.saveFailed': 'Could not save. Your changes are still here.',
+	'editor.visual.bar.saveError': 'Could not save «{label}»',
+	'editor.visual.zoom.trigger': 'Width {width} px and zoom {percent} %: change the zoom',
+	'editor.visual.openPreview': 'Open the preview',
+	'editor.visual.canvas.tokenTitle': 'The site page could not be loaded',
 	'editor.visual.inspector.shortcut': 'Save with ⌘S or Ctrl+S',
 	'editor.visual.inline.save': 'Save block',
 	'editor.visual.inline.saveError':

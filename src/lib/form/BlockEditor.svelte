@@ -130,6 +130,9 @@
 		 *  inspector visual lo usa como pie con Guardar/Descartar, lámina «edición en vivo»). Mismo
 		 *  snippet y mismo orden de foco que se ve: el DOM sigue a la presentación. */
 		contextualPlacement?: 'top' | 'bottom';
+		/** Antes de guardar: `true` = otro dueño lo resuelve (el editor visual espera el valor final de
+		 *  una edición en línea abierta y guarda él al recibirlo). Sin él, guarda como siempre. */
+		beforeSave?: () => boolean;
 	}
 
 	let {
@@ -152,7 +155,8 @@
 		contextualHeader,
 		fullFormHref,
 		onInlineTakeover = () => {},
-		contextualPlacement = 'top'
+		contextualPlacement = 'top',
+		beforeSave
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -589,6 +593,7 @@
 
 	async function handleSave(): Promise<void> {
 		if (saving || disabled || invalidData || (typed && blockType === null) || !dirty) return;
+		if (beforeSave?.()) return;
 
 		onSaveError(false);
 		const clientView = typed ? validateTypedForm() : validateForm(childType, current);

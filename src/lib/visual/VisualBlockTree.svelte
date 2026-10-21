@@ -170,6 +170,8 @@
 		 *  solo hace de tubería. */
 		onPaletteDragStart: (blockType: ResolvedBlockType) => void;
 		onPaletteDragEnd: () => void;
+		/** Pie del panel (lámina, «Conectado al sitio: 3 bloques en la página.»), o `null` sin puente. */
+		connectedText?: string | null;
 		/** El puntero o el foco entró en la fila de ese bloque, o salió de ella (`null`). Solo
 		 *  RESALTA, nunca selecciona (ver cabecera, "Pasar por una fila"). Opcional: sin él, las
 		 *  filas no resaltan nada, como antes. */
@@ -184,7 +186,8 @@
 		onStructuralChange,
 		onPaletteDragStart,
 		onPaletteDragEnd,
-		onHover
+		onHover,
+		connectedText = null
 	}: Props = $props();
 	const ctx = getVegaContext();
 
@@ -429,34 +432,38 @@
 							)}
 							onclick={() => selectRow(record.id)}
 						>
-							{#if blocks.hasTypeColumn}
-								{#if blockType}
-									<span class="vega-tree-type">
-										{#if blockType.icon}<Icon id={blockType.icon} size={12} />{/if}
-										{blockType.label}
-									</span>
-								{:else if rawType}
-									<span class="vega-tree-type vega-tree-type--unknown">
-										{ctx.t('editor.blocks.type.unknown', { name: rawType })}
-									</span>
-								{:else}
-									<span class="vega-tree-type vega-tree-type--none">
-										{ctx.t('editor.blocks.type.none')}
-									</span>
-								{/if}
-							{/if}
-							<span class="vega-tree-title">{title}</span>
+							<!-- Fila de la lámina («edición en vivo», `.trow`): icono del tipo en baldosa,
+							     título y debajo el TIPO con su estado; la marca «No pública» a la derecha. -->
+							<span class="vega-tree-ic" aria-hidden="true"
+								><Icon id={blockType?.icon ?? 'document'} size={15} strokeWidth={1.6} /></span
+							>
+							<span class="vega-tree-tx">
+								<span class="vega-tree-title">{title}</span>
+								<small class="vega-tree-sub">
+									{#if blocks.hasTypeColumn}
+										{#if blockType}
+											<span class="vega-tree-type">{blockType.label}</span>
+										{:else if rawType}
+											<span class="vega-tree-type vega-tree-type--unknown">
+												{ctx.t('editor.blocks.type.unknown', { name: rawType })}
+											</span>
+										{:else}
+											<span class="vega-tree-type vega-tree-type--none">
+												{ctx.t('editor.blocks.type.none')}
+											</span>
+										{/if}
+									{/if}
+									{#if blocks.isSaving(record.id)}
+										<span class="vega-tree-saving">{ctx.t('editor.saving')}</span>
+									{:else if blocks.isDirty(record.id)}
+										<span class="vega-tree-dirty">{ctx.t('editor.dirty')}</span>
+									{/if}
+								</small>
+							</span>
 							{#if unpublished}
 								<!-- Texto visible, no solo color (ver cabecera, "Secciones NO públicas"). El
 								     nombre accesible ya lo dice en el `aria-label` del botón. -->
 								<span class="vega-tree-unpublished">{ctx.t('editor.visual.unpublished')}</span>
-							{/if}
-							{#if blocks.isSaving(record.id)}
-								<span class="vega-tree-saving">{ctx.t('editor.saving')}</span>
-							{:else if blocks.isDirty(record.id)}
-								<span class="vega-tree-dirty" title={ctx.t('editor.dirty')}>
-									<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
-								</span>
 							{/if}
 						</button>
 
@@ -466,7 +473,7 @@
 							{#if blocks.blockDuplicateAllowed}
 								<button
 									type="button"
-									class="vega-tree-action"
+									class="vega-tree-action vega-tree-action--secondary"
 									disabled={structuralGuard}
 									aria-label={ctx.t('editor.blocks.duplicateLabel', { label: title })}
 									onclick={() => void duplicateBlock(record)}
@@ -481,9 +488,7 @@
 								aria-label={ctx.t('editor.blocks.moveUpLabel', { label: title })}
 								onclick={() => void moveBlock(i, i - 1)}
 							>
-								<span class="vega-tree-action-icon vega-tree-action-icon--up">
-									<Icon id="chevron" size={14} />
-								</span>
+								<Icon id="arrow-up" size={14} strokeWidth={1.6} />
 							</button>
 							<button
 								type="button"
@@ -492,13 +497,11 @@
 								aria-label={ctx.t('editor.blocks.moveDownLabel', { label: title })}
 								onclick={() => void moveBlock(i, i + 1)}
 							>
-								<span class="vega-tree-action-icon vega-tree-action-icon--down">
-									<Icon id="chevron" size={14} />
-								</span>
+								<Icon id="arrow-down" size={14} strokeWidth={1.6} />
 							</button>
 							<button
 								type="button"
-								class="vega-tree-action vega-tree-action--danger"
+								class="vega-tree-action vega-tree-action--secondary vega-tree-action--danger"
 								disabled={blocks.anySaving || blocks.structuralBusy}
 								aria-label={ctx.t('list.delete.rowButtonLabel', { label: title })}
 								onclick={() => blocks.requestDelete(record)}
@@ -511,6 +514,7 @@
 			</ul>
 		{/if}
 	</div>
+	{#if connectedText}<p class="vega-tree-foot">{connectedText}</p>{/if}
 </div>
 
 <!-- `targetCollection`/`targetId` (`#lote-integridad`, Fase A): el bloque a borrar es un registro
@@ -543,28 +547,24 @@
 		display: none;
 	}
 
-	/* Columna normal, en flujo: llena la celda de la rejilla (`.vega-visual-grid--tree` de
-	   `VisualEditorScreen.svelte`) tanto en anchura como en alto — sin `position: sticky`, porque
-	   esa rejilla ya ocupa el hueco EXACTO del viewport (a diferencia de `.vega-editor-grid` de
-	   `RecordForm.svelte`, que sí hace scroll de página): "pegajoso" no pinta nada aquí, `stretch`
-	   (el `align-items` por defecto de la rejilla) ya reparte el alto entero. */
+	/* Panel de cristal (lámina «edición en vivo», `.pane`): llena la celda de la rejilla
+	   (`.vega-visual-grid--tree` de `VisualEditorScreen.svelte`) en ancho y alto, sin `sticky`. */
 	.vega-tree-panel {
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
 		min-height: 0;
 		border: 1px solid var(--line);
-		border-radius: var(--r);
-		background: var(--paper);
+		border-radius: var(--r-md);
+		background: var(--glass);
+		backdrop-filter: blur(18px);
+		-webkit-backdrop-filter: blur(18px);
 		box-shadow: var(--shadow-card);
 		overflow: hidden;
 	}
 
-	/* Región de las SECCIONES (ver cabecera, "La paleta se instancia DENTRO..."): antes era
-	   `.vega-tree-panel` la que llevaba `role="region"` y ocupaba ella misma todo el alto
-	   disponible; ahora es una de DOS hermanas dentro de él (la otra es `.vega-palette-panel` de
-	   `VisualPalette.svelte`, con `flex-shrink: 0`), así que esta es la que crece para llenar el
-	   resto — mismo criterio de columna flexible que tenía `.vega-tree-panel` antes de esta tarea. */
+	/* Región de las SECCIONES: una de DOS hermanas dentro del panel (la otra es la paleta, con
+	   `flex-shrink: 0`), así que es esta la que crece para llenar el resto. */
 	.vega-tree-region {
 		display: flex;
 		flex-direction: column;
@@ -579,53 +579,51 @@
 		justify-content: space-between;
 		gap: 0.5rem;
 		flex-shrink: 0;
-		padding: 0.75rem 0.9rem;
-		border-bottom: 1px solid var(--line);
+		padding: 14px 16px 8px;
 	}
 
 	.vega-tree-head h2 {
 		display: flex;
 		align-items: baseline;
-		gap: 0.5rem;
+		gap: 6px;
 		margin: 0;
-		font-size: 0.76em;
-		font-weight: 650;
-		letter-spacing: 0.09em;
+		color: var(--ink-3);
+		font-size: var(--fs-12);
+		font-weight: 600;
+		letter-spacing: 0.06em;
 		text-transform: uppercase;
-		color: var(--ink-2);
 		overflow-wrap: anywhere;
 	}
 
 	.vega-tree-count {
+		color: var(--ink-2);
 		font-family: var(--mono);
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
-		color: var(--ink-2);
+		letter-spacing: 0;
 	}
 
-	/* Botón "Añadir" simple (modo homogéneo, sin menú de tipos — ver cabecera, decisión 1: con menú
-	   de tipos este botón se retira y la paleta ocupa su lugar): mismo lenguaje visual que
-	   `.vega-blocks-add*` de `RecordBlocks.svelte` (ver su cabecera), solo con el prefijo
-	   `vega-tree-` de este fichero. */
+	/* Botón "Añadir" simple (modo homogéneo, sin menú de tipos): con menú, la paleta ocupa su lugar. */
 	.vega-tree-add {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
 		flex-shrink: 0;
-		height: 32px;
-		padding: 0 0.7rem;
+		height: 30px;
+		padding: 0 12px;
 		border: 1px solid var(--line);
-		border-radius: var(--r);
-		background: var(--btn);
+		border-radius: var(--r-pill);
+		background: var(--surface);
 		color: var(--ink);
 		font: inherit;
-		font-size: 0.78em;
-		font-weight: 600;
+		font-size: var(--fs-12);
+		font-weight: 500;
 		cursor: pointer;
 	}
 
 	.vega-tree-add:hover:not(:disabled) {
 		border-color: var(--line-strong);
+		background: var(--btn);
 	}
 
 	.vega-tree-add:disabled {
@@ -633,8 +631,7 @@
 		opacity: 0.5;
 	}
 
-	/* Solo tiene sentido dentro del cajón (ver cabecera): en escritorio el panel nunca se cierra
-	   desde dentro, no hay razón para ofrecer el control. */
+	/* Solo tiene sentido dentro del cajón (ver cabecera). */
 	.vega-tree-close {
 		display: none;
 	}
@@ -643,10 +640,10 @@
 		margin: 0.75rem;
 		padding: 0.6rem 0.8rem;
 		border: 1px solid var(--line);
-		border-radius: 6px;
-		background: var(--surface-2);
+		border-radius: var(--r-sm);
+		background: var(--surface);
 		color: var(--ink-2);
-		font-size: 0.85rem;
+		font-size: var(--fs-13);
 	}
 
 	.vega-tree-list {
@@ -654,17 +651,27 @@
 		flex-direction: column;
 		gap: 2px;
 		margin: 0;
-		padding: 0.5rem;
+		padding: 8px;
+		list-style: none;
 		overflow-y: auto;
 	}
 
-	/* Fila = botón de selección (crece) + acciones (ancho fijo), lado a lado — antes de esta tarea
-	   `<li>` contenía solo el botón de selección a ancho completo. */
+	/* Pie del panel (lámina `.pane .foot`): el estado de la conexión con el sitio. */
+	.vega-tree-foot {
+		margin: auto 0 0;
+		padding: 10px 16px;
+		border-top: 1px solid var(--line-soft);
+		color: var(--ink-3);
+		font-size: 11px;
+	}
+
+	/* Fila (lámina `.trow`): las acciones de la fila flotan a su derecha, visibles en la
+	   seleccionada y al pasar o enfocar; ocultas no ocupan sitio ni foco. */
 	.vega-tree-item {
+		position: relative;
 		display: flex;
-		align-items: center;
-		gap: 0.25rem;
 		width: 100%;
+		min-width: 0;
 	}
 
 	.vega-tree-row {
@@ -672,142 +679,165 @@
 		align-items: center;
 		flex: 1;
 		min-width: 0;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-		min-height: 2.5rem;
-		padding: 0.4rem 0.6rem;
+		gap: 10px;
+		min-height: 44px;
+		padding: 6px 10px;
 		border: 1px solid transparent;
-		border-radius: 6px;
+		border-radius: var(--r-sm);
 		background: transparent;
-		color: var(--ink);
+		color: var(--ink-hi);
 		font: inherit;
 		text-align: left;
 		cursor: pointer;
 	}
 
 	.vega-tree-row:hover {
-		background: var(--active);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
 	}
 
 	.vega-tree-row:focus-visible {
-		outline: 2px solid var(--ink);
+		outline: 2px solid var(--ring);
 		outline-offset: 2px;
 	}
 
-	/* Mismo lenguaje visual que el item de nav activo (`Sidebar.svelte`, `[aria-current='page']`):
-	   fondo + tinta de acento, sin trazo lateral. */
+	/* Seleccionada = el mismo anillo que la tarjeta «Continuar» de Inicio (lámina, nota 4). */
 	.vega-tree-row--selected {
+		border-color: var(--accent-line);
+		background: var(--surface);
+		box-shadow: 0 0 0 3px var(--accent-soft);
+	}
+
+	.vega-tree-ic {
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 28px;
+		height: 28px;
+		border-radius: 8px;
+		background: var(--btn);
+		color: var(--ink-2);
+	}
+
+	.vega-tree-row--selected .vega-tree-ic {
 		background: var(--accent-soft);
 		color: var(--accent-text);
-		font-weight: 600;
 	}
 
-	.vega-tree-type {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.3rem;
-		flex-shrink: 0;
-		padding: 0.1rem 0.4rem;
-		border: 1px solid var(--line);
-		border-radius: 999px;
-		background: var(--surface);
-		color: var(--ink);
-		font-size: 0.7em;
-		font-weight: 600;
-		letter-spacing: 0.02em;
-	}
-
-	.vega-tree-type--none {
-		border-style: dashed;
-		opacity: 0.75;
-		font-weight: 500;
-	}
-
-	.vega-tree-type--unknown {
-		border-color: var(--warning);
-		color: var(--warning);
-		font-family: var(--mono);
-		font-weight: 500;
-	}
-
-	/* `min-width` en `ch`, no `0`, y ese es TODO el arreglo del título que salía cortado a «Esc…».
-	   La fila ya llevaba `flex-wrap: wrap` para esto, pero no servía de nada: con `min-width: 0` el
-	   título puede encogerse hasta cero, así que nunca deja de caber y por tanto nunca envuelve —
-	   se comprimía contra la insignia de tipo hasta quedar en tres letras y un puntito. Con un
-	   mínimo legible, cuando insignia y título no caben juntos el título se va ENTERO a la línea de
-	   abajo, que es lo que ya hacía falta desde que las secciones tienen tipo (antes no había
-	   insignia porque no había vocabulario, así que el título tenía la fila para él solo).
-	   La elipsis se queda para el caso de un título largo de verdad, que ninguna anchura arregla. */
-	.vega-tree-title {
+	.vega-tree-tx {
+		display: flex;
+		flex-direction: column;
 		flex: 1;
-		min-width: 14ch;
+		min-width: 0;
+	}
+
+	.vega-tree-title {
 		overflow: hidden;
+		font-size: var(--fs-13);
+		font-weight: 500;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
-	.vega-tree-dirty {
-		flex-shrink: 0;
-		display: inline-block;
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		background: var(--warning);
+	.vega-tree-sub {
 		overflow: hidden;
+		color: var(--ink-3);
+		font-size: 11px;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.vega-tree-type--none {
+		font-style: italic;
+	}
+
+	.vega-tree-type--unknown {
+		color: var(--warning);
+		font-family: var(--mono);
+	}
+
+	/* Separador del subtítulo (lámina, «Texto · sin guardar»): decorativo, fuera del texto. */
+	.vega-tree-sub .vega-tree-type + :is(.vega-tree-dirty, .vega-tree-saving)::before {
+		content: '· ';
+		color: var(--ink-3);
+	}
+
+	.vega-tree-dirty {
+		color: var(--warning);
 	}
 
 	.vega-tree-saving {
-		flex-shrink: 0;
 		color: var(--ink-2);
-		font-size: 0.72em;
 	}
 
-	/* Insignia "No pública" (ver cabecera): par `info`/`info-soft`, medido ≥4.5:1 en
-	   `COMPONENT_CONTRAST_PAIRS` (`scripts/build-themes.mjs`), y distinto del `warning` que ya
-	   marca un tipo desconocido — no es un error, es un estado del contenido. Mismo corte de
-	   píldora que `.vega-tree-type` para que se lea como una etiqueta, no como el título. */
+	/* Insignia "No pública" (ver cabecera): par `info`/`info-soft`, distinto del `warning` que ya
+	   marca un tipo desconocido — no es un error, es un estado del contenido. */
 	.vega-tree-unpublished {
-		flex-shrink: 0;
-		padding: 0.1rem 0.4rem;
-		border-radius: 999px;
+		flex: none;
+		padding: 1px 6px;
+		border-radius: var(--r-pill);
 		background: var(--info-soft);
 		color: var(--info);
-		font-size: 0.7em;
+		font-size: 10px;
 		font-weight: 600;
 		white-space: nowrap;
 	}
 
-	/* Acciones de fila (duplicar/subir/bajar/borrar): iconos-solo, mismo tamaño de objetivo que el
-	   asa de arrastre de `RecordBlocks.svelte` (`.vega-block-handle`) — icono decorativo, el nombre
-	   accesible lo lleva el propio `<button>` (`aria-label`), nunca el `title` de `Icon`. */
 	.vega-tree-actions {
-		display: flex;
+		position: absolute;
+		top: 50%;
+		right: 6px;
+		display: none;
 		align-items: center;
-		gap: 0.15rem;
-		flex-shrink: 0;
+		gap: 2px;
+		padding-left: 4px;
+		border-radius: var(--r-sm);
+		background: var(--surface);
+		transform: translateY(-50%);
+	}
+
+	/* La fila deja sitio a las acciones visibles para que no tapen el título. */
+	.vega-tree-item:has(.vega-tree-row--selected) .vega-tree-row {
+		padding-right: 66px;
+	}
+
+	.vega-tree-item:is(:hover, :focus-within) .vega-tree-row {
+		padding-right: 122px;
+	}
+
+	.vega-tree-item:hover .vega-tree-actions,
+	.vega-tree-item:focus-within .vega-tree-actions,
+	.vega-tree-item:has(.vega-tree-row--selected) .vega-tree-actions {
+		display: flex;
+	}
+
+	/* En la fila seleccionada en reposo, solo subir/bajar (lámina); duplicar y borrar aparecen al
+	   pasar o al enfocar la fila, y siguen en la barra flotante del lienzo. */
+	.vega-tree-item:not(:hover):not(:focus-within) .vega-tree-action--secondary {
+		display: none;
 	}
 
 	.vega-tree-action {
-		flex-shrink: 0;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 1.6rem;
-		height: 1.6rem;
+		flex-shrink: 0;
+		width: 26px;
+		height: 26px;
 		border: 0;
 		border-radius: 6px;
 		background: transparent;
-		color: var(--ink-2);
+		color: var(--ink-3);
 		cursor: pointer;
 	}
 
 	.vega-tree-action:hover:not(:disabled) {
-		background: var(--active);
-		color: var(--ink);
+		background: var(--btn);
+		color: var(--ink-hi);
 	}
 
 	.vega-tree-action:focus-visible {
-		outline: 2px solid var(--ink);
+		outline: 2px solid var(--ring);
 		outline-offset: 2px;
 	}
 
@@ -819,20 +849,6 @@
 	.vega-tree-action--danger:hover:not(:disabled) {
 		background: var(--danger-soft);
 		color: var(--danger);
-	}
-
-	/* El set de iconos apunta a la derecha (mismo motivo que `.vega-block-chevron` de
-	   `RecordBlocks.svelte`): rotado -90°/90° da arriba/abajo sin dibujar dos glifos nuevos. */
-	.vega-tree-action-icon {
-		display: inline-flex;
-	}
-
-	.vega-tree-action-icon--up {
-		transform: rotate(-90deg);
-	}
-
-	.vega-tree-action-icon--down {
-		transform: rotate(90deg);
 	}
 
 	.vega-visually-hidden {
@@ -938,6 +954,7 @@
 			z-index: 11;
 			width: min(320px, 86vw);
 			border-radius: 0;
+			background: var(--surface);
 			transform: translateX(-100%);
 			/* `visibility` (encargo de accesibilidad, D2): un `transform` NO saca nada del orden de
 			   tabulación — cerrado con solo `translateX`, las filas/botones seguían siendo tabulables
@@ -956,12 +973,6 @@
 		}
 	}
 
-	.vega-tree-row:hover,
-	.vega-tree-row--selected,
-	.vega-tree-row:hover .vega-tree-saving,
-	.vega-tree-row--selected .vega-tree-saving {
-		color: var(--ink);
-	}
 	.vega-tree-close:hover {
 		color: var(--ink);
 	}
