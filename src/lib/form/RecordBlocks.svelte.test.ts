@@ -661,7 +661,12 @@ const typedBlockType: ContentType = {
 };
 
 async function mountTypedBlocks(
-	options: { withVocabulary?: boolean; invalidData?: FieldValue } = {}
+	options: {
+		withVocabulary?: boolean;
+		invalidData?: FieldValue;
+		titleField?: string;
+		heroHeading?: string;
+	} = {}
 ): Promise<{
 	target: HTMLElement;
 	instance: ReturnType<typeof mount>;
@@ -709,7 +714,10 @@ async function mountTypedBlocks(
 						typeField: 'type',
 						dataField: 'data'
 					}
-				}
+				},
+				...(options.titleField === undefined
+					? {}
+					: { landing_block: { titleField: options.titleField } })
 			}
 		}
 	});
@@ -729,7 +737,7 @@ async function mountTypedBlocks(
 						parent: 'landing1',
 						sort: 0,
 						type: 'hero',
-						heading: 'Hero',
+						heading: options.heroHeading ?? 'Hero',
 						// Literal escrito a mano: el test de conservación compara este objeto completo.
 						data: {
 							title: 'Portada inicial',
@@ -856,6 +864,34 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 		expect(created!.values.type).toBe('cta');
 		// …y NADIE lo ha escrito dentro de `data`.
 		expect(created!.values.data ?? null).not.toEqual(expect.objectContaining({ type: 'cta' }));
+		// `data` nace objeto vacío, nunca `null` (regresión fodaveg, 21 oct 2026).
+		expect(created!.values.data).toEqual({});
+	});
+
+	// Regresión fodaveg (21 oct 2026): `page_sections.titleField = "type"` pintaba «text» en el árbol.
+	test('sin título, el bloque se nombra por la ETIQUETA de su tipo, no por su id', async () => {
+		const handleLabels = (target: HTMLElement) =>
+			Array.from(target.querySelectorAll<HTMLButtonElement>('.vega-block-handle')).map((b) =>
+				b.getAttribute('aria-label')
+			);
+
+		// titleField = la columna de tipo: su valor es un id («hero»), se traduce a «Portada». Un
+		// tipo retirado del manifiesto no tiene etiqueta y se queda con su id crudo.
+		mounted = await mountTypedBlocks({ titleField: 'type' });
+		await settle();
+		expect(handleLabels(mounted.target).slice(0, 2)).toEqual([
+			translate('es', 'list.reorder.handleLabel', { label: 'Portada' }),
+			translate('es', 'list.reorder.handleLabel', { label: 'carrusel' })
+		]);
+		await unmount(mounted.instance);
+		mounted.target.remove();
+
+		// titleField de texto vacío: la etiqueta del tipo, no «Sin título».
+		mounted = await mountTypedBlocks({ titleField: 'heading', heroHeading: '' });
+		await settle();
+		expect(handleLabels(mounted.target)[0]).toBe(
+			translate('es', 'list.reorder.handleLabel', { label: 'Portada' })
+		);
 	});
 
 	test('cada fila enseña su tipo, y un tipo retirado del manifiesto se ve en crudo', async () => {
@@ -990,10 +1026,37 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 		expect(row.querySelector('.vega-block-save-button')).toBeNull();
 	});
 
+	// Regresión fodaveg (21 oct 2026): las secciones que crea una migración, o un bloque creado sin
+	// `data`, llegan de PocketBase con la columna JSON a `null`. No hay valor que perder: el bloque
+	// se edita como si `data` fuera `{}` y el primer guardado escribe el objeto.
+	test('data null: se edita como objeto vacío y el guardado escribe el objeto', async () => {
+		mounted = await mountTypedBlocks({ invalidData: null });
+		await settle();
+
+		const row = mounted.target.querySelectorAll<HTMLElement>('.vega-block-row')[3];
+		expect(row.querySelector('.vega-block-readonly--danger')).toBeNull();
+		const title = row.querySelector<HTMLInputElement>('[data-field="title"] input')!;
+		expect(title.disabled).toBe(false);
+		title.value = 'Portada desde null';
+		title.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+
+		const save = row.querySelector<HTMLButtonElement>('.vega-block-save-button')!;
+		expect(save.disabled).toBe(false);
+		save.click();
+		await settle();
+		await settle();
+
+		const saved = await mounted.port.get('landing_block', 'b4');
+		expect(saved.values.data).toEqual({ title: 'Portada desde null' });
+		expect(saved.values.heading).toBe('Dato inválido');
+		expect(mounted.feedback.reportError).not.toHaveBeenCalled();
+	});
+
 	test.each([
-		['null', null],
 		['array', ['valor', 'externo']],
-		['string', 'valor externo no-objeto']
+		['string', 'valor externo no-objeto'],
+		['number', 42]
 	] as const)(
 		'data no-objeto (%s): bloquea guardar y enseña el valor crudo',
 		async (_kind, value) => {

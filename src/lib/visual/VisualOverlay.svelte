@@ -375,6 +375,8 @@
 	let toolbarHeight = $state(0);
 	/** Ancho del overlay en píxeles de la página (el escenario lo escala, `offsetWidth` no). */
 	let overlayWidth = $state(0);
+	/** Alto del overlay, mismo sistema: el sitio que queda bajo un bloque para su contorno. */
+	let overlayHeight = $state(0);
 	/** Ancho físico de la píldora del hueco de ARRIBA del seleccionado, la que comparte fila con la
 	 *  barra flotante. */
 	let topPillWidth = $state(0);
@@ -785,6 +787,7 @@
 	style:pointer-events="none"
 	style:--menu-scale={1 / zoomFactor}
 	bind:offsetWidth={overlayWidth}
+	bind:offsetHeight={overlayHeight}
 >
 	<!-- Decorativo (ver cabecera): el propio grupo de cajas, aparte de la región de estados de
 	     abajo. -->
@@ -802,6 +805,10 @@
 				style:left="{block.rect.left}px"
 				style:width="{block.rect.width}px"
 				style:height="{block.rect.height}px"
+				style:--room-top="{block.rect.top}px"
+				style:--room-left="{block.rect.left}px"
+				style:--room-right="{overlayWidth - block.rect.left - block.rect.width}px"
+				style:--room-bottom="{overlayHeight - block.rect.top - block.rect.height}px"
 			>
 				<span
 					class="vega-visual-overlay-label"
@@ -1154,8 +1161,8 @@
 		inset: 0;
 	}
 
-	/* Contorno (lámina «edición en vivo», `.blk::before`): una caja interior 4 px dentro del bloque,
-	   radio 8. Reposo invisible; al pasar, trazo fino del acento al 55 % (`--v-ol-hover`);
+	/* Contorno (lámina «edición en vivo», `.blk::before`): una caja 4 px FUERA del bloque (ver
+	   `::before` más abajo), radio 8. Reposo invisible; al pasar, trazo fino del acento al 55 % (`--v-ol-hover`);
 	   seleccionado, 2 px de `--v-ol-select` y un halo suave. Los grosores se multiplican por
 	   `--menu-scale` (1/zoom): miden lo mismo en pantalla a cualquier zoom. La edición en línea
 	   NO cambia el contorno: su naranja va dentro de la página, sobre el texto que se escribe. */
@@ -1166,10 +1173,19 @@
 		opacity: 0;
 	}
 
+	/* El contorno va FUERA del bloque (4 px), no dentro como en la lámina: la lámina suponía secciones
+	   con relleno propio, y un bloque cuyo contenido llega a su borde (la sección de texto de
+	   fodaveg, 21 oct 2026) quedaba con el trazo y el halo encima de la primera letra de cada línea.
+	   Cada lado sale solo lo que deja el lienzo (`--room-*`, el hueco hasta el borde del overlay,
+	   que recorta): en el lado de un bloque a sangre el trazo queda pegado al borde, visible. */
 	.vega-visual-overlay-box::before {
+		--ring-out: calc(4px * var(--menu-scale));
 		content: '';
 		position: absolute;
-		inset: calc(4px * var(--menu-scale));
+		top: calc(-1 * clamp(0px, var(--room-top, 0px), var(--ring-out)));
+		right: calc(-1 * clamp(0px, var(--room-right, 0px), var(--ring-out)));
+		bottom: calc(-1 * clamp(0px, var(--room-bottom, 0px), var(--ring-out)));
+		left: calc(-1 * clamp(0px, var(--room-left, 0px), var(--ring-out)));
 		border: calc(1.5px * var(--menu-scale)) solid transparent;
 		border-radius: calc(8px * var(--menu-scale));
 		pointer-events: none;

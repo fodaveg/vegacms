@@ -287,6 +287,33 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		expect(tops).toHaveLength(3);
 	});
 
+	// Regresión fodaveg (21 oct 2026): el contorno se pintaba 4 px DENTRO del bloque y, en una
+	// sección cuyo texto llega a su borde, el trazo y el halo tapaban la primera letra de cada línea.
+	test('el contorno del seleccionado va FUERA del bloque cuando el lienzo deja sitio', async ({
+		page
+	}) => {
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+
+		await page
+			.frameLocator('iframe.vega-visual-frame')
+			.locator('[data-vega-block-id="seccion_2"]')
+			.click();
+		const box = page.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_2"]');
+		await expect(box).toHaveClass(/vega-visual-overlay-box--selected/);
+
+		// Posición resuelta del `::before` (el trazo) respecto a la caja del bloque: negativa en los
+		// cuatro lados = fuera. Antes era `inset: 4px`, positiva: encima del contenido.
+		const ring = await box.evaluate((el) => {
+			const style = getComputedStyle(el, '::before');
+			return ['top', 'right', 'bottom', 'left'].map((side) =>
+				parseFloat(style.getPropertyValue(side))
+			);
+		});
+		for (const offset of ring) expect(offset).toBeLessThan(0);
+	});
+
 	test('un clic DENTRO del segundo bloque en el marco abre ESE bloque en el inspector, no el primero', async ({
 		page
 	}) => {

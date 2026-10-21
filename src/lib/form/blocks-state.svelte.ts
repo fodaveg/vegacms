@@ -349,12 +349,20 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 		return typeof raw === 'string' && raw !== '' ? raw : null;
 	}
 
+	/** Nombre visible de un bloque (árbol, barra flotante, anuncios). Sin título propio se nombra
+	 *  por la ETIQUETA de su tipo («Texto»), no por el id crudo («text») ni por un «Sin título» que
+	 *  no distingue una sección de otra; «Sin título» queda para el bloque sin tipo declarado. Si el
+	 *  `titleField` del modelo es la propia columna de tipo (fodaveg: `page_sections.titleField =
+	 *  "type"`), su valor es un id de tipo, no un título, y también se traduce a su etiqueta. */
 	function blockTitle(record: VegaRecord): string {
-		if (!childType || childType.titleField === null) return ctx.t('list.untitled');
+		const typeLabel = blockTypeOf(record)?.label ?? null;
+		const fallback = typeLabel ?? ctx.t('list.untitled');
+		if (!childType || childType.titleField === null) return fallback;
+		if (typeLabel !== null && childType.titleField === typeField) return typeLabel;
 		const field = childType.fields.find((f) => f.name === childType.titleField);
-		if (!field) return ctx.t('list.untitled');
+		if (!field) return fallback;
 		const descriptor = describeCell(field, record.values[field.name] ?? null, ctx.locale);
-		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
+		return resolveTitleCellText(descriptor, fallback);
 	}
 
 	/** Ver la interfaz (D3): reasigna `announce` con el string NUEVO recibido, sin comparar contra
@@ -422,7 +430,13 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 				// El tipo viaja a su COLUMNA REAL, no al JSON: es lo que permite que la insignia de
 				// la fila, el recuento por tipo y cualquier filtro futuro salgan de una consulta
 				// normal sin parsear `data`.
-				...(blockType !== null && typeField !== null ? { [typeField]: blockType.name } : {})
+				...(blockType !== null && typeField !== null ? { [typeField]: blockType.name } : {}),
+				// Modo heterogéneo: `data` nace como objeto vacío. Sin esto PocketBase guarda la columna
+				// JSON a `null` (fodaveg, 21 oct 2026), y cualquier lector que espere un objeto tiene
+				// que adivinar que `null` significa «nada escrito todavía».
+				...(typeField !== null && blocksConfig.dataField !== null
+					? { [blocksConfig.dataField]: {} }
+					: {})
 			});
 			if (!isCurrentView(view)) return;
 			status = { kind: 'ready', records: [...sourceRecords, created] };

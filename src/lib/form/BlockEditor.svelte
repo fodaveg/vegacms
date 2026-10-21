@@ -14,7 +14,10 @@
 	 *
 	 * Sin tipo resuelto no se ofrece un guardado ambiguo. Si `data` no es un objeto JSON tampoco:
 	 * se enseña su valor crudo y se bloquea antes de llamar a `writeBlockData`, que es tolerante al
-	 * leer pero no debe decidir si un valor histórico destructible se puede sustituir.
+	 * leer pero no debe decidir si un valor histórico destructible se puede sustituir. `null` NO
+	 * cuenta como valor no-objeto: es lo que guarda PocketBase en una columna JSON que nadie ha
+	 * escrito (un bloque creado sin `data`, o las secciones que creó la migración de páginas de
+	 * fodaveg el 21 oct 2026), no hay nada que perder y se edita como el objeto vacío.
 	 *
 	 * El modo homogéneo anterior (`dataField === null`) conserva el formulario físico legado. Es
 	 * una compatibilidad deliberada para colecciones de bloques sin vocabulario heterogéneo.
@@ -260,7 +263,11 @@
 	const legacyFields = $derived(
 		childType.fields.filter((field) => !field.hidden && !structuralFields.includes(field.name))
 	);
-	const invalidData = $derived(typed && blockType !== null && !isDataObject(persistedData));
+	// `null` = columna JSON sin escribir: se trata como `{}` (ver cabecera). Solo un valor real que
+	// no es objeto (texto, número, booleano, array) bloquea el bloque.
+	const invalidData = $derived(
+		typed && blockType !== null && persistedData !== null && !isDataObject(persistedData)
+	);
 	const recordDirty = $derived(isDirty(baseline, current));
 	const dataDirty = $derived(
 		typed &&
