@@ -1039,6 +1039,59 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 		await expect(titles.nth(1)).toHaveText('Titular corregido desde el móvil');
 	});
 
+	for (const colorScheme of ['light', 'dark'] as const) {
+		test(`a 390 px (${colorScheme}): al desplazar, ningún encabezado fijo se pinta sobre otro`, async ({
+			page
+		}, testInfo) => {
+			// QA de fodaveg (21 oct 2026, `f6b-rueda-360px.png`): la introducción de «Solo textos» se
+			// quedaba fija en `top: 0` con fondo transparente y la cabecera de la tarjeta («Texto») se
+			// pintaba encima. Lo fijo arriba es solo la cabecera de cada tarjeta, opaca.
+			await page.emulateMedia({ colorScheme });
+			await page.setViewportSize({ width: 390, height: 844 });
+			const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+			await openVisualEditor(page, site, 'pagina_1');
+			await expect(textsSections(page)).toHaveCount(3);
+			const panel = page.locator('.vega-inspector-panel');
+			for (const scroll of [120, 360, 600]) {
+				await panel.evaluate((el, top) => (el.scrollTop = top), scroll);
+				const overlaps = await page.evaluate(() => {
+					const panelBox = document.querySelector('.vega-inspector-panel')!.getBoundingClientRect();
+					const heads = [
+						...document.querySelectorAll<HTMLElement>('.vega-inspector-head, .vega-texts-head')
+					]
+						.map((el) => ({ el, r: el.getBoundingClientRect() }))
+						.filter(({ r }) => r.bottom > panelBox.top + 1 && r.top < panelBox.bottom - 1);
+					const hits: string[] = [];
+					for (const [i, a] of heads.entries())
+						for (const b of heads.slice(i + 1))
+							if (
+								Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top) > 0.5 &&
+								Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left) > 0.5
+							)
+								hits.push(`${a.el.className} × ${b.el.className}`);
+					// Opacidad real del fondo (el token es un `color-mix`): se pinta en un lienzo de 1 px.
+					const paint = document.createElement('canvas').getContext('2d')!;
+					const alpha = (colour: string) => {
+						paint.clearRect(0, 0, 1, 1);
+						paint.fillStyle = colour;
+						paint.fillRect(0, 0, 1, 1);
+						return paint.getImageData(0, 0, 1, 1).data[3];
+					};
+					const transparent = heads
+						.filter(({ el }) => getComputedStyle(el).position === 'sticky')
+						.filter(({ el }) => alpha(getComputedStyle(el).backgroundColor) !== 255)
+						.map(({ el }) => `${el.className}: ${getComputedStyle(el).backgroundColor}`);
+					return { hits, transparent };
+				});
+				expect(overlaps, `scroll ${scroll}`).toEqual({ hits: [], transparent: [] });
+				if (scroll === 360)
+					await page.screenshot({
+						path: testInfo.outputPath(`texts-390-scroll-360-${colorScheme}.png`)
+					});
+			}
+		});
+	}
+
 	test('el límite: a 899 px es «solo textos»; a 901 px vuelve el lienzo', async ({ page }) => {
 		await page.setViewportSize({ width: 899, height: 900 });
 		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });

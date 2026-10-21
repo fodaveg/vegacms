@@ -812,8 +812,12 @@
 	}
 
 	/* Aviso informativo de la lámina (`.vega-admin-notice--info` de `admin.css`, que esta pantalla
-	   no carga): mismos tokens, misma caja. El título deja la versalita del inspector. */
+	   no carga): mismos tokens, misma caja. El título deja la versalita del inspector. NO se queda
+	   fija: en «Solo textos» lo fijo arriba es la cabecera de cada tarjeta (`.vega-texts-head`,
+	   audit UX02), y dos pegadas a `top: 0` se pintaban una sobre otra a 390 px (QA de fodaveg,
+	   21 oct 2026: «Texto» encima de la introducción). */
 	.vega-inspector-head--texts {
+		position: static;
 		display: block;
 		padding: 0 2px;
 		border: 0;
