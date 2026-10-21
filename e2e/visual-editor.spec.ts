@@ -1195,6 +1195,58 @@ test('editor visual: sin barra de la app, ⌘K abre el buscador global y Escape 
  * en una franja ENCIMA de la hoja y los «+» en el margen de su IZQUIERDA, sin solaparse entre sí
  * ni con la página, a cualquier ancho; y cada botón de la barra es lo que se ve en su centro.
  */
+test('ronda 3 del QA de fodaveg: la paleta no corta ninguna palabra, también con los nombres largos de fodaveg', async ({
+	page
+}, testInfo) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	// Los nombres de la paleta de fodaveg que se partían («Galería selecciona|da»).
+	await page.locator('.vega-visual-back').click();
+	await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
+	const editor = page.getByRole('textbox', { name: 'JSON del manifiesto' });
+	const manifest = JSON.parse(await editor.inputValue());
+	for (const [name, label] of [
+		['galeria-seleccionada', 'Galería seleccionada'],
+		['entradas-seleccionadas', 'Entradas seleccionadas'],
+		['filas-proyectos', 'Filas de proyectos (Portfolio)'],
+		['cita', 'Cita destacada'],
+		['titular', 'Titular a máquina']
+	])
+		manifest.blockTypes[name] = { ...manifest.blockTypes.texto, label };
+	await editor.fill(JSON.stringify(manifest, null, 2));
+	await page
+		.locator('.manifest-editor')
+		.getByRole('button', { name: 'Guardar', exact: true })
+		.click();
+	await page.locator('a[href="/c/paginas"]').first().click();
+	await page.locator('a[href="/c/paginas/pagina_1"]').click();
+	await page.getByRole('button', { name: 'Editor visual', exact: true }).click();
+	await waitConnected(page, 3);
+	const names = page.locator('.vega-palette-copy strong');
+	await expect(names).toHaveCount(8);
+	const broken = await page.evaluate(() =>
+		[...document.querySelectorAll<HTMLElement>('.vega-palette-copy strong')].flatMap((strong) => {
+			const text = strong.firstChild as Text;
+			const problems: string[] = [];
+			if (strong.scrollWidth > strong.clientWidth + 0.5) problems.push(`${text.data}: desborda`);
+			// Una palabra en DOS líneas devuelve dos rectángulos.
+			for (const match of text.data.matchAll(/\S+/g)) {
+				const range = document.createRange();
+				range.setStart(text, match.index);
+				range.setEnd(text, match.index + match[0].length);
+				if (range.getClientRects().length > 1) problems.push(`${match[0]} partida`);
+			}
+			return problems;
+		})
+	);
+	expect(broken).toEqual([]);
+	await page.locator('.vega-palette-panel').screenshot({
+		path: testInfo.outputPath('paleta-nombres-largos.png')
+	});
+});
+
 test('ronda 3 del QA de fodaveg: ⌘S guarda TODO lo pendiente aunque la ficha abierta esté limpia, también desde el lienzo', async ({
 	page
 }, testInfo) => {

@@ -251,10 +251,13 @@
 		outline-offset: 2px;
 	}
 
+	/* Baldosas en filas que se reparten el ancho (ronda 3 del QA de fodaveg: en tres columnas fijas
+	   «seleccionada» no cabía y se partía a mitad). Cada baldosa mide al menos su palabra más larga
+	   (`min-width: auto` de un elemento flexible), así que una palabra nunca se corta: si no cabe,
+	   la baldosa pasa a la fila siguiente y las demás se estiran. */
 	.vega-palette-list {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		grid-auto-rows: max-content;
+		display: flex;
+		flex-wrap: wrap;
 		align-content: start;
 		gap: 6px;
 		padding: 0 12px 12px;
@@ -264,10 +267,10 @@
 
 	.vega-palette-item {
 		display: flex;
+		flex: 1 1 4.5rem;
 		flex-direction: column;
 		align-items: center;
 		gap: 6px;
-		min-width: 0;
 		padding: 10px 6px;
 		border: 1px dashed var(--line-strong);
 		border-radius: var(--r-sm);
@@ -294,15 +297,14 @@
 	.vega-palette-copy {
 		display: flex;
 		flex-direction: column;
-		min-width: 0;
 		max-width: 100%;
 	}
 
 	/* El nombre se lee ENTERO (QA de fodaveg, 21 oct 2026: «Entradas …», «Imagen co…»): hasta tres
-	   líneas, por palabras. Sin `hyphens: auto` (el segundo QA del mismo día vio «selecciona-da»):
-	   solo una palabra que no cabe sola en la baldosa se parte, sin guion. Un nombre aún más largo se
-	   recorta al final de la tercera línea y se lee completo en el `title` de la baldosa y en su
-	   nombre accesible. */
+	   líneas, y solo por espacios: ni `hyphens: auto` («selecciona-da») ni ningún corte dentro de
+	   una palabra («selecciona|da», ronda 3). Es la baldosa la que se ensancha (ver
+	   `.vega-palette-list`). Un nombre de más de tres líneas se recorta al final de la tercera y se
+	   lee completo en el `title` de la baldosa y en su nombre accesible. */
 	.vega-palette-copy strong {
 		display: -webkit-box;
 		-webkit-box-orient: vertical;
@@ -311,7 +313,8 @@
 		overflow: hidden;
 		font-weight: 500;
 		line-height: 1.25;
-		overflow-wrap: break-word;
+		overflow-wrap: normal;
+		word-break: normal;
 	}
 
 	/* La descripción no se pinta en la baldosa (lámina), pero sigue en su nombre accesible. */
@@ -326,7 +329,7 @@
 	}
 
 	.vega-palette-empty {
-		grid-column: 1 / -1;
+		flex: 1 1 100%;
 		margin: 0;
 		padding: 0.65rem;
 		color: var(--ink-2);
