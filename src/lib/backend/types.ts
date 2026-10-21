@@ -61,7 +61,10 @@ export type FieldInputValue = FieldValue | File | (File | FileRef)[] | null;
 export interface Session {
 	/** Token opaco. La UI no lo decodifica; el adaptador sí puede (p.ej. exp del JWT). */
 	token: string;
-	user: { id: string; email: string };
+	/** `name`: nombre visible del registro autenticado si el backend lo tiene (campo `name` de
+	 *  una colección de auth de PocketBase); ausente si no existe o está vacío. Solo saluda: la
+	 *  identidad sigue siendo `id`/`email`. */
+	user: { id: string; email: string; name?: string };
 	/** ISO 8601 UTC si el adaptador puede derivarla; null si no. */
 	expiresAt: string | null;
 }

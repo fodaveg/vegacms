@@ -25,6 +25,23 @@ describeBackendContract(
  * PocketBase real en Fase 2): aislamiento entre instancias, no-aliasing y blindaje del `pattern`.
  */
 describe('memory: detalles de implementación', () => {
+	test('la sesión expone el name sembrado del usuario, y ningún name si no lo hay', async () => {
+		const seed = kitchenSinkSeed();
+		const named = createMemoryBackend({
+			...seed,
+			users: [{ email: 'marta@example.com', password: 'x', name: ' Marta ' }]
+		});
+		const session = await named.login({ email: 'marta@example.com', password: 'x' });
+		expect(session.user.name).toBe('Marta');
+
+		const plain = createMemoryBackend(seed);
+		const plainSession = await plain.login({
+			email: FIXTURE_ADMIN_EMAIL,
+			password: FIXTURE_ADMIN_PASSWORD
+		});
+		expect('name' in plainSession.user).toBe(false);
+	});
+
 	test('cada instancia aísla su propio estado (ids únicos, sin fuga de registros entre backends)', async () => {
 		const portA = createMemoryBackend(kitchenSinkSeed());
 		const portB = createMemoryBackend(kitchenSinkSeed());

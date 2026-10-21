@@ -237,9 +237,16 @@ export function createPocketBaseBackend({
 		const payload = getTokenPayload(pb.authStore.token);
 		const expiresAt =
 			typeof payload.exp === 'number' ? new Date(payload.exp * 1000).toISOString() : null;
+		const record = pb.authStore.record;
+		const name = typeof record.name === 'string' ? record.name.trim() : '';
 		return {
 			token: pb.authStore.token,
-			user: { id: String(pb.authStore.record.id), email: String(pb.authStore.record.email ?? '') },
+			user: {
+				id: String(record.id),
+				email: String(record.email ?? ''),
+				// `_superusers` no tiene `name`; las colecciones de auth lo traen por defecto.
+				...(name ? { name } : {})
+			},
 			expiresAt
 		};
 	}

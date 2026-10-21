@@ -2418,7 +2418,9 @@ const ETIQUETAS_RECORDS = [
 ];
 
 export const SHOWCASE_SEED: MemorySeed = {
-	users: [DEMO_CREDENTIALS],
+	// Con nombre: el escaparate enseña el saludo «Buenos días, David.» de Inicio v2 (el autor
+	// sembrado del sitio es David). La demo pública (`DEMO_SEED`) sigue sin él: «Buenos días.»
+	users: [{ ...DEMO_CREDENTIALS, name: 'David' }],
 	contentTypes: [
 		VEGA_CONTENT_TYPE,
 		ENTRADAS_CONTENT_TYPE,

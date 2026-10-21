@@ -174,6 +174,44 @@ describe('modo superuser (default, sin authCollection) — camino previo INTACTO
 	});
 });
 
+describe('nombre visible de la sesión (saludo de Inicio v2)', () => {
+	test('el campo name del registro autenticado llega recortado a Session.user.name', async () => {
+		stubFetchRoutes({
+			'/api/collections/vega_editors/auth-with-password': () =>
+				jsonResponse({
+					token: fakeJwt({ exp: futureExp() }),
+					record: {
+						id: 'ed1',
+						email: 'marta@example.com',
+						name: '  Marta  ',
+						collectionName: 'vega_editors'
+					}
+				})
+		});
+		const port = createPocketBaseBackend({ url: BASE_URL, authCollection: 'vega_editors' });
+		const session = await port.login({ email: 'marta@example.com', password: 'x' });
+		expect(session.user).toEqual({ id: 'ed1', email: 'marta@example.com', name: 'Marta' });
+	});
+
+	test('sin name (superuser) o con name vacío, la sesión no inventa uno', async () => {
+		stubFetchRoutes({
+			'/api/collections/_superusers/auth-with-password': () =>
+				jsonResponse({
+					token: fakeJwt({ exp: futureExp() }),
+					record: {
+						id: 'su1',
+						email: 'admin@example.com',
+						name: ' ',
+						collectionName: '_superusers'
+					}
+				})
+		});
+		const port = createPocketBaseBackend({ url: BASE_URL });
+		const session = await port.login({ email: 'admin@example.com', password: 'x' });
+		expect(session.user).toEqual({ id: 'su1', email: 'admin@example.com' });
+	});
+});
+
 describe('modo editor (authCollection: vega_editors, L6a/L6b)', () => {
 	test('capabilities.schemaDiscovery/schemaBootstrap en false', () => {
 		const port = createPocketBaseBackend({

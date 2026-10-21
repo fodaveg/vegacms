@@ -14,8 +14,9 @@ import type {
 } from '../../types';
 
 export interface MemorySeed {
-	/** Credenciales que login acepta. Default demo (sin seed): admin@vega.test / cualquier password no vacía. */
-	users: { email: string; password: string }[];
+	/** Credenciales que login acepta. Default demo (sin seed): admin@vega.test / cualquier password no vacía.
+	 *  `name` opcional: lo que la sesión expone como `user.name` (el saludo de Inicio). */
+	users: { email: string; password: string; name?: string }[];
 	/** Esquema en vocabulario Vega (los mismos ContentType/Field del puerto — NO un formato PB). */
 	contentTypes: ContentType[];
 	/** Registros iniciales por tipo. */

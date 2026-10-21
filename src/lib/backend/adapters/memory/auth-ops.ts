@@ -51,9 +51,14 @@ export function createAuthOps(state: MemoryState): MemoryAuthOps {
 
 			latchedExpired = false;
 			const expiresAtMs = sessionTtlMs !== undefined ? Date.now() + sessionTtlMs : null;
+			const name = users.find((u) => u.email === credentials.email)?.name?.trim();
 			const session: Session = {
 				token: crypto.randomUUID(),
-				user: { id: `user_${credentials.email}`, email: credentials.email },
+				user: {
+					id: `user_${credentials.email}`,
+					email: credentials.email,
+					...(name ? { name } : {})
+				},
 				expiresAt: expiresAtMs !== null ? new Date(expiresAtMs).toISOString() : null
 			};
 			currentSessionState = { session, expiresAtMs };
