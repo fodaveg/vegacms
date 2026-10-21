@@ -69,13 +69,11 @@
 	import { isConflictError, VegaError } from '$lib/backend/errors';
 	import { vegaErrorMessage } from '$lib/shell/vega-error-message';
 	import { recordVersion } from '$lib/backend/version';
-	import ScheduleDialog from '$lib/form/ScheduleDialog.svelte';
 	import { describeScheduleControl, formatScheduleMoment } from '$lib/form/schedule';
 	import { describeStatusBadge } from '$lib/list/cell';
 	import type { ResolvedContentType } from '$lib/model/types';
 	import type { ReviewFinding } from '$lib/publish-review/publish-review';
 	import type { ReviewState } from '$lib/publish-review/review-state.svelte';
-	import ReviewGroups from '$lib/publish-review/ReviewGroups.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 
 	interface Props {
@@ -192,6 +190,9 @@
 		describeScheduleControl(type, confirmed.values, scheduling, !canEdit)
 	);
 	let scheduleOpen = $state(false);
+	/** El diálogo se descarga la PRIMERA vez que se pide (presupuesto de la pantalla del editor,
+	 *  `check-bundle-budget`) y desde entonces queda montado, para que cerrar devuelva el foco. */
+	let scheduleRequested = $state(false);
 	/** Fecha que se enseña al abrir: la vigente si ya está programada; si no, el diálogo propone. */
 	const scheduleAt = $derived.by(() => {
 		const field = type.publishAtField;
@@ -202,6 +203,7 @@
 	/** Abre el diálogo de «Programar…» / «Cambiar fecha…». */
 	function openSchedule(): void {
 		if (phase === 'changing') return;
+		scheduleRequested = true;
 		scheduleOpen = true;
 	}
 
@@ -481,6 +483,21 @@
 	}
 </script>
 
+{#snippet reviewGroups(state: ReviewState)}
+	<!-- Solo se pinta dentro del popover de revisión: se descarga al abrirlo (presupuesto de la
+	     pantalla del editor, `check-bundle-budget`). `watchReviewScroll` ve su llegada (observa los
+	     cambios del árbol), así que el aviso de «hay más» se recalcula solo. -->
+	{#await import('$lib/publish-review/ReviewGroups.svelte') then { default: ReviewGroups }}
+		<ReviewGroups
+			review={state}
+			surface="visual"
+			canAct={true}
+			onGo={handleReviewGo}
+			onDescribe={handleReviewDescribe}
+		/>
+	{/await}
+{/snippet}
+
 {#if statusField !== null}
 	<span
 		class="vega-visual-publish"
@@ -619,13 +636,7 @@
 							</div>
 							{#if review && !reviewLoading}
 								<div class="vega-review-pop-section">
-									<ReviewGroups
-										{review}
-										surface="visual"
-										canAct={true}
-										onGo={handleReviewGo}
-										onDescribe={handleReviewDescribe}
-									/>
+									{@render reviewGroups(review)}
 								</div>
 							{/if}
 						</div>
@@ -649,13 +660,7 @@
 							tabindex="0"
 						>
 							<div class="vega-review-pop-section">
-								<ReviewGroups
-									{review}
-									surface="visual"
-									canAct={true}
-									onGo={handleReviewGo}
-									onDescribe={handleReviewDescribe}
-								/>
+								{@render reviewGroups(review)}
 							</div>
 						</div>
 						{#if moreReviewContent}
@@ -691,18 +696,20 @@
 		{/if}
 	</span>
 
-	{#if canEdit}
+	{#if canEdit && scheduleRequested}
 		<!-- El mismo diálogo que el formulario; al cerrar el foco vuelve al botón que lo abrió, y si ese
 		     botón ya no está (la página dejó de ser borrador), al botón de estado. -->
-		<ScheduleDialog
-			open={scheduleOpen}
-			{name}
-			at={scheduleAt}
-			unconfirmed={scheduling === 'unknown'}
-			fallbackFocusEl={actionEl ?? null}
-			onSubmit={submitSchedule}
-			onClose={() => void closeSchedule()}
-		/>
+		{#await import('$lib/form/ScheduleDialog.svelte') then { default: ScheduleDialog }}
+			<ScheduleDialog
+				open={scheduleOpen}
+				{name}
+				at={scheduleAt}
+				unconfirmed={scheduling === 'unknown'}
+				fallbackFocusEl={actionEl ?? null}
+				onSubmit={submitSchedule}
+				onClose={() => void closeSchedule()}
+			/>
+		{/await}
 	{/if}
 {/if}
 

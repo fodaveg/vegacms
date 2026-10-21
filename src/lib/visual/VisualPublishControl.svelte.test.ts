@@ -9,7 +9,7 @@
  * que confirmar escribe por el MISMO `update`, con `statusField: 'draft'` + `publishAtField`.
  */
 import { flushSync, mount, tick, unmount } from 'svelte';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import VisualPublishControl from './VisualPublishControl.svelte';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { ContentType, ScheduledPublishingState, VegaRecord } from '$lib/backend/types';
@@ -154,7 +154,18 @@ async function settle(): Promise<void> {
 	await Promise.resolve();
 	await Promise.resolve();
 	await tick();
+	// Un `{#await import(…)}` (ver abajo) resuelve en otra vuelta: una tarea más y otro pintado.
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	await tick();
 }
+
+// `ReviewGroups` y `ScheduleDialog` se descargan al usarse (`import()` dinámico en el componente,
+// presupuesto de la pantalla del editor). Precargados aquí, como los tendría el navegador tras
+// la primera apertura, su `{#await}` se resuelve en el mismo `settle()` que el resto.
+beforeAll(async () => {
+	await import('$lib/publish-review/ReviewGroups.svelte');
+	await import('$lib/form/ScheduleDialog.svelte');
+});
 
 const tagText = (h: Harness) =>
 	h.target.querySelector('.vega-visual-publish-tag')?.textContent?.trim() ?? null;
@@ -365,11 +376,15 @@ function dialogButton(h: Harness, label: string): HTMLButtonElement {
 	)!;
 }
 
-/** Abre el diálogo desde el botón de la cabecera y devuelve el campo de fecha ya enfocado. */
+/** Abre el diálogo desde el botón de la cabecera y devuelve el campo de fecha ya enfocado. El
+ *  diálogo se descarga la primera vez que se pide (`import()` dinámico): se espera a que exista. */
 async function openSchedule(h: Harness): Promise<HTMLInputElement> {
 	scheduleButton(h)!.focus();
 	scheduleButton(h)!.click();
 	flushSync();
+	await vi.waitFor(() => {
+		if (!dateInput(h)) throw new Error('el diálogo de «Programar…» aún no se ha montado');
+	});
 	await tick();
 	await tick();
 	return dateInput(h)!;
