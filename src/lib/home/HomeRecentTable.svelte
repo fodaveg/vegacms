@@ -1,6 +1,12 @@
 <script lang="ts">
-	/** Registros recientes en tarjetas; la imagen es decorativa y solo sale de un campo file
-	 * de imagen declarado por el tipo. Las URL de archivo las construye el puerto activo. */
+	/** Registros recientes en tarjetas (lámina `inicio-v2.html`, nota 3); la imagen es decorativa y
+	 * solo sale de un campo file de imagen declarado por el tipo. Las URL de archivo las construye
+	 * el puerto activo.
+	 *
+	 * Sin imagen, una miniatura tipográfica: la inicial del tipo sobre el tenue del acento, en
+	 * neutro si el registro es un borrador; los tipos de personas (icono `user`/`team`) llevan las
+	 * iniciales del título en un círculo. El estado sale UNA vez: sobre la miniatura en escritorio
+	 * y en la línea de datos en móvil (la otra copia no se pinta, tampoco para lectores). */
 	import { getVegaContext } from '$lib/app-context';
 	import { formatDayTime } from '$lib/admin/format';
 	import { selectThumbSpec } from '$lib/backend/thumb-select';
@@ -11,13 +17,14 @@
 
 	let { rows, now }: { rows: RecentRow[]; now: number } = $props();
 	const ctx = getVegaContext();
+	const untitled = ctx.t('list.untitled');
 
 	function titleText(row: RecentRow): string {
 		const field = row.type.fields.find((candidate) => candidate.name === row.type.titleField);
 		if (!field) return row.record.id;
 		return resolveTitleCellText(
 			describeCell(field, row.record.values[field.name] ?? null, ctx.locale),
-			ctx.t('list.untitled')
+			untitled
 		);
 	}
 
@@ -47,6 +54,25 @@
 		return ctx.port.fileUrl(row.record, name, filename, opts);
 	}
 
+	/** Tipo de personas: lo dice su icono del manifiesto, no el nombre de la colección. */
+	function isPerson(row: RecentRow): boolean {
+		return row.type.icon === 'user' || row.type.icon === 'team';
+	}
+
+	/** Iniciales de un nombre («Marta Ferrer Soler» → «MF»), o la inicial del tipo si no hay. */
+	function initialsOf(title: string, row: RecentRow): string {
+		const words = title === untitled ? [] : title.split(/\s+/).filter(Boolean);
+		const letters = words
+			.slice(0, 2)
+			.map((word) => word.charAt(0).toLocaleUpperCase(ctx.locale))
+			.join('');
+		return letters || typeInitial(row);
+	}
+
+	function typeInitial(row: RecentRow): string {
+		return row.type.labelSingular.charAt(0).toLocaleUpperCase(ctx.locale) || 'V';
+	}
+
 	/** Navegación con guard de salida; click modificado conserva el href real. */
 	function openRecord(event: MouseEvent, row: RecentRow): void {
 		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
@@ -61,6 +87,7 @@
 		{@const title = titleText(row)}
 		{@const badge = badgeOf(row)}
 		{@const image = imageUrl(row)}
+		{@const person = isPerson(row)}
 		<a
 			class="card"
 			class:continue={index === 0}
@@ -69,9 +96,15 @@
 			{title}
 		>
 			<div class="thumb">
-				<div class="fallback" aria-hidden="true">
-					{row.type.labelSingular.charAt(0).toLocaleUpperCase(ctx.locale) || 'V'}
-				</div>
+				{#if person}
+					<div class="fallback person" aria-hidden="true">
+						<span>{initialsOf(title, row)}</span>
+					</div>
+				{:else}
+					<div class="fallback" class:neutral={badge?.kind === 'draft'} aria-hidden="true">
+						{typeInitial(row)}
+					</div>
+				{/if}
 				{#if image}<img
 						src={image}
 						alt=""
@@ -85,7 +118,7 @@
 				{#if index === 0}<span class="continue-label">{ctx.t('home.recent.continue')}</span>{/if}
 			</div>
 			<div class="card-body">
-				<h3>{title}</h3>
+				<h3 class:untitled={title === untitled}>{title}</h3>
 				<div class="meta">
 					<span>{row.type.labelSingular}</span>
 					{#if badge}<span class="status" data-status-kind={badge.kind}>{badge.label}</span>{/if}
@@ -116,7 +149,7 @@
 		border-radius: var(--r-md);
 		background: var(--surface);
 		box-shadow: var(--shadow-card);
-		color: var(--ink);
+		color: var(--ink-hi);
 		text-decoration: none;
 		transition:
 			transform 0.15s,
@@ -145,7 +178,28 @@
 		place-items: center;
 		background: var(--accent-soft);
 		color: var(--accent-text);
-		font: 700 56px/1 var(--display);
+		font: 700 56px / 1 var(--display);
+		font-variation-settings: 'opsz' 96;
+		letter-spacing: -0.04em;
+	}
+	.fallback.neutral {
+		background: var(--btn);
+		color: var(--ink-3);
+	}
+	.fallback.person {
+		background: linear-gradient(135deg, var(--info-soft), var(--surface));
+	}
+	/* Iniciales sobre el semántico informativo: `surface` sobre `info` es un par del gate AA. */
+	.fallback.person span {
+		display: grid;
+		place-items: center;
+		width: 64px;
+		height: 64px;
+		border-radius: 50%;
+		background: var(--info);
+		color: var(--surface);
+		font: 600 20px / 1 var(--sans);
+		letter-spacing: 0.02em;
 	}
 	img {
 		position: relative;
@@ -154,38 +208,64 @@
 		height: 100%;
 		object-fit: cover;
 	}
+	/* Píldora con punto (lámina `.pill`): el color del estado tiñe texto y punto. */
 	.pill,
-	.continue-label {
+	.status {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		border-radius: var(--r-pill);
+		font-weight: 500;
+		white-space: nowrap;
+		color: var(--ink-2);
+	}
+	.pill::before,
+	.status::before {
+		content: '';
+		width: 6px;
+		height: 6px;
+		flex: none;
+		border-radius: 50%;
+		background: currentColor;
+	}
+	.pill {
 		position: absolute;
 		top: 10px;
-		padding: 3px 9px;
-		border-radius: var(--r-pill);
+		left: 10px;
+		height: 22px;
+		box-sizing: border-box;
+		padding: 0 9px 0 7px;
 		background: var(--surface);
 		box-shadow: var(--shadow-card);
 		font-size: var(--fs-12);
-		font-weight: 600;
 	}
-	.pill {
-		left: 10px;
-		color: var(--ink-2);
-	}
-	.pill[data-status-kind='pub'] {
+	[data-status-kind='pub'] {
 		color: var(--success);
 	}
-	.pill[data-status-kind='scheduled'] {
+	[data-status-kind='scheduled'] {
 		color: var(--accent-text);
 	}
-	.pill[data-status-kind='overdue'] {
+	[data-status-kind='overdue'] {
 		color: var(--warning);
 	}
+	[data-status-kind='other'] {
+		color: var(--info);
+	}
 	.continue-label {
+		position: absolute;
+		top: 10px;
 		right: 10px;
+		padding: 2px 8px;
+		border-radius: var(--r-pill);
+		background: var(--surface);
 		color: var(--accent-text);
+		font-size: 11px;
+		font-weight: 600;
 	}
 	.card-body {
 		display: flex;
 		flex-direction: column;
-		gap: var(--sp-2);
+		gap: 6px;
 		min-width: 0;
 		padding: 12px 14px 14px;
 	}
@@ -194,17 +274,22 @@
 		-webkit-box-orient: vertical;
 		-webkit-line-clamp: 2;
 		line-clamp: 2;
-		min-height: 2.6em;
 		margin: 0;
 		overflow: hidden;
 		font-size: var(--fs-15);
 		font-weight: 600;
+		letter-spacing: -0.01em;
 		line-height: 1.3;
+	}
+	h3.untitled {
+		color: var(--ink-2);
+		font-style: italic;
+		font-weight: 400;
 	}
 	.meta {
 		display: flex;
 		align-items: center;
-		gap: var(--sp-2);
+		gap: 6px;
 		min-width: 0;
 		color: var(--ink-2);
 		font-size: var(--fs-12);
@@ -214,27 +299,30 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
+	/* En escritorio el estado va sobre la miniatura; esta copia es la de móvil. */
 	.status {
-		padding: 1px 6px;
-		border-radius: var(--r-pill);
+		display: none;
+		height: 18px;
+		padding: 0 7px 0 6px;
 		background: var(--btn);
-		white-space: nowrap;
+		font-size: 11px;
 	}
 	.status[data-status-kind='pub'] {
-		color: var(--success);
 		background: var(--success-soft);
 	}
 	.status[data-status-kind='scheduled'] {
-		color: var(--accent-text);
 		background: var(--accent-soft);
 	}
 	.status[data-status-kind='overdue'] {
-		color: var(--warning);
 		background: var(--warning-soft);
+	}
+	.status[data-status-kind='other'] {
+		background: var(--info-soft);
 	}
 	.when {
 		margin-left: auto;
 		font-family: var(--mono);
+		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
 	@media (max-width: 1180px) {
@@ -247,36 +335,45 @@
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
-	@media (max-width: 600px) {
+	@media (max-width: 760px) {
 		.cards {
-			grid-template-columns: 1fr;
-			gap: var(--sp-2);
+			grid-template-columns: minmax(0, 1fr);
+			gap: 10px;
 		}
 		.card {
 			flex-direction: row;
+			align-items: stretch;
 		}
 		.thumb {
-			flex: 0 0 96px;
-			aspect-ratio: 1;
+			flex: none;
+			width: 96px;
+			aspect-ratio: auto;
 		}
 		.fallback {
-			font-size: var(--fs-36);
+			font-size: 32px;
 		}
-		.pill {
+		.fallback.person span {
+			width: 40px;
+			height: 40px;
+			font-size: 14px;
+		}
+		.pill,
+		.continue-label {
 			display: none;
 		}
-		.continue-label {
-			top: auto;
-			bottom: 6px;
-			right: 6px;
-			font-size: 10px;
+		.status {
+			display: inline-flex;
 		}
 		.card-body {
 			flex: 1;
 			justify-content: center;
+			padding: 10px 12px;
 		}
 		h3 {
-			min-height: 0;
+			font-size: var(--fs-14);
+		}
+		.meta {
+			flex-wrap: wrap;
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {

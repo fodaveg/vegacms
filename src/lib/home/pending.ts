@@ -206,6 +206,35 @@ export async function loadUnpublishedChanges(
 	return (await loadUnpublishedStatus(port, model, token, fetcher))?.hasChanges ?? null;
 }
 
+/**
+ * Fecha de la última publicación como la escribe la lámina de Inicio v2: «hoy, 09:12», «ayer,
+ * 18:40» y, más atrás, día y mes cortos («20 jul, 18:40»). Días de calendario en la zona del
+ * navegador, no tramos de 24 h. `null` si la fecha no se puede leer.
+ */
+export function formatPublishedAt(
+	iso: string,
+	locale: string,
+	now: number = Date.now()
+): string | null {
+	const date = new Date(iso);
+	if (!Number.isFinite(date.getTime())) return null;
+	const time = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(date);
+	const startOfDay = (value: Date) =>
+		new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+	const days = Math.round((startOfDay(new Date(now)) - startOfDay(date)) / 86_400_000);
+	const day =
+		days === 0 || days === 1
+			? new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(-days, 'day')
+			: new Intl.DateTimeFormat(locale, {
+					day: 'numeric',
+					month: 'short',
+					...(new Date(now).getFullYear() === date.getFullYear() ? {} : { year: 'numeric' })
+				})
+					.format(date)
+					.replace(/\.$/, '');
+	return `${day}, ${time}`;
+}
+
 /** El número de una tarjeta: `totalItems` de su única consulta. Rechaza si la consulta falla. */
 export async function loadPendingCount(
 	port: Pick<BackendPort, 'list'>,

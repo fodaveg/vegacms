@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from 'vitest';
 import type { BackendPort } from '$lib/backend/port';
 import { validateQuery } from '$lib/backend/query';
 import {
+	formatPublishedAt,
 	loadPendingCount,
 	loadUnpublishedChanges,
 	loadUnpublishedStatus,
@@ -297,6 +298,33 @@ describe('loadUnpublishedChanges', () => {
 			loadUnpublishedChanges(port, model([EDITED]), 't', statusFetcher({ state: 'raro' }))
 		).rejects.toThrow();
 		expect(port.list).not.toHaveBeenCalled();
+	});
+});
+
+describe('formatPublishedAt: la fecha de la tarjeta de marca', () => {
+	// Fechas en hora LOCAL: la función cuenta días de calendario en la zona del navegador.
+	const now = new Date(2026, 9, 21, 9, 0).getTime();
+
+	test('hoy y ayer en palabras, con la hora', () => {
+		expect(formatPublishedAt(new Date(2026, 9, 21, 8, 12).toISOString(), 'es-ES', now)).toBe(
+			'hoy, 08:12'
+		);
+		expect(formatPublishedAt(new Date(2026, 9, 20, 18, 40).toISOString(), 'es-ES', now)).toBe(
+			'ayer, 18:40'
+		);
+	});
+
+	test('más atrás, día y mes cortos; otro año lo dice', () => {
+		expect(formatPublishedAt(new Date(2026, 6, 20, 18, 40).toISOString(), 'es-ES', now)).toBe(
+			'20 jul, 18:40'
+		);
+		expect(formatPublishedAt(new Date(2025, 6, 20, 18, 40).toISOString(), 'es-ES', now)).toMatch(
+			/2025, 18:40$/
+		);
+	});
+
+	test('una fecha ilegible no inventa nada', () => {
+		expect(formatPublishedAt('no-es-fecha', 'es-ES', now)).toBeNull();
 	});
 });
 

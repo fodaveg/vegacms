@@ -58,13 +58,20 @@ function fakeCtx(opts: { buildApiUrl: string | null; withPostType?: boolean }): 
 	} as unknown as VegaAppContext;
 }
 
-function mountButton(ctx: VegaAppContext): {
+function mountButton(
+	ctx: VegaAppContext,
+	props: { home?: boolean } = {}
+): {
 	target: HTMLElement;
 	instance: ReturnType<typeof mount>;
 } {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
-	const instance = mount(PublishButton, { target, context: new Map([[VEGA_CONTEXT_KEY, ctx]]) });
+	const instance = mount(PublishButton, {
+		target,
+		props,
+		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
+	});
 	return { target, instance };
 }
 
@@ -138,6 +145,26 @@ describe('PublishButton — site update observation', () => {
 		await flush();
 		expect(seen).toEqual(['running']);
 		stop();
+	});
+	test('en reposo la barra solo enseña la píldora; el estado sigue en el árbol y en el title', async () => {
+		await start(vi.fn().mockImplementation(async () => jsonResponse(OLD)));
+		const details = mounted!.target.querySelector('.vega-publish-state')!;
+		expect(details.classList.contains('quiet')).toBe(true);
+		expect(details.querySelector('summary')?.getAttribute('title')).toBe('topbar.publish.ok');
+		expect(details.querySelector('[role="status"]')?.textContent).toBe('topbar.publish.ok');
+	});
+	test('variante de Inicio: la misma acción, sin el panel <details>', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockImplementation(async () => jsonResponse(OLD))
+		);
+		mounted = mountButton(fakeCtx({ buildApiUrl: 'https://pb.test/api/vega-build' }), {
+			home: true
+		});
+		await flush();
+		expect(mounted.target.querySelector('details')).toBeNull();
+		expect(trigger().textContent?.trim()).toBe('home.publishNow');
+		expect(trigger().disabled).toBe(false);
 	});
 	test('absent capability renders nothing and sends no requests', async () => {
 		const fetcher = vi.fn();

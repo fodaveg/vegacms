@@ -84,6 +84,8 @@ function mountHome(
 		buildApiUrl?: string;
 		/** `schemaBootstrap` = quien administra (criterio de `/settings`). Por defecto, sí. */
 		capabilities?: { schemaBootstrap: boolean };
+		/** `Session.user.name` (saludo con nombre). */
+		name?: string;
 	} = {}
 ) {
 	const target = document.createElement('div');
@@ -95,7 +97,11 @@ function mountHome(
 			params ? `${key}|${Object.values(params).join(',')}` : key,
 		locale: 'es',
 		model: opts.model ?? SITE_MODEL,
-		session: { token: 't', user: { id: 'u1', email: 'a@b.c' }, expiresAt: null },
+		session: {
+			token: 't',
+			user: { id: 'u1', email: 'a@b.c', ...(opts.name ? { name: opts.name } : {}) },
+			expiresAt: null
+		},
 		port: {
 			capabilities: opts.capabilities ?? { schemaBootstrap: true },
 			buildApiUrl: opts.buildApiUrl ?? null,
@@ -149,6 +155,30 @@ afterEach(async () => {
 	}
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
+});
+
+describe('portada: saludo', () => {
+	test('con nombre en la sesión, lo resalta dentro del saludo; sin él, el saludo sin nombre', async () => {
+		const { target } = mountHome({ name: 'Marta' });
+		await settle();
+		expect(target.querySelector('h1')?.textContent).toMatch(/^home\.greeting\.\w+Named/);
+		expect(target.querySelector('h1 em')?.textContent).toBe('Marta');
+	});
+
+	test('sin nombre no hay resalte', async () => {
+		const { target } = mountHome();
+		await settle();
+		expect(target.querySelector('h1 em')).toBeNull();
+	});
+
+	test('fecha con inicial mayúscula y el sitio separado por un punto medio', async () => {
+		const { target } = mountHome();
+		await settle();
+		const parts = [...target.querySelectorAll('.hero .sub span')].map((s) => s.textContent);
+		expect(parts[0]?.charAt(0)).toBe(parts[0]?.charAt(0).toLocaleUpperCase('es'));
+		expect(parts[1]).toBe('·');
+		expect(parts[2]).toBe('Vega de prueba');
+	});
 });
 
 describe('portada: lo último que editaste', () => {
@@ -445,14 +475,28 @@ describe('portada: pendientes', () => {
 		await settle();
 
 		expect(target.querySelector('[data-pending="unpublished"]')).toBeNull();
+		// Sin la tarjeta de marca, los tiles no se quedan en su columna de 360 px.
+		expect(target.querySelector('.vega-home-bento')?.classList.contains('with-brand')).toBe(false);
 	});
 
-	test('mientras cuenta, la tarjeta ya está, con «…» y aria-busy', async () => {
+	test('tiles: flecha en los enlazables y punto de color en los avisos no enlazables', async () => {
+		const { target } = mountHome();
+		await settle();
+
+		const drafts = target.querySelector('a[data-pending="drafts:posts"]');
+		expect(drafts?.querySelector('.arrow')).not.toBeNull();
+		const media = target.querySelector('[data-pending="media-alt:vega_media"]');
+		expect(media?.querySelector('.arrow')).toBeNull();
+	});
+
+	test('mientras cuenta, la tarjeta ya está, con esqueleto, su rótulo y aria-busy', async () => {
 		const { target } = mountHome({ list: () => new Promise(() => {}) });
 		await settle();
 
 		const drafts = target.querySelector('[data-pending="drafts:posts"]');
-		expect(drafts?.querySelector('strong')?.textContent).toBe('…');
+		expect(drafts?.querySelector('strong')?.classList.contains('sk')).toBe(true);
+		expect(drafts?.querySelector('strong')?.getAttribute('aria-hidden')).toBe('true');
+		expect(drafts?.textContent).toContain('home.pending.drafts');
 		expect(drafts?.getAttribute('aria-busy')).toBe('true');
 		expect(drafts?.getAttribute('data-zero')).toBe('false');
 	});
@@ -508,6 +552,9 @@ describe('portada: cambios sin publicar en el sitio', () => {
 		);
 		expect(card?.querySelector('.eyebrow')?.textContent).toBe('home.pending.unpublished');
 		expect(card?.querySelector('.vega-publish-trigger')).not.toBeNull();
+		// Solo la acción: el panel de estado (`<details>`) es de la barra, no de la tarjeta.
+		expect(card?.querySelector('details')).toBeNull();
+		expect(card?.classList.contains('calm')).toBe(false);
 		expect(card?.getAttribute('aria-busy')).toBe('false');
 	});
 
@@ -759,12 +806,13 @@ describe('portada: preparar historial sin activación automática', () => {
 		);
 		expect(list.mock.calls.some(([collection]) => collection === 'vega_revisions')).toBe(false);
 	});
-	test('sitio vacío: sustituye el CTA genérico y tras descartar lo devuelve', async () => {
+	test('sitio vacío: la oferta acompaña al CTA genérico (lámina Inicio v2) y se descarta', async () => {
 		const { target } = mountHome({
 			model: model([], { revisions: { enabled: true, keepPerRecord: 20, trashDays: 30 } })
 		});
 		await settle();
-		expect(target.textContent).not.toContain('nav.emptyCta');
+		expect(target.textContent).toContain('nav.emptyCta');
+		expect(target.querySelector('.vega-revisions-offer')).not.toBeNull();
 		(target.querySelector('.vega-revisions-offer button') as HTMLButtonElement).click();
 		await settle();
 		expect(target.querySelector('.vega-revisions-offer')).toBeNull();

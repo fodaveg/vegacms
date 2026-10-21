@@ -1,5 +1,14 @@
 <script lang="ts">
-	/** Bento de Inicio: cifras independientes y estado global del sitio cuando se puede conocer. */
+	/** Bento de Inicio: cifras independientes y estado global del sitio cuando se puede conocer.
+	 *
+	 * Tarjeta de marca (lámina `inicio-v2.html`): el degradado del tema SOLO cuando hay algo que
+	 * hacer (cambios sin publicar, o una actualización en curso); al día se calma con su punto
+	 * verde; un fallo pide atención sin el degradado; carga, error y «no se sabe» esperan en
+	 * superficie normal. «Publicar ahora» es la variante `home` de `PublishButton`: el mismo
+	 * flujo que la barra, que nunca afirma haber guardado nada.
+	 *
+	 * Sin build anunciado no hay tarjeta de marca y el bento son solo los tiles, a todo el ancho
+	 * (4×2 a 1440 px): la columna de 360 px es la de la tarjeta, no la de los tiles. */
 	import { onMount } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import type { BuildState, BuildStatus } from '$lib/backend/build-client';
@@ -12,6 +21,7 @@
 		type SiteUpdateStatus
 	} from '$lib/shell/site-update';
 	import {
+		formatPublishedAt,
 		loadPendingCount,
 		loadUnpublishedStatus,
 		pendingCards,
@@ -44,8 +54,17 @@
 	const lastPublished = $derived.by(() => {
 		if (!unpublished || typeof unpublished === 'string' || !unpublished.lastPublishedAt)
 			return null;
-		const date = new Date(unpublished.lastPublishedAt);
-		return Number.isFinite(date.getTime()) ? date.toLocaleDateString(ctx.locale) : null;
+		return formatPublishedAt(unpublished.lastPublishedAt, ctx.locale);
+	});
+	/** Tono de la tarjeta: `brand` (hay algo que hacer), `calm` (al día), `alert` (falló) o
+	 *  `quiet` (cargando, error o no se sabe: superficie normal, punto neutro). */
+	const tone = $derived.by((): 'brand' | 'calm' | 'alert' | 'quiet' => {
+		if (unpublished === null || typeof unpublished === 'string') return 'quiet';
+		if (unpublished.state === 'failed') return 'alert';
+		if (unpublished.state === 'running') return 'brand';
+		if (unpublished.hasChanges === true) return 'brand';
+		if (unpublished.hasChanges === false && unpublished.lastPublishedAt !== null) return 'calm';
+		return 'quiet';
 	});
 	let alive = false;
 	let publicationGeneration = 0;
@@ -120,32 +139,46 @@
 	function labelOf(card: PendingCard): string {
 		return ctx.t(labels[card.kind], { label: card.typeLabel ?? '' });
 	}
+
+	/** Color con significado (lámina, nota 2): ámbar en calidad, índigo en programadas. */
+	function toneOf(card: PendingCard): 'warn' | 'scheduled' | null {
+		if (card.kind === 'description' || card.kind === 'media-alt') return 'warn';
+		if (card.kind === 'scheduled') return 'scheduled';
+		return null;
+	}
 </script>
 
 {#if cards.length > 0 || hasBuild}
-	<section class="vega-home-bento" aria-label={ctx.t('home.pending.title')}>
+	<section
+		class="vega-home-bento"
+		class:with-brand={hasBuild}
+		aria-label={ctx.t('home.pending.title')}
+	>
 		{#if hasBuild}
 			<div
 				class="brandcard"
-				class:calm={unpublished !== null &&
-					typeof unpublished === 'object' &&
-					unpublished.hasChanges === false &&
-					unpublished.lastPublishedAt !== null &&
-					unpublished.state !== 'failed' &&
-					unpublished.state !== 'running'}
+				class:calm={tone === 'calm'}
+				class:alert={tone === 'alert'}
+				class:quiet={tone === 'quiet'}
 				data-pending="unpublished"
 				aria-busy={unpublished === 'loading'}
 			>
 				<p class="eyebrow">
-					<span class="dot" aria-hidden="true"></span>{ctx.t('home.pending.unpublished')}
+					<span class="dot" aria-hidden="true"><span class="ring"></span></span>{ctx.t(
+						'home.pending.unpublished'
+					)}
 				</p>
 				{#if unpublished === 'loading'}
-					<h2>{ctx.t('common.loading')}</h2>
+					<h2 class="sr-only">{ctx.t('common.loading')}</h2>
+					<span class="sk sk-title" aria-hidden="true"></span>
+					<span class="sk sk-line" aria-hidden="true"></span>
 				{:else if unpublished === 'error'}
 					<h2>{ctx.t('home.pending.unpublishedError')}</h2>
-					<button type="button" class="retry" onclick={() => loadUnpublished()}
-						>{ctx.t('common.retry')}</button
-					>
+					<div class="acts">
+						<button type="button" class="retry" onclick={() => loadUnpublished()}
+							><Icon id="update" size={16} strokeWidth={1.6} />{ctx.t('common.retry')}</button
+						>
+					</div>
 				{:else if unpublished?.state === 'failed'}
 					<h2>{ctx.t('home.pending.buildFailed')}</h2>
 				{:else if unpublished?.state === 'running'}
@@ -164,34 +197,41 @@
 				{#if lastPublished}<p class="published-at">
 						{ctx.t('home.pending.lastPublished', { date: lastPublished })}
 					</p>{/if}
-				<!-- El componente existente conserva las comprobaciones, estados y permisos de publicación. -->
-				<div class="action"><PublishButton home /></div>
+				{#if tone === 'brand' || tone === 'alert'}
+					<!-- La variante `home` conserva comprobaciones, estados y permisos del botón de la barra. -->
+					<div class="acts"><PublishButton home /></div>
+				{/if}
 			</div>
 		{/if}
 		{#if cards.length > 0}
 			<ul class="tiles">
 				{#each cards as card (card.key)}
 					{@const count = counts[card.key] ?? 'loading'}
+					{@const cardTone = toneOf(card)}
 					<li>
 						{#if card.href !== null && typeof count === 'number'}
 							<a
 								class="tile"
 								class:zero={count === 0}
-								class:warn={card.kind === 'description' || card.kind === 'media-alt'}
-								class:scheduled={card.kind === 'scheduled'}
+								class:warn={cardTone === 'warn'}
+								class:scheduled={cardTone === 'scheduled'}
 								href={card.href}
 								data-pending={card.key}
 								data-zero={count === 0}
 							>
 								<strong>{new Intl.NumberFormat(ctx.locale).format(count)}</strong>
-								<span>{labelOf(card)}</span><Icon id="chevron" size={14} />
+								<span>{labelOf(card)}</span>
+								<span class="arrow" aria-hidden="true"
+									><Icon id="arrow-up-right" size={14} strokeWidth={1.6} /></span
+								>
 							</a>
 						{:else}
 							<div
 								class="tile"
 								class:zero={count === 0}
-								class:warn={card.kind === 'description' || card.kind === 'media-alt'}
-								class:scheduled={card.kind === 'scheduled'}
+								class:warn={cardTone === 'warn'}
+								class:scheduled={cardTone === 'scheduled'}
+								class:skeleton={count === 'loading'}
 								data-pending={card.key}
 								data-zero={count === 0}
 								aria-busy={count === 'loading'}
@@ -202,14 +242,17 @@
 										type="button"
 										onclick={() => loadCard(card)}
 										aria-label={ctx.t('home.pending.retry', { label: labelOf(card) })}
-										><Icon id="update" size={16} /></button
+										><Icon id="update" size={16} strokeWidth={1.6} /></button
 									>
+								{:else if count === 'loading'}
+									<strong class="sk sk-val" aria-hidden="true"></strong>
+									<span class="sk sk-lab" aria-hidden="true"></span>
+									<span class="sr-only">{labelOf(card)}</span>
 								{:else}
-									<strong
-										>{count === 'loading'
-											? '…'
-											: new Intl.NumberFormat(ctx.locale).format(count)}</strong
-									><span>{labelOf(card)}</span>
+									<strong>{new Intl.NumberFormat(ctx.locale).format(count)}</strong><span
+										>{labelOf(card)}</span
+									>
+									{#if cardTone && count > 0}<i class="mark" aria-hidden="true"></i>{/if}
 								{/if}
 							</div>
 						{/if}
@@ -223,11 +266,27 @@
 <style>
 	.vega-home-bento {
 		display: grid;
-		grid-template-columns: 360px minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr);
 		gap: var(--sp-4);
 		align-items: stretch;
 	}
+	.vega-home-bento.with-brand {
+		grid-template-columns: 360px minmax(0, 1fr);
+	}
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	/* ————— Tarjeta de marca ————— */
 	.brandcard {
+		position: relative;
+		overflow: hidden;
+		isolation: isolate;
 		display: flex;
 		flex-direction: column;
 		gap: var(--sp-3);
@@ -239,11 +298,33 @@
 		color: var(--accent-ink);
 		box-shadow: var(--shadow-brand);
 	}
-	.brandcard.calm {
+	/* Círculo decorativo de la lámina (blanco al 12 %): la tinta del acento con opacidad, sin
+	   color crudo. */
+	.brandcard::before {
+		content: '';
+		position: absolute;
+		z-index: -1;
+		right: -40px;
+		bottom: -60px;
+		width: 240px;
+		height: 240px;
+		border-radius: 50%;
+		background: var(--accent-ink);
+		opacity: 0.12;
+		filter: blur(2px);
+	}
+	.brandcard.calm,
+	.brandcard.alert,
+	.brandcard.quiet {
+		border: 1px solid var(--line);
 		background: var(--surface);
 		color: var(--ink-hi);
-		border: 1px solid var(--line);
 		box-shadow: var(--shadow-card);
+	}
+	.brandcard.calm::before,
+	.brandcard.alert::before,
+	.brandcard.quiet::before {
+		display: none;
 	}
 	.eyebrow {
 		display: flex;
@@ -255,39 +336,111 @@
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
 	}
+	.calm .eyebrow,
+	.alert .eyebrow,
+	.quiet .eyebrow {
+		color: var(--ink-2);
+	}
 	.dot {
+		position: relative;
 		width: 8px;
 		height: 8px;
 		flex: none;
 		border-radius: 50%;
 		background: currentColor;
 	}
+	.dot .ring {
+		position: absolute;
+		inset: -3px;
+		border-radius: 50%;
+		background: currentColor;
+		opacity: 0.3;
+	}
 	.calm .dot {
-		background: var(--success);
+		color: var(--success);
+	}
+	.alert .dot {
+		color: var(--danger);
+	}
+	.quiet .dot {
+		color: var(--ink-3);
+	}
+	.quiet .dot .ring {
+		display: none;
 	}
 	h2 {
 		margin: 0;
-		font: 600 var(--fs-28)/1.08 var(--display);
+		font: 600 var(--fs-28) / 1.05 var(--display);
+		font-variation-settings: 'opsz' 96;
 		letter-spacing: -0.03em;
-	}
-	.action {
-		margin-top: auto;
 	}
 	.published-at {
 		margin: 0;
-		font-size: var(--fs-12);
-		opacity: 0.86;
+		font-size: var(--fs-13);
+	}
+	.calm .published-at,
+	.alert .published-at,
+	.quiet .published-at {
+		color: var(--ink-2);
+	}
+	.acts {
+		position: relative;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--sp-2);
+		margin-top: auto;
 	}
 	.retry {
-		align-self: flex-start;
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
 		min-height: 36px;
 		padding: 0 var(--sp-4);
-		border: 0;
+		border: 1px solid var(--line);
 		border-radius: var(--r-pill);
 		background: var(--surface);
 		color: var(--ink);
+		font: 500 var(--fs-13) var(--sans);
 		cursor: pointer;
 	}
+	.retry:hover {
+		background: var(--btn);
+		border-color: var(--line-strong);
+	}
+
+	/* ————— Esqueleto (carga) con brillo ————— */
+	.sk {
+		position: relative;
+		display: block;
+		overflow: hidden;
+		height: 12px;
+		border-radius: 6px;
+		background: var(--btn);
+	}
+	.sk::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		transform: translateX(-100%);
+		background: linear-gradient(90deg, transparent, var(--surface), transparent);
+		animation: vega-home-shimmer 1.4s infinite;
+	}
+	.sk-title {
+		width: 70%;
+		height: 24px;
+		border-radius: 8px;
+	}
+	.sk-line {
+		width: 40%;
+	}
+	@keyframes vega-home-shimmer {
+		to {
+			transform: translateX(100%);
+		}
+	}
+
+	/* ————— Tiles ————— */
 	.tiles {
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -306,7 +459,7 @@
 		flex: 1;
 		flex-direction: column;
 		justify-content: space-between;
-		gap: var(--sp-2);
+		gap: 6px;
 		min-height: 104px;
 		min-width: 0;
 		box-sizing: border-box;
@@ -315,24 +468,28 @@
 		border-radius: var(--r-md);
 		background: var(--surface);
 		box-shadow: var(--shadow-card);
-		color: var(--ink);
+		color: var(--ink-hi);
 		text-decoration: none;
 	}
 	a.tile:hover {
 		border-color: var(--accent-line);
-		box-shadow: var(--shadow-raised);
+		box-shadow: 0 0 0 4px var(--accent-soft);
 	}
 	.tile strong {
-		font: 600 var(--fs-36)/1 var(--display);
+		font: 600 var(--fs-36) / 1 var(--display);
+		font-variation-settings: 'opsz' 96;
 		font-variant-numeric: tabular-nums;
 		letter-spacing: -0.03em;
 	}
-	.tile span {
+	.tile > span:not(.arrow, .sk, .sr-only) {
+		padding-right: 18px;
 		color: var(--ink-2);
 		font-size: var(--fs-12);
 		line-height: 1.3;
-		overflow-wrap: anywhere;
+		overflow-wrap: break-word;
 	}
+	/* Apagado a cero: la cifra pierde peso y color. Texto informativo: `ink-2`, no el `ink-3` de
+	   la lámina (P7 reserva `ink-3` a la decoración; ver docs/INICIO-V2-P7.md). */
 	.tile.zero strong {
 		color: var(--ink-2);
 		font-weight: 500;
@@ -343,16 +500,45 @@
 	.tile.scheduled:not(.zero) strong {
 		color: var(--accent-text);
 	}
-	.tile :global(svg) {
+	.arrow {
+		position: absolute;
+		top: 12px;
+		right: 12px;
+		display: inline-flex;
+		color: var(--ink-3);
+	}
+	a.tile:hover .arrow {
+		color: var(--accent-text);
+	}
+	/* Punto de color de los tiles que no enlazan (lámina): mismo significado que la cifra. */
+	.mark {
 		position: absolute;
 		top: 14px;
 		right: 14px;
-		color: var(--ink-2);
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+	}
+	.warn .mark {
+		background: var(--warning);
+	}
+	.scheduled .mark {
+		background: var(--accent);
+	}
+	.sk-val {
+		width: 44px;
+		height: 32px;
+		border-radius: 8px;
+	}
+	.sk-lab {
+		width: 70%;
 	}
 	.tile button {
 		position: absolute;
 		top: 8px;
 		right: 8px;
+		display: inline-grid;
+		place-items: center;
 		min-width: 36px;
 		min-height: 36px;
 		border: 0;
@@ -362,8 +548,8 @@
 		cursor: pointer;
 	}
 	@media (max-width: 1180px) {
-		.vega-home-bento {
-			grid-template-columns: 1fr;
+		.vega-home-bento.with-brand {
+			grid-template-columns: minmax(0, 1fr);
 		}
 	}
 	@media (max-width: 900px) {
@@ -371,12 +557,19 @@
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
-	@media (max-width: 600px) {
+	@media (max-width: 760px) {
+		.brandcard {
+			min-height: 0;
+		}
 		.tiles {
-			gap: var(--sp-2);
+			gap: 10px;
 		}
 		.tile {
 			min-height: 88px;
+			padding: 12px 14px;
+		}
+		.tile strong {
+			font-size: var(--fs-28);
 		}
 	}
 	@media (pointer: coarse) {

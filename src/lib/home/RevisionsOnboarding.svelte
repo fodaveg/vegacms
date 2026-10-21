@@ -39,63 +39,88 @@
 {/if}
 
 <style>
+	/* `.offer` de la lámina Inicio v2: tarjeta con un filo de marca a la izquierda. */
 	.vega-revisions-offer {
-		margin-block: 1.5rem;
-		padding: 1.5rem;
+		position: relative;
+		overflow: hidden;
+		box-sizing: border-box;
+		width: 100%;
+		padding: var(--sp-5);
 		border: 1px solid var(--line);
-		border-radius: 8px;
+		border-radius: var(--r-md);
 		background: var(--surface);
 		box-shadow: var(--shadow-card);
 	}
+	.vega-revisions-offer::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		width: 4px;
+		background: var(--accent-fill);
+	}
 	h2 {
-		margin: 0 0 0.5rem;
-		font-size: 1.1rem;
+		margin: 0 0 6px;
+		font: 600 var(--fs-17) / 1.3 var(--display);
+		font-variation-settings: 'opsz' 96;
+		letter-spacing: -0.02em;
+		color: var(--ink-hi);
 	}
 	p {
-		margin: 0 0 0.75rem;
-		max-width: 64ch;
+		margin: 0 0 var(--sp-2);
+		max-width: 60ch;
+		color: var(--ink-2);
+		font-size: var(--fs-13);
 	}
 	.vega-revisions-offer-actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
-		margin-block: 1rem;
+		gap: var(--sp-2);
+		margin: var(--sp-3) 0 var(--sp-2);
 	}
 	a,
 	button {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		min-height: 44px;
-		padding: 0.6rem 1rem;
+		min-height: 36px;
+		padding: 0 var(--sp-4);
 		border: 1px solid var(--line);
-		border-radius: 6px;
-		background: var(--btn);
+		border-radius: var(--r-pill);
+		background: var(--surface);
 		color: var(--ink);
-		font: inherit;
+		font: 500 var(--fs-13) var(--sans);
+		white-space: nowrap;
 		cursor: pointer;
 		text-decoration: none;
 	}
 	a {
-		background: var(--accent);
+		border-color: transparent;
+		background: var(--accent-fill);
 		color: var(--accent-ink);
-		border-color: var(--accent);
-		font-weight: 600;
 	}
 	a:hover {
-		background: var(--accent-hover);
+		filter: brightness(1.06);
 	}
 	button:hover {
-		background: var(--active);
+		background: var(--btn);
+		border-color: var(--line-strong);
 	}
 	.vega-revisions-offer-hint {
 		margin: 0;
 		color: var(--ink-2);
-		font-size: 0.82rem;
+		font-size: var(--fs-12);
+	}
+	@media (pointer: coarse) {
+		a,
+		button {
+			min-height: 44px;
+		}
 	}
 	@media (max-width: 640px) {
 		.vega-revisions-offer {
-			padding: 1rem;
+			padding: var(--sp-4);
 		}
 		a,
 		button {

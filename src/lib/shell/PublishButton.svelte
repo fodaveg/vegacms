@@ -258,6 +258,10 @@
 							: `topbar.publish.${uiState}`
 		)
 	);
+	/** Estados que no piden nada a quien mira: la barra enseña solo la acción (lámina Inicio v2). */
+	const restState = $derived(
+		uiState === 'ready' || uiState === 'ok' || uiState === 'loading' || uiState === 'checking'
+	);
 	const actionLabel = $derived(
 		ctx.t(retryAllowed ? 'topbar.publish.again' : home ? 'home.publishNow' : 'topbar.publish.ready')
 	);
@@ -276,15 +280,49 @@
 	);
 </script>
 
-{#if client}
-	<div class="vega-publish" class:home data-state={uiState}>
-		<details class="vega-publish-state">
-			<summary
+{#if client && home}
+	<!-- Inicio (tarjeta de marca): solo la acción, con el MISMO flujo y estados que la barra. El
+	     estado detallado vive en la barra; aquí solo se dice en voz alta lo que impide actuar. -->
+	<div class="vega-publish home" data-state={uiState}>
+		<button
+			type="button"
+			class="vega-publish-trigger"
+			data-state={uiState}
+			{disabled}
+			onclick={handleTrigger}>{actionLabel}</button
+		>
+		{#if fetchProblem || uncertain || (attempt && !attempt.accepted)}
+			<button
+				type="button"
+				class="vega-publish-check"
+				disabled={triggering || checking}
+				onclick={() => beginPolling(true)}>{ctx.t('topbar.publish.check')}</button
+			>
+		{/if}
+		{#if uiState === 'requesting' || uiState === 'accepted' || uiState === 'unavailable' || uiState === 'ambiguous' || uiState === 'uncertain'}
+			<p
+				class="vega-publish-note"
+				role={uiState === 'unavailable' || uiState === 'ambiguous' ? 'alert' : 'status'}
+			>
+				{stateLabel}
+			</p>
+		{/if}
+		{#if retryAllowed}<p class="vega-publish-note" role="status">
+				{ctx.t('topbar.publish.retryUncertain')}
+			</p>{/if}
+	</div>
+{:else if client}
+	<div class="vega-publish" data-state={uiState}>
+		<details class="vega-publish-state" class:quiet={restState}>
+			<!-- En reposo la barra es la de la lámina (solo la píldora): el estado se sigue anunciando
+			     y abriendo desde este disparador, pero su texto solo se VE cuando pide atención. -->
+			<summary title={restState ? stateLabel : undefined}
 				><span
+					class="vega-publish-state-label"
 					role={uiState === 'unavailable' || uiState === 'failed' || uiState === 'ambiguous'
 						? 'alert'
 						: 'status'}>{stateLabel}</span
-				><Icon id="chevron" size={12} /></summary
+				><Icon id="chevron" size={14} strokeWidth={1.6} /></summary
 			>
 			<div class="vega-publish-panel">
 				<p>{ctx.t('topbar.publish.scope')}</p>
@@ -331,7 +369,7 @@
 			{disabled}
 			onclick={handleTrigger}
 		>
-			<Icon id="publish" size={14} /><span>{actionLabel}</span>
+			<span>{actionLabel}</span>
 		</button>
 		{#if retryAllowed}<p class="vega-publish-uncertain" role="status">
 				{ctx.t('topbar.publish.retryUncertain')}
@@ -353,6 +391,9 @@
 		min-width: 0;
 		flex: 1 1 8rem;
 	}
+	.vega-publish-state.quiet {
+		flex: none;
+	}
 	.vega-publish-state summary {
 		display: flex;
 		align-items: center;
@@ -363,6 +404,35 @@
 		color: var(--ink);
 		cursor: pointer;
 		list-style: none;
+	}
+	/* Reposo: el disparador del panel es un círculo con la flecha; el texto sigue en el árbol de
+	   accesibilidad (región `status`) y en el `title`, pero no ocupa la barra. */
+	.vega-publish-state.quiet summary {
+		justify-content: center;
+		width: 30px;
+		min-width: 30px;
+		padding: 0;
+		border-radius: 50%;
+		color: var(--ink-2);
+	}
+	.vega-publish-state.quiet summary:hover {
+		background: var(--btn);
+		color: var(--ink);
+	}
+	.vega-publish-state.quiet .vega-publish-state-label {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+	.vega-publish-state summary :global(svg) {
+		flex: none;
+		transform: rotate(90deg);
+	}
+	.vega-publish-state[open] summary :global(svg) {
+		transform: rotate(-90deg);
 	}
 	.vega-publish-state summary::-webkit-details-marker {
 		display: none;
@@ -403,14 +473,22 @@
 		font: inherit;
 		cursor: pointer;
 	}
+	/* Píldora de marca de la lámina (`.btn.primary`): el relleno del tema (degradado donde lo
+	   declara), 36 px, 13/500. */
 	.vega-publish-trigger {
+		min-height: 36px;
+		padding: 0 16px;
 		border-color: transparent;
+		border-radius: var(--r-pill);
 		background: var(--accent-fill);
 		color: var(--accent-ink);
-		font-weight: 600;
+		font-size: var(--fs-13);
+		font-weight: 500;
+		white-space: nowrap;
+		box-shadow: var(--shadow-card);
 	}
 	.vega-publish-trigger:hover:not(:disabled) {
-		box-shadow: 0 0 0 1.5px var(--accent-line);
+		filter: brightness(1.06);
 	}
 	.vega-publish-check:hover:not(:disabled) {
 		background: var(--active);
@@ -443,17 +521,28 @@
 		max-width: 100%;
 		color: inherit;
 	}
-	.vega-publish.home .vega-publish-state summary {
-		color: inherit;
-	}
+	/* «Publicar ahora» sobre la tarjeta de marca (`.btn.onbrand`): la tinta del acento como fondo
+	   y el acento como texto, el mismo par que el gate exige a AA (accentInk/accent). */
 	.vega-publish.home .vega-publish-trigger {
-		min-height: 42px;
-		padding-inline: var(--sp-4);
-		border-color: var(--accent-line);
+		min-height: 36px;
+		padding: 6px 16px;
+		border-color: transparent;
 		border-radius: var(--r-pill);
-		background: var(--surface);
-		color: var(--accent-text);
+		background: var(--accent-ink);
+		color: var(--accent);
 		font-size: var(--fs-13);
+		font-weight: 600;
+		box-shadow: none;
+	}
+	.vega-publish.home .vega-publish-check {
+		min-height: 36px;
+		border-radius: var(--r-pill);
+	}
+	.vega-publish-note {
+		flex-basis: 100%;
+		margin: 0;
+		font-size: var(--fs-12);
+		color: inherit;
 	}
 	@media (max-width: 768px) {
 		.vega-publish {
