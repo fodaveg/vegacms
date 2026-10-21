@@ -266,7 +266,8 @@ test.describe('actual Astro inline bridge', () => {
 			.toBe(`${SEED.seccion_2.texto}\nSegunda línea.`);
 		// A single-line field never gets a break: Enter (and Shift+Enter) applies.
 		const heading = await startEditing(page, 'seccion_2', 'heading');
-		await expect(hint).toContainText(/(?<![⌘ ])⏎\s*aplicar/);
+		await expect(hint).toContainText(/⏎\s*aplicar/);
+		await expect(hint).not.toContainText(/(⌘|Ctrl )⏎/);
 		await page.keyboard.press('Shift+Enter');
 		await expect(heading).not.toHaveAttribute('contenteditable');
 		await expect(inspectorControl(page, 'heading')).toHaveValue(SEED.seccion_2.heading);
