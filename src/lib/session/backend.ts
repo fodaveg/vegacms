@@ -220,6 +220,16 @@ declare global {
 		__VEGA_PREVIEW_API_URL__?: string;
 		/** Opt-in de share exclusivo del harness memory; no habilita la función en toda la demo. */
 		__VEGA_PREVIEW_SHARE__?: boolean;
+		/**
+		 * Flag runtime SOLO para Playwright/capturas (Inicio v2): URL base del endpoint de
+		 * reconstrucción que el adaptador `memory` debe ANUNCIAR como `buildApiUrl`. Gemela de
+		 * `__VEGA_PREVIEW_API_URL__`: anuncia, no implementa. Quien responde a `GET {url}/status`
+		 * y `POST {url}/trigger` es el propio test con `page.route()`; sin interceptar, Vega ve el
+		 * mismo fallo de red que contra un proyecto que anuncia lo que no tiene. Sin esto la
+		 * tarjeta de marca y «Publicar» de Inicio no existen en `memory`. Exclusivo de `memory`:
+		 * en modo `pocketbase` nunca se lee (allí sale del discovery).
+		 */
+		__VEGA_BUILD_API_URL__?: string;
 	}
 }
 
@@ -313,14 +323,18 @@ async function createInstance(): Promise<BackendPort> {
 			showcase ? 'showcase' : window.__VEGA_SEED_MEDIA__ ? 'media' : 'demo',
 			withHistory.manifestKey
 		]);
+		// Ver `__VEGA_BUILD_API_URL__` arriba: mismo criterio, para la publicación del sitio.
+		const withBuild = window.__VEGA_BUILD_API_URL__
+			? { ...withHistory, buildApiUrl: window.__VEGA_BUILD_API_URL__ }
+			: withHistory;
 		return window.__VEGA_PREVIEW_API_URL__
 			? {
-					...withHistory,
+					...withBuild,
 					previewApiUrl: window.__VEGA_PREVIEW_API_URL__,
 					previewVisualEditing: true,
 					previewShare: window.__VEGA_PREVIEW_SHARE__ === true
 				}
-			: withHistory;
+			: withBuild;
 	}
 	const override = readBackendOverride();
 	const authCollectionOverride = readAuthCollectionOverride();

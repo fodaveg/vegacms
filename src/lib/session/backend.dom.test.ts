@@ -28,6 +28,7 @@ beforeEach(() => {
 	delete window.__VEGA_ADAPTER__;
 	delete window.__VEGA_PREVIEW_API_URL__;
 	delete window.__VEGA_PREVIEW_SHARE__;
+	delete window.__VEGA_BUILD_API_URL__;
 });
 
 afterEach(() => {
@@ -35,6 +36,7 @@ afterEach(() => {
 	delete window.__VEGA_ADAPTER__;
 	delete window.__VEGA_PREVIEW_API_URL__;
 	delete window.__VEGA_PREVIEW_SHARE__;
+	delete window.__VEGA_BUILD_API_URL__;
 });
 
 describe('resolveDisplayBackendUrl', () => {
@@ -119,6 +121,18 @@ describe('getBackend — config y discovery', () => {
 			expect(port.previewShare).toBe(share === true);
 		}
 	);
+
+	test('memory anuncia buildApiUrl solo con el gancho del harness', async () => {
+		window.__VEGA_ADAPTER__ = 'memory';
+		vi.resetModules();
+		let { getBackend } = await import('./backend');
+		expect((await getBackend()).buildApiUrl ?? null).toBeNull();
+
+		window.__VEGA_BUILD_API_URL__ = 'https://build.example.test/api/vega-build';
+		vi.resetModules();
+		({ getBackend } = await import('./backend'));
+		expect((await getBackend()).buildApiUrl).toBe('https://build.example.test/api/vega-build');
+	});
 
 	test.each([undefined, false, true])(
 		'memory share=%s requiere opt-in explícito del harness',
