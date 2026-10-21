@@ -1,3 +1,20 @@
+<script module lang="ts">
+	import type ConflictNoticeComponent from './ConflictNotice.svelte';
+
+	let request: Promise<{ default: typeof ConflictNoticeComponent }> | null = null;
+
+	/**
+	 * Descarga `ConflictNotice.svelte` una sola vez (la misma promesa para todos los anfitriones).
+	 * La usa este cargador al montarse, y los tests la esperan ANTES de provocar un conflicto: con la
+	 * promesa ya resuelta, el aviso se pinta en la microtarea siguiente al montaje y lo que comprueban
+	 * no depende de cuándo resuelve el `import()` (gate de 0.14.1: con la suite entera llegaba después
+	 * del `tick()` en el que el test buscaba «Guardar igualmente»).
+	 */
+	export function loadConflictNotice() {
+		return (request ??= import('./ConflictNotice.svelte'));
+	}
+</script>
+
 <script lang="ts">
 	/**
 	 * Carga `ConflictNotice.svelte` solo cuando hay un conflicto que enseñar. Lo montan
@@ -8,23 +25,20 @@
 	 * la 0.14.1 pasaba el tope de la pantalla más cara por 0.67 KB).
 	 *
 	 * El aviso gestiona su foco al montarse (título con `tabindex="-1"`), así que llegar un instante
-	 * después no cambia nada para quien edita. Si el trozo no se puede descargar (sin red, o una
-	 * versión nueva desplegada que retiró el anterior), el hueco no se queda vacío: dice que el
+	 * después no cambia nada para quien edita. Si no se puede descargar (sin red,
+	 * o una versión nueva desplegada que retiró el anterior), el hueco no se queda vacío: dice que el
 	 * registro cambió en el servidor y que no se ha guardado nada, con el mismo `role="alert"`.
 	 */
 	import type { ComponentProps } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
-	import type ConflictNotice from './ConflictNotice.svelte';
 
-	type Props = ComponentProps<typeof ConflictNotice>;
+	type Props = ComponentProps<typeof ConflictNoticeComponent>;
 
 	let props: Props = $props();
 	const ctx = getVegaContext();
-	// Una sola petición por montaje: `import()` ya devuelve el mismo módulo a cada anfitrión.
-	const notice = import('./ConflictNotice.svelte');
 </script>
 
-{#await notice then { default: Notice }}
+{#await loadConflictNotice() then { default: Notice }}
 	<Notice {...props} />
 {:catch}
 	<div class="vega-conflict-fallback" role="alert">

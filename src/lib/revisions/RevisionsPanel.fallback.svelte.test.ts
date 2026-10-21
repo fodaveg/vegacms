@@ -10,7 +10,7 @@ import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { BackendPort, Page, VegaRecord } from '$lib/backend';
 import type { ResolvedContentType } from '$lib/model/types';
 import { t as translate } from '$lib/i18n';
-import RevisionsPanel from './RevisionsPanel.svelte';
+import RevisionsPanel, { loadRevisionDiff } from './RevisionsPanel.svelte';
 
 vi.mock('./RevisionDiff.svelte', () => {
 	throw new Error('Failed to fetch dynamically imported module');
@@ -71,8 +71,12 @@ test('sin el trozo del diff, la revisión abierta lo dice y se puede volver al h
 		await vi.waitFor(() =>
 			expect(target.querySelector('.vega-revisions-list button')).not.toBeNull()
 		);
+		// La descarga ya ha fallado antes de abrir la revisión: el resultado no depende de cuándo
+		// resuelve el `import()`, solo de que no llega.
+		await expect(loadRevisionDiff()).rejects.toThrow();
 		target.querySelector<HTMLButtonElement>('.vega-revisions-list button')!.click();
-		await vi.waitFor(() => expect(target.querySelector('.vega-revisions-error')).not.toBeNull());
+		await tick();
+		await tick();
 		const error = target.querySelector<HTMLElement>('.vega-revisions-error')!;
 		expect(error.getAttribute('role')).toBe('alert');
 		expect(error.textContent).toContain(t('revisions.panel.error'));

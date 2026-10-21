@@ -1,6 +1,11 @@
 /** Publicar desde el formulario sobre memory real: contenido, versión, errores y mutex entre pasos. */
 import { flushSync, mount, tick, unmount } from 'svelte';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
+import { loadConflictNotice } from './ConflictNoticeLoader.svelte';
+
+// El aviso de conflicto se descarga aparte (`ConflictNoticeLoader.svelte`): se espera ANTES de los
+// tests, para que ninguno dependa de cuándo resuelve ese `import()`.
+beforeAll(() => loadConflictNotice());
 import RecordForm from './RecordForm.svelte';
 import { buildFormModel } from './form-model';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';

@@ -1,3 +1,23 @@
+<script module lang="ts">
+	type RevisionDiffModule = typeof import('./RevisionDiff.svelte');
+
+	/** El módulo del diff, una vez descargado: desde entonces se pinta en el mismo render. */
+	let loadedDiff = $state<RevisionDiffModule | null>(null);
+	let diffRequest: Promise<RevisionDiffModule> | null = null;
+
+	/**
+	 * `RevisionDiff.svelte` se descarga al abrir una revisión, no al abrir el registro: el editor de
+	 * registro estaba al tope de su presupuesto (`scripts/check-bundle-budget.mjs`, la 0.14.1 lo
+	 * pasaba por 0.22 KB) y el diff solo lo usa quien entra en el historial. Una sola petición para
+	 * todos los paneles; los tests la esperan antes de abrir una revisión, para no depender de
+	 * cuándo resuelve el `import()`.
+	 */
+	export function loadRevisionDiff(): Promise<RevisionDiffModule> {
+		diffRequest ??= import('./RevisionDiff.svelte').then((module) => (loadedDiff = module));
+		return diffRequest;
+	}
+</script>
+
 <script lang="ts">
 	/**
 	 * `RevisionsPanel.svelte` (`#lote-integridad`, Fase B §10.1): panel "Historial" del aside del
@@ -48,15 +68,6 @@
 	import { parseRevisionRecord, type RevisionRecord } from './revision';
 	import { revisionAuthorLabel, revisionDateLabel, revisionDisplayLabel } from './revision-label';
 	import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
-	/** `RevisionDiff.svelte` se descarga al abrir una revisión, no al abrir el registro: el
-	 *  editor de registro estaba al tope de su presupuesto (`scripts/check-bundle-budget.mjs`, la
-	 *  0.14.1 lo pasaba por 0.22 KB) y el diff solo lo usa quien entra en el historial. Una sola
-	 *  petición: `import()` devuelve siempre el mismo módulo. */
-	let revisionDiff: Promise<typeof import('./RevisionDiff.svelte')> | null = null;
-	function loadRevisionDiff(): Promise<typeof import('./RevisionDiff.svelte')> {
-		revisionDiff ??= import('./RevisionDiff.svelte');
-		return revisionDiff;
-	}
 
 	interface Props {
 		type: ResolvedContentType;
@@ -242,20 +253,30 @@
 					</button>
 				</p>
 			{:else if status === 'ready' && selected}
-				{#await loadRevisionDiff() then { default: RevisionDiff }}
-					<RevisionDiff
+				{#if loadedDiff}
+					<loadedDiff.default
 						{type}
 						{recordId}
 						revision={selected}
 						onRestore={handleRestore}
 						onBack={backToList}
 					/>
-				{:catch}
-					<p class="vega-revisions-error" role="alert">
-						{ctx.t('revisions.panel.error')}
-						<button type="button" onclick={backToList}>{ctx.t('revisions.diff.back')}</button>
-					</p>
-				{/await}
+				{:else}
+					{#await loadRevisionDiff() then { default: RevisionDiff }}
+						<RevisionDiff
+							{type}
+							{recordId}
+							revision={selected}
+							onRestore={handleRestore}
+							onBack={backToList}
+						/>
+					{:catch}
+						<p class="vega-revisions-error" role="alert">
+							{ctx.t('revisions.panel.error')}
+							<button type="button" onclick={backToList}>{ctx.t('revisions.diff.back')}</button>
+						</p>
+					{/await}
+				{/if}
 			{:else if status === 'ready'}
 				{#if revisions.length === 0}
 					<p class="vega-revisions-empty">{ctx.t('revisions.panel.empty')}</p>

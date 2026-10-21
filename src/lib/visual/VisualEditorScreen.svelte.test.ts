@@ -13,7 +13,12 @@
  *   reales para cargar/guardar bloques, cosa que el `fakeCtx` de la tarea anterior no tenía.
  */
 import { mount, tick, unmount } from 'svelte';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
+import { loadConflictNotice } from '$lib/form/ConflictNoticeLoader.svelte';
+
+// El aviso de conflicto se descarga aparte (`ConflictNoticeLoader.svelte`): se espera ANTES de los
+// tests, para que ninguno dependa de cuándo resuelve ese `import()`.
+beforeAll(() => loadConflictNotice());
 import VisualEditorScreen from './VisualEditorScreen.svelte';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { ContentType } from '$lib/backend/types';
@@ -810,7 +815,7 @@ describe('VisualEditorScreen.svelte', () => {
 
 		// Falló cerrado: el aviso de edición concurrente vive DENTRO de la sección, nada se escribió
 		// y el borrador sigue en el campo. Mismo `BlockEditor`, mismo contrato que la ficha ancha.
-		// El aviso se descarga al haber conflicto (`ConflictNoticeLoader.svelte`): se espera a él.
+		// Se espera al guardado rechazado (el trozo del aviso ya está descargado, ver `beforeAll`).
 		await vi.waitFor(() => expect(second.querySelector('.vega-conflict')).not.toBeNull());
 		expect(input.value).toBe('Mi titular');
 		expect((await port.get('post_block', 'b2')).values.heading).toBe('El titular de Ana');

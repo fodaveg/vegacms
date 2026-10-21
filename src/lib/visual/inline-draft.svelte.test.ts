@@ -1,5 +1,16 @@
 import { mount, tick, unmount } from 'svelte';
-import { describe, expect, test, vi } from 'vitest';
+import { beforeAll, describe, expect, test, vi } from 'vitest';
+import { loadConflictNotice } from '$lib/form/ConflictNoticeLoader.svelte';
+
+// El aviso de conflicto llega por `import()` (`ConflictNoticeLoader.svelte`). Con la suite entera
+// ese trozo tardaba más que un `tick()` y el gate de 0.14.1 cazó el test buscando el botón antes de
+// que existiera. Aquí se descarga TARDE a propósito, y se espera ANTES de los tests: lo que
+// comprueban no depende de cuándo llega.
+vi.mock('$lib/form/ConflictNotice.svelte', async (importOriginal) => {
+	await new Promise((resolve) => setTimeout(resolve, 50));
+	return importOriginal();
+});
+beforeAll(() => loadConflictNotice());
 import BlockEditor from '$lib/form/BlockEditor.svelte';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import { resolveContentModel } from '$lib/model/resolve';

@@ -5,7 +5,12 @@
  * lámina (2.1 a 2.10) y el conflicto con el diálogo abierto tienen su caso.
  */
 import { flushSync, mount, tick, unmount } from 'svelte';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
+import { loadConflictNotice } from './ConflictNoticeLoader.svelte';
+
+// El aviso de conflicto se descarga aparte (`ConflictNoticeLoader.svelte`): se espera ANTES de los
+// tests, para que ninguno dependa de cuándo resuelve ese `import()`.
+beforeAll(() => loadConflictNotice());
 import RecordForm from './RecordForm.svelte';
 import { buildFormModel } from './form-model';
 import { proposeScheduleLocal } from './schedule';

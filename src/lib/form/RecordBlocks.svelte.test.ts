@@ -11,7 +11,12 @@
  * aquí solo se comprueba que `RecordBlocks` los conecta correctamente al puerto y al DOM.
  */
 import { mount, tick, unmount } from 'svelte';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
+import { loadConflictNotice } from './ConflictNoticeLoader.svelte';
+
+// El aviso de conflicto se descarga aparte (`ConflictNoticeLoader.svelte`): se espera ANTES de los
+// tests, para que ninguno dependa de cuándo resuelve ese `import()`.
+beforeAll(() => loadConflictNotice());
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { ContentType, FieldValue } from '$lib/backend/types';
 import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
@@ -1107,8 +1112,8 @@ describe('RecordBlocks.svelte — tipos de bloque', () => {
 		await settle();
 		await settle();
 
-		// Falló cerrado: aviso en la ficha, nada escrito, el borrador intacto. El aviso se descarga
-		// al haber conflicto (`ConflictNoticeLoader.svelte`): se espera a que esté, no a N microtareas.
+		// Falló cerrado: aviso en la ficha, nada escrito, el borrador intacto. Se espera al guardado
+		// rechazado (el trozo del aviso ya está descargado, ver `beforeAll`).
 		await vi.waitFor(() => expect(row.querySelector('.vega-conflict')).not.toBeNull());
 		const notice = row.querySelector<HTMLElement>('.vega-conflict');
 		expect(title.value).toBe('Portada mía');
