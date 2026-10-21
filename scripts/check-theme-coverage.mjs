@@ -113,6 +113,14 @@ export const ALLOWLIST_RAW_COLOR = [
 		snippet: 'rgb(15 17 21 / 55%)'
 	},
 	{
+		// No es un color propio: el token `--v-ol-inline` al 14 % para la pista de edición que Vega
+		// manda DENTRO de la página del sitio (`editField.appearance.soft`). `--v-ol-inline-soft` no
+		// sirve ahí porque se mezcla con el papel de Vega (opaco, oscuro en modo oscuro) y el sitio
+		// no cambia de tema con el admin. Sale de aquí si P7 publica un tinte translúcido propio.
+		file: 'src/lib/visual/inline-appearance.ts',
+		snippet: 'color-mix(in srgb, var(--v-ol-inline) 14%, transparent)'
+	},
+	{
 		file: 'src/lib/richtext/safe-uri.test.ts',
 		snippet: 'java&#115;cript'
 	},

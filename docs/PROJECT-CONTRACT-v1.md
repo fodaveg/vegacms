@@ -481,8 +481,9 @@ start times out. Stale sessions, documents, edit IDs and sequences are discarded
 
 **Editing cue.** While a field is typed the site outlines it and tints it, distinct
 from the selection outline Vega draws outside the frame. Vega sends its theme's
-colours as `appearance { outline, soft }`: literal computed colours resolved from
-`--v-ol-inline` / `--v-ol-inline-soft` at the moment of entry. The site accepts
+colours as `appearance { outline, soft }`, resolved at the moment of entry: `outline` is the
+computed `--v-ol-inline`, `soft` that colour at 14 % alpha (the page keeps its own theme, so
+Vega's opaque `--v-ol-inline-soft`, mixed with Vega's paper, is not used inside it). The site accepts
 only colour syntax (hex or one colour function, never `var()`/`url()`) and applies
 it through CSSOM (`element.style`, valid under a CSP without inline styles),
 restoring every property on exit. Without `appearance` the site uses the

@@ -303,9 +303,12 @@ test.describe('actual Astro inline bridge', () => {
 			selectionEnd: 5
 		});
 		await expect(heading).toContainText('へんしゅう');
-		// Save from Vega's bar while the composition is open; the click must not steal the caret
-		// here, so it is dispatched without moving focus (a mouse click is covered below).
-		await page.locator('.vega-visual-save').evaluate((button) => (button as HTMLElement).click());
+		// Save from the block form (the sheet's Guardar) while the composition is open; the click must
+		// not steal the caret here, so it is dispatched without moving focus (a mouse click is covered
+		// below). It goes through the same final-value request as Cmd/Ctrl+S.
+		await inspector(page)
+			.locator('.vega-block-save-button')
+			.evaluate((button) => (button as HTMLElement).click());
 		await page.waitForTimeout(2100); // outlives the initial acknowledgement timeout
 		await expect(heading).toHaveAttribute('contenteditable', 'plaintext-only');
 		await expect(page.locator('.vega-visual-dirty')).toBeVisible(); // nothing saved mid-word
@@ -326,7 +329,7 @@ test.describe('actual Astro inline bridge', () => {
 		await page.keyboard.type(' ');
 		await cdp.send('Input.imeSetComposition', { text: 'かな', selectionStart: 2, selectionEnd: 2 });
 		await expect(heading).toContainText('かな');
-		await page.locator('.vega-visual-save').click();
+		await inspector(page).locator('.vega-block-save-button').click();
 		await expect(heading).not.toHaveAttribute('contenteditable');
 		await expect(page.locator('.vega-visual-dirty')).toHaveCount(0);
 		const shown = (await heading.textContent()) ?? '';

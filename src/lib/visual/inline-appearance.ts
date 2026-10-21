@@ -5,7 +5,7 @@ import type { InlineAppearance } from './inline-session';
  * §"Inline editing" del contrato). El sitio no ve los tokens de Vega y su CSS no puede leerlos:
  * se resuelven AQUÍ, en el momento de entrar a editar, contra el tema que el autor tiene puesto.
  *
- * Se resuelven con una sonda (`color`/`background-color` = `var(--v-ol-inline…)`) y no leyendo la
+ * Se resuelven con una sonda (`color` = `var(--v-ol-inline)`, fondo = ese color al 14 %) y no leyendo la
  * propiedad personalizada: el valor de una custom property puede ser `var(--accent-text)` o un
  * `color-mix()`, que el sitio no sabría interpretar; el color COMPUTADO de la sonda siempre sale
  * como un color literal (`rgb(…)`, `color(srgb …)`), que es lo único que el sitio acepta.
@@ -21,7 +21,10 @@ export function readInlineAppearance(host: Element | null | undefined): InlineAp
 	probe.style.visibility = 'hidden';
 	probe.style.pointerEvents = 'none';
 	probe.style.color = 'var(--v-ol-inline)';
-	probe.style.backgroundColor = 'var(--v-ol-inline-soft)';
+	// El relleno NO es `--v-ol-inline-soft`: ese token se mezcla con el papel de VEGA (opaco, oscuro en
+	// modo oscuro) y el sitio no cambia de tema con el admin. Sobre la página va el mismo naranja
+	// translúcido de la lámina (`.inl`, 12–16 %), que funciona sobre cualquier fondo del sitio.
+	probe.style.backgroundColor = 'color-mix(in srgb, var(--v-ol-inline) 14%, transparent)';
 	host.appendChild(probe);
 	try {
 		const style = getComputedStyle(probe);
