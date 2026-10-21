@@ -117,7 +117,8 @@
 	 * escrito sin preguntar. `beforeNavigate` cubre las tres primeras (incluido `ctx.nav.*`, que por
 	 * dentro es `goto()`) y SvelteKit lo da de baja solo al desmontar; `beforeunload` cubre la
 	 * cuarta. `window.confirm` es deliberado por la misma razón que allí: `beforeNavigate` necesita
-	 * una respuesta SÍNCRONA en el mismo tick para poder cancelar.
+	 * una respuesta SÍNCRONA en el mismo tick para poder cancelar; y como allí, solo en la navegación
+	 * interna: salir del documento solo cancela y deja el diálogo nativo (`leave-guard.ts`).
 	 *
 	 * **Borrador sin escritura**: el snapshot de `blocks.currentDraftRecords()` contiene los campos
 	 * de todos los `BlockEditor` montados, incluidos los no seleccionados. El token recibe ese
@@ -307,6 +308,7 @@
 	import { createVisualPreviewState, type TokenState } from './visual-preview-state';
 	import { createBlocksState } from '$lib/form/blocks-state.svelte';
 	import { requestFieldFocus, type FieldFocusRequest } from '$lib/form/focus-request';
+	import { guardUnsavedLeave } from '$lib/form/leave-guard';
 	import { listRoute, recordRoute } from '$lib/nav/routes';
 	import type { ReviewFinding } from '$lib/publish-review/publish-review';
 	import { createReviewState } from '$lib/publish-review/review-state.svelte';
@@ -468,7 +470,7 @@
 		reviewFocusArmed = reviewFocusPending;
 		reviewFocusPending = null;
 		if (!blocks.anyDirty) return;
-		if (!window.confirm(ctx.t('editor.leaveConfirm'))) navigation.cancel();
+		guardUnsavedLeave(navigation, () => window.confirm(ctx.t('editor.leaveConfirm')));
 	});
 
 	/** SvelteKit solo llama a esto con la navegación en marcha (nadie la canceló): ahora sí se deja

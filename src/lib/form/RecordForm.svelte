@@ -60,7 +60,9 @@
 	 *   dentro del mismo tick, algo que un diálogo inline (que espera un clic en un tick futuro)
 	 *   no puede dar sin reimplementar manualmente el reintento de la navegación para cada tipo
 	 *   (link/goto/popstate) — la razón por la que `ManifestEditor` evita `confirm()` (una
-	 *   confirmación SIN carrera con el router) no aplica aquí.
+	 *   confirmación SIN carrera con el router) no aplica aquí. Solo en la navegación INTERNA:
+	 *   salir del documento (recarga, cierre, URL externa) solo cancela y deja el diálogo nativo
+	 *   de `beforeunload` (`leave-guard.ts`; un `confirm` ahí lo bloquea el navegador).
 	 * - Foco al primer error (F5-g, L-P5.2, a11y de cierre): tras un envío que deja errores (de
 	 *   cliente `validateForm` O de backend `mapFieldErrors`), el foco se mueve al PRIMER campo con
 	 *   error en el orden EFECTIVO de formulario — `firstErrorFieldName` (`first-error-field.ts`)
@@ -343,6 +345,7 @@
 	import { captureEditorIdentity, currentEditorIdentity } from './deferred-editor-identity';
 	import { recordConflictRows } from './record-conflict-rows';
 	import { handleRecordSaveKeydown } from './record-save-keyboard';
+	import { guardUnsavedLeave } from './leave-guard';
 	import RedirectOffer from './RedirectOffer.svelte';
 	import { applyRedirectOps, loadRelevantRedirects, redirectsAvailability } from './redirect-sync';
 	import { loadLatest } from './latest-load';
@@ -1891,7 +1894,7 @@
 				return;
 			}
 			if (!dirty || discarding) return;
-			if (!window.confirm(ctx.t('editor.leaveConfirm'))) navigation.cancel();
+			guardUnsavedLeave(navigation, () => window.confirm(ctx.t('editor.leaveConfirm')));
 		});
 
 	onMount(() => {
