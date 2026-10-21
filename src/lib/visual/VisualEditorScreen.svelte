@@ -941,6 +941,9 @@
 				preview.resumeInline();
 			},
 			onInlineSave: saveSelectedBlock,
+			// ⌘S pulsado dentro del sitio (el foco se queda allí tras aplicar con Enter): el mismo
+			// guardado que el atajo de esta pantalla (`handleVisualKeydown`).
+			onSaveShortcut: saveFromShortcut,
 			onHover: handlePageHover,
 			// El plazo interno de `refresh()` venció, o el propio puente avisó con
 			// `error/refresh-failed` (ver `bridge-client.ts`): en los dos casos el cambio no aterrizó
@@ -1156,6 +1159,12 @@
 		if (record) blocks.requestDelete(record);
 	}
 
+	/** ⌘S/Ctrl+S, pulsado en Vega (`handleVisualKeydown`) o en el sitio (mensaje `save-shortcut` del
+	 *  puente): guarda la ficha abierta, por un único camino. */
+	function saveFromShortcut(): void {
+		inspectorRef?.saveSelected();
+	}
+
 	// ————— Atajos de teclado a nivel de PANTALLA (ver cabecera, tabla completa aquí) —————
 	//
 	// | Tecla                  | Acción                                              |
@@ -1168,7 +1177,7 @@
 	function handleVisualKeydown(event: KeyboardEvent): void {
 		switch (visualKeyboardAction(event, canvasActive, helpRequest !== null)) {
 			case 'save':
-				inspectorRef?.saveSelected();
+				saveFromShortcut();
 				break;
 			case 'close-help':
 				closeHelp();

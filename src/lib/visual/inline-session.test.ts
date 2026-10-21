@@ -118,6 +118,19 @@ describe('inline v2', () => {
 		expect(h.save).toHaveBeenCalledOnce();
 		h.client.stop();
 	});
+	test('save-shortcut after Enter (focus left in the frame) reaches the host; a stale document does not', () => {
+		const onSaveShortcut = vi.fn();
+		const h = setup({ onSaveShortcut });
+		const edit = h.start();
+		h.receive({ ...edit, type: 'input', sequence: 0 });
+		h.receive({ ...edit, type: 'commit', sequence: 1, value: 'Draft' });
+		expect(h.receive({ type: 'save-shortcut' })).toBe('accepted');
+		expect(onSaveShortcut).toHaveBeenCalledOnce();
+		expect(h.receive({ type: 'save-shortcut', documentId: 'old' })).toBe('out-of-order');
+		expect(h.receive({ type: 'save-shortcut', sessionId: 'old' })).toBe('out-of-order');
+		expect(onSaveShortcut).toHaveBeenCalledOnce();
+		h.client.stop();
+	});
 	test('cancel, missing field timeout, permission revocation and refresh invalidation', () => {
 		vi.useFakeTimers();
 		const h = setup();

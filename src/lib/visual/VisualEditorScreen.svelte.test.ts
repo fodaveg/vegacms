@@ -2857,6 +2857,24 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		expect((await port.get('post_block', 'b1')).values.heading).toBe('Hero por atajo');
 	});
 
+	test('⌘S pulsado DENTRO del sitio (`save-shortcut` del puente) guarda igual que el de Vega', async () => {
+		// QA de fodaveg (21 oct 2026): tras aplicar en línea con Enter el foco se queda en el marco,
+		// y sus teclas nunca llegan a esta ventana; el puente avisa con `save-shortcut`.
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type, port } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }]);
+		await editHeading(mounted.target, 'Hero desde el sitio');
+		expect(mounted.target.querySelector('.vega-visual-dirty')).not.toBeNull();
+
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'save-shortcut' });
+		await flush();
+
+		expect(mounted.target.querySelector('.vega-visual-dirty')).toBeNull();
+		expect((await port.get('post_block', 'b1')).values.heading).toBe('Hero desde el sitio');
+	});
+
 	test('sin bloque seleccionado, ⌘S no revienta (no-op)', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);

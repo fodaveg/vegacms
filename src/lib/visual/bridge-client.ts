@@ -137,6 +137,8 @@ type SiteMessage =
 	| { type: 'select'; blockId: string }
 	/** El puntero entró en otro bloque del lienzo, o salió de todos (`null`). Ver `onHover`. */
 	| { type: 'hover'; blockId: string | null }
+	/** Cmd/Ctrl+S pulsado DENTRO del marco (§"Save shortcut" del contrato). Ver `onSaveShortcut`. */
+	| { type: 'save-shortcut' }
 	| { type: 'error'; code: string; detail: string | null };
 
 /** Veredicto del parseo. `foreign` es el caso ABUNDANTE (una ventana recibe mensajes de todo el
@@ -271,6 +273,9 @@ export function parseSiteMessage(raw: unknown): ParsedSiteMessage {
 			if (!blockId) return { status: 'malformed' };
 			return { status: 'ok', message: { type: 'hover', blockId } };
 		}
+		case 'save-shortcut':
+			// Sin cuerpo: el sitio solo dice que se pulsó; qué se guarda lo decide Vega.
+			return { status: 'ok', message: { type: 'save-shortcut' } };
 		case 'error': {
 			const code = nonEmptyString(record.code);
 			if (!code) return { status: 'malformed' };
@@ -399,6 +404,14 @@ interface VisualBridgeClientOptions {
 	onInlineRect?: (blockId: string, rect: InlineRect) => void;
 	onInlineEnd?: (blockId: string, cancel: boolean) => void;
 	onInlineSave?: () => void;
+	/**
+	 * Cmd/Ctrl+S con el foco DENTRO del marco (§"Save shortcut" del contrato, QA de fodaveg del 21
+	 * oct 2026): tras aplicar una edición en línea con Enter el foco se queda en el sitio, y las
+	 * teclas de un marco de otro origen nunca llegan a la ventana de Vega. El puente hace
+	 * `preventDefault` y lo manda; quien lo consume lo trata exactamente como su propio ⌘S. Un sitio
+	 * que no lo implementa no lo manda nunca, como antes.
+	 */
+	onSaveShortcut?: () => void;
 	/** `editField.appearance`: colores de la pista leídos de los tokens vigentes en el momento de
 	 *  entrar (el autor puede haber cambiado de tema) y el hueco bajo el texto para la pista
 	 *  (`hintSpace`). Sin colores, el sitio usa su valor por defecto documentado; `null` = nada. */
@@ -855,6 +868,11 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 					// Mismo criterio que `select`: antes del saludo no hay bloques ciertos que resaltar.
 					if (state.status !== 'connected') return 'out-of-order';
 					opts.onHover?.(message.blockId);
+					return 'accepted';
+				case 'save-shortcut':
+					// Mismo criterio que `select`: antes del saludo no hay sesión que guardar.
+					if (state.status !== 'connected') return 'out-of-order';
+					opts.onSaveShortcut?.();
 					return 'accepted';
 				case 'error':
 					// `refresh-failed` con un refresco PENDIENTE es el propio puente reportando que no

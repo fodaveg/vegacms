@@ -205,6 +205,20 @@ describe('parseSiteMessage', () => {
 		expect(parseSiteMessage(envelope({ type: 'hover', blockId: 7 })).status).toBe('malformed');
 		expect(parseSiteMessage(envelope({ type: 'hover', blockId: {} })).status).toBe('malformed');
 	});
+
+	test('"save-shortcut" sin cuerpo; un tipo desconocido sigue sin entrar', () => {
+		expect(parseSiteMessage(envelope({ type: 'save-shortcut' }))).toEqual({
+			status: 'ok',
+			message: { type: 'save-shortcut' }
+		});
+		// Lo que traiga de más no cuenta: qué se guarda lo decide Vega, nunca el sitio.
+		expect(parseSiteMessage(envelope({ type: 'save-shortcut', blockId: 'blk1' }))).toEqual({
+			status: 'ok',
+			message: { type: 'save-shortcut' }
+		});
+		expect(parseSiteMessage(envelope({ type: 'save-everything' })).status).toBe('malformed');
+		expect(parseSiteMessage({ type: 'save-shortcut' })).toEqual({ status: 'foreign' });
+	});
 });
 
 describe('createVisualBridgeClient', () => {
@@ -540,6 +554,42 @@ describe('createVisualBridgeClient', () => {
 		expect(hovered).toEqual(['blk1', null]);
 		// Ni selecciona ni cambia el estado: es conversación, no anuncio.
 		expect(client.state).toMatchObject({ status: 'connected', blocks: [BLOCK] });
+	});
+
+	test('"save-shortcut" conectado llama a quien guarda; antes del saludo o de otro origen, no', () => {
+		const onSaveShortcut = vi.fn();
+		const frame: MessagePoster = { postMessage: () => {} };
+		const client = createVisualBridgeClient({
+			record: { collection: 'pages', id: 'abc123' },
+			previewUrl: PREVIEW_URL,
+			frame: () => frame,
+			onSaveShortcut
+		});
+		const shortcut = envelope({ type: 'save-shortcut' });
+		client.start();
+		expect(client.handleMessage({ origin: ORIGIN, source: frame, data: shortcut })).toBe(
+			'out-of-order'
+		);
+		client.handleMessage({ origin: ORIGIN, source: frame, data: READY });
+		expect(
+			client.handleMessage({ origin: 'https://otro.test', source: frame, data: shortcut })
+		).toBe('foreign-origin');
+		expect(onSaveShortcut).not.toHaveBeenCalled();
+		expect(client.handleMessage({ origin: ORIGIN, source: frame, data: shortcut })).toBe(
+			'accepted'
+		);
+		expect(onSaveShortcut).toHaveBeenCalledOnce();
+		// Un tipo que no conoce se sigue ignorando sin tocar la sesión.
+		expect(
+			client.handleMessage({
+				origin: ORIGIN,
+				source: frame,
+				data: envelope({ type: 'save-everything' })
+			})
+		).toBe('malformed');
+		expect(onSaveShortcut).toHaveBeenCalledOnce();
+		expect(client.state).toMatchObject({ status: 'connected' });
+		client.stop();
 	});
 
 	test('"hover" de un origen ajeno se descarta como cualquier otro mensaje', () => {

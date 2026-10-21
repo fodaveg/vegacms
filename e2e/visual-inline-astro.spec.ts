@@ -434,6 +434,27 @@ test.describe('actual Astro inline bridge', () => {
 		await expect(heading).toHaveText('Tu contenido, en tu servidor (guardado)');
 	});
 
+	test('Cmd/Ctrl+S with the focus left in the frame after Enter saves, like the shortcut in Vega', async ({
+		page
+	}) => {
+		// fodaveg QA (21 Oct 2026): keys pressed in a cross-origin frame never reach Vega; the
+		// bridge posts `save-shortcut` and Vega saves the open card.
+		await openEditor(page);
+		const heading = await startEditing(page, 'seccion_2', 'heading');
+		await page.keyboard.type(' (atajo)');
+		await page.keyboard.press('Enter');
+		await expect(heading).not.toHaveAttribute('contenteditable');
+		await expect(page.locator('.vega-visual-dirty')).toBeVisible();
+		// The focus is still inside the site's document.
+		expect(await page.evaluate(() => document.activeElement?.tagName)).toBe('IFRAME');
+		await page.keyboard.press('ControlOrMeta+s');
+		await expect(page.locator('.vega-visual-dirty')).toHaveCount(0);
+		await backToForm(page);
+		await expect(page.locator('.vega-block-title').nth(1)).toHaveText(
+			'Tu contenido, en tu servidor (atajo)'
+		);
+	});
+
 	test('typing in the inspector during a page edit takes over without losing either text', async ({
 		page
 	}) => {

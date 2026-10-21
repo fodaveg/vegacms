@@ -412,13 +412,14 @@ bridge installed and offers the ordinary preview, which still works.
 
 **Site to Vega**
 
-| `type`   | Payload                                                                        | When                                                    |
-| -------- | ------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| `ready`  | `{ collection, id, blocks: [{ id, type, rect, unpublished? }], liveRefresh? }` | On init, after a live refresh, and in answer to `hello` |
-| `layout` | `{ blocks: [{ id, type, rect, unpublished? }] }`                               | Geometry changed: scroll, resize, late-loading images   |
-| `select` | `{ blockId }`                                                                  | The author clicked inside that block                    |
-| `hover`  | `{ blockId }` (a block id, or `null`)                                          | Optional: the pointer moved onto another block (below)  |
-| `error`  | `{ code, message }`                                                            | The bridge cannot do its job (see below)                |
+| `type`          | Payload                                                                        | When                                                    |
+| --------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `ready`         | `{ collection, id, blocks: [{ id, type, rect, unpublished? }], liveRefresh? }` | On init, after a live refresh, and in answer to `hello` |
+| `layout`        | `{ blocks: [{ id, type, rect, unpublished? }] }`                               | Geometry changed: scroll, resize, late-loading images   |
+| `select`        | `{ blockId }`                                                                  | The author clicked inside that block                    |
+| `hover`         | `{ blockId }` (a block id, or `null`)                                          | Optional: the pointer moved onto another block (below)  |
+| `save-shortcut` | `{}`                                                                           | Optional: Cmd/Ctrl+S pressed inside the frame (below)   |
+| `error`         | `{ code, message }`                                                            | The bridge cannot do its job (see below)                |
 
 **Vega to site**
 
@@ -581,6 +582,29 @@ sends it gets exactly the canvas it had before (outlines, selection and the tree
 page simply does not light up under the pointer), and a Vega that predates it ignores it under
 the unknown-`type` rule above. `hover` never selects anything and Vega does not echo it back as
 `highlight`: the site already knows where its own pointer is.
+
+#### Save shortcut (optional)
+
+Keys pressed while the focus is inside a cross-origin `<iframe>` never reach the embedding page.
+After the author applies an inline edit, the focus stays in the frame, so Cmd/Ctrl+S would open
+the browser's own "Save page" dialog instead of saving. A bridge that wants Vega to keep its
+shortcut there listens for it, calls `preventDefault()` and sends `save-shortcut`:
+
+```json
+{ "vega": "vega-visual-1", "type": "save-shortcut" }
+```
+
+- No payload: what gets saved is Vega's decision, exactly as if the shortcut had been pressed
+  in Vega itself. Anything else in the message is ignored.
+- Same envelope as every other site message: `vega-visual-1` to each allowed origin before the
+  sessions negotiate `vega-visual-2`, and afterwards `{ vega: "vega-visual-2", sessionId,
+documentId, type: "save-shortcut" }` only to the negotiated parent origin.
+- Only while the bridge is running (editor mode), only for Cmd/Ctrl+S without Shift or Alt,
+  once per press even if the key is held, and not when a field being edited inline already
+  consumed the key with its own save.
+- Vega ignores it before `ready`. Like `hover` there is no announcement: a site that never sends
+  it keeps the old behaviour, and a Vega that predates it ignores it under the unknown-`type`
+  rule.
 
 #### What the site must annotate
 
