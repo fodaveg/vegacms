@@ -271,3 +271,7 @@ VEGA_ALLOW_NO_PB=1 pnpm gate
 Con esa variable el gate avisa a gritos de lo que NO está acreditando y continúa. No la uses para
 dar por bueno un cambio en `src/lib/backend/adapters/pocketbase/` ni en las migraciones: eso es
 precisamente lo que deja de comprobarse.
+
+Los recibos y la evidencia del gate (logs, capturas, veredictos) van FUERA del worktree, en
+`$(git rev-parse --git-common-dir)/verification/`; `.verification/` está en `.gitignore` y nunca se commitea.
+Un test que falla «por carga» está roto: se rehace determinista (reloj falso, promesas, orden), sin umbrales de ms de pared.

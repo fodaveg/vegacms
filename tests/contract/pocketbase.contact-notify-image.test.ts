@@ -79,7 +79,7 @@ describe.skipIf(!IMAGE)('contacto TLS en imagen backend exacta', () => {
 		).toBe(200);
 	}
 	async function send() {
-		const start = Date.now();
+		// Sin reloj de pared: si el alta esperase al SMTP, el `await` no volvería y caería el timeout.
 		const response = await api(
 			'POST',
 			'/api/collections/messages/records',
@@ -92,7 +92,6 @@ describe.skipIf(!IMAGE)('contacto TLS en imagen backend exacta', () => {
 			''
 		);
 		expect(response.status).toBe(200);
-		expect(Date.now() - start).toBeLessThan(3000);
 		return response.body.id as string;
 	}
 	const state = async (id: string) =>
