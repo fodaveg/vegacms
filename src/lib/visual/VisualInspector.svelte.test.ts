@@ -181,13 +181,14 @@ function mountInspector(
 	blocks: BlocksState,
 	selectedId: string | null,
 	ctx: VegaAppContext,
-	onBlockSaved: () => void = vi.fn()
+	onBlockSaved: () => void = vi.fn(),
+	onInlineTakeover?: (blockId: string, field: string) => void
 ): { target: HTMLElement; instance: ReturnType<typeof mount> } {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(VisualInspector, {
 		target,
-		props: { blocks, selectedId, onBlockSaved },
+		props: { blocks, selectedId, onBlockSaved, onInlineTakeover },
 		context: new Map([[VEGA_CONTEXT_KEY, ctx]])
 	});
 	return { target, instance };
@@ -263,8 +264,13 @@ describe('VisualInspector.svelte', () => {
 		});
 		expect(inspector.updateInline('b1', 'heading', 'Inline draft')).toBe(true);
 		await tick();
-		expect(control.disabled).toBe(true);
-		expect(mounted.target.textContent).toContain('En la página');
+		// Lámina «edición en vivo»: el campo NO se deshabilita, refleja lo que se escribe en la
+		// página y lo señala junto a la etiqueta.
+		expect(control.disabled).toBe(false);
+		expect(control.value).toBe('Inline draft');
+		expect(
+			mounted.target.querySelector('[data-field="heading"] .vega-field-inline-status')?.textContent
+		).toContain('en la página');
 		inspector.finishInline('b1', true);
 		await tick();
 		expect(control.value).toBe('Previous draft');
@@ -282,6 +288,37 @@ describe('VisualInspector.svelte', () => {
 			{ heading: 'Committed draft' },
 			{ expectedVersion: recordVersion(record('b1', 'Initial')) }
 		);
+	});
+
+	test('escribir en la ficha durante la edición en línea cierra la sesión y conserva lo escrito; Descartar vuelve a lo guardado', async () => {
+		const update = vi.fn();
+		const blocks = fakeBlocksState(
+			{ records: [record('b1', 'Initial')] },
+			childType,
+			structuralFields
+		);
+		const takeover = vi.fn((blockId: string) => mounted!.instance.finishInline(blockId));
+		mounted = mountInspector(blocks, 'b1', fakeCtx(update), vi.fn(), takeover);
+		await tick();
+		const inspector = mounted.instance;
+		const control = mounted.target.querySelector<HTMLInputElement>('[data-field="heading"] input')!;
+		inspector.beginInline('b1', 'heading');
+		inspector.updateInline('b1', 'heading', 'From the page');
+		await tick();
+		control.value = 'From the page, then the form';
+		control.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		expect(takeover).toHaveBeenCalledWith('b1', 'heading');
+		expect(control.value).toBe('From the page, then the form');
+		expect(mounted.target.querySelector('.vega-field-inline-status')).toBeNull();
+		// La sesión ya está cerrada: un `input` tardío del sitio no reescribe el borrador.
+		expect(inspector.updateInline('b1', 'heading', 'Late page input')).toBe(false);
+		const discard = mounted.target.querySelector<HTMLButtonElement>('.vega-inspector-discard')!;
+		expect(discard.disabled).toBe(false);
+		discard.click();
+		await tick();
+		expect(control.value).toBe('Initial');
+		expect(update).not.toHaveBeenCalled();
 	});
 
 	test('inline rechaza campos estructurales, desconocidos y sin permiso', async () => {

@@ -320,7 +320,8 @@
 	import VisualInspector from './VisualInspector.svelte';
 	import VisualColumnResizer from './VisualColumnResizer.svelte';
 	import VisualPublishControl from './VisualPublishControl.svelte';
-	import type { InlineRequest } from './inline-session';
+	import type { InlineRect, InlineRequest } from './inline-session';
+	import { readInlineAppearance } from './inline-appearance';
 	import {
 		INSPECTOR_DEFAULT_WIDTH,
 		INSPECTOR_MAX_WIDTH,
@@ -601,7 +602,20 @@
 	// reactivo para poder rastrear la reasignación — se lee de forma imperativa igual que `formEl`,
 	// pero declararlo así calla el aviso `non_reactive_update` sin cambiar nada del criterio.
 	let previewPanelOpen = $state(false);
-	let inlineBlockId = $state<string | null>(null);
+	/** Edición en línea en curso (dueño: el puente vía `onInlineBegin`/`onInlineEnd`). `rect` es la
+	 *  caja del campo que mandó el sitio y `anchor` la del bloque EN ESE MISMO momento: la pista se
+	 *  coloca con el desplazamiento entre las dos sobre el `rect` vigente del bloque, así sigue al
+	 *  texto cuando la página se desplaza sin que el sitio tenga que volver a medir. */
+	let inlineEdit = $state<{
+		blockId: string;
+		field: string;
+		label: string;
+		widget: 'text' | 'textarea';
+		rect: InlineRect | null;
+		anchor: InlineRect | null;
+	} | null>(null);
+	const inlineBlockId = $derived(inlineEdit?.blockId ?? null);
+	let screenEl = $state<HTMLDivElement | undefined>(undefined);
 	let saveErrorBlockId = $state<string | null>(null);
 	let previewOpener: HTMLButtonElement | undefined;
 	function saveSelectedBlock(): void {
@@ -791,16 +805,32 @@
 				const target = inspectorRef?.beginInline(blockId, field);
 				if (!target) return null;
 				selectedBlockId = blockId;
-				inlineBlockId = blockId;
+				inlineEdit = {
+					blockId,
+					field,
+					label: target.label ?? field,
+					widget: target.widget,
+					rect: null,
+					anchor: null
+				};
 				preview.pauseInline();
 				previewUpdating = false;
 				return target;
 			},
 			onInlineInput: (blockId, field, value) =>
 				inspectorRef?.updateInline(blockId, field, value) ?? false,
+			onInlineRect: (blockId, rect) => {
+				if (inlineEdit?.blockId !== blockId) return;
+				const block =
+					bridgeState.status === 'connected'
+						? bridgeState.blocks.find((item) => item.id === blockId)
+						: undefined;
+				inlineEdit = { ...inlineEdit, rect, anchor: block ? { ...block.rect } : null };
+			},
+			inlineAppearance: () => readInlineAppearance(screenEl),
 			onInlineEnd: (blockId, cancel) => {
 				inspectorRef?.finishInline(blockId, cancel);
-				inlineBlockId = null;
+				inlineEdit = null;
 				preview.resumeInline();
 			},
 			onInlineSave: saveSelectedBlock,
@@ -1119,6 +1149,25 @@
 	const unpublishedBlockIds = $derived(
 		new Set(overlayBlocks.filter((block) => block.unpublished).map((block) => block.id))
 	);
+	/** Pista de la edición en línea sobre el lienzo (lámina, `.inl-hint`): bajo el campo que se
+	 *  escribe, desplazada con su bloque (ver `inlineEdit`). Sin `rect` del sitio, bajo el borde
+	 *  superior del bloque: la pista no depende de que el sitio mida. */
+	const inlineHint = $derived.by(() => {
+		if (!inlineEdit) return null;
+		const edit = inlineEdit;
+		const block = overlayBlocks.find((item) => item.id === edit.blockId);
+		if (!block) return null;
+		const rect =
+			edit.rect && edit.anchor
+				? {
+						top: block.rect.top + edit.rect.top - edit.anchor.top,
+						left: block.rect.left + edit.rect.left - edit.anchor.left,
+						width: edit.rect.width,
+						height: edit.rect.height
+					}
+				: { top: block.rect.top, left: block.rect.left, width: block.rect.width, height: 0 };
+		return { label: edit.label, widget: edit.widget, rect };
+	});
 </script>
 
 {#snippet helpLoading(failed: boolean)}
@@ -1135,7 +1184,7 @@
 	</aside>
 {/snippet}
 
-<div class="vega-visual-screen">
+<div class="vega-visual-screen" bind:this={screenEl}>
 	<!-- Las rutas canónicas (`listRoute`/`recordRoute`) ya incluyen el base path; este repo
 	     desactiva la regla de `resolve()` en los otros consumidores del mismo `NavApi`. -->
 	<!-- eslint-disable svelte/no-navigation-without-resolve -->
@@ -1486,6 +1535,7 @@
 						     tapar: pinta "sin bloques todavía" hasta que el puente conteste. -->
 							<VisualOverlay
 								inlineId={inlineBlockId}
+								{inlineHint}
 								blocks={overlayBlocks}
 								selectedId={selectedBlockId}
 								highlightedId={highlightedBlockId}
@@ -1551,6 +1601,7 @@
 				onBlockSaved={handleContentSaved}
 				onBack={() => ctx.nav.toRecord(type.name, record.id)}
 				onSelectBlock={openPendingBlock}
+				onInlineTakeover={() => bridgeClient?.finishInline()}
 				onClose={() => void closeInspector()}
 				fullFormHref={recordRoute(type.name, record.id)}
 			/>

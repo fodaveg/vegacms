@@ -248,6 +248,13 @@
 		blocks: VisualBlock[];
 		selectedId: string | null;
 		inlineId?: string | null;
+		/** Pista de la edición en línea (lámina, `.inl-hint`): qué campo se escribe y cómo salir. `rect`
+		 *  en las coordenadas de `block.rect` (las del marco). `null` fuera de una edición. */
+		inlineHint?: {
+			label: string;
+			widget: 'text' | 'textarea';
+			rect: { top: number; left: number; width: number; height: number };
+		} | null;
 		highlightedId: string | null;
 		/** Bloques que el sitio describió mal y `bridge-client.ts` descartó del array de arriba
 		 *  (ver `parseBlocks`): se cuentan, no se esconden. */
@@ -274,6 +281,7 @@
 		blocks,
 		selectedId,
 		inlineId = null,
+		inlineHint = null,
 		highlightedId,
 		skippedBlocks,
 		status,
@@ -756,6 +764,25 @@
 		{/each}
 	</div>
 
+	{#if inlineHint}
+		<!-- Pista de la edición en línea: decorativa para el lector de pantalla (el foco está DENTRO
+		     del marco, en el textbox con nombre que pone el sitio; la ficha anuncia «en la página»). -->
+		<p
+			class="vega-visual-inline-hint"
+			aria-hidden="true"
+			style:top="{inlineHint.rect.top + inlineHint.rect.height + 10}px"
+			style:left="{Math.max(4, inlineHint.rect.left)}px"
+		>
+			<b>{inlineHint.label}</b> · {ctx.t('editor.visual.inline.typing')}
+			<kbd>⏎</kbd>
+			{ctx.t('editor.visual.inline.apply')}
+			{#if inlineHint.widget === 'textarea'}<kbd>⇧⏎</kbd>
+				{ctx.t('editor.visual.inline.newline')}{/if}
+			<kbd>Esc</kbd>
+			{ctx.t('editor.visual.inline.cancel')}
+		</p>
+	{/if}
+
 	<!-- Barra flotante del seleccionado (ver cabecera, "Duplicar/mover/borrar"): HERMANA del grupo
 	     de cajas, no `aria-hidden` — controles de verdad. El contenedor NO fija `pointer-events`
 	     (hereda `none` del raíz); solo cada `<button>` lo pone en `auto`. -->
@@ -1079,6 +1106,45 @@
 			0 0 0 1px var(--paper),
 			0 0 0 3px var(--v-ol-inline),
 			0 0 0 4px var(--ink-hi);
+	}
+
+	/* Pista de la edición en línea (lámina, `.inl-hint`): píldora bajo el campo, con el nombre del
+	   campo en el naranja de edición como TEXTO (`--v-ol-inline-text`, medido ≥4.5:1). Conserva su
+	   tamaño físico con cualquier zoom, como la barra flotante. */
+	.vega-visual-inline-hint {
+		position: absolute;
+		z-index: 4;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 28px;
+		margin: 0;
+		padding: 0 10px;
+		border: 1px solid var(--line);
+		border-radius: var(--r-pill);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
+		color: var(--ink-2);
+		font-family: var(--sans);
+		font-size: 11px;
+		white-space: nowrap;
+		transform: scale(var(--menu-scale));
+		transform-origin: top left;
+	}
+
+	.vega-visual-inline-hint b {
+		color: var(--v-ol-inline-text);
+		font-weight: 600;
+	}
+
+	.vega-visual-inline-hint kbd {
+		padding: 0 4px;
+		border: 1px solid var(--line);
+		border-radius: 4px;
+		background: var(--btn);
+		color: var(--ink-hi);
+		font-family: var(--mono);
+		font-size: 10px;
 	}
 
 	/* Relleno OPACO (ver cabecera): no necesita bracket, un fondo sólido ya es inmune a lo que

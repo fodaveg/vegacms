@@ -129,6 +129,7 @@
 	import { resolveFocusTarget } from '$lib/form/focus-target';
 	import { focusables } from './a11y-audit';
 	import type { InlineEditor } from './inline-session';
+	import Icon from '$lib/icons/Icon.svelte';
 
 	interface Props {
 		/** Instancia ÚNICA de la pantalla (ver cabecera), nunca construida aquí. */
@@ -147,6 +148,9 @@
 		onClose?: () => void;
 		/** El índice pide navegación al dueño de selección/foco de la pantalla. */
 		onSelectBlock?: (id: string) => void;
+		/** El autor escribe en la ficha el campo que se está editando en la página (ver
+		 *  `BlockEditor#onInlineTakeover`): la pantalla cierra la sesión del puente. */
+		onInlineTakeover?: (blockId: string, field: string) => void;
 		fullFormHref?: string;
 	}
 
@@ -159,6 +163,7 @@
 		onBack,
 		onClose,
 		onSelectBlock,
+		onInlineTakeover,
 		fullFormHref
 	}: Props = $props();
 	const ctx = getVegaContext();
@@ -180,6 +185,12 @@
 	export function saveSelected(): void {
 		if (selectedId === null) return;
 		editorRefs[selectedId]?.save();
+	}
+
+	/** «Descartar» del pie (lámina «edición en vivo»): vuelve la ficha seleccionada a lo guardado. */
+	export function discardSelected(): void {
+		if (selectedId === null) return;
+		editorRefs[selectedId]?.discard();
 	}
 
 	export function beginInline(blockId: string, field: string) {
@@ -284,6 +295,34 @@
 	}
 </script>
 
+{#snippet blockFooter(
+	_name: string,
+	state: string,
+	save: Snippet | undefined,
+	id: string,
+	discardable: boolean
+)}
+	<!-- Pie de la ficha en el inspector (lámina «edición en vivo», `.insp .acts`): Guardar,
+	     Descartar y el atajo. El MISMO Guardar de `BlockEditor` (un solo dueño del guardado);
+	     Descartar vuelve a lo guardado sin tocar el servidor. Va tras los campos en el DOM, igual
+	     que se ve: el orden de tabulación sigue a la presentación. -->
+	<footer class="vega-block-context vega-block-context--foot">
+		{#if save}{@render save()}{/if}
+		{#if save}
+			<button
+				type="button"
+				class="vega-inspector-discard"
+				disabled={!discardable}
+				onclick={() => editorRefs[id]?.discard()}>{ctx.t('editor.visual.inspector.discard')}</button
+			>
+		{/if}
+		<p class="vega-block-context-state" role="status">{state}</p>
+		{#if save}<kbd class="vega-inspector-shortcut" title={ctx.t('editor.visual.inspector.shortcut')}
+				>⌘S</kbd
+			>{/if}
+	</footer>
+{/snippet}
+
 {#snippet blockHeader(name: string, state: string, save: Snippet | undefined, id: string)}
 	<header class="vega-block-context">
 		<div class="vega-block-context-name">
@@ -333,13 +372,43 @@
 	<!-- Un solo `<h2>` para los dos modos (y un solo `bind:this`): en «solo textos» la cabecera es
 	     el aviso informativo de la lámina (`.vega-admin-notice--info`, mismos tokens), con el
 	     título dentro para que la región siga teniendo nombre. -->
-	<div class="vega-inspector-head" class:vega-inspector-head--texts={texts}>
-		<h2 id="vega-inspector-heading" bind:this={headingEl} tabindex="-1">
-			{texts ? ctx.t('editor.visual.texts.title') : ctx.t('editor.visual.inspector.title')}
-		</h2>
+	<div
+		class="vega-inspector-head"
+		class:vega-inspector-head--texts={texts}
+		class:vega-inspector-head--block={!texts && selectedRecord !== null}
+	>
+		{#if !texts && selectedRecord !== null}
+			<!-- Cabecera de la ficha (lámina, `.insp .head`): icono y NOMBRE del tipo, y dónde está
+			     la sección en la página. Sin vocabulario de tipos, el título del bloque. -->
+			{@const selectedType = blocks.blockTypeOf(selectedRecord)}
+			{@const position = blocks.records.findIndex((item) => item.id === selectedRecord.id) + 1}
+			<span class="vega-inspector-icon" aria-hidden="true"
+				><Icon id={selectedType?.icon ?? 'document'} size={17} /></span
+			>
+			<div class="vega-inspector-title">
+				<h2 id="vega-inspector-heading" bind:this={headingEl} tabindex="-1">
+					{selectedType?.label ?? blocks.blockTitle(selectedRecord)}
+				</h2>
+				<small
+					>{ctx.t('editor.visual.inspector.position', {
+						position,
+						total: blocks.records.length,
+						id: selectedRecord.id
+					})}</small
+				>
+			</div>
+		{:else}
+			<h2 id="vega-inspector-heading" bind:this={headingEl} tabindex="-1">
+				{texts ? ctx.t('editor.visual.texts.title') : ctx.t('editor.visual.inspector.title')}
+			</h2>
+		{/if}
 		{#if !texts && onClose}
-			<button type="button" class="vega-inspector-close" onclick={onClose}
-				>{ctx.t('editor.visual.closeInspector')}</button
+			<button
+				type="button"
+				class="vega-inspector-close"
+				aria-label={ctx.t('editor.visual.closeInspector')}
+				title={ctx.t('editor.visual.closeInspector')}
+				onclick={onClose}><Icon id="close" size={16} /></button
 			>
 		{/if}
 		{#if texts}
@@ -416,7 +485,9 @@
 					onBusyChange={(saving) => blocks.setSaving(record.id, saving)}
 					textsOnly={texts}
 					{fullFormHref}
-					contextualHeader={blockHeader}
+					contextualHeader={texts ? blockHeader : blockFooter}
+					contextualPlacement={texts ? 'top' : 'bottom'}
+					onInlineTakeover={(field) => onInlineTakeover?.(record.id, field)}
 					{locked}
 				/>
 			</section>
@@ -437,6 +508,93 @@
 		padding: 0.75rem 0;
 		border-bottom: 1px solid var(--line);
 		background: var(--paper);
+	}
+
+	/* Pie del inspector (lámina, `.insp .acts`): pegado abajo mientras los campos se desplazan, con
+	   fondo opaco para que lo que scrollea no se transparente detrás. */
+	.vega-block-context--foot {
+		top: auto;
+		bottom: 0;
+		margin-top: auto;
+		gap: var(--sp-2);
+		padding: var(--sp-3) 0;
+		border-top: 1px solid var(--line-soft);
+		border-bottom: 0;
+		background: var(--surface);
+	}
+
+	.vega-block-context--foot .vega-block-context-state {
+		flex: 1;
+		min-width: 0;
+		margin: 0;
+		text-align: right;
+		color: var(--ink-3);
+		font-family: var(--mono);
+		font-size: 11px;
+	}
+
+	.vega-block-context--foot :global(.vega-block-save-button) {
+		min-width: 0;
+		min-height: 34px;
+		padding: 0 var(--sp-4);
+		border: 1px solid transparent;
+		border-radius: var(--r-pill);
+		background: var(--accent-grad);
+		color: var(--accent-ink);
+		font: inherit;
+		font-size: var(--fs-13);
+		font-weight: 500;
+		box-shadow: var(--shadow-card);
+		cursor: pointer;
+	}
+
+	.vega-block-context--foot :global(.vega-block-save-button:disabled) {
+		background: var(--btn);
+		color: var(--ink-2);
+		box-shadow: none;
+		cursor: not-allowed;
+	}
+
+	.vega-inspector-discard {
+		min-height: 34px;
+		padding: 0 var(--sp-3);
+		border: 1px solid transparent;
+		border-radius: var(--r-pill);
+		background: transparent;
+		color: var(--ink-2);
+		font: inherit;
+		font-size: var(--fs-13);
+		font-weight: 500;
+		cursor: pointer;
+	}
+
+	.vega-inspector-discard:hover:not(:disabled) {
+		background: var(--btn);
+		color: var(--ink-hi);
+	}
+
+	.vega-inspector-discard:disabled {
+		opacity: 0.55;
+		cursor: not-allowed;
+	}
+
+	.vega-inspector-discard:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 2px;
+	}
+
+	.vega-inspector-shortcut {
+		flex-shrink: 0;
+		color: var(--ink-3);
+		font-family: var(--mono);
+		font-size: 11px;
+	}
+
+	@media (pointer: coarse) {
+		.vega-block-context--foot :global(.vega-block-save-button),
+		.vega-inspector-discard {
+			min-height: 44px;
+		}
 	}
 
 	/* En poca altura la cabecera conserva nombre/estado y Guardar44px, dejando espacio al campo. */
@@ -485,14 +643,18 @@
 	/* Misma nota que `.vega-tree-panel` (`VisualBlockTree.svelte`): sin `position: sticky`, la
 	   rejilla del padre (`.vega-visual-grid--inspector`) ya reparte el alto EXACTO del viewport y
 	   `stretch` (su `align-items` por defecto) hace que esta celda llene esa altura sola. */
+	/* Panel de cristal (lámina «edición en vivo», `.pane`): flota sobre el escenario como el menú de
+	   Inicio v2. `--glass` ya es la superficie translúcida derivada del tema. */
 	.vega-inspector-panel {
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
 		min-height: 0;
 		border: 1px solid var(--line);
-		border-radius: var(--r);
-		background: var(--paper);
+		border-radius: var(--r-md);
+		background: var(--glass);
+		backdrop-filter: blur(18px);
+		-webkit-backdrop-filter: blur(18px);
 		box-shadow: var(--shadow-card);
 		overflow-y: auto;
 	}
@@ -519,11 +681,57 @@
 		gap: 0.5rem;
 	}
 
+	/* Cabecera de la ficha (lámina, `.insp .head`): icono en baldosa de acento, nombre del tipo en
+	   la display y la posición en mono. */
+	.vega-inspector-head--block {
+		justify-content: flex-start;
+		gap: 10px;
+		padding: 14px 16px;
+		border-bottom-color: var(--line-soft);
+	}
+
+	.vega-inspector-icon {
+		display: grid;
+		place-items: center;
+		flex-shrink: 0;
+		width: 34px;
+		height: 34px;
+		border-radius: var(--r-sm);
+		background: var(--accent-soft);
+		color: var(--accent-text);
+	}
+
+	.vega-inspector-title {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.vega-inspector-head--block h2 {
+		font-family: var(--display);
+		font-size: var(--fs-17);
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		text-transform: none;
+		color: var(--ink-hi);
+	}
+
+	.vega-inspector-title small {
+		display: block;
+		color: var(--ink-3);
+		font-family: var(--mono);
+		font-size: 11px;
+		overflow-wrap: anywhere;
+	}
+
 	.vega-inspector-close {
-		min-height: 2.5rem;
-		padding: 0.4rem 0.5rem;
+		display: inline-grid;
+		place-items: center;
+		flex-shrink: 0;
+		min-width: 34px;
+		min-height: 34px;
+		padding: 0;
 		border: 0;
-		border-radius: var(--r);
+		border-radius: var(--r-pill);
 		background: transparent;
 		color: var(--ink-2);
 		font: inherit;
@@ -532,13 +740,14 @@
 	@media (pointer: coarse) {
 		.vega-inspector-close {
 			min-height: 44px;
+			min-width: 44px;
 		}
 	}
 
 	.vega-inspector-close:hover,
 	.vega-inspector-close:focus-visible {
-		background: var(--surface);
-		color: var(--ink);
+		background: var(--btn);
+		color: var(--ink-hi);
 	}
 
 	.vega-inspector-head h2 {

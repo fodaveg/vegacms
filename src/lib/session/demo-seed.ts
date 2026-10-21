@@ -1676,7 +1676,15 @@ const SHOWCASE_MANIFEST: JsonValue = {
 		// distintos. `hidden` es justo para esto.
 		// `labelSingular` NO es decorativo aquí: el botón de la lista embebida es
 		// «Añadir {labelSingular}», y sin él saldría «Añadir Secciones».
-		secciones: { label: 'Secciones', labelSingular: 'Sección', hidden: true },
+		secciones: {
+			label: 'Secciones',
+			labelSingular: 'Sección',
+			hidden: true,
+			// `textarea` (lámina «edición en vivo», 20 oct): el cuerpo de «Texto» es un párrafo con
+			// saltos de línea, y es el campo de varias líneas con el que se prueba la edición en línea.
+			// Un campo `source: 'record'` toma el widget de su COLUMNA, así que el override va aquí.
+			fields: { texto: { widget: 'textarea' } }
+		},
 		proyectos: {
 			label: 'Proyectos',
 			labelSingular: 'Proyecto',
@@ -1717,6 +1725,7 @@ const SHOWCASE_MANIFEST: JsonValue = {
 		portada: {
 			label: 'Portada',
 			icon: 'media',
+			description: 'Título y subtítulo',
 			fields: [
 				{ name: 'heading', label: 'Título', widget: 'text', source: 'record' },
 				{
@@ -1731,6 +1740,7 @@ const SHOWCASE_MANIFEST: JsonValue = {
 		texto: {
 			label: 'Texto',
 			icon: 'document',
+			description: 'Título, cuerpo y contenido con formato',
 			fields: [
 				{ name: 'heading', label: 'Título', widget: 'text', source: 'record' },
 				{ name: 'texto', label: 'Cuerpo', widget: 'text', source: 'record' },
@@ -1743,6 +1753,7 @@ const SHOWCASE_MANIFEST: JsonValue = {
 		galeria: {
 			label: 'Galería',
 			icon: 'box',
+			description: 'Título, pie de foto e imágenes de la biblioteca',
 			fields: [
 				{ name: 'heading', label: 'Título', widget: 'text', source: 'record' },
 				{ name: 'pie', label: 'Pie de foto', widget: 'text', source: 'data', default: '' },
