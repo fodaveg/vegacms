@@ -12,7 +12,12 @@ type VisualKeyboardAction =
 
 /** Decide el gesto antes de tocar estado; guardar es el único atajo activo dentro de un campo.
  *  Un `<select>` o un menú (`role="menu"`, como el de zoom de la barra) conserva sus teclas: flechas,
- *  Alt+flechas, Supr, Retroceso y Escape son suyos, nunca de los bloques. */
+ *  Alt+flechas, Supr, Retroceso y Escape son suyos, nunca de los bloques. Lo mismo los controles de
+ *  VISTA de la barra que sustituyeron a los `<select>` «Vista» y «Zoom» (el segmentado de tamaños y
+ *  el disparador del zoom, marcados `data-vega-own-keys`): con el foco ahí, Supr no borra la sección
+ *  seleccionada ni Alt+↓ la mueve. */
+export const OWN_KEYS_SELECTOR = 'select, [role="menu"], [data-vega-own-keys]';
+
 export function visualKeyboardAction(
 	event: KeyboardEvent,
 	canvasActive: boolean,
@@ -23,8 +28,7 @@ export function visualKeyboardAction(
 		event.preventDefault();
 		return 'save';
 	}
-	if (event.target instanceof HTMLElement && event.target.closest('select, [role="menu"]'))
-		return null;
+	if (event.target instanceof HTMLElement && event.target.closest(OWN_KEYS_SELECTOR)) return null;
 	if (isEditableTarget(event.target)) return null;
 	if (event.key === 'Escape') return helpOpen ? 'close-help' : 'clear-selection';
 	if (event.key === '?') {
