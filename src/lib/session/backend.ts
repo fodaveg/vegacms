@@ -230,6 +230,11 @@ declare global {
 		 * en modo `pocketbase` nunca se lee (allí sale del discovery).
 		 */
 		__VEGA_BUILD_API_URL__?: string;
+		/** Flag runtime SOLO para Playwright/capturas (Inicio v2): `true` ⇒ el adaptador `memory`
+		 *  arranca sin ningún tipo de contenido, como un PocketBase virgen, para ver el estado
+		 *  «sitio vacío» de Inicio (con `__VEGA_FORCE_EDITOR_CAPABILITIES__`, el de quien edita).
+		 *  Gana a las demás semillas. Exclusivo de `memory`. */
+		__VEGA_SEED_EMPTY__?: boolean;
 	}
 }
 
@@ -294,11 +299,14 @@ async function createInstance(): Promise<BackendPort> {
 		const { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA, SHOWCASE_SEED } =
 			await import('./demo-seed');
 		const showcase = useShowcaseSeed();
-		const seed = showcase
-			? SHOWCASE_SEED
-			: window.__VEGA_SEED_MEDIA__
-				? DEMO_SEED_WITH_MEDIA
-				: DEMO_SEED;
+		const empty = window.__VEGA_SEED_EMPTY__ === true;
+		const seed = empty
+			? { users: [DEMO_CREDENTIALS], contentTypes: [], records: {} }
+			: showcase
+				? SHOWCASE_SEED
+				: window.__VEGA_SEED_MEDIA__
+					? DEMO_SEED_WITH_MEDIA
+					: DEMO_SEED;
 		const port = wrapMemoryPortForDemo(createMemoryBackend(seed), DEMO_CREDENTIALS);
 		const withCapabilities = window.__VEGA_FORCE_EDITOR_CAPABILITIES__
 			? withEditorCapabilities(port)
@@ -320,7 +328,7 @@ async function createInstance(): Promise<BackendPort> {
 		demoInstallation = true;
 		installationKey = JSON.stringify([
 			'memory',
-			showcase ? 'showcase' : window.__VEGA_SEED_MEDIA__ ? 'media' : 'demo',
+			empty ? 'empty' : showcase ? 'showcase' : window.__VEGA_SEED_MEDIA__ ? 'media' : 'demo',
 			withHistory.manifestKey
 		]);
 		// Ver `__VEGA_BUILD_API_URL__` arriba: mismo criterio, para la publicación del sitio.
