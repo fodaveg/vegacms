@@ -1469,6 +1469,11 @@
 		min-width: 0;
 	}
 
+	/* Sin avisos no se queda con media franja: ese hueco es del nombre del seleccionado. */
+	.vega-visual-overlay-status:not(:has(*)) {
+		flex-grow: 0;
+	}
+
 	.vega-visual-overlay-status p {
 		margin: 0;
 		overflow: hidden;

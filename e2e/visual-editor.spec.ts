@@ -45,7 +45,7 @@
  * escribió. Es la comprobación más fuerte que este backend permite sin un hook nuevo.
  */
 import type { Page } from '@playwright/test';
-import { expect, loginAsDemo, test } from './fixtures';
+import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 import { createVisualSite, type VisualSite, type VisualSiteBlock } from './visual-site';
 
 interface VegaVisualWindow extends Window {
@@ -1217,14 +1217,28 @@ test('QA de fodaveg: la sección se nombra igual en todas partes, también en el
 	await expect(page.locator('#vega-inspector-heading')).toHaveText(SECCIONES[1].text);
 	const name = page.locator('.vega-visual-chrome-name');
 	await expect(name).toHaveText(SECCIONES[1].text);
-	// Con el ancho del lienzo «Móvil» el nombre se lee: el contador y el texto del tipo ceden antes.
-	const strip = await name.evaluate((el) => ({
-		width: el.getBoundingClientRect().width,
-		position: getComputedStyle(el.parentElement!.querySelector('.vega-visual-chrome-position')!)
-			.display
-	}));
-	expect(strip.width).toBeGreaterThanOrEqual(120);
+	// Con el ancho del lienzo «Móvil» (con árbol, paleta e inspector abiertos a 1440 px la franja
+	// mide lo que la hoja escalada) el nombre se queda con todo lo que deja la barra de acciones: el
+	// contador y el texto del tipo ceden antes (antes quedaba «Q»).
+	const strip = await name.evaluate((el) => {
+		const main = el.parentElement!;
+		const pill = main.querySelector('.vega-visual-overlay-label')!;
+		return {
+			name: el.getBoundingClientRect().width,
+			text: el.scrollWidth,
+			room:
+				main.getBoundingClientRect().width -
+				pill.getBoundingClientRect().width -
+				(parseFloat(getComputedStyle(main).columnGap) || 0),
+			typeText: getComputedStyle(main.querySelector('.vega-visual-overlay-label-text')!).display,
+			position: getComputedStyle(main.querySelector('.vega-visual-chrome-position')!).display
+		};
+	});
+	expect(strip.typeText).toBe('none');
 	expect(strip.position).toBe('none');
+	expect(strip.name).toBeGreaterThanOrEqual(Math.min(strip.text, strip.room) - 1);
+	// Sin avisos que dar, el nombre se queda con todo lo que no es la barra de acciones.
+	expect(strip.name).toBeGreaterThanOrEqual(120);
 	await page.screenshot({ path: testInfo.outputPath('franja-movil-nombre.png') });
 
 	// Borrar desde la franja: el diálogo nombra la sección, no «esta entrada».
@@ -2470,11 +2484,11 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 		return small;
 	}
 
-	test('QA de fodaveg: Guardar de «Solo textos», la miga, Volver, Móvil/Tableta/Escritorio y la barra Markdown miden 44 px', async ({
+	test('QA de fodaveg: Guardar de «Solo textos», la miga, Volver y Móvil/Tableta/Escritorio miden 44 px', async ({
 		page
 	}) => {
 		// Medido en la copia de producción (21 oct 2026): «Guardar» 71×30 y «Páginas» 47×17 a 390 px;
-		// Móvil/Tableta/Escritorio 32×44 y la barra Markdown 32×32 en una tableta de 1180 px.
+		// Móvil/Tableta/Escritorio 32×44 en una tableta de 1180 px.
 		await page.setViewportSize({ width: 390, height: 844 });
 		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 		await openVisualEditor(page, site, 'pagina_1');
@@ -2495,10 +2509,20 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 				'.vega-visual-back, .vega-visual-crumbs a, .vega-visual-segm button, .vega-visual-zoom-trigger'
 			)
 		).toEqual([]);
+	});
 
+	test('QA de fodaveg: la barra Markdown mide 44 px con el dedo en una tableta', async ({
+		page
+	}) => {
+		// Medida en la copia de producción (21 oct 2026): 32×32 a 1180 px. El campo `summary` del
+		// sembrado de demostración es Markdown (`demo-seed.ts`).
+		await page.setViewportSize({ width: 1180, height: 820 });
+		await loginAsDemo(page);
+		await waitForHome(page);
 		await page.goto('/c/posts/post_1');
 		const tools = page.locator('.vega-markdown-tools button, .vega-markdown-modes button');
 		await expect(tools.first()).toBeVisible();
+		expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
 		expect(
 			await smallTargets(page, '.vega-markdown-tools button, .vega-markdown-modes button')
 		).toEqual([]);
