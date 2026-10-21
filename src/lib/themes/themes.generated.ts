@@ -114,9 +114,9 @@ export const THEMES: ThemeSwatch[] = [
 		id: 'niebla',
 		name: 'Niebla',
 		group: 'frios',
-		tint: '#4f6bd6',
-		accent: '#4f6bd6',
-		fill: '#4f6bd6'
+		tint: '#4c4ad9',
+		accent: '#4c4ad9',
+		fill: 'linear-gradient(135deg, #4c4ad9 0%, #6a5ae0 100%)'
 	},
 	{
 		id: 'marea',

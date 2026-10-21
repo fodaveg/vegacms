@@ -172,6 +172,10 @@
 					"description": "Pisa el porcentaje de tinte del bucket `bg` para este modo (§4.3).",
 					"$ref": "#/$defs/mixWeightPercent"
 				},
+				"accentText": {
+					"description": "OPCIONAL: acento-como-texto de este modo; gana a roles.accentText. AA ≥4.5 sobre paper/surface/surface-2 del modo (gate §5.3).",
+					"$ref": "#/$defs/hexColor"
+				},
 				"neutrals": {
 					"description": "Override final por neutro (§4.4): gana por especificidad, se pinta TAL CUAL sin re-tintar. Guardarraíles: escala de luminancia ascendente + AA de ink sobre paper si se pisa ink (validateNeutrals).",
 					"type": "object",

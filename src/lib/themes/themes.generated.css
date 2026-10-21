@@ -20,11 +20,7 @@
 	--glass: color-mix(in srgb, var(--surface) 72%, transparent);
 	--v-ol-select: var(--accent);
 	--v-ol-select-ink: var(--accent-ink);
-	--v-ol-hover: var(--accent-soft);
-	--v-ol-inline: var(--accent-text);
-	--v-ol-inline-text: var(--accent-text);
-	--v-ol-inline-soft: var(--accent-soft);
-	--v-stage: var(--paper);
+	--v-ol-hover: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 :root {
 	--fs-12: 12px;
@@ -162,6 +158,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #7c3aed;
+	--v-ol-inline-text: #6d28d9;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='brasa'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -183,6 +183,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #b18cff;
+	--v-ol-inline-text: #b18cff;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='faro'] {
@@ -210,6 +214,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #7c3aed;
+	--v-ol-inline-text: #6d28d9;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='faro'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -231,6 +239,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #b18cff;
+	--v-ol-inline-text: #b18cff;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='rescoldo'] {
@@ -260,6 +272,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #7c3aed;
+	--v-ol-inline-text: #6d28d9;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='rescoldo'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -281,6 +297,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #b18cff;
+	--v-ol-inline-text: #b18cff;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='miel'] {
@@ -308,6 +328,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #7c3aed;
+	--v-ol-inline-text: #6d28d9;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='miel'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -329,6 +353,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #b18cff;
+	--v-ol-inline-text: #b18cff;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='halloween'] {
@@ -378,6 +406,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #7c3aed;
+	--v-ol-inline-text: #6d28d9;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='halloween'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -399,6 +431,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #b18cff;
+	--v-ol-inline-text: #b18cff;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='aquelarre'] {
@@ -449,6 +485,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: #605a57;
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #7c3aed;
+	--v-ol-inline-text: #692cce;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='aquelarre'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -470,6 +510,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #b18cff;
+	--v-ol-inline-text: #b18cff;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='cereza'] {
@@ -497,6 +541,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #7c3aed;
+	--v-ol-inline-text: #6d28d9;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='cereza'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -518,6 +566,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #b18cff;
+	--v-ol-inline-text: #b18cff;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='tinta'] {
@@ -545,6 +597,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e8562a;
+	--v-ol-inline-text: #a13f21;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='tinta'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -566,57 +622,74 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 :where(:root),
 [data-theme='niebla'] {
-	--tint: #4f6bd6;
-	--accent: #4f6bd6;
+	--tint: #4c4ad9;
+	--accent: #4c4ad9;
 	--accent-ink: #ffffff;
+	--accent-grad: linear-gradient(135deg, #4c4ad9 0%, #6a5ae0 100%);
+	--accent-fill: var(--accent-grad);
+	--brand-a: #4c4ad9;
+	--brand-b: #6a5ae0;
+	--brand-c: #8a7cf0;
 }
 :where(:root)[data-mode='light'],
 [data-theme='niebla'][data-mode='light'] {
-	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-text: #4441cf;
 	--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
 	--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
-	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
-	--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
-	--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
-	--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
-	--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
-	--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+	--accent-line: color-mix(in oklab, #4c4ad9 25%, var(--line));
+	--bg: #f3f4f7;
+	--sidebar: #f5f6f9;
+	--paper: #ffffff;
+	--surface: #ffffff;
+	--surface-2: #ffffff;
 	--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
 	--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
-	--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
-	--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
-	--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
-	--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
-	--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
-	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
-	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
-	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--line: #e3e6ec;
+	--line-soft: #edeff3;
+	--line-strong: #cbd1da;
+	--ring: #4c4ad9;
+	--ink-hi: #14171c;
+	--ink: #14171c;
+	--ink-2: #5b6472;
+	--ink-3: #8a93a1;
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e8562a;
+	--v-ol-inline-text: #b43d18;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 :where(:root)[data-mode='dark'],
 [data-theme='niebla'][data-mode='dark'] {
-	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+	--accent-text: #9b9ffc;
 	--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
 	--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
-	--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
-	--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
-	--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
-	--paper: color-mix(in oklab, var(--tint) 14%, #141416);
-	--surface: color-mix(in oklab, var(--tint) 12%, #232327);
-	--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
-	--btn: color-mix(in oklab, var(--tint) 12%, #242428);
-	--active: color-mix(in oklab, var(--tint) 16%, #302f37);
-	--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
-	--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
-	--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
-	--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
-	--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
-	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
-	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
-	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--accent-line: color-mix(in oklab, #4c4ad9 25%, var(--line));
+	--bg: #0c0e12;
+	--sidebar: #0e1116;
+	--paper: #15181d;
+	--surface: #15181d;
+	--surface-2: #15181d;
+	--btn: #1b1f26;
+	--active: #20242c;
+	--line: #262b33;
+	--line-soft: #1f242b;
+	--line-strong: #353c47;
+	--ring: #9b9ffc;
+	--ink-hi: #eceef2;
+	--ink: #eceef2;
+	--ink-2: #9aa3b1;
+	--ink-3: #687180;
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='marea'] {
@@ -644,6 +717,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e8562a;
+	--v-ol-inline-text: #9e3f20;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='marea'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -665,6 +742,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='sea-wingnow'] {
@@ -692,6 +773,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e8562a;
+	--v-ol-inline-text: #a13f20;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='sea-wingnow'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -713,6 +798,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='bosque'] {
@@ -740,6 +829,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e8562a;
+	--v-ol-inline-text: #a2401e;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='bosque'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -761,6 +854,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='menta'] {
@@ -788,6 +885,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e8562a;
+	--v-ol-inline-text: #a13f1f;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='menta'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -809,6 +910,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='salvia'] {
@@ -836,6 +941,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e8562a;
+	--v-ol-inline-text: #a13f1f;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='salvia'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -857,6 +966,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='lavanda'] {
@@ -884,6 +997,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e8562a;
+	--v-ol-inline-text: #a13f21;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='lavanda'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -905,6 +1022,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='ciruela'] {
@@ -932,6 +1053,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e8562a;
+	--v-ol-inline-text: #9b3e22;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='ciruela'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -953,6 +1078,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='carbon'] {
@@ -980,6 +1109,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e8562a;
+	--v-ol-inline-text: #9b3e20;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='carbon'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -1001,6 +1134,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='colibri'] {
@@ -1044,6 +1181,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e8562a;
+	--v-ol-inline-text: #9e3f20;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='colibri'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -1065,6 +1206,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='tornasol'] {
@@ -1109,6 +1254,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e0552b;
+	--v-ol-inline-text: #953e22;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='tornasol'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -1130,6 +1279,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='pizarra'] {
@@ -1157,6 +1310,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #e8562a;
+	--v-ol-inline-text: #9e3e20;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='pizarra'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -1178,6 +1335,10 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #ff7a4d;
+	--v-ol-inline-text: #ff7a4d;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }
 
 [data-theme='terracota'] {
@@ -1205,6 +1366,10 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-ol-inline: #7c3aed;
+	--v-ol-inline-text: #6d28d9;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
 }
 [data-theme='terracota'][data-mode='dark'] {
 	--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
@@ -1226,4 +1391,8 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-ol-inline: #b18cff;
+	--v-ol-inline-text: #b18cff;
+	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
 }

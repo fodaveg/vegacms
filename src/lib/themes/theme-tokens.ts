@@ -290,25 +290,27 @@ export const THEME_TOKENS: readonly ThemeToken[] = [
 	{
 		name: 'v-ol-inline',
 		family: 'marca',
-		description: 'Borde de edición inline.',
+		description:
+			'Contorno y cursor de edición en línea: naranja propio (violeta con acento cálido), nunca selección ni aviso; ≥3:1 sobre paper/surface.',
 		themeWritable: false
 	},
 	{
 		name: 'v-ol-inline-text',
 		family: 'marca',
-		description: 'Texto activo inline.',
+		description: 'Texto de edición en línea (AA sobre su fondo tenue, paper, surface y v-stage).',
 		themeWritable: false
 	},
 	{
 		name: 'v-ol-inline-soft',
 		family: 'marca',
-		description: 'Fondo de edición inline.',
+		description: 'Fondo tenue de edición en línea, opaco sobre paper.',
 		themeWritable: false
 	},
 	{
 		name: 'v-stage',
 		family: 'papel',
-		description: 'Lienzo del sitio en el editor.',
+		description:
+			'Escenario del editor: el fondo de la app con un velo de tinta (más oscuro que bg en claro); el sitio es una hoja encima.',
 		themeWritable: false
 	},
 

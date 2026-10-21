@@ -15,7 +15,10 @@ import { describe, expect, test } from 'vitest';
 import {
 	bracketWorstCaseContrast,
 	COMPONENT_CONTRAST_PAIRS,
+	COMPONENT_GRAPHIC_PAIRS,
 	contrastRatio,
+	inlineEditFamily,
+	oklchHue,
 	validateComponentContrast,
 	validateContrast,
 	validateOverlayBracketContrast,
@@ -24,6 +27,16 @@ import {
 import { makeTheme } from './fixture';
 
 const THEMES_DIR = join(__dirname, '../../src/lib/themes');
+
+function hueDistance(a: number, b: number): number {
+	const d = Math.abs(a - b) % 360;
+	return d > 180 ? 360 - d : d;
+}
+
+/** Luminancia relativa WCAG a partir del contraste contra el negro: (L + 0.05) / 0.05. */
+function relativeLuminance(hex: string): number {
+	return contrastRatio(hex, '#000000') * 0.05 - 0.05;
+}
 
 function loadRealThemes() {
 	const index: string[] = JSON.parse(readFileSync(join(THEMES_DIR, 'index.json'), 'utf8'));
@@ -72,6 +85,9 @@ describe('1. El catálogo completo pasa el gate AA en claro y oscuro', () => {
 		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['v-ol-select-ink', 'v-ol-select']);
 		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['v-ol-inline-text', 'v-ol-inline-soft']);
 		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['v-ol-inline-text', 'v-stage']);
+		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['v-ol-inline-text', 'paper']);
+		expect(COMPONENT_CONTRAST_PAIRS).toContainEqual(['v-ol-inline-text', 'surface']);
+		expect(COMPONENT_GRAPHIC_PAIRS).toContainEqual(['v-ol-inline', 'paper']);
 	});
 
 	test('COMPONENT_CONTRAST_PAIRS incluye danger sobre danger-soft, paper y surface (sin excepción)', () => {
@@ -137,10 +153,15 @@ describe('2. El gate MUERDE (fixtures sub-AA)', () => {
 			});
 			const errors: string[] = [];
 			validateComponentContrast(theme, errors);
-			expect(errors).toHaveLength(1);
-			expect(errors[0]).toContain('ink-2');
-			expect(errors[0]).toContain(`sobre ${surface}`);
-			expect(errors[0]).toContain('necesita ≥4.5:1');
+			const ink2 = errors.filter((error) => error.includes('): ink-2 ('));
+			expect(ink2).toHaveLength(1);
+			expect(ink2[0]).toContain(`sobre ${surface}`);
+			expect(ink2[0]).toContain('necesita ≥4.5:1');
+			// El escenario del editor deriva de `bg` (velo de tinta): un `bg` gris medio también lo
+			// deja sin un naranja AA. Ningún otro par (tarjetas, papel) se ve afectado.
+			const others = errors.filter((error) => !error.includes('): ink-2 ('));
+			for (const error of others) expect(error).toContain('sobre v-stage');
+			expect(others.length).toBeLessThanOrEqual(surface === 'bg' ? 1 : 0);
 		}
 	);
 
@@ -240,6 +261,88 @@ describe('2. El gate MUERDE (fixtures sub-AA)', () => {
 		validateContrast(theme, errors);
 		validateComponentContrast(theme, errors);
 		expect(errors).toEqual([]);
+	});
+});
+
+/**
+ * Roles del editor de la lámina `edicion-en-vivo.html`: la edición en línea tiene un color propio
+ * (naranja; violeta si el acento ya es cálido) que nunca es la selección ni el aviso, y el
+ * escenario es el fondo de la app con un velo de tinta, no el papel de las fichas.
+ */
+describe('4. Edición en línea y escenario del editor', () => {
+	const themes = loadRealThemes();
+
+	test.each(themes.map((t) => [t.id, t] as const))(
+		'%s: inline lejos del acento y del ámbar; escenario distinto del papel',
+		(_id, theme) => {
+			for (const mode of ['light', 'dark'] as const) {
+				const tokens: Record<string, string> = resolveComponentTokens(theme, mode);
+				expect(
+					hueDistance(oklchHue(tokens['v-ol-inline']), oklchHue(tokens.accent))
+				).toBeGreaterThan(40);
+				expect(tokens['v-ol-inline']).not.toBe(tokens.warning);
+				expect(tokens['v-ol-inline-text']).not.toBe(tokens.accentText);
+				expect(tokens['v-stage']).not.toBe(tokens.paper);
+				expect(tokens['v-stage']).not.toBe(tokens.bg);
+				if (mode === 'light') {
+					expect(relativeLuminance(tokens['v-stage'])).toBeLessThan(relativeLuminance(tokens.bg));
+				}
+				for (const [line, bg] of COMPONENT_GRAPHIC_PAIRS) {
+					expect(contrastRatio(tokens[line], tokens[bg])).toBeGreaterThanOrEqual(3);
+				}
+			}
+		}
+	);
+
+	test('el tema por defecto usa los valores de la lámina', () => {
+		const niebla = themes.find((theme) => theme.id === 'niebla');
+		const light = resolveComponentTokens(niebla, 'light');
+		const dark = resolveComponentTokens(niebla, 'dark');
+		expect(light['v-ol-inline']).toBe('#e8562a');
+		expect(dark['v-ol-inline']).toBe('#ff7a4d');
+		expect(dark['v-ol-inline-text']).toBe('#ff7a4d');
+		expect(light.accentText).toBe('#4441cf');
+		expect(dark.accentText).toBe('#9b9ffc');
+		expect(light.bg).toBe('#f3f4f7');
+		expect(niebla.effects.fillGrad.stops.map((stop: { color: string }) => stop.color)).toEqual([
+			'#4c4ad9',
+			'#6a5ae0'
+		]);
+		expect(niebla.effects.slots.fill).toBe('fillGrad');
+	});
+
+	test('un acento naranja recibe la edición en línea violeta', () => {
+		expect(
+			inlineEditFamily(
+				makeTheme({ roles: { tint: '#e8763a', accent: '#e8763a', accentInk: '#1f1206' } })
+			)
+		).toBe('cool');
+		expect(inlineEditFamily(makeTheme())).toBe('warm');
+	});
+
+	test('el contorno de edición MUERDE sobre un papel que lo apaga', () => {
+		const theme = makeTheme({
+			id: 'inline-apagado',
+			modes: { light: { neutrals: { paper: '#e8562a', surface: '#e8562a' } } }
+		});
+		const errors: string[] = [];
+		validateComponentContrast(theme, errors);
+		expect(errors.some((error) => error.includes('v-ol-inline (') && error.includes('≥3:1'))).toBe(
+			true
+		);
+	});
+
+	test('modes.<modo>.accentText gana a roles.accentText y pasa por el gate', () => {
+		const theme = makeTheme({
+			id: 'accent-text-por-modo',
+			roles: { tint: '#5d6d83', accent: '#5d6d83', accentInk: '#ffffff', accentText: '#3b4656' },
+			modes: { dark: { accentText: '#2a2f38' } }
+		});
+		expect(resolveComponentTokens(theme, 'light').accentText).toBe('#3b4656');
+		expect(resolveComponentTokens(theme, 'dark').accentText).toBe('#2a2f38');
+		const errors: string[] = [];
+		validateComponentContrast(theme, errors);
+		expect(errors.some((error) => error.includes('(dark): accentText (#2a2f38)'))).toBe(true);
 	});
 });
 

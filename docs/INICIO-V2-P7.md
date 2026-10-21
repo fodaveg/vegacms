@@ -17,17 +17,35 @@ empaquetados, sus tres ejes ortogonales y el gate AA medido. La implementación 
 - Elevación: `--shadow-raised` y `--shadow-brand` complementan `--shadow-card`;
   cambian con el modo, y la sombra de marca toma el acento del tema. `--glass`
   deriva de la superficie del tema al 72 % de opacidad; el componente aplica blur.
-- Editor: `--v-ol-select` (fondo de selección), `--v-ol-select-ink` (texto encima),
-  `--v-ol-hover` (hover de bloque), `--v-ol-inline` (borde de edición),
-  `--v-ol-inline-text` (texto activo), `--v-ol-inline-soft` (fondo de edición) y
-  `--v-stage` (lienzo del sitio, derivado de `--paper`). Son derivados de los roles existentes de marca y
-  superficie. Selección e inline tienen semánticas distintas; inline no usa warning.
+- Editor: `--v-ol-select` (fondo de selección, el acento), `--v-ol-select-ink` (texto
+  encima), `--v-ol-hover` (hover de bloque, acento al 55 %), `--v-ol-inline` (contorno y
+  cursor de edición en línea), `--v-ol-inline-text` (texto activo), `--v-ol-inline-soft`
+  (fondo tenue, opaco sobre `--paper`) y `--v-stage` (escenario).
+  - La edición en línea tiene un color PROPIO, no derivado de la marca: naranja
+    (#e8562a contorno y #bf3f14 texto en claro, #ff7a4d en oscuro, valores de
+    `edicion-en-vivo.html`). Si el acento del tema ya es cálido (a menos de 45° de matiz
+    OKLCH del naranja: brasa, faro, rescoldo, halloween, aquelarre, terracota, cereza,
+    miel) usa el violeta alternativo, para que seleccionar y escribir nunca compartan
+    color. Nunca usa warning. El generador oscurece el texto hacia la tinta del modo, en
+    pasos del 2 %, solo lo justo para que sea AA en cada tema; el umbral no baja.
+  - `--v-stage` es el fondo de la app con un velo de tinta (6 % en claro, 3 % en oscuro):
+    en claro es más oscuro que `--bg`, como el #e6e8ee sobre #f3f4f7 de la lámina; en
+    oscuro queda un punto por encima del fondo (#101318 sobre #0c0e12 en la lámina). No es
+    `--paper`: el sitio es una hoja sobre el escenario.
+- Tema por defecto: `niebla` (FALLBACK_THEME) adopta la paleta de la lámina: acento
+  #4c4ad9, neutros fríos de `inicio-v2.html` por modo, degradado de marca #4c4ad9 → #6a5ae0
+  en `--accent-grad` enrutado a `--accent-fill`, y `--accent-text` por modo (#4441cf en
+  claro, #9b9ffc en oscuro) mediante el override nuevo `modes.<modo>.accentText`. El resto
+  de temas conserva su identidad; la tarjeta de marca y Publicar consumen `--accent-fill`,
+  que es el degradado donde el tema lo declara y el acento sólido donde no (contrato del
+  esquema: `effects` ausente equivale al acento sólido).
 
 Los pares de texto nuevos (`--v-ol-select-ink` sobre `--v-ol-select` y
-`--v-ol-inline-text` sobre `--v-ol-inline-soft` y `--v-stage`) entran en
-`COMPONENT_CONTRAST_PAIRS` con mínimo 4.5:1 para cada tema y modo. Ningún componente
-declara valores de color crudos. Los artefactos CSS y TS se regeneran desde el
-generador y siguen sujetos al checker de cobertura.
+`--v-ol-inline-text` sobre `--v-ol-inline-soft`, `--v-stage`, `--paper` y `--surface`)
+entran en `COMPONENT_CONTRAST_PAIRS` con mínimo 4.5:1 para cada tema y modo; el contorno
+`--v-ol-inline` entra en `COMPONENT_GRAPHIC_PAIRS` con 3:1 sobre `--paper` y `--surface`
+(WCAG 1.4.11). Ningún componente declara valores de color crudos. Los artefactos CSS y TS
+se regeneran desde el generador y siguen sujetos al checker de cobertura.
 
 Inicio usa los datos y permisos reales del modelo, el puerto y la sesión. El estado
 «cambios sin publicar» solo aparece cuando se conoce el estado del build; publicar
