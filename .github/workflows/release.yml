@@ -19,6 +19,7 @@ jobs:
       contents: read
       id-token: write
       attestations: write
+      checks: read
     outputs:
       version: ${{ steps.version.outputs.version }}
     # El release NO se publica hasta que la matriz de contrato PB (mínimo 0.26.0 D-P1.3 + pineada
@@ -26,6 +27,24 @@ jobs:
     # ejercido nunca ese mínimo sería mentir en el metadato. `needs` serializa el orden.
     needs: pb-contract-matrix
     steps:
+      # Reutiliza ci.yml: si su job `gate` ya pasó en este mismo SHA, `pnpm gate` no se repite.
+      # Cualquier duda (sin run, fallo, error de consulta) deja ok=false y el gate corre como antes.
+      - name: Buscar el gate verde de CI para este commit
+        id: ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          conclusion=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs?check_name=gate&filter=latest" \
+            --jq '[.check_runs[] | select(.app.slug == "github-actions")] | sort_by(.started_at) | last | .conclusion // ""' 2>/dev/null) || conclusion=""
+          if [ "$conclusion" = "success" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "ci.yml job 'gate' ya pasó en $GITHUB_SHA: se omite el gate repetido"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "sin check-run 'gate' verde para $GITHUB_SHA (got '${conclusion:-none}'): el gate corre aquí"
+          fi
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -96,7 +115,13 @@ jobs:
       # `pnpm gate` = check + lint + test + build + e2e. Un release NUNCA se publica sin pasar el
       # MISMO gate que un PR normal; además deja `build/` listo para empaquetar más abajo.
       - name: Run gate (check + lint + TS/Go tests + build + e2e)
+        if: steps.ci.outputs.ok != 'true'
         run: pnpm gate
+
+      # `pnpm gate` deja `build/`, que se empaqueta abajo: con el gate omitido solo se construye.
+      - name: Build (gate omitido, CI verde)
+        if: steps.ci.outputs.ok == 'true'
+        run: pnpm build
 
       # Mismo presupuesto de bundle que `ci.yml` (D-P8.6): un release que se pasa del presupuesto
       # no se publica.
