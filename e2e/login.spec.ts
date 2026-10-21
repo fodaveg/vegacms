@@ -11,7 +11,7 @@ test.describe('login', () => {
 		await page.getByLabel('Contraseña').fill(DEMO_PASSWORD);
 		await page.getByRole('button', { name: 'Entrar' }).click();
 
-		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Menú de cuenta' })).toBeVisible();
 		// Portada (lote 12): el login aterriza en `/` y se queda ahí, en «Inicio». Antes saltaba
 		// al primer elemento del menú (el singleton «Información del sitio», `/c/site_info/new`).
 		await waitForHome(page);

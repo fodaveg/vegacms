@@ -51,7 +51,7 @@ test('la sesión caducada muestra el overlay de re-login SOBRE la vista actual, 
 	// La ruta NO cambió a /login: el overlay TAPA, no reemplaza (P3-L5).
 	await expect(page).toHaveURL(/\/c\/site_info\/new$/);
 	// El shell de debajo sigue en el DOM (no se desmontó), solo queda inerte.
-	await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeAttached();
+	await expect(page.getByRole('button', { name: 'Menú de cuenta' })).toBeAttached();
 });
 
 test('el foco queda atrapado en el overlay y Esc NO lo cierra', async ({ page }) => {
@@ -94,7 +94,7 @@ test('reautenticar con éxito descarta el overlay y conserva la vista', async ({
 	await expect(dialog).not.toBeVisible();
 	// Sigue en la misma vista, sin haber pasado por /login.
 	await expect(page).toHaveURL(/\/c\/site_info\/new$/);
-	await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Menú de cuenta' })).toBeVisible();
 });
 
 test('credenciales incorrectas en el overlay muestran el mismo mensaje neutro que /login', async ({

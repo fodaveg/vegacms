@@ -24,7 +24,7 @@ test('recarga con sesión válida mantiene autenticado', async ({ page }) => {
 
 	await page.reload();
 
-	await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Menú de cuenta' })).toBeVisible();
 	await expect(page).toHaveURL(/\/c\/site_info\/new$/);
 });
 
@@ -51,7 +51,9 @@ test('logout vuelve a /login', async ({ page }) => {
 	await loginAsDemo(page);
 	await waitForHome(page);
 
-	await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+	// «Cerrar sesión» vive en el menú de cuenta (lámina Inicio v2).
+	await page.getByRole('button', { name: 'Menú de cuenta' }).click();
+	await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click();
 
 	await expect(page).toHaveURL('/login');
 	await expect(page.getByRole('button', { name: 'Entrar' })).toBeVisible();

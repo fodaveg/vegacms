@@ -232,15 +232,12 @@
 	</button>
 
 	{#if hasVisibleNav}
-		{#each ctx.model.nav.groups as group, groupIndex (group.label ?? '__anon__')}
+		{#each ctx.model.nav.groups as group (group.label ?? '__anon__')}
 			{#if group.items.length > 0}
 				<div class="vega-nav-group">
 					{#if group.label}
-						<!-- Punto de parada cromática de marca (mockups aquelarre-*.html): cada grupo lleva
-						     su propia parada `--brand-a/b/c`, cíclica por índice — en paletas sin firma
-						     propia (p.ej. brasa) el motor resuelve las tres al acento sólido, así que los
-						     tres puntos caen al mismo color sin desentonar. -->
-						<p class="vega-nav-group-label" data-brand={groupIndex % 3} title={group.label}>
+						<!-- Cabecera de grupo de la lámina Inicio v2 (`.navgroup h3`): rótulo sin adorno. -->
+						<p class="vega-nav-group-label" title={group.label}>
 							{group.label}
 						</p>
 					{/if}
@@ -268,7 +265,7 @@
 				aria-current={isMediaActive ? 'page' : undefined}
 				onclick={(event) => handleFixedClick(event, ctx.nav.toMedia)}
 			>
-				<Icon id="media" size={16} />
+				<Icon id="media" size={16} strokeWidth={1.6} />
 				<span class="vega-nav-fixed-label">{ctx.t('nav.media')}</span>
 				{#if counts[VEGA_MEDIA_COLLECTION.name] !== undefined}
 					<span class="vega-nav-trailing">
@@ -283,7 +280,7 @@
 				aria-current={isTrashActive ? 'page' : undefined}
 				onclick={(event) => handleFixedClick(event, ctx.nav.toTrash)}
 			>
-				<Icon id="trash" size={16} />
+				<Icon id="trash" size={16} strokeWidth={1.6} />
 				<span class="vega-nav-fixed-label">{ctx.t('nav.trash')}</span>
 			</a>
 		</li>
@@ -294,7 +291,7 @@
 					aria-current={isEditorsActive ? 'page' : undefined}
 					onclick={(event) => handleFixedClick(event, ctx.nav.toEditors)}
 				>
-					<Icon id="user" size={16} />
+					<Icon id="user" size={16} strokeWidth={1.6} />
 					<span class="vega-nav-fixed-label">{ctx.t('nav.editors')}</span>
 				</a>
 			</li>
@@ -306,7 +303,7 @@
 					aria-current={isBackupsActive ? 'page' : undefined}
 					onclick={(event) => handleFixedClick(event, ctx.nav.toBackups)}
 				>
-					<Icon id="archive" size={16} />
+					<Icon id="archive" size={16} strokeWidth={1.6} />
 					<span class="vega-nav-fixed-label">{ctx.t('nav.backups')}</span>
 				</a>
 			</li>
@@ -317,7 +314,8 @@
 				aria-current={isSettingsActive ? 'page' : undefined}
 				onclick={(event) => handleFixedClick(event, ctx.nav.toSettings)}
 			>
-				<Icon id="settings" size={16} />
+				<!-- Engranaje (lámina): los deslizadores quedan para el singleton «Ajustes del sitio». -->
+				<Icon id="gear" size={16} strokeWidth={1.6} />
 				<span class="vega-nav-fixed-label">{ctx.t('nav.settings')}</span>
 				<!-- Indicador global de avisos (§3.5.1/L10): solo se pinta con warnings > 0. -->
 				<WarningsBadge />
@@ -327,19 +325,21 @@
 </nav>
 
 <style>
+	/* Menú flotante de cristal de la lámina Inicio v2 (`.sidebar`): 248 px, 12 de relleno, 16
+	   entre grupos, radio 16, sombra de tarjeta, sobre el halo del lienzo. */
 	.vega-sidebar {
 		width: var(--vega-size-sidebar);
+		box-sizing: border-box;
 		flex-shrink: 0;
 		display: flex;
 		flex-direction: column;
-		gap: var(--vega-space-gutter);
-		/* Inset lateral (mockup: los items de nav flotan con ~0.6rem de margen a cada lado, no van a
-		   sangre): antes el padding horizontal era 0 y las cajas activa/hover tocaban los bordes. */
-		padding: var(--vega-space-gutter);
+		gap: var(--sp-4);
+		padding: var(--sp-3);
 		border: 1px solid var(--line);
 		border-radius: var(--r-md);
 		background: var(--glass);
 		backdrop-filter: blur(18px);
+		-webkit-backdrop-filter: blur(18px);
 		box-shadow: var(--shadow-card);
 		overflow-y: auto;
 	}
@@ -360,47 +360,25 @@
 		gap: 2px;
 	}
 
+	/* Cabecera de grupo (`.navgroup h3`): 11/600 versalitas. En `ink-2`, no el `ink-3` de la
+	   lámina: es texto que nombra el grupo y P7 reserva `ink-3` a la decoración. */
 	.vega-nav-group-label {
-		position: relative;
-		margin: 0 0 0.4rem;
-		padding: 0 var(--vega-space-gutter) 0 calc(var(--vega-space-gutter) + 0.85rem);
+		margin: 0 0 4px;
+		padding: 0 12px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		font-size: 0.75rem;
+		font-size: 11px;
+		font-weight: 600;
 		text-transform: uppercase;
-		letter-spacing: 0.04em;
+		letter-spacing: 0.06em;
 		color: var(--ink-2);
-	}
-
-	/* Punto de parada cromática de marca (ver marcado): `data-brand` cicla 0/1/2 por grupo. */
-	.vega-nav-group-label::before {
-		content: '';
-		position: absolute;
-		left: var(--vega-space-gutter);
-		top: 50%;
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		transform: translateY(-50%);
-	}
-
-	.vega-nav-group-label[data-brand='0']::before {
-		background: var(--brand-a);
-	}
-
-	.vega-nav-group-label[data-brand='1']::before {
-		background: var(--brand-b);
-	}
-
-	.vega-nav-group-label[data-brand='2']::before {
-		background: var(--brand-c);
 	}
 
 	.vega-nav-fixed {
 		margin-top: auto;
-		padding-top: var(--vega-space-gutter);
-		border-top: 1px solid var(--line);
+		padding-top: var(--sp-3);
+		border-top: 1px solid var(--line-soft);
 	}
 
 	/* Mismos tokens/estados que `NavItem.svelte` (misma "pestaña" activa, R5): Medios/Ajustes son
@@ -409,22 +387,26 @@
 	.vega-nav-fixed a {
 		display: flex;
 		align-items: center;
-		gap: 0.65rem;
-		min-height: var(--row-h);
-		padding: 0 var(--vega-space-gutter);
-		/* Misma caja redondeada que los items de grupo (`NavItem.svelte`). */
-		border-radius: var(--r);
+		gap: 10px;
+		min-height: min(36px, var(--sidebar-item-h));
+		padding: 0 12px;
+		/* Misma fila que los items de grupo (`NavItem.svelte`). */
+		border-radius: var(--r-sm);
 		color: var(--ink-2);
+		font-size: var(--fs-14);
+		font-weight: 500;
 		text-decoration: none;
 	}
 
 	.vega-nav-fixed a :global(svg) {
+		flex-shrink: 0;
 		color: var(--ink-3);
 	}
 
 	.vega-nav-fixed a:hover {
-		background: var(--active);
+		background: var(--surface);
 		color: var(--ink-hi);
+		box-shadow: var(--shadow-card);
 	}
 
 	/* Item activo = SOLO pastilla (mockup `.nav-item[aria-current='page']`, aquelarre-dark.html),
@@ -461,25 +443,20 @@
 	.vega-nav-count {
 		flex-shrink: 0;
 		font-family: var(--mono);
-		font-size: 0.6875rem;
+		font-size: 11px;
+		font-weight: 400;
 		font-variant-numeric: tabular-nums;
 		color: var(--ink-2);
-		background: var(--surface);
-		border: 1px solid var(--line-soft);
-		border-radius: 999px;
-		padding: 0.05rem 0.5rem;
-		/* Altura de la píldora: el mockup la saca del line-height HEREDADO (~1.45); aquí el count
-		   computa `line-height: normal` (más bajo) y el óvalo quedaba demasiado plano — se fija
-		   explícito para que sea una píldora redonda de verdad, no una raya. */
-		line-height: 1.45;
 	}
 
-	/* En el item activo la píldora se vacía y toma el borde/texto de acento (mockup
-	   `.nav-item[aria-current='page'] .nav-count`). */
 	.vega-nav-fixed a[aria-current='page'] .vega-nav-count {
 		color: var(--accent-text);
-		border-color: var(--accent-line);
-		background: transparent;
+	}
+
+	@media (pointer: coarse) {
+		.vega-nav-fixed a {
+			min-height: 44px;
+		}
 	}
 
 	.vega-sidebar-empty {
@@ -521,6 +498,12 @@
 
 		.vega-sidebar-open {
 			transform: translateX(0);
+		}
+
+		/* El cajón móvil tapa el contenido: superficie opaca, no el cristal del menú flotante. */
+		.vega-sidebar {
+			border-radius: 0 var(--r-md) var(--r-md) 0;
+			background: var(--surface);
 		}
 
 		.vega-sidebar-close {

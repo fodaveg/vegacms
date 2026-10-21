@@ -91,8 +91,8 @@ test.describe('banner de red a mitad de sesión', () => {
 		const banner = page.getByRole('alert').filter({ hasText: 'No hay conexión con el servidor' });
 		await expect(banner).toBeVisible();
 
-		// El shell sigue montado: la sidebar y el logout siguen ahí, la ruta no cambió.
-		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
+		// El shell sigue montado: la sidebar y el menú de cuenta siguen ahí, la ruta no cambió.
+		await expect(page.getByRole('button', { name: 'Menú de cuenta' })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Entradas' })).toBeVisible();
 		await expect(page).toHaveURL(/\/c\/site_info\/new$/);
 

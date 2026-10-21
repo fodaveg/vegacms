@@ -24,21 +24,21 @@
 {/if}
 
 <style>
+	/* Aviso del menú de la lámina Inicio v2 (`.navgroup a .badge`): cifra mono ámbar en píldora
+	   tenue; un aviso del manifiesto es calidad, no un error. */
 	.vega-warnings-badge {
 		display: inline-flex;
 		flex-shrink: 0;
 		align-items: center;
 		justify-content: center;
-		min-width: 1.3rem;
-		height: 1.3rem;
-		padding: 0 0.35rem;
+		min-width: 18px;
+		height: 18px;
+		box-sizing: border-box;
+		padding: 0 7px;
 		margin-left: auto;
-		border: 1px solid var(--danger);
 		border-radius: 999px;
-		background: var(--danger-soft);
-		color: var(--danger);
-		font-size: 0.7rem;
-		font-weight: 600;
-		line-height: 1;
+		background: var(--warning-soft);
+		color: var(--warning);
+		font: 11px / 18px var(--mono);
 	}
 </style>

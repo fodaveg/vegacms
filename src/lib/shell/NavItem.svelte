@@ -75,7 +75,7 @@
 		data-singleton={item.singleton || undefined}
 		data-readonly={item.readonly || undefined}
 	>
-		<Icon id={iconId} size={16} />
+		<Icon id={iconId} size={16} strokeWidth={1.6} />
 		<span class="vega-nav-item-label" title={item.label}>{item.label}</span>
 		{#if item.readonly || count !== undefined}
 			<span class="vega-nav-trailing">
@@ -97,32 +97,32 @@
 		list-style: none;
 	}
 
+	/* Fila de la lámina Inicio v2 (`.navgroup a`): 36 px (32 en compacta), 14/500, radio 10. */
 	a {
 		display: flex;
 		align-items: center;
 		/* Sin `gap`: el hueco entre columnas es un `margin`/pseudo-elemento de cada pieza, porque un
-		   `gap` NO encoge y la insignia colapsada seguiría robándole 0,65 rem a la etiqueta. */
-		min-height: var(--row-h);
-		padding: 0 var(--vega-space-gutter);
-		/* Caja del item redondeada (mockup `.nav-item { border-radius: var(--r) }`): el fondo
-		   activo/hover es un rectángulo redondeado, no una banda cuadrada a sangre. El inset lateral
-		   que lo hace flotar lo pone el padding horizontal del `<nav>` en `Sidebar.svelte`. */
-		border-radius: var(--r);
+		   `gap` NO encoge y la insignia colapsada seguiría robándole espacio a la etiqueta. */
+		min-height: min(36px, var(--sidebar-item-h));
+		padding: 0 12px;
+		border-radius: var(--r-sm);
 		color: var(--ink-2);
+		font-size: var(--fs-14);
+		font-weight: 500;
 		text-decoration: none;
 	}
 
 	a :global(svg) {
 		flex-shrink: 0;
-		margin-right: 0.65rem;
+		margin-right: 10px;
 		color: var(--ink-3);
 	}
 
+	/* Hover de la lámina: la fila se levanta como una tarjeta sobre el cristal del menú. */
 	a:hover {
-		/* `--active` = rol §3 de "fila/elemento activo" (igual que el hover de fila en
-		   `RecordTable`); antes usaba `--surface` (elevación de tarjeta), semánticamente distinto. */
-		background: var(--active);
+		background: var(--surface);
 		color: var(--ink-hi);
+		box-shadow: var(--shadow-card);
 	}
 
 	/* Item activo = SOLO pastilla (mockup `.nav-item[aria-current='page']`, aquelarre-dark.html):
@@ -194,28 +194,26 @@
 
 	/* Badge-píldora (mockup `.nav-count`, aquelarre-dark.html): antes número plano, ahora
 	   redondeada con fondo/borde propios — se lee como "recuento", no como parte del label. */
+	/* Recuento (R5, `nav.spec.ts`): la lámina Inicio v2 no lo dibuja; se conserva como cifra mono
+	   discreta, sin píldora, para que no compita con el aviso de Ajustes, que sí es píldora. */
 	.vega-nav-count {
 		flex-shrink: 0;
-		margin-left: 0.65rem;
+		margin-left: 10px;
 		font-family: var(--mono);
-		font-size: 0.6875rem;
+		font-size: 11px;
+		font-weight: 400;
 		font-variant-numeric: tabular-nums;
 		color: var(--ink-2);
-		background: var(--surface);
-		border: 1px solid var(--line-soft);
-		border-radius: 999px;
-		padding: 0.05rem 0.5rem;
-		/* Altura de la píldora: el mockup la saca del line-height HEREDADO (~1.45); aquí el count
-		   computa `line-height: normal` (más bajo) y el óvalo quedaba demasiado plano — se fija
-		   explícito para que sea una píldora redonda de verdad, no una raya. */
-		line-height: 1.45;
 	}
 
-	/* En el item activo la píldora se vacía (fondo transparente) y toma el borde/texto de acento,
-	   igual que el mockup: `.nav-item[aria-current='page'] .nav-count`. */
 	a[aria-current='page'] .vega-nav-count {
 		color: var(--accent-text);
-		border-color: var(--accent-line);
-		background: transparent;
+	}
+
+	/* Objetivo táctil de 44 px con puntero grueso (la fila de 36 es la de ratón). */
+	@media (pointer: coarse) {
+		a {
+			min-height: 44px;
+		}
 	}
 </style>

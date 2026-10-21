@@ -1,53 +1,34 @@
 <script lang="ts">
 	/**
-	 * `Topbar.svelte` (R1 del rediseño C2, mockup `vega-propuesta-C2-cabina-con-aire`): wordmark
-	 * (isotipo Lyra de Vega —`VegaLogo`— + nombre del sitio), `GlobalSearch` CENTRADO,
-	 * `PublishButton` (lote "publicación" — sin render si el proyecto no lo tiene), `ConnectionStatus`
-	 * (pill), avatar con la inicial de la sesión, logout, y el botón
-	 * hamburguesa (visible solo en móvil, vía CSS) que abre/cierra la `Sidebar`. Landmark
-	 * `header`.
+	 * `Topbar.svelte`: barra translúcida de la lámina `inicio-v2.html` (§1, «Barra superior
+	 * translúcida»). Orden de la lámina: marca (isotipo Lyra sobre el relleno de marca + «Vega»),
+	 * nombre del sitio, buscador en píldora centrado, estado de conexión, «Actualizar sitio» en
+	 * píldora con el relleno del tema y el avatar, que es el menú de cuenta. Landmark `header`.
 	 *
-	 * **Plegar la sidebar en escritorio** (`vega-topbar-collapse`, petición de David tras usar el
-	 * editor visual en prod): botón NUEVO junto al resto de controles de `.vega-topbar-actions`,
-	 * DISTINTO del hamburguesa de arriba a propósito — ese vive pegado al wordmark, solo existe
-	 * (CSS) por debajo del punto de colapso estructural, y abre/cierra el CAJÓN móvil
-	 * (`sidebarOpen`); este otro es la operación inversa en escritorio (`sidebarCollapsed`, dueño
-	 * en `AppShell.svelte` — ver su cabecera) y por eso vive del lado contrario, "junto a los
-	 * controles que ya hay ahí" tal como pide el encargo. Mismo par `aria-expanded`/
-	 * `aria-controls="vega-sidebar"` que el hamburguesa: los dos controlan el mismo landmark, cada
-	 * uno desde su rango de anchura.
+	 * **Lo que la lámina no dibuja y se conserva, justificado:**
+	 * - El hamburguesa de escritorio (`vega-topbar-collapse`, petición de David tras usar el editor
+	 *   visual en prod) pliega la barra lateral. Vive a la izquierda, en el hueco del ≡ móvil de la
+	 *   lámina, como botón silencioso; los dos nunca coexisten (uno por rango de anchura) y comparten
+	 *   el par `aria-expanded`/`aria-controls="vega-sidebar"`.
+	 * - El texto del estado de publicación: en reposo solo se ve la píldora (como la lámina) y el
+	 *   estado se abre desde una flecha; cuando pide atención (en curso, fallo, sin confirmar) el
+	 *   texto se ve. La etiqueta es «Actualizar sitio», no «Publicar»: el audit del 19 oct separa
+	 *   guardar, publicar una página y reconstruir el sitio, y esa distinción se conserva.
 	 *
-	 * El logout y el hueco de tema (§2.6, P3-L10 — oculto hasta P7, "sin render": ni un `<button>`
-	 * deshabilitado) no aparecen en el mockup de diseño (es una demo sin chrome de auth completo)
-	 * pero son funcionalidad real de Vega que no se retira: viven junto al avatar, al final.
+	 * **«Cerrar sesión» vive en el menú de cuenta** (la lámina no dibuja un botón suelto): el avatar
+	 * es un botón «Menú de cuenta» (patrón APG «menu button») con la densidad (dos
+	 * `menuitemradio`), «Ajustes» y «Cerrar sesión» (`menuitem`). El `<span role="img">` interior
+	 * conserva su nombre propio («Sesión de …»): identidad, no acción. Teclado: flechas, Inicio y
+	 * Fin recorren las entradas; ArrowDown/ArrowUp en el disparador abren y enfocan la
+	 * primera/última; Escape cierra y devuelve el foco; salir con Tab o un clic fuera cierra.
 	 *
-	 * **Chip de usuario → submenú (#l12-ux, item 3)**: hasta ahora el avatar era un `<span>`
-	 * decorativo sin ninguna acción propia — "Ajustes" solo se alcanzaba desde la `Sidebar`, nunca
-	 * desde la topbar. Ahora el avatar vive dentro de un `<button>` (el "chip") que despliega un
-	 * menú (`role="menu"`, patrón APG "menu button") con la entrada "Ajustes" (misma navegación
-	 * con exit-guard que `Sidebar.svelte`, `ctx.nav.toSettings`). El `<span role="img">` interior
-	 * CONSERVA su `aria-label`/rol propios (identidad de sesión, ver `avatarInitial` más abajo):
-	 * el botón que lo envuelve tiene SU PROPIO `aria-label` (`topbar.userMenu.toggle`, describe la
-	 * ACCIÓN de abrir el menú, no la identidad) — dos nombres accesibles distintos en el mismo
-	 * árbol, sin colisión (`getByRole('img', {name: 'Sesión de...'})` sigue resolviendo el `span`
-	 * interior tal cual). "Cerrar sesión" NO se movió dentro del menú a propósito (ver cabecera del
-	 * repo/documentación de la tarea): sigue siendo su propio botón, visible siempre — moverlo
-	 * detrás de un click rompería la docena larga de aserciones e2e que lo localizan como
-	 * `getByRole('button', {name: 'Cerrar sesión'})` justo tras el login, sin ganancia de UX que
-	 * lo justifique (no había "ajustes de cuenta" sueltos que agrupar aparte de la propia entrada a
-	 * `/settings`). Cierra con Escape, con un click fuera, o al seleccionar la entrada.
+	 * **La marca es un enlace a `/`**: navegación con exit-guard (`ctx.nav.toIndex`); un clic
+	 * modificado sigue el `href`. El isotipo va en `--accent-ink` sobre `--accent-fill`, nunca un
+	 * filtro que fuerce blanco: con un acento claro su tinta es oscura y el blanco no se leería.
 	 *
-	 * **Densidad en el menú (lote 12, lámina 3; David, 1 oct 2026)**: el segmentado Cómoda│Compacta
-	 * (`DensityToggle`, ya retirado) ocupaba sitio fijo en la barra y se ocultaba por debajo de 768
-	 * px. Ahora son dos `menuitemradio` (`aria-checked`) bajo un rótulo de grupo, ENCIMA de
-	 * «Ajustes». Elegir una FIJA la densidad al momento (`setDensity`, clave `vega.density.v1`,
-	 * sin cambios) y el menú SE QUEDA abierto para ver el efecto. Teclado: flechas arriba/abajo,
-	 * Inicio y Fin recorren las tres entradas; ArrowDown/ArrowUp en el disparador abren el menú y
-	 * enfocan la primera/última.
-	 *
-	 * **La marca es un enlace a `/`** (lote 12, lámina 1, estado 1.7): mismo aspecto que antes
-	 * (sin subrayado ni color de enlace), con anillo `--ring` al enfocar. Misma navegación con
-	 * exit-guard que el resto del shell (`ctx.nav.toIndex`); un click modificado sigue el `href`.
+	 * Móvil (≤768 px): una sola fila como la lámina (≡, marca, lupa, punto de conexión, píldora y
+	 * avatar); el buscador se despliega bajo la barra desde la lupa (`GlobalSearch`). Si la
+	 * publicación pide atención, su estado baja a una segunda fila para no recortarse.
 	 */
 	import { tick } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
@@ -76,18 +57,28 @@
 	const ctx = getVegaContext();
 	const sessionStore = getSessionContext();
 
-	// Inicial del avatar (§ mockup `.avatar`): primera letra del correo, la única identidad que
-	// `Session.user` garantiza (§ contrato de backend, sin `name` de perfil en v1). Fallback
-	// defensivo (fix code-review lote-1, 🟢): `Session.user.email` no debería llegar vacío en la
-	// práctica, pero un círculo sin ninguna letra dentro sería un estado mudo — "?" dice "hay
-	// sesión, sin identidad legible" en vez de nada.
-	const avatarInitial = $derived(ctx.session.user.email.charAt(0).toUpperCase() || '?');
+	/**
+	 * Iniciales del avatar (lámina: «MF»): las dos primeras palabras del nombre de la sesión si lo
+	 * hay; si no, la primera letra del correo, la única identidad que `Session.user` garantiza. «?»
+	 * si ni eso: un círculo vacío sería un estado mudo.
+	 */
+	const avatarInitials = $derived.by(() => {
+		const name = ctx.session.user.name?.trim();
+		if (name) {
+			const letters = name
+				.split(/\s+/)
+				.slice(0, 2)
+				.map((word) => word.charAt(0).toLocaleUpperCase(ctx.locale))
+				.join('');
+			if (letters) return letters;
+		}
+		return ctx.session.user.email.charAt(0).toUpperCase() || '?';
+	});
 
 	const settingsHref = settingsRoute();
 	const indexHref = indexRoute();
 
-	/** Click en la marca: navegación con exit-guard salvo click modificado (mismo patrón que
-	 *  `handleSettingsClick`). */
+	/** Click en la marca: navegación con exit-guard salvo click modificado. */
 	function handleBrandClick(event: MouseEvent): void {
 		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
 			return;
@@ -96,10 +87,8 @@
 		ctx.nav.toIndex();
 	}
 
-	// ————— Densidad (menú de cuenta, lámina 3) —————
-	/** Densidad YA aplicada al documento (`+layout.svelte` llama `applyInitialTheme()` antes de que
-	 *  el shell monte, así que `data-density` siempre está escrito). Se relee al abrir el menú:
-	 *  otra pantalla (Ajustes) puede haberla cambiado entre tanto. */
+	// ————— Densidad (menú de cuenta) —————
+	/** Densidad YA aplicada al documento; se relee al abrir el menú (Ajustes puede cambiarla). */
 	function currentDensity(): Density {
 		return document.documentElement.dataset.density === 'compact' ? 'compact' : 'comfortable';
 	}
@@ -112,7 +101,7 @@
 		setDensity(next);
 	}
 
-	// ————— Chip de usuario → menú "Ajustes" (#l12-ux, item 3) —————
+	// ————— Menú de cuenta —————
 	let userMenuOpen = $state(false);
 	let userTriggerEl = $state<HTMLElement | null>(null);
 	let userMenuEl = $state<HTMLElement | null>(null);
@@ -164,9 +153,7 @@
 		userMenuOpen = false;
 	}
 
-	/** Click en CUALQUIER punto de la ventana mientras el menú está abierto: lo cierra salvo que
-	 *  el click caiga dentro del propio disparador o del menú (mismo criterio de "click fuera"
-	 *  que cualquier popover ligero, sin librería nueva). */
+	/** Clic fuera del disparador y del menú: lo cierra. */
 	function handleWindowClick(event: MouseEvent): void {
 		if (!userMenuOpen) return;
 		const target = event.target as Node;
@@ -174,9 +161,7 @@
 		closeUserMenu();
 	}
 
-	/** `Escape` cierra el menú y devuelve el foco al disparador (mismo criterio de a11y que el
-	 *  trap de foco de `Sidebar.svelte`: nunca dejar el foco "colgado" en un elemento que acaba de
-	 *  desaparecer). */
+	/** `Escape` cierra el menú y devuelve el foco al disparador. */
 	function handleWindowKeydown(event: KeyboardEvent): void {
 		if (!userMenuOpen || event.key !== 'Escape') return;
 		event.preventDefault();
@@ -184,11 +169,7 @@
 		userTriggerEl?.focus();
 	}
 
-	/** El foco SALE del chip o del menú (Tab/Shift+Tab hacia otro control de la topbar, o fuera de
-	 *  la ventana): cierra el menú (patrón APG "menu button"). Sin esto, tabular fuera del enlace
-	 *  "Ajustes" dejaba el popover abierto y "colgado", desconectado del foco real, hasta el próximo
-	 *  click (hallazgo del code-review — el `onclick` de ventana solo cazaba el ratón, no el teclado).
-	 *  `relatedTarget` = destino del foco; `null` (foco a la nada/fuera de la ventana) también cierra. */
+	/** El foco sale del disparador o del menú (Tab, o fuera de la ventana): cierra. */
 	function handleUserFocusOut(event: FocusEvent): void {
 		if (!userMenuOpen) return;
 		const next = event.relatedTarget as Node | null;
@@ -196,10 +177,7 @@
 		closeUserMenu();
 	}
 
-	/** Click en "Ajustes" del menú (mismo patrón que `Sidebar.handleFixedClick`): un click normal
-	 *  navega vía `ctx.nav.toSettings()` (exit-guard incluido); un click modificado (Cmd/Ctrl/
-	 *  Shift/central) sigue el `href` real y abre en pestaña/ventana nueva. El menú se cierra en
-	 *  cualquier caso: seleccionar una entrada siempre la descarta. */
+	/** «Ajustes» del menú: un clic normal navega con exit-guard; uno modificado sigue el `href`. */
 	function handleSettingsClick(event: MouseEvent): void {
 		closeUserMenu();
 		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
@@ -210,15 +188,14 @@
 	}
 
 	async function handleLogout(): Promise<void> {
-		// El exit-guard de formularios sucios (P5) llega en fases posteriores; hoy no hay ningún
-		// guard registrado, así que esto siempre puede salir.
+		closeUserMenu();
 		await sessionStore.logout();
 	}
 </script>
 
 <svelte:window onclick={handleWindowClick} onkeydown={handleWindowKeydown} />
 
-<header class="vega-topbar" class:vega-topbar--build={Boolean(ctx.port.buildApiUrl)}>
+<header class="vega-topbar">
 	<button
 		type="button"
 		class="vega-topbar-menu"
@@ -227,14 +204,23 @@
 		aria-label={ctx.t(sidebarOpen ? 'topbar.menu.close' : 'topbar.menu.open')}
 		onclick={onToggleSidebar}
 	>
-		<Icon id="menu" size={18} />
+		<Icon id="menu" size={16} strokeWidth={1.6} />
+	</button>
+	<button
+		type="button"
+		class="vega-topbar-collapse"
+		aria-expanded={!sidebarCollapsed}
+		aria-controls="vega-sidebar"
+		aria-label={ctx.t(
+			sidebarCollapsed ? 'topbar.sidebarCollapse.expand' : 'topbar.sidebarCollapse.collapse'
+		)}
+		onclick={onToggleCollapse}
+	>
+		<Icon id="menu" size={16} strokeWidth={1.6} />
 	</button>
 
-	<!-- Wordmark (mockup `aquelarre-dark.html`, `.brand`): «Vega» (marca fija) + el nombre del
-	     sitio (M) en tono TENUE — antes el bloque entero pintaba `site.name` a solas con el mismo
-	     peso (así "Vega Demo" YA hacía de wordmark completo en la demo). `title` se mantiene sobre
-	     TODO el contenedor con `site.name` a solas (nunca "Vega " + site.name): es lo que
-	     `topbar.spec.ts`/`settings.spec.ts` comprueban con igualdad exacta. -->
+	<!-- `title` sobre TODO el enlace con `site.name` a solas: lo comprueban `topbar.spec.ts` y
+	     `settings.spec.ts` con igualdad exacta. -->
 	<a
 		class="vega-topbar-site"
 		href={indexHref}
@@ -242,7 +228,7 @@
 		aria-label={ctx.t('topbar.home.label')}
 		onclick={handleBrandClick}
 	>
-		<span class="vega-topbar-mark"><VegaLogo size={16} /></span>
+		<span class="vega-topbar-mark"><VegaLogo size={16} mono /></span>
 		<span class="vega-topbar-brand">Vega</span>
 		<span class="vega-topbar-sitename">{ctx.model.site.name}</span>
 	</a>
@@ -250,24 +236,11 @@
 	<GlobalSearch />
 
 	<div class="vega-topbar-actions">
-		<!-- Ausente por completo (sin render, ni un botón) si el proyecto no tiene publicación
-		     conectada (`ctx.port.buildApiUrl`) — ver la cabecera de `PublishButton.svelte`. -->
+		<ConnectionStatus />
+		<!-- Ausente por completo si el proyecto no tiene publicación conectada. -->
 		{#if ctx.port.buildApiUrl}
 			<div class="vega-topbar-publication"><PublishButton /></div>
 		{/if}
-		<ConnectionStatus />
-		<button
-			type="button"
-			class="vega-topbar-collapse"
-			aria-expanded={!sidebarCollapsed}
-			aria-controls="vega-sidebar"
-			aria-label={ctx.t(
-				sidebarCollapsed ? 'topbar.sidebarCollapse.expand' : 'topbar.sidebarCollapse.collapse'
-			)}
-			onclick={onToggleCollapse}
-		>
-			<Icon id="menu" size={16} />
-		</button>
 		<div class="vega-topbar-user" onfocusout={handleUserFocusOut}>
 			<button
 				type="button"
@@ -285,9 +258,8 @@
 					role="img"
 					aria-label={ctx.t('topbar.avatar.label', { email: ctx.session.user.email })}
 				>
-					{avatarInitial}
+					{avatarInitials}
 				</span>
-				<Icon id="chevron" size={14} />
 			</button>
 
 			{#if userMenuOpen}
@@ -300,6 +272,11 @@
 					tabindex="-1"
 					onkeydown={handleMenuKeydown}
 				>
+					<p class="vega-topbar-user-menu-who">
+						{#if ctx.session.user.name}<strong>{ctx.session.user.name}</strong>{/if}
+						<span>{ctx.session.user.email}</span>
+					</p>
+					<div class="vega-topbar-user-menu-sep" role="separator"></div>
 					<div role="group" aria-labelledby="vega-user-menu-density">
 						<p id="vega-user-menu-density" class="vega-topbar-user-menu-group">
 							{ctx.t('topbar.density.toggleLabel')}
@@ -313,7 +290,7 @@
 								onclick={() => selectDensity(value)}
 							>
 								<span class="vega-topbar-user-menu-check" aria-hidden="true">
-									{#if density === value}<Icon id="check" size={16} />{/if}
+									{#if density === value}<Icon id="check" size={16} strokeWidth={1.6} />{/if}
 								</span>
 								{ctx.t(label)}
 							</button>
@@ -326,21 +303,21 @@
 						href={settingsHref}
 						onclick={handleSettingsClick}
 					>
-						<Icon id="settings" size={16} />
+						<Icon id="gear" size={16} strokeWidth={1.6} />
 						{ctx.t('nav.settings')}
 					</a>
+					<button
+						type="button"
+						role="menuitem"
+						class="vega-topbar-user-menu-item vega-topbar-logout"
+						onclick={handleLogout}
+					>
+						<Icon id="logout" size={16} strokeWidth={1.6} />
+						{ctx.t('topbar.logout')}
+					</button>
 				</div>
 			{/if}
 		</div>
-		<!-- Slot de tema: hueco reservado, oculto hasta P7 (§2.6, P3-L10 — nunca un botón muerto). -->
-		<button
-			type="button"
-			class="vega-topbar-logout"
-			aria-label={ctx.t('topbar.logout')}
-			onclick={handleLogout}
-		>
-			<Icon id="logout" size={16} />
-		</button>
 	</div>
 </header>
 
@@ -350,62 +327,50 @@
 		z-index: 5;
 		display: flex;
 		align-items: center;
-		gap: var(--vega-space-gutter);
-		height: var(--topbar-h);
+		gap: var(--sp-3);
+		min-height: var(--topbar-h);
+		box-sizing: border-box;
 		flex-shrink: 0;
-		padding: 0 var(--vega-space-gutter);
+		padding: 0 var(--sp-5);
+		border-bottom: 1px solid var(--line);
 		background: var(--glass);
 		backdrop-filter: blur(18px) saturate(1.4);
+		-webkit-backdrop-filter: blur(18px) saturate(1.4);
 	}
 
-	/* Hilo iridiscente bajo la topbar (mockups aquelarre-*.html, firma de David): sustituye la
-	   hairline sólida de `--line` por el trazo espectral `--sheen` a la opacidad `--brand-edge-
-	   opacity` del tema — en paletas planas (sin firma propia, p.ej. brasa) el motor resuelve
-	   `--sheen` a un degradado acento→acento-texto y `--brand-edge-opacity` a 0.35, así que nunca
-	   desaparece del todo, solo pierde intensidad. `--sheen` = trazo/resalte (nunca relleno, ver
-	   `--accent-fill` del botón primario), coherente con la barra de fila activa de `RecordTable`. */
-	.vega-topbar--build {
-		box-sizing: border-box;
-		height: auto;
-		min-height: var(--topbar-h);
-		padding-block: 0.35rem;
-	}
-
-	.vega-topbar::after {
-		content: '';
-		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		height: 1.5px;
-		background: var(--line);
-	}
-
-	.vega-topbar-menu {
-		display: none;
+	/* Botones-icono silenciosos (`.btn.quiet.iconbtn` de la lámina). */
+	.vega-topbar-menu,
+	.vega-topbar-collapse {
+		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		width: 2rem;
-		height: 2rem;
-		border: 1px solid var(--line);
-		border-radius: 6px;
-		background: var(--surface);
-		color: var(--ink);
+		width: 36px;
+		height: 36px;
+		padding: 0;
+		border: 1px solid transparent;
+		border-radius: var(--r-pill);
+		background: transparent;
+		color: var(--ink-2);
 		cursor: pointer;
+	}
+	.vega-topbar-menu {
+		display: none;
+	}
+	.vega-topbar-menu:hover,
+	.vega-topbar-collapse:hover {
+		background: var(--btn);
+		color: var(--ink);
 	}
 
 	.vega-topbar-site {
 		display: flex;
 		align-items: center;
-		gap: 0.55rem;
-		min-width: 13rem;
+		gap: 9px;
+		min-width: 0;
 		flex-shrink: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
+		padding: 4px 6px 4px 2px;
 		white-space: nowrap;
-		/* Es un enlace a la portada: mismo aspecto que cuando era un `<span>` (sin subrayado ni
-		   color de enlace); solo se nota con el foco (anillo `--ring`, como el resto de la app). */
 		color: inherit;
 		text-decoration: none;
 		border-radius: var(--r-sm);
@@ -416,15 +381,16 @@
 		outline-offset: 2px;
 	}
 
-	/* «Vega»: la marca fija, sans (no --mono — es prosa, no un valor canónico). */
 	.vega-topbar-brand {
-		font-family: var(--display);
-		font-size: var(--fs-17);
-		font-weight: 700;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		font: 700 var(--fs-17) / 1.2 var(--display);
 		letter-spacing: -0.02em;
 		color: var(--ink-hi);
 	}
 
+	/* Isotipo sobre el relleno de marca (lámina `.brand .mark`), en la tinta del acento. */
 	.vega-topbar-mark {
 		display: inline-grid;
 		place-items: center;
@@ -432,201 +398,152 @@
 		width: 26px;
 		height: 26px;
 		border-radius: 8px;
-		background: var(--accent-grad);
-		box-shadow: var(--shadow-brand);
-	}
-	.vega-topbar-mark :global(svg) {
-		filter: brightness(0) invert(1);
+		background: var(--accent-fill);
+		color: var(--accent-ink);
+		box-shadow: var(--shadow-card);
 	}
 
-	/* El nombre del sitio (M, mockup `.brand .site`): valor canónico del manifiesto (como un slug
-	   o un id) → --mono, mismo criterio que el resto de valores canónicos de la app (ids, slugs,
-	   fechas ISO) — pero TENUE (--ink-2), para no competir con la marca fija de al lado. */
+	/* Nombre del sitio: valor del manifiesto, tenue, separado por una hairline. */
 	.vega-topbar-sitename {
+		min-width: 0;
+		max-width: 16rem;
+		margin-left: 2px;
 		padding-left: 10px;
 		border-left: 1px solid var(--line);
-		font-family: var(--sans);
-		font-weight: 500;
-		font-size: var(--fs-13);
-		color: var(--ink-2);
 		overflow: hidden;
 		text-overflow: ellipsis;
-		/* Item flex: sin `min-width:0` el mínimo automático es su propio contenido y el
-		   `text-overflow: ellipsis` de arriba nunca llega a activarse (el nombre del sitio empuja
-		   la topbar entera en vez de recortarse). Ver el colapso móvil al final del fichero. */
-		min-width: 0;
-	}
-
-	/* Fix code-review (lote-1, 🟡): 769-900px el buscador quedaba con un área de escritura
-	   ínfima (~57-88px medido) porque el wordmark reservaba `min-width:13rem` fijo (con
-	   `flex-shrink:0` ya no baja de ahí, PERO tampoco necesita tanto — es más ancho que su
-	   propio contenido) y `.vega-topbar-actions` tampoco cede: TODO el squeeze lo absorbía
-	   `GlobalSearch` en solitario. En el rango apretado (por encima del colapso móvil, por
-	   debajo de donde ya sobra sitio) el wordmark cede primero — la búsqueda es la protagonista
-	   del mockup, no debe ser lo primero en comprimirse. */
-	@media (min-width: 769px) and (max-width: 1100px) {
-		.vega-topbar-site {
-			min-width: 6rem;
-		}
+		font: 500 var(--fs-13) var(--sans);
+		color: var(--ink-2);
 	}
 
 	.vega-topbar-actions {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
+		gap: var(--sp-3);
 		flex-shrink: 0;
-		/* SIN `margin-left:auto` propio (a diferencia de antes): `GlobalSearch` ya centra el
-		   buscador con SU PROPIO `margin-inline:auto` (ver su cabecera) — ese margen derecho
-		   absorbe todo el hueco restante y empuja a `.vega-topbar-actions` hasta el borde derecho,
-		   igual que en el mockup (`.topbar-right`, sin margen propio). Si esto vuelve a llevar
-		   `margin-left:auto`, el buscador deja de quedar centrado (el hueco se repartiría entre
-		   TRES márgenes en vez de dos). */
-	}
-
-	.vega-topbar--build .vega-topbar-actions {
 		min-width: 0;
-		flex-shrink: 1;
 	}
 
 	.vega-topbar-publication {
 		min-width: 0;
 	}
 
-	.vega-topbar-avatar {
-		width: 32px;
-		height: 32px;
-		flex-shrink: 0;
-		border-radius: 50%;
-		background: var(--accent-soft);
-		color: var(--accent-text);
-		border: 1px solid var(--accent-line);
-		display: grid;
-		place-items: center;
-		font-size: 0.72rem;
-		font-weight: 700;
-	}
-
-	/* Chip de usuario → menú (#l12-ux, item 3): el ancla `position:relative` del popover, no lleva
-	   estilo propio más allá de eso — el chip visible es el `<button>` de dentro. */
+	/* Avatar = disparador del menú de cuenta (lámina `.avatar`). */
 	.vega-topbar-user {
 		position: relative;
 		flex-shrink: 0;
 	}
 
-	/* El disparador ("chip"): mismo tratamiento visual que el resto de botones-icono de la topbar
-	   (`.vega-topbar-logout`/`.vega-topbar-menu`), pero SIN su propio borde/fondo — el avatar
-	   circular ya aporta el contraste, un segundo marco alrededor sería ruido visual. */
 	.vega-topbar-user-trigger {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.3rem;
-		padding: 0.2rem 0.3rem;
-		border: 1px solid transparent;
-		border-radius: 999px;
+		justify-content: center;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
 		background: none;
-		color: var(--ink-2);
 		cursor: pointer;
-	}
-
-	.vega-topbar-user-trigger:hover,
-	.vega-topbar-user-trigger[aria-expanded='true'] {
-		color: var(--ink);
-		background: var(--active);
-		border-color: var(--line);
 	}
 
 	.vega-topbar-user-trigger:focus-visible {
 		outline: 2px solid var(--ink);
-		outline-offset: 1px;
+		outline-offset: 2px;
 	}
 
-	/* El chevron apunta hacia la derecha en el set de iconos (§2.7); rotado a "abajo" (afordancia
-	   estándar de menú desplegable) y, con el menú abierto, a "arriba" (mismo criterio que
-	   cualquier `<select>`/menú nativo: la flecha se invierte para indicar "ya desplegado"). */
-	.vega-topbar-user-trigger :global(svg) {
-		transform: rotate(90deg);
-		transition: transform 0.12s ease;
+	.vega-topbar-avatar {
+		display: grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		box-sizing: border-box;
+		flex-shrink: 0;
+		border: 1px solid var(--accent-line);
+		border-radius: 50%;
+		background: var(--accent-soft);
+		color: var(--accent-text);
+		font: 600 var(--fs-12) / 1 var(--sans);
 	}
 
-	.vega-topbar-user-trigger[aria-expanded='true'] :global(svg) {
-		transform: rotate(-90deg);
+	.vega-topbar-user-trigger:hover .vega-topbar-avatar,
+	.vega-topbar-user-trigger[aria-expanded='true'] .vega-topbar-avatar {
+		box-shadow: 0 0 0 4px var(--accent-soft);
 	}
 
-	/* El menú flotante: tarjeta mínima (mismos tokens que cualquier panel/tarjeta del shell —
-	   `--surface`/`--line`/`--shadow-card`), anclada bajo el chip, alineada al borde derecho (nunca
-	   se sale de la ventana por la izquierda, la topbar ya empuja las acciones a la derecha con
-	   `margin-left:auto`). */
 	.vega-topbar-user-menu {
 		position: absolute;
-		top: calc(100% + 0.4rem);
+		top: calc(100% + 0.5rem);
 		right: 0;
 		z-index: 10;
 		display: flex;
 		flex-direction: column;
-		min-width: 10rem;
-		padding: 0.3rem;
+		min-width: 13rem;
+		padding: 6px;
 		border: 1px solid var(--line);
 		border-radius: var(--r-md);
-		background: var(--glass);
-		backdrop-filter: blur(18px);
+		/* Opaco: dentro de la barra (que ya tiene `backdrop-filter`) un segundo cristal no
+		   desenfoca lo de detrás y el texto de la portada se leería a través del menú. */
+		background: var(--surface);
 		box-shadow: var(--shadow-raised);
 	}
 
-	.vega-topbar-user-menu a {
+	.vega-topbar-user-menu-who {
 		display: flex;
-		align-items: center;
-		gap: 0.55rem;
-		padding: 0.45rem 0.6rem;
-		border-radius: 6px;
-		color: var(--ink);
-		font-size: 0.85rem;
-		text-decoration: none;
-		white-space: nowrap;
+		flex-direction: column;
+		gap: 2px;
+		margin: 0;
+		padding: 6px 10px 8px;
+		font-size: var(--fs-12);
+		color: var(--ink-2);
 	}
 
-	.vega-topbar-user-menu a:hover,
-	.vega-topbar-user-menu a:focus-visible {
-		background: var(--active);
+	.vega-topbar-user-menu-who strong {
+		font-size: var(--fs-14);
+		font-weight: 600;
 		color: var(--ink-hi);
 	}
 
-	/* Rótulo de grupo del menú: la tipografía de las cabeceras de tabla (`RecordTable`). */
 	.vega-topbar-user-menu-group {
 		margin: 0;
-		padding: 0.35rem 0.6rem 0.2rem;
-		font-size: 0.6875rem;
-		font-weight: 650;
+		padding: 6px 10px 2px;
+		font-size: 11px;
+		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
 		color: var(--ink-2);
 	}
 
-	/* Opción de radio: la misma fila que el enlace «Ajustes», en `<button>`. */
-	.vega-topbar-user-menu [role='menuitemradio'] {
+	.vega-topbar-user-menu-item {
 		display: flex;
 		align-items: center;
-		gap: 0.55rem;
+		gap: 10px;
 		width: 100%;
-		padding: 0.45rem 0.6rem;
+		min-height: 36px;
+		box-sizing: border-box;
+		padding: 0 10px;
 		border: 0;
-		border-radius: 6px;
+		border-radius: var(--r-sm);
 		background: none;
 		color: var(--ink);
-		font: inherit;
-		font-size: 0.85rem;
+		font: 500 var(--fs-13) var(--sans);
 		text-align: left;
+		text-decoration: none;
 		white-space: nowrap;
 		cursor: pointer;
 	}
 
-	.vega-topbar-user-menu [role='menuitemradio']:hover,
-	.vega-topbar-user-menu [role='menuitemradio']:focus-visible {
-		background: var(--active);
-		color: var(--ink-hi);
+	.vega-topbar-user-menu-item :global(svg) {
+		flex: none;
+		color: var(--ink-2);
 	}
 
-	.vega-topbar-user-menu [role='menuitemradio']:focus-visible,
-	.vega-topbar-user-menu a:focus-visible {
+	.vega-topbar-user-menu-item:hover,
+	.vega-topbar-user-menu-item:focus-visible {
+		background: var(--surface);
+		color: var(--ink-hi);
+		box-shadow: var(--shadow-card);
+	}
+
+	.vega-topbar-user-menu-item:focus-visible {
 		outline: 2px solid var(--ink);
 		outline-offset: -2px;
 	}
@@ -636,15 +553,7 @@
 		font-weight: 600;
 	}
 
-	/* Hueco fijo de la marca (16 px, el tamaño del icono de «Ajustes»): los rótulos quedan
-	   alineados esté o no marcada la opción. */
-	.vega-topbar-user-trigger:hover :global(svg),
-	.vega-topbar-user-trigger[aria-expanded='true'] :global(svg),
-	.vega-topbar-user-menu-item:hover .vega-topbar-user-menu-check,
-	.vega-topbar-user-menu-item:focus-visible .vega-topbar-user-menu-check {
-		color: var(--ink);
-	}
-
+	/* Hueco fijo de la marca: los rótulos quedan alineados esté o no marcada la opción. */
 	.vega-topbar-user-menu-check {
 		display: inline-flex;
 		width: 16px;
@@ -655,107 +564,70 @@
 
 	.vega-topbar-user-menu-sep {
 		height: 1px;
-		margin: 0.3rem 0;
-		background: var(--line);
+		margin: 4px 0;
+		background: var(--line-soft);
 	}
 
-	.vega-topbar-logout {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		width: 2rem;
-		height: 2rem;
-		border: 1px solid var(--line);
-		border-radius: 6px;
-		background: var(--surface);
-		color: var(--ink);
-		cursor: pointer;
-	}
-
-	/* Mismo tratamiento que `.vega-topbar-logout` (botón-icono cuadrado del chrome): el plegado es
-	   un control de ESCRITORIO (ver cabecera), así que se oculta bajo el mismo punto de colapso
-	   estructural en el que el hamburguesa aparece — los dos nunca coexisten. */
-	.vega-topbar-collapse {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		width: 2rem;
-		height: 2rem;
-		border: 1px solid var(--line);
-		border-radius: 6px;
-		background: var(--surface);
-		color: var(--ink);
-		cursor: pointer;
-	}
-
-	.vega-topbar-collapse:hover {
-		border-color: var(--line-strong);
-	}
-
-	/* Mismo punto de colapso ESTRUCTURAL (768px) que Sidebar.svelte y ConnectionStatus.svelte
-	   (§4.2): topbar compacta a íconos, el hamburguesa aparece. CSS `@media` no admite `var()`, así
-	   que el valor se replica; si P7 lo cambia, cambiarlo EN LOS TRES ficheros. */
+	/* Punto de colapso ESTRUCTURAL (768px) compartido con Sidebar.svelte, ConnectionStatus.svelte
+	   y GlobalSearch.svelte: CSS `@media` no admite `var()`, así que se replica en los cuatro. */
 	@media (max-width: 768px) {
 		.vega-topbar {
-			display: grid;
-			grid-template-columns: 44px minmax(0, 1fr) auto auto auto;
-			height: auto;
+			flex-wrap: wrap;
+			gap: var(--sp-2);
+			padding: 10px var(--sp-3);
 			min-height: var(--topbar-h);
-			gap: 0.35rem;
-			padding-block: 0.35rem;
+		}
+
+		.vega-topbar-menu {
+			display: inline-flex;
+		}
+
+		.vega-topbar-collapse {
+			display: none;
+		}
+
+		/* La marca cede primero: el nombre del sitio desaparece (lámina) y «Vega» se recorta. */
+		.vega-topbar-site {
+			flex-shrink: 1;
+		}
+
+		.vega-topbar-sitename {
+			display: none;
 		}
 
 		.vega-topbar-actions {
 			display: contents;
 		}
 
-		.vega-topbar :global(.vega-search-root) {
-			grid-column: 1 / -1;
-			grid-row: 2;
-		}
-
-		.vega-topbar--build :global(.vega-search-root) {
-			grid-row: 3;
-		}
-
 		.vega-topbar-publication {
-			grid-column: 1 / -1;
-			grid-row: 2;
+			order: 1;
 		}
 
-		.vega-topbar-menu {
-			display: flex;
+		.vega-topbar-user {
+			order: 2;
 		}
 
-		/* El plegado no significa nada por debajo del punto de colapso (ver cabecera): ahí la
-		   sidebar ya es el cajón de siempre, gobernado por el hamburguesa de arriba. */
-		.vega-topbar-collapse {
+		/* La publicación que pide atención baja a su propia fila, a todo el ancho. */
+		.vega-topbar-publication:not(:has(.quiet)) {
+			order: 3;
+			flex-basis: 100%;
+		}
+
+		.vega-topbar-publication :global(.vega-publish-state.quiet) {
 			display: none;
-		}
-
-		/* El wordmark CEDE (mismo criterio que el rango 769-1100 de arriba: es lo primero que se
-		   comprime). En móvil `GlobalSearch` ya está oculto y `.vega-topbar-actions` es
-		   irreductible —chip de sesión + logout—, así que el wordmark es el único elástico que
-		   queda: sin `flex-shrink:1` la topbar mide `hamburguesa + ancho intrínseco del wordmark +
-		   acciones` y a 375px eso daba EXACTAMENTE 375px de holgura cero. Cualquier métrica de
-		   fuente un pelo más ancha (el Linux del CI frente al macOS local) desbordaba la página y
-		   tumbaba `e2e/list.spec.ts` «sin desbordar la página». Ahora el nombre del sitio se recorta
-		   con elipsis y el desbordamiento horizontal vuelve a ser SOLO el de la tabla, contenido en
-		   su propio wrapper. */
-		.vega-topbar-site {
-			min-width: 0;
-			flex-shrink: 1;
 		}
 	}
 
-	/* Objetivo táctil de 44×44 (checklist de accesibilidad, `scripts/check-touch-targets.mjs`): con
-	   puntero grueso los botones-icono pasan de 32×32 a 44×44; con ratón nada cambia (densidad). */
+	@media (max-width: 360px) {
+		.vega-topbar-brand {
+			display: none;
+		}
+	}
+
+	/* Objetivo táctil de 44×44 (`scripts/check-touch-targets.mjs`). */
 	@media (pointer: coarse) {
 		.vega-topbar-menu,
-		.vega-topbar-collapse,
-		.vega-topbar-logout {
+		.vega-topbar-collapse {
 			width: 44px;
 			height: 44px;
 			min-width: 44px;
@@ -765,7 +637,6 @@
 		.vega-topbar-user-trigger {
 			min-width: 44px;
 			min-height: 44px;
-			justify-content: center;
 		}
 
 		.vega-topbar-user-menu-item {

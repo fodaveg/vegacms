@@ -120,14 +120,16 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 		const menu = page.getByRole('menu', { name: 'Menú de cuenta' });
 		await expect(menu).toBeVisible();
 
-		// Tab: el foco recorre por orden las entradas del menú (Cómoda, Compacta y «Ajustes»,
-		// desde el lote 12) → sigue abierto mientras el foco esté dentro.
+		// Tab: el foco recorre por orden las entradas del menú (Cómoda, Compacta, «Ajustes» y
+		// «Cerrar sesión», lámina Inicio v2) → sigue abierto mientras el foco esté dentro.
 		await page.keyboard.press('Tab');
 		await expect(menu.getByRole('menuitemradio', { name: 'Cómoda' })).toBeFocused();
 		await page.keyboard.press('Tab');
 		await expect(menu.getByRole('menuitemradio', { name: 'Compacta' })).toBeFocused();
 		await page.keyboard.press('Tab');
 		await expect(page.getByRole('menuitem', { name: 'Ajustes' })).toBeFocused();
+		await page.keyboard.press('Tab');
+		await expect(page.getByRole('menuitem', { name: 'Cerrar sesión' })).toBeFocused();
 		await expect(menu).toBeVisible();
 
 		// Tab de nuevo: el foco sale del popover → se cierra (patrón menu button).
@@ -135,12 +137,16 @@ test.describe('chip de usuario → menú "Ajustes" (#l12-ux, item 3)', () => {
 		await expect(menu).toBeHidden();
 	});
 
-	test('"Cerrar sesión" sigue siendo su propio botón, siempre visible (no se movió al menú)', async ({
+	test('«Cerrar sesión» vive en el menú de cuenta (lámina Inicio v2) y cierra la sesión', async ({
 		page
 	}) => {
 		await loginAsDemo(page);
 		await waitForHome(page);
 
-		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
+		// Fuera del menú no hay un botón suelto: la barra de la lámina solo lleva el avatar.
+		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toHaveCount(0);
+		await page.getByRole('button', { name: 'Menú de cuenta' }).click();
+		await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click();
+		await expect(page).toHaveURL('/login');
 	});
 });

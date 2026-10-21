@@ -22,7 +22,9 @@ interface Harness {
 	nav: { toIndex: ReturnType<typeof vi.fn>; toSettings: ReturnType<typeof vi.fn> };
 }
 
-function mountTopbar(withSearch = false): Harness {
+let sessionLogout = vi.fn();
+
+function mountTopbar(withSearch = false, name?: string): Harness {
 	const nav = { toIndex: vi.fn(), toSettings: vi.fn() };
 	const searchable = {
 		name: 'posts',
@@ -41,7 +43,11 @@ function mountTopbar(withSearch = false): Harness {
 					: []
 			}
 		},
-		session: { token: 'tok', user: { id: 'u1', email: 'ana@vega.test' }, expiresAt: null },
+		session: {
+			token: 'tok',
+			user: { id: 'u1', email: 'ana@vega.test', ...(name ? { name } : {}) },
+			expiresAt: null
+		},
 		t: (key: string, params?: Record<string, string | number>) => t('es', key, params),
 		locale: 'es',
 		icons: { knownIcons: [], has: () => true },
@@ -49,7 +55,8 @@ function mountTopbar(withSearch = false): Harness {
 		feedback: { toast: vi.fn(), reportError: vi.fn() },
 		registerExitGuard: () => () => {}
 	} as unknown as VegaAppContext;
-	const session = { status: 'ready', logout: vi.fn() };
+	sessionLogout = vi.fn();
+	const session = { status: 'ready', logout: sessionLogout };
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(Topbar, {
@@ -87,6 +94,10 @@ describe('Topbar.svelte: densidad en el menú de cuenta y marca como enlace', ()
 	}
 	function settingsItem(): HTMLElement {
 		return h!.target.querySelector<HTMLElement>('[role="menuitem"]')!;
+	}
+	/** «Cerrar sesión»: la última entrada del menú (lámina Inicio v2). */
+	function logoutItem(): HTMLElement {
+		return Array.from(h!.target.querySelectorAll<HTMLElement>('[role="menuitem"]')).at(-1)!;
 	}
 	async function openMenu(): Promise<void> {
 		trigger().click();
@@ -219,10 +230,10 @@ describe('Topbar.svelte: densidad en el menú de cuenta y marca como enlace', ()
 		key(trigger(), 'ArrowUp');
 		await tick();
 		await tick();
-		expect(document.activeElement).toBe(settingsItem());
+		expect(document.activeElement).toBe(logoutItem());
 	});
 
-	test('teclado: flechas recorren Cómoda, Compacta y Ajustes con vuelta; Inicio y Fin saltan a los extremos', async () => {
+	test('teclado: flechas recorren Cómoda, Compacta, Ajustes y Cerrar sesión con vuelta; Inicio y Fin saltan a los extremos', async () => {
 		h = mountTopbar();
 		key(trigger(), 'ArrowDown');
 		await tick();
@@ -233,13 +244,39 @@ describe('Topbar.svelte: densidad en el menú de cuenta y marca como enlace', ()
 		key(menuEl, 'ArrowDown');
 		expect(document.activeElement).toBe(settingsItem());
 		key(menuEl, 'ArrowDown');
+		expect(document.activeElement).toBe(logoutItem());
+		key(menuEl, 'ArrowDown');
 		expect(document.activeElement).toBe(radio('Cómoda'));
 		key(menuEl, 'ArrowUp');
-		expect(document.activeElement).toBe(settingsItem());
+		expect(document.activeElement).toBe(logoutItem());
 		key(menuEl, 'Home');
 		expect(document.activeElement).toBe(radio('Cómoda'));
 		key(menuEl, 'End');
-		expect(document.activeElement).toBe(settingsItem());
+		expect(document.activeElement).toBe(logoutItem());
+	});
+
+	test('«Cerrar sesión» está en el menú (no suelto en la barra) y cierra la sesión', async () => {
+		h = mountTopbar();
+		expect(
+			Array.from(h.target.querySelectorAll('button')).some(
+				(button) => button.textContent?.trim() === 'Cerrar sesión'
+			)
+		).toBe(false);
+		await openMenu();
+		expect(logoutItem().textContent?.trim()).toBe('Cerrar sesión');
+		logoutItem().click();
+		await tick();
+		expect(sessionLogout).toHaveBeenCalledTimes(1);
+		expect(menu()).toBeNull();
+	});
+
+	test('el avatar lleva las iniciales del nombre si la sesión lo trae, si no la del correo', async () => {
+		h = mountTopbar(false, 'Marta Ferrer Soler');
+		expect(h.target.querySelector('.vega-topbar-avatar')?.textContent?.trim()).toBe('MF');
+		await unmount(h.instance);
+		h.target.remove();
+		h = mountTopbar();
+		expect(h.target.querySelector('.vega-topbar-avatar')?.textContent?.trim()).toBe('A');
 	});
 
 	test('teclado: Escape cierra el menú y devuelve el foco al botón', async () => {

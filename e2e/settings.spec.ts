@@ -132,7 +132,7 @@ test.describe('expiración durante edición en /settings (§7.B.10 — el test c
 		await expect(page).toHaveURL(/\/settings$/);
 		// El shell de debajo sigue montado (no se desmontó por el fallo de recarga, ver el guard
 		// `isReload` de `+layout.svelte`)…
-		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeAttached();
+		await expect(page.getByRole('button', { name: 'Menú de cuenta' })).toBeAttached();
 		// …y, sobre todo, el borrador escrito en el textarea SIGUE ahí: el `ManifestEditor` nunca se
 		// desmontó, así que su `rawText` interno no se perdió.
 		await expect(textarea).toHaveValue(draft);

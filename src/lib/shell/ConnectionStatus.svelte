@@ -43,25 +43,52 @@
 </span>
 
 <style>
+	/* Lámina Inicio v2 (`.conn`): punto y texto, sin píldora; el punto late mientras hay
+	   conexión (un anillo que se expande y se apaga), salvo con `prefers-reduced-motion`. */
 	.vega-connection-status {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.4rem;
-		font-family: var(--mono);
-		font-size: 0.6875rem;
+		gap: 7px;
+		font: var(--fs-13) var(--sans);
 		color: var(--ink-2);
 		white-space: nowrap;
-		border: 1px solid var(--line);
-		border-radius: 99px;
-		padding: 0.18rem 0.6rem;
 	}
 
 	.vega-connection-dot {
-		width: 6px;
-		height: 6px;
+		position: relative;
+		width: 8px;
+		height: 8px;
 		flex-shrink: 0;
 		border-radius: 50%;
 		background: var(--ink-2);
+	}
+
+	.vega-connection-status[data-state='connected'] .vega-connection-dot::after {
+		content: '';
+		position: absolute;
+		inset: -4px;
+		box-sizing: border-box;
+		border: 1.5px solid var(--success);
+		border-radius: 50%;
+		opacity: 0;
+		animation: vega-connection-pulse 2.4s ease-out infinite;
+	}
+
+	@keyframes vega-connection-pulse {
+		0% {
+			transform: scale(0.5);
+			opacity: 0.7;
+		}
+		100% {
+			transform: scale(1.25);
+			opacity: 0;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.vega-connection-status[data-state='connected'] .vega-connection-dot::after {
+			animation: none;
+		}
 	}
 
 	.vega-connection-status[data-state='connected'] .vega-connection-dot {

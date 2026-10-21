@@ -32,6 +32,7 @@
 	 * encontrar nada se lee como app rota, no como funcionalidad ausente. Ocurre, por ejemplo, en un
 	 * proyecto cuyas colecciones visibles no tengan ningún campo de texto elegible.
 	 */
+	import { tick } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
 	import { listSearchRoute, recordRoute } from '$lib/nav/routes';
@@ -44,6 +45,7 @@
 
 	let inputEl = $state<HTMLInputElement | null>(null);
 	let rootEl = $state<HTMLElement | null>(null);
+	let toggleEl = $state<HTMLButtonElement | null>(null);
 	/** El panel se pinta solo si la caja tiene el foco (o acaba de usarse): escribir, salir a otra
 	 *  parte de la app y volver no debe reabrir un panel que el usuario ya había dejado atrás. */
 	let focused = $state(false);
@@ -77,6 +79,17 @@
 		return offset + hitIndex;
 	}
 
+	/** Móvil (lámina Inicio v2): la caja se pliega en una lupa de la barra y se despliega bajo
+	 *  ella. En escritorio la caja siempre está y esta bandera no cambia nada visible. */
+	let expanded = $state(false);
+
+	/** Despliega (en móvil) y enfoca la caja. El foco espera a que la caja deje de estar oculta. */
+	async function openAndFocus(): Promise<void> {
+		expanded = true;
+		await tick();
+		inputEl?.focus();
+	}
+
 	function handleGlobalKeydown(event: KeyboardEvent): void {
 		const command =
 			event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey) && !event.altKey;
@@ -88,7 +101,10 @@
 			!isEditableTarget(event.target);
 		if (!command && !slash) return;
 		event.preventDefault();
+		expanded = true;
 		inputEl?.focus();
+		// En móvil la caja estaba plegada (oculta): se enfoca cuando ya se pinta.
+		if (document.activeElement !== inputEl) void tick().then(() => inputEl?.focus());
 	}
 
 	$effect(() => {
@@ -126,6 +142,12 @@
 				focused = false;
 				// El foco se queda en la caja a propósito (no se pierde): Escape descarta el panel,
 				// no la intención de buscar. Un segundo Escape ya sí vacía lo escrito.
+				return;
+			}
+			if (search.input === '' && expanded) {
+				// Caja ya vacía: en móvil, Escape la vuelve a plegar en la lupa con el foco en ella.
+				expanded = false;
+				toggleEl?.focus();
 				return;
 			}
 			search.clear();
@@ -174,118 +196,139 @@
 		const next = event.relatedTarget as Node | null;
 		if (next && rootEl?.contains(next)) return;
 		focused = false;
+		// Plegada de nuevo salvo que quede algo escrito (volver a la lupa lo perdería de vista).
+		if (search.input.trim() === '') expanded = false;
 	}
 </script>
 
 {#if searchable}
-	<div class="vega-search-root" bind:this={rootEl} onfocusout={handleFocusOut}>
-		<label class="vega-search">
-			<Icon id="search" size={14} />
-			<input
-				bind:this={inputEl}
-				type="search"
-				role="combobox"
-				aria-expanded={open}
-				aria-controls={LISTBOX_ID}
-				aria-autocomplete="list"
-				aria-activedescendant={activeOptionId}
-				autocomplete="off"
-				placeholder={ctx.t('topbar.search.placeholder')}
-				aria-label={ctx.t('topbar.search.ariaLabel')}
-				value={search.input}
-				oninput={handleInput}
-				onkeydown={handleKeydown}
-				onfocus={() => (focused = true)}
-			/>
-			<kbd aria-hidden="true">⌘K</kbd>
-		</label>
+	<div
+		class="vega-search-root"
+		class:expanded
+		bind:this={rootEl}
+		onfocusout={handleFocusOut}
+		role="search"
+	>
+		<!-- Lupa de la barra móvil (lámina): despliega la caja; en escritorio no se pinta. -->
+		<button
+			type="button"
+			class="vega-search-toggle"
+			bind:this={toggleEl}
+			aria-label={ctx.t('topbar.search.ariaLabel')}
+			aria-expanded={expanded}
+			onclick={() => void openAndFocus()}
+		>
+			<Icon id="search" size={16} strokeWidth={1.6} />
+		</button>
+		<div class="vega-search-box">
+			<label class="vega-search">
+				<Icon id="search" size={16} strokeWidth={1.6} />
+				<input
+					bind:this={inputEl}
+					type="search"
+					role="combobox"
+					aria-expanded={open}
+					aria-controls={LISTBOX_ID}
+					aria-autocomplete="list"
+					aria-activedescendant={activeOptionId}
+					autocomplete="off"
+					placeholder={ctx.t('topbar.search.placeholder')}
+					aria-label={ctx.t('topbar.search.ariaLabel')}
+					value={search.input}
+					oninput={handleInput}
+					onkeydown={handleKeydown}
+					onfocus={() => (focused = true)}
+				/>
+				<span class="vega-search-keys" aria-hidden="true"><kbd>⌘</kbd><kbd>K</kbd></span>
+			</label>
 
-		<!-- El listbox existe SIEMPRE en el DOM (vacío mientras no hay panel) porque
+			<!-- El listbox existe SIEMPRE en el DOM (vacío mientras no hay panel) porque
 		     `aria-controls` de la caja apunta a él: un id que no resuelve deja la relación rota
 		     para el lector de pantalla. -->
-		<div
-			id={LISTBOX_ID}
-			class="vega-search-panel"
-			class:is-open={open}
-			role="listbox"
-			aria-label={ctx.t('topbar.search.results')}
-		>
-			{#if open}
-				{#if status.kind === 'searching'}
-					<p class="vega-search-note" aria-live="polite">{ctx.t('topbar.search.searching')}</p>
-				{:else if status.kind === 'error'}
-					<p class="vega-search-note is-error" aria-live="polite">
-						{ctx.t('topbar.search.error')}
-					</p>
-				{:else if groups.length === 0}
-					<p class="vega-search-note" aria-live="polite">
-						{ctx.t('topbar.search.empty', { q: search.searchedTerm })}
-					</p>
-				{:else}
-					{#each groups as group, groupIndex (group.type)}
-						<div class="vega-search-group">
-							<p class="vega-search-group-head">
-								{#if group.icon}
-									<Icon id={group.icon} size={13} />
-								{/if}
-								<span>{group.label}</span>
-								<span class="vega-search-count">{group.totalItems}</span>
-							</p>
-							{#each group.hits as hit, hitIndex (hit.id)}
-								{@const index = globalIndex(groupIndex, hitIndex)}
-								<a
-									id={optionId(index)}
-									class="vega-search-hit"
-									role="option"
-									tabindex="-1"
-									aria-selected={index === search.activeIndex}
-									href={recordRoute(hit.type, hit.id)}
-									onclick={(event) => handleHitClick(event, hit.type, hit.id)}
-									onmousemove={() => search.setActive(index)}
-								>
-									<span class="vega-search-hit-title">{hit.title}</span>
-									{#if hit.statusLabel !== null}
-										<span class="vega-search-hit-status">
-											<span
-												class="vega-search-dot"
-												data-status-kind={hit.statusKind}
-												aria-hidden="true"
-											></span>
-											{hit.statusLabel}
-										</span>
-									{/if}
-								</a>
-							{/each}
-							{#if group.totalItems > group.hits.length}
-								<a
-									class="vega-search-more"
-									tabindex="-1"
-									href={listSearchRoute(group.type, search.searchedTerm)}
-									onclick={(event) => handleSeeAllClick(event, group.type)}
-								>
-									{ctx.t('topbar.search.seeAll', {
-										count: group.totalItems - group.hits.length
-									})}
-								</a>
-							{/if}
-						</div>
-					{/each}
-					{#if failedCount > 0}
-						<p class="vega-search-note is-partial">
-							{ctx.t('topbar.search.partial', { count: failedCount })}
+			<div
+				id={LISTBOX_ID}
+				class="vega-search-panel"
+				class:is-open={open}
+				role="listbox"
+				aria-label={ctx.t('topbar.search.results')}
+			>
+				{#if open}
+					{#if status.kind === 'searching'}
+						<p class="vega-search-note" aria-live="polite">{ctx.t('topbar.search.searching')}</p>
+					{:else if status.kind === 'error'}
+						<p class="vega-search-note is-error" aria-live="polite">
+							{ctx.t('topbar.search.error')}
 						</p>
+					{:else if groups.length === 0}
+						<p class="vega-search-note" aria-live="polite">
+							{ctx.t('topbar.search.empty', { q: search.searchedTerm })}
+						</p>
+					{:else}
+						{#each groups as group, groupIndex (group.type)}
+							<div class="vega-search-group">
+								<p class="vega-search-group-head">
+									{#if group.icon}
+										<Icon id={group.icon} size={13} />
+									{/if}
+									<span>{group.label}</span>
+									<span class="vega-search-count">{group.totalItems}</span>
+								</p>
+								{#each group.hits as hit, hitIndex (hit.id)}
+									{@const index = globalIndex(groupIndex, hitIndex)}
+									<a
+										id={optionId(index)}
+										class="vega-search-hit"
+										role="option"
+										tabindex="-1"
+										aria-selected={index === search.activeIndex}
+										href={recordRoute(hit.type, hit.id)}
+										onclick={(event) => handleHitClick(event, hit.type, hit.id)}
+										onmousemove={() => search.setActive(index)}
+									>
+										<span class="vega-search-hit-title">{hit.title}</span>
+										{#if hit.statusLabel !== null}
+											<span class="vega-search-hit-status">
+												<span
+													class="vega-search-dot"
+													data-status-kind={hit.statusKind}
+													aria-hidden="true"
+												></span>
+												{hit.statusLabel}
+											</span>
+										{/if}
+									</a>
+								{/each}
+								{#if group.totalItems > group.hits.length}
+									<a
+										class="vega-search-more"
+										tabindex="-1"
+										href={listSearchRoute(group.type, search.searchedTerm)}
+										onclick={(event) => handleSeeAllClick(event, group.type)}
+									>
+										{ctx.t('topbar.search.seeAll', {
+											count: group.totalItems - group.hits.length
+										})}
+									</a>
+								{/if}
+							</div>
+						{/each}
+						{#if failedCount > 0}
+							<p class="vega-search-note is-partial">
+								{ctx.t('topbar.search.partial', { count: failedCount })}
+							</p>
+						{/if}
 					{/if}
 				{/if}
+			</div>
+
+			<!-- Pista del mínimo de caracteres: fuera del listbox (no es una opción) y solo mientras la
+		     caja tiene foco con algo escrito por debajo del umbral. -->
+			{#if focused && search.input.trim() !== '' && status.kind === 'idle'}
+				<p class="vega-search-panel is-open vega-search-hint">
+					{ctx.t('topbar.search.minChars', { count: GLOBAL_SEARCH_MIN_CHARS })}
+				</p>
 			{/if}
 		</div>
-
-		<!-- Pista del mínimo de caracteres: fuera del listbox (no es una opción) y solo mientras la
-		     caja tiene foco con algo escrito por debajo del umbral. -->
-		{#if focused && search.input.trim() !== '' && status.kind === 'idle'}
-			<p class="vega-search-panel is-open vega-search-hint">
-				{ctx.t('topbar.search.minChars', { count: GLOBAL_SEARCH_MIN_CHARS })}
-			</p>
-		{/if}
 	</div>
 {/if}
 
@@ -295,8 +338,7 @@
 	   `flex` de la topbar es este contenedor, no la caja. */
 	.vega-search-root {
 		position: relative;
-		flex: 1;
-		max-width: 35rem;
+		flex: 0 1 560px;
 		/* Fix code-review (lote-1, 🟡): piso propio — sin esto, `flex:1` deja que el resto de la
 		   topbar (wordmark/acciones, ambos `flex-shrink:0`) le pase TODO el squeeze en 769-900px
 		   y el input se queda casi sin área de escritura. Ver también el `min-width` acotado del
@@ -312,25 +354,36 @@
 		margin-inline: auto;
 	}
 
+	/* La lupa solo existe en la barra móvil (ver el bloque de 768 px). */
+	.vega-search-toggle {
+		display: none;
+	}
+
+	/* Píldora de 38 px de la lámina (`.cmd`). */
 	.vega-search {
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
+		gap: 10px;
+		height: 38px;
+		box-sizing: border-box;
+		padding: 0 10px 0 14px;
 		background: var(--surface);
 		border: 1px solid var(--line);
 		border-radius: var(--r-pill);
-		padding: 0.42rem 0.75rem;
 		color: var(--ink-2);
+		font-size: var(--fs-13);
 		box-shadow: var(--shadow-card);
+		transition:
+			box-shadow 0.15s,
+			border-color 0.15s;
 	}
 
-	/* El mockup añade un halo `color-mix(...)` sobre el borde: `check-theme-coverage.mjs`
-	   prohíbe `color-mix(`/color crudo fuera de `src/lib/themes/` (§5.4 del contrato P7, L1) —
-	   ningún widget del formulario reconstruye ese halo tampoco, todos se apoyan en el mismo
-	   contorno del wrapper, porque el input interior no pinta outline propio. */
+	/* Anillo tenue de acento al pasar o escribir (lámina `.cmd:hover`), con tokens: sin
+	   `color-mix` fuera de `src/lib/themes/` (check-theme-coverage). */
+	.vega-search:hover,
 	.vega-search:focus-within {
 		border-color: var(--accent-line);
-		box-shadow: var(--shadow-raised);
+		box-shadow: 0 0 0 4px var(--accent-soft);
 	}
 
 	.vega-search:has(input:focus-visible) {
@@ -356,16 +409,21 @@
 		outline: none;
 	}
 
-	.vega-search kbd {
+	.vega-search-keys {
+		display: inline-flex;
+		gap: 4px;
 		flex-shrink: 0;
+	}
+
+	.vega-search kbd {
 		font-family: var(--mono);
-		font-size: 0.6875rem;
+		font-size: 11px;
+		line-height: 1.45;
 		color: var(--ink-2);
-		border: 1px solid var(--line-strong);
-		border-bottom-width: 2px;
-		border-radius: 4px;
-		padding: 0.08rem 0.35rem;
-		background: var(--surface-2);
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		padding: 1px 6px;
+		background: var(--btn);
 	}
 
 	/* El panel de resultados: misma tarjeta flotante que el menú de usuario de la topbar
@@ -522,12 +580,73 @@
 		color: var(--ink-2);
 	}
 
-	/* En móvil ocupa su propia fila del shell; el panel conserva combobox, foco y navegación. */
+	/* Móvil (mismo punto de colapso de 768 px que Topbar/Sidebar/ConnectionStatus): la lámina
+	   pliega el buscador en una lupa de la barra; desplegado, la caja baja bajo la barra a todo
+	   el ancho y el panel conserva combobox, foco y navegación. */
 	@media (max-width: 768px) {
 		.vega-search-root {
-			width: 100%;
-			max-width: none;
+			position: static;
+			flex: none;
 			min-width: 0;
+			margin: 0 0 0 auto;
+		}
+
+		.vega-search-toggle {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 36px;
+			height: 36px;
+			padding: 0;
+			border: 1px solid transparent;
+			border-radius: var(--r-pill);
+			background: transparent;
+			color: var(--ink-2);
+			cursor: pointer;
+		}
+
+		.vega-search-toggle:hover,
+		.expanded .vega-search-toggle {
+			background: var(--btn);
+			color: var(--ink);
+		}
+
+		.vega-search-box {
+			display: none;
+		}
+
+		.expanded .vega-search-box {
+			display: block;
+			position: absolute;
+			top: 100%;
+			left: 0;
+			right: 0;
+			padding: var(--sp-2) var(--sp-3);
+			border-bottom: 1px solid var(--line);
+			/* Opaco: un cristal anidado en la barra no desenfoca (ver el menú de cuenta). */
+			background: var(--surface);
+		}
+
+		.vega-search {
+			height: 44px;
+		}
+
+		.vega-search-keys {
+			display: none;
+		}
+
+		.vega-search-panel.is-open {
+			left: var(--sp-3);
+			right: var(--sp-3);
+		}
+	}
+
+	@media (pointer: coarse) {
+		.vega-search-toggle {
+			width: 44px;
+			height: 44px;
+			min-width: 44px;
+			min-height: 44px;
 		}
 	}
 

@@ -95,25 +95,55 @@
 		manualSidebarCollapsed = sidebarCollapsed;
 		setSidebarCollapsed(sidebarCollapsed);
 	}
+
+	/**
+	 * Cristal de verdad en Inicio (lámina `inicio-v2.html`): la barra (con su pila de banners) se
+	 * superpone y el scroll de `.vega-main` arranca en lo alto de la ventana, así el contenido
+	 * pasa POR DEBAJO de la barra translúcida y el menú lateral flota a su lado. Solo en `/`: las
+	 * fichas y el editor visual pegan su propia barra (`EditTopBar`, `position: sticky; top: 0`)
+	 * al borde de `.vega-main`, que tiene que seguir empezando bajo la barra. El alto real de la
+	 * barra (una o dos filas, banners) se mide y viaja como `--vega-chrome-h`.
+	 */
+	const overlayChrome = $derived(page.route.id === '/');
+	let chromeHeight = $state(0);
+	let chromeEl = $state<HTMLElement | null>(null);
+
+	// Medida del cromo superpuesto. Sin `ResizeObserver` (jsdom) se queda el alto de la barra
+	// del tema como respaldo (`var(--topbar-h)` en el CSS).
+	$effect(() => {
+		if (!overlayChrome || !chromeEl || typeof ResizeObserver === 'undefined') return;
+		const el = chromeEl;
+		const observer = new ResizeObserver(() => (chromeHeight = el.offsetHeight));
+		observer.observe(el);
+		chromeHeight = el.offsetHeight;
+		return () => observer.disconnect();
+	});
 </script>
 
-<div class="vega-shell" id="vega-app-shell">
+<div
+	class="vega-shell"
+	class:vega-shell--overlay={overlayChrome}
+	id="vega-app-shell"
+	style:--vega-chrome-h={overlayChrome && chromeHeight > 0 ? `${chromeHeight}px` : undefined}
+>
 	<a class="vega-skip-link" href="#vega-main-content" onclick={skipToContent}
 		>{ctx.t('shell.skipToContent')}</a
 	>
-	<Topbar
-		{sidebarOpen}
-		onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
-		{sidebarCollapsed}
-		onToggleCollapse={toggleSidebarCollapsed}
-	/>
+	<div class="vega-chrome" bind:this={chromeEl}>
+		<Topbar
+			{sidebarOpen}
+			onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
+			{sidebarCollapsed}
+			onToggleCollapse={toggleSidebarCollapsed}
+		/>
 
-	<!-- Pila de banners EN EL FLUJO (columna flex entre Topbar y body): EMPUJA el contenido en vez de
-	     tapar el título/recuento/botones del listado, como hacía la pila `position: fixed`. Vacía
-	     (sin banner activo) mide 0, así que no mueve nada. -->
-	<div class="vega-banner-stack">
-		<GlobalBanner />
-		<UpdateBanner />
+		<!-- Pila de banners EN EL FLUJO (bajo la barra): EMPUJA el contenido en vez de tapar el
+		     título/recuento/botones del listado, como hacía la pila `position: fixed`. Vacía (sin
+		     banner activo) mide 0, así que no mueve nada. -->
+		<div class="vega-banner-stack">
+			<GlobalBanner />
+			<UpdateBanner />
+		</div>
 	</div>
 
 	<div class="vega-body">
@@ -170,12 +200,16 @@
 	}
 
 	.vega-shell {
+		position: relative;
 		display: flex;
 		flex-direction: column;
-		/* Lienzo de fondo: queda cubierto por Topbar + sidebar + `.vega-main`, pero se pinta por
-		   si alguna sub-región no llenara del todo (inocuo). R6 (marco «cabina») REVERTIDO: ya no
-		   hay tarjeta flotante ni aire perimetral — la app ocupa el viewport entero. */
-		background: var(--bg);
+		/* Lienzo de la lámina Inicio v2: el fondo con el halo radial de marca detrás de TODA la
+		   página (barra, menú y contenido son transparentes o de cristal encima), sin el corte
+		   duro que daba pintarlo solo en `.vega-main`. R6 (marco «cabina») REVERTIDO: ya no hay
+		   tarjeta flotante ni aire perimetral — la app ocupa el viewport entero. */
+		background-color: var(--bg);
+		background-image: var(--halo);
+		background-repeat: no-repeat;
 		/* Altura ACOTADA al viewport (no `min-height`): así `.vega-body` y sus hijos quedan
 		   confinados a la ventana y el scroll ocurre DENTRO de `.vega-main` (que ya tiene
 		   `overflow-y: auto`) y de la sidebar (`overflow-y: auto`) por separado — la topbar
@@ -185,6 +219,12 @@
 		   `100dvh` (con fallback `100vh`) evita el salto por la barra dinámica del navegador móvil. */
 		height: 100vh;
 		height: 100dvh;
+	}
+
+	.vega-chrome {
+		position: relative;
+		z-index: 5;
+		flex-shrink: 0;
 	}
 
 	.vega-banner-stack {
@@ -200,7 +240,27 @@
 		position: relative;
 		gap: var(--sp-3);
 		padding: var(--sp-3);
-		background: var(--bg);
+	}
+
+	/* Inicio: la barra flota sobre el área de scroll (ver `overlayChrome`). */
+	.vega-shell--overlay .vega-chrome {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+	}
+
+	.vega-shell--overlay .vega-body {
+		padding-top: 0;
+	}
+
+	.vega-shell--overlay .vega-body > :global(.vega-sidebar) {
+		margin-top: calc(var(--vega-chrome-h, var(--topbar-h)) + var(--sp-3));
+	}
+
+	.vega-shell--overlay .vega-main {
+		padding-top: calc(var(--vega-chrome-h, var(--topbar-h)) + var(--sp-6));
+		scroll-padding-top: var(--vega-chrome-h, var(--topbar-h));
 	}
 
 	.vega-main {
@@ -217,11 +277,9 @@
 		   esto su bloque contenedor es el documento y los que caen al fondo del contenido (a miles de
 		   px dentro del scroll de `.vega-main`) estiran el documento (`scrollHeight` 1308 sobre 844 en
 		   Ajustes a 390 px) → SEGUNDO scroll anidado, un hueco gris al final y la barra de Guardar
-		   fuera de la vista. El único scroll es el de `.vega-main`. */
+		   fuera de la vista. El único scroll es el de `.vega-main`. Transparente: el lienzo y su
+		   halo los pinta `.vega-shell`. */
 		position: relative;
-		background-color: var(--bg);
-		background-image: var(--halo);
-		background-attachment: fixed;
 		overflow-y: auto;
 	}
 
@@ -231,6 +289,13 @@
 		}
 		.vega-main {
 			padding: var(--sp-4);
+		}
+		/* Inicio móvil (lámina `.content`): 20/16/40 bajo la barra superpuesta. */
+		.vega-shell--overlay .vega-main {
+			padding: calc(var(--vega-chrome-h, var(--topbar-h)) + var(--sp-5)) var(--sp-4) var(--sp-10);
+		}
+		.vega-shell--overlay .vega-body > :global(.vega-sidebar) {
+			margin-top: 0;
 		}
 	}
 </style>

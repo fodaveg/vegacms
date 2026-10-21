@@ -1,13 +1,16 @@
 <script lang="ts">
 	/**
 	 * `VegaLogo.svelte` — isotipo de marca de Vega (concepto «Lyra»: la constelación de la Lira, con
-	 * Vega —su estrella más brillante— como único punto de acento). Sustituye al punto de acento
-	 * provisional que el topbar usaba como «marca». SVG inline (cero recursos externos, CSP-safe).
-	 * L10 enruta las tres paradas de firma (`--brand-a/b/c`) por estrella, trazo y órbita; los
-	 * temas sin firma especial resuelven las tres al acento sólido. Decorativo por defecto
-	 * (`aria-hidden`): el nombre del sitio contiguo ya aporta el texto accesible.
+	 * Vega —su estrella más brillante— como único punto de acento). SVG inline (cero recursos
+	 * externos, CSP-safe). L10 enruta las tres paradas de firma (`--brand-a/b/c`) por estrella,
+	 * trazo y órbita; los temas sin firma especial resuelven las tres al acento sólido. Decorativo
+	 * por defecto (`aria-hidden`): el nombre del sitio contiguo ya aporta el texto accesible.
+	 *
+	 * `mono`: todo en `currentColor`, para pintarlo SOBRE el relleno de marca (la marca de la
+	 * barra, lámina Inicio v2). Quien lo monta decide el color con `--accent-ink`, que el gate
+	 * garantiza legible sobre el acento; un filtro que fuerce blanco fallaría con acentos claros.
 	 */
-	let { size = 20 }: { size?: number } = $props();
+	let { size = 20, mono = false }: { size?: number; mono?: boolean } = $props();
 </script>
 
 <svg
@@ -19,8 +22,8 @@
 	aria-hidden="true"
 >
 	<g
-		stroke="var(--brand-b)"
-		stroke-opacity="0.4"
+		stroke={mono ? 'currentColor' : 'var(--brand-b)'}
+		stroke-opacity={mono ? 0.55 : 0.4}
 		stroke-width="1.3"
 		stroke-linecap="round"
 		stroke-linejoin="round"
@@ -32,15 +35,15 @@
 		cy="6.5"
 		r="5.4"
 		fill="none"
-		stroke="var(--brand-c)"
-		stroke-opacity="0.3"
+		stroke={mono ? 'currentColor' : 'var(--brand-c)'}
+		stroke-opacity={mono ? 0.45 : 0.3}
 		stroke-width="0.9"
 	/>
 	<circle cx="15" cy="12" r="1.9" fill="currentColor" />
 	<circle cx="24" cy="16.5" r="1.6" fill="currentColor" />
 	<circle cx="13.5" cy="20" r="1.7" fill="currentColor" />
 	<circle cx="21" cy="25.5" r="1.6" fill="currentColor" />
-	<circle cx="9" cy="6.5" r="3.6" fill="var(--brand-a)" />
+	<circle cx="9" cy="6.5" r="3.6" fill={mono ? 'currentColor' : 'var(--brand-a)'} />
 </svg>
 
 <style>

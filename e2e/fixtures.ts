@@ -128,7 +128,8 @@ export async function loginAsDemo(
 	await page.getByLabel('Correo electrónico').fill(DEMO_EMAIL);
 	await page.getByLabel('Contraseña').fill(DEMO_PASSWORD);
 	await page.getByRole('button', { name: 'Entrar' }).click();
-	await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
+	// Shell autenticado: el menú de cuenta (que guarda «Cerrar sesión») está en la barra.
+	await expect(page.getByRole('button', { name: 'Menú de cuenta' })).toBeVisible();
 }
 
 /**

@@ -54,7 +54,7 @@ test.describe('índice por recarga directa (regresión P3-L9)', () => {
 		await waitForHome(page);
 		await expect(page.locator('[data-home-recent="empty"]')).toBeVisible();
 		await expect(page.locator('[data-home-recent="loading"]')).toHaveCount(0);
-		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Menú de cuenta' })).toBeVisible();
 	});
 });
 
@@ -72,8 +72,8 @@ test.describe('not-found (§7.B.14)', () => {
 		await expect(state).toHaveAttribute('data-route-state', 'not-found');
 		await expect(page).toHaveURL(/\/c\/no-existe$/);
 
-		// El shell sigue montado: sidebar y logout siguen ahí.
-		await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
+		// El shell sigue montado: sidebar y menú de cuenta siguen ahí.
+		await expect(page.getByRole('button', { name: 'Menú de cuenta' })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Entradas' })).toBeVisible();
 
 		// La acción "Volver a Inicio" navega fuera del estado not-found, a la portada.
