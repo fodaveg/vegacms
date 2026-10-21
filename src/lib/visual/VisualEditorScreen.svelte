@@ -1410,7 +1410,12 @@
 						(blocks.anySaving || blocks.structuralBusy)}
 					title={saveErrorBlockId
 						? ctx.t('editor.visual.bar.saveError', { label: saveErrorLabel })
-						: undefined}
+						: ctx.t(
+								pendingBlocks.length === 1
+									? 'editor.visual.pending.one'
+									: 'editor.visual.pending.many',
+								{ count: pendingBlocks.length }
+							)}
 				>
 					<i aria-hidden="true"></i>
 					{#if saveErrorBlockId}<span class="vega-visual-savestate-text" role="alert"
@@ -1418,7 +1423,7 @@
 						>{:else if blocks.anySaving || blocks.structuralBusy}<span
 							class="vega-visual-saved-at--saving"
 							role="status">{ctx.t('editor.saving')}</span
-						>{:else}<span class="vega-visual-dirty" role="status"
+						>{:else}<span class="vega-visual-dirty vega-visual-savestate-text" role="status"
 							>{ctx.t(
 								pendingBlocks.length === 1
 									? 'editor.visual.pending.one'
@@ -1460,9 +1465,9 @@
 				class="vega-visual-savestate vega-visual-savestate--err"
 				role="alert"
 				title={ctx.t('editor.visual.bar.saveError', { label: saveErrorLabel })}
-				><i aria-hidden="true"></i>{ctx.t('editor.visual.bar.saveError', {
-					label: saveErrorLabel
-				})}</span
+				><i aria-hidden="true"></i><span class="vega-visual-savestate-text"
+					>{ctx.t('editor.visual.bar.saveError', { label: saveErrorLabel })}</span
+				></span
 			>
 			<button type="button" class="vega-visual-retry" onclick={retrySave}
 				><Icon id="update" size={14} />{ctx.t('common.retry')}</button
@@ -1945,6 +1950,71 @@
 
 	.vega-visual-bar-spacer {
 		flex: 1;
+	}
+
+	/* Con lienzo (más de 900 px) la barra es UNA fila y no cambia de alto con ningún estado (ronda
+	   4 del QA de fodaveg: con «No se pudo guardar «Cita destacada»» y «Reintentar» se partía en dos
+	   a 1440 px). Ceden ancho, con puntos suspensivos, solo los textos que cambian de largo: el
+	   título de la página y el estado de guardado (el texto completo queda en su `title` y en su
+	   región `alert`/`status`). Los controles, «Reintentar» incluido, nunca encogen. */
+	@media (min-width: 901px) {
+		.vega-visual-bar {
+			flex-wrap: nowrap;
+		}
+
+		/* `:global`: también los hijos que pinta otro componente (el estado de la página). */
+		.vega-visual-bar > :global(*) {
+			flex-shrink: 0;
+		}
+
+		.vega-visual-bar > .vega-visual-crumbs {
+			flex-shrink: 1;
+			min-width: 5rem;
+		}
+
+		.vega-visual-crumbs h1 {
+			min-width: 0;
+		}
+
+		.vega-visual-bar > .vega-visual-savestate,
+		.vega-visual-bar > .vega-visual-pending {
+			flex-shrink: 1;
+			min-width: 6rem;
+		}
+
+		.vega-visual-bar > .vega-visual-savestate,
+		.vega-visual-pending > summary {
+			max-width: 100%;
+			overflow: hidden;
+		}
+
+		.vega-visual-bar > .vega-visual-bar-spacer {
+			flex-shrink: 1;
+			min-width: 0;
+		}
+	}
+
+	/* Para que esa fila quepa hasta 1024 px con el error y «Reintentar» (medido: 1050 px solo en
+	   limpio), por debajo de 1340 px «Volver al formulario» se queda en su flecha y el zoom en su
+	   porcentaje: los dos conservan el texto en su nombre accesible. */
+	@media (min-width: 901px) and (max-width: 1339px) {
+		.vega-visual-back .vega-visual-hide-narrow,
+		.vega-visual-zoom-width {
+			display: none;
+		}
+
+		.vega-visual-back {
+			padding: 0 8px;
+		}
+	}
+
+	/* Con el «Publicar» del sitio además, por debajo de 1180 px la fila no cabe con el error y
+	   «Reintentar» (medido a 1024: 86 px de más). «Programar…» sale de la barra, como ya hace por
+	   debajo de 900 px (`VisualPublishControl.svelte`): sigue junto al campo Estado del formulario. */
+	@media (min-width: 901px) and (max-width: 1179px) {
+		.vega-visual-bar--publish :global(.vega-visual-publish-schedule) {
+			display: none;
+		}
 	}
 
 	.vega-visual-back,

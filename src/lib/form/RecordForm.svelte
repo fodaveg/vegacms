@@ -861,6 +861,10 @@
 	let screenSaving = $state(false);
 	/** Secciones que ese guardado no pudo escribir; se dice mientras sigan sin guardar. */
 	let blocksNotice = $state<string | null>(null);
+	/** El aviso que ocupa el hueco de estado de la barra, si hay uno (ver el marcado). */
+	const barNotice = $derived(
+		publicationNotice ?? (blocksNotice && blocksDirty && !screenSaving ? blocksNotice : null)
+	);
 	let reviewCardRef = $state<{ focus: () => void } | undefined>(undefined);
 	/** Ficha de Medios abierta desde «Describir la imagen…», o `null`. */
 	let reviewMediaId = $state<string | null>(null);
@@ -2050,22 +2054,44 @@
 			     vuelo, si no la hora del último guardado conocido. El BOTÓN ya no cambia de texto al
 			     guardar (el mockup lo deja fijo en "Guardar" y solo lo deshabilita): así su nombre
 			     accesible es estable para cualquier locator, y el feedback vive aquí. -->
-				{#if saving || screenSaving}
-					<span class="vega-editor-saved-at vega-editor-saved-at--saving">
-						{ctx.t('editor.saving')}
-					</span>
-				{:else if conflict}
-					<span class="vega-editor-saved-at vega-editor-saved-at--conflict">
-						{ctx.t('editor.conflict.topbar')}
-					</span>
-				{:else if dirty}
-					<span class="vega-editor-local-state" role="status">{ctx.t('editor.localChanges')}</span>
-				{:else}
-					<span class="vega-editor-local-state" role="status">
-						{ctx.t(savedAtText ? 'editor.savedOnServer' : 'editor.noLocalChanges')}
-						{#if savedAtText}<span class="vega-editor-saved-at"> · {savedAtText}</span>{/if}
-					</span>
-				{/if}
+				<!-- UN hueco para el estado y los avisos de la barra (ronda 4 del QA de fodaveg): mide
+				     siempre lo mismo, así que pasar de «Sin cambios locales» a «Cambios sin guardar en esta
+				     pantalla» o a un aviso no cambia el alto de la barra. Lo largo se recorta con puntos
+				     suspensivos; el texto completo queda en el `title` y en su región. Un aviso ocupa el
+				     hueco del estado mientras está (el estado no dice nada que el aviso no diga). -->
+				<span class="vega-editor-state-slot">
+					{#if barNotice}
+						<span
+							class="vega-visual-publish-error vega-editor-bar-notice"
+							role="alert"
+							title={barNotice}>{barNotice}</span
+						>
+					{:else if saving || screenSaving}
+						<span class="vega-editor-saved-at vega-editor-saved-at--saving">
+							{ctx.t('editor.saving')}
+						</span>
+					{:else if conflict}
+						<span
+							class="vega-editor-saved-at vega-editor-saved-at--conflict"
+							title={ctx.t('editor.conflict.topbar')}
+						>
+							{ctx.t('editor.conflict.topbar')}
+						</span>
+					{:else if dirty}
+						<span class="vega-editor-local-state" role="status" title={ctx.t('editor.localChanges')}
+							>{ctx.t('editor.localChanges')}</span
+						>
+					{:else}
+						<span
+							class="vega-editor-local-state"
+							role="status"
+							title={`${ctx.t(savedAtText ? 'editor.savedOnServer' : 'editor.noLocalChanges')}${savedAtText ? ` · ${savedAtText}` : ''}`}
+						>
+							{ctx.t(savedAtText ? 'editor.savedOnServer' : 'editor.noLocalChanges')}
+							{#if savedAtText}<span class="vega-editor-saved-at"> · {savedAtText}</span>{/if}
+						</span>
+					{/if}
+				</span>
 				{#if visualEditorAvailable}
 					{@const visualRecordId = model.recordId}
 					{#if visualRecordId !== null}
@@ -2156,13 +2182,6 @@
 							disabled={formDisabled || blocksBusy || submitBlocked}
 						/>
 					{/if}
-					{#if publicationNotice}<span class="vega-visual-publish-error" role="alert"
-							>{publicationNotice}</span
-						>{/if}
-					{#if blocksNotice && blocksDirty && !screenSaving}<span
-							class="vega-visual-publish-error"
-							role="alert">{blocksNotice}</span
-						>{/if}
 					<button
 						type="submit"
 						class="vega-editor-save-button"
@@ -3015,6 +3034,65 @@
 		font-size: 0.75rem;
 		color: var(--ink-2);
 		overflow-wrap: anywhere;
+	}
+
+	/* Avisos de la barra («Sin guardar: …», publicación a medias): el tono de error de
+	   `FormPublishControl`, que no cruza componentes. */
+	.vega-editor-bar-notice {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: var(--danger);
+	}
+
+	/* La barra no cambia de alto con ningún estado (ronda 4 del QA de fodaveg: «Cambios sin
+	   guardar en esta pantalla» la partía en dos a 1440 px). El estado y los avisos viven en un hueco
+	   de ancho FIJO (`.vega-editor-state-slot`), con puntos suspensivos y el texto completo en su
+	   `title`: si la barra cabe en una fila, sigue en una; si no (una pantalla estrecha, la barra
+	   lateral abierta), se parte siempre por el mismo sitio, sea cual sea el estado. */
+	.vega-editor-state-slot {
+		flex: none;
+		width: 14rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.vega-editor-state-slot > * {
+		display: block;
+		max-width: none;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	/* Con sitio para todo en UNA fila (la barra completa mide unos 1210 px), el hueco y el nombre
+	   del registro ceden lo que falte en vez de partirla; los botones nunca encogen. La barra es
+	   `.vega-edit-top` de `EditTopBar`, hijo directo de este `<form>`. */
+	/* No en el diálogo de crear relación: allí el ancho lo da el contenido, y medirlo como
+	   contenedor lo dejaría en cero (tampoco hay barra). */
+	.vega-record-form:not(.vega-record-form--relation) {
+		container: record-form / inline-size;
+	}
+
+	@container record-form (min-width: 1200px) {
+		.vega-record-form > :global(.vega-edit-top) {
+			flex-wrap: nowrap;
+		}
+
+		.vega-record-form > :global(.vega-edit-top > *) {
+			flex-shrink: 0;
+		}
+
+		.vega-record-form > :global(.vega-edit-top > .vega-edit-top-spacer) {
+			flex-shrink: 1;
+			min-width: 0;
+		}
+
+		.vega-record-form .vega-editor-doc,
+		.vega-record-form .vega-editor-state-slot {
+			flex-shrink: 1;
+			min-width: 5rem;
+		}
 	}
 
 	.vega-editor-saved-at {

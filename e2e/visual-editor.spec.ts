@@ -2180,6 +2180,180 @@ test('UX04: Secciones a 901 recibe clic y teclado y devuelve el foco al cerrar',
 	expect(await frame!.evaluate(() => innerWidth)).toBe(1280);
 });
 
+/**
+ * Geometría de una barra superior: su alto, lo que se sale por la derecha o por abajo, y si
+ * «Reintentar» se ve entero. Los textos que se recortan con elipsis no cuentan como desborde (su
+ * caja sigue dentro); un elemento cuya caja sale de la barra, sí.
+ */
+async function barLayout(page: Page, selector: string) {
+	// Después de un cambio de tamaño o de pantalla la barra lateral de la app se pliega o despliega
+	// con transición: se mide cuando ha terminado (las animaciones infinitas no cuentan).
+	await page.waitForFunction(() =>
+		document
+			.getAnimations()
+			.every(
+				(a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity
+			)
+	);
+	await page.evaluate(
+		() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+	);
+	return page.locator(selector).evaluate((bar) => {
+		const r = bar.getBoundingClientRect();
+		const outside = [...bar.querySelectorAll<HTMLElement>('*')]
+			// Lo que se despliega (avisos pendientes, menús, el panel de «Publicar») cae fuera a propósito.
+			.filter((el) => !el.closest('[hidden], [role="menu"], details > :not(summary)'))
+			.filter((el) => {
+				const b = el.getBoundingClientRect();
+				return (
+					b.width > 1 && b.height > 1 && (b.right > r.right + 0.5 || b.bottom > r.bottom + 0.5)
+				);
+			})
+			.map((el) => {
+				const b = el.getBoundingClientRect();
+				return `${el.className || el.tagName} ${Math.round(b.right)}/${Math.round(b.bottom)} > ${Math.round(r.right)}/${Math.round(r.bottom)}`;
+			});
+		const retry = bar.querySelector<HTMLElement>('.vega-visual-retry');
+		const retryBox = retry?.getBoundingClientRect();
+		return {
+			height: Math.round(r.height),
+			outside,
+			retry: retry
+				? {
+						clipped: retry.scrollWidth > retry.clientWidth + 0.5,
+						inside: retryBox!.left >= r.left && retryBox!.right <= r.right + 0.5,
+						text: retry.textContent?.trim()
+					}
+				: null
+		};
+	});
+}
+
+for (const publish of [false, true]) {
+	test(`ronda 4 del QA de fodaveg: la barra del editor visual no cambia de alto con ningún estado entre 1024 y 1440 px${publish ? ' (con «Publicar»)' : ''}`, async ({
+		page
+	}, testInfo) => {
+		// `r3-cmds-C.png`: con «No se pudo guardar «Cita destacada»» y «Reintentar», la barra se partía
+		// en dos líneas a 1440 px.
+		if (publish) {
+			const build = 'https://build.vega.test/api/vega-build';
+			await page.route(`${build}/**`, (route) =>
+				route.fulfill({
+					headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' },
+					contentType: 'application/json',
+					body: JSON.stringify({ state: 'ok', startedAt: null, finishedAt: null })
+				})
+			);
+			await page.addInitScript((url) => {
+				(window as unknown as { __VEGA_BUILD_API_URL__?: string }).__VEGA_BUILD_API_URL__ = url;
+			}, build);
+		}
+		await page.setViewportSize({ width: 1440, height: 900 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openLongBlockForm(page, site);
+		const widths = [1024, 1180, 1280, 1440];
+		const clean: Record<number, number> = {};
+		for (const width of widths) {
+			await page.setViewportSize({ width, height: 900 });
+			const layout = await barLayout(page, '.vega-visual-bar');
+			expect(layout.outside, `limpia a ${width}`).toEqual([]);
+			clean[width] = layout.height;
+		}
+		// Título de página largo (se guarda en el formulario y se vuelve al lienzo).
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await formLink(page).click();
+		await page
+			.locator('.vega-record-form')
+			.getByRole('textbox', { name: 'Título', exact: true })
+			.fill('Una página con un título muy largo para comprobar que la barra no se parte en dos');
+		await page
+			.locator('.vega-edit-top')
+			.getByRole('button', { name: 'Guardar', exact: true })
+			.click();
+		await expect(page.locator('.vega-editor-dirty')).toHaveCount(0);
+		await page.getByRole('button', { name: 'Editor visual', exact: true }).click();
+		await waitConnected(page, 3);
+		await openStructure(page);
+		// Pendiente, y después error de guardado con «Reintentar» (el campo obligatorio vacío).
+		await page.locator('[data-vega-tree-row="seccion_1"]').click();
+		await headingInput(page).fill('Cita destacada con un nombre largo que no cabe en la barra');
+		for (const width of widths) {
+			await page.setViewportSize({ width, height: 900 });
+			const layout = await barLayout(page, '.vega-visual-bar');
+			expect(layout, `pendiente a ${width}`).toMatchObject({ height: clean[width], outside: [] });
+		}
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await visibleInspectorBody(page).getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page.locator('.vega-visual-retry')).toBeVisible();
+		for (const width of widths) {
+			await page.setViewportSize({ width, height: 900 });
+			const layout = await barLayout(page, '.vega-visual-bar');
+			expect(layout, `error a ${width}`).toMatchObject({
+				height: clean[width],
+				outside: [],
+				retry: { clipped: false, inside: true, text: 'Reintentar' }
+			});
+			// El mensaje completo sigue disponible aunque se recorte.
+			await expect(
+				page.locator('.vega-visual-bar .vega-visual-savestate--err').first()
+			).toHaveAttribute('title', /No se pudo guardar «Escribe\. Publica\. Olvídate del resto\.»/);
+			if (width === 1440 || width === 1024)
+				await page.screenshot({
+					path: testInfo.outputPath(`barra-error-${width}${publish ? '-publicar' : ''}.png`)
+				});
+		}
+	});
+}
+
+test('ronda 4 del QA de fodaveg: la barra del formulario no cambia de alto con cambios, guardado ni avisos entre 1024 y 1440 px', async ({
+	page
+}, testInfo) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openLongBlockForm(page, site);
+	await formLink(page).click();
+	await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
+	const widths = [1024, 1180, 1280, 1440];
+	const clean: Record<number, number> = {};
+	for (const width of widths) {
+		await page.setViewportSize({ width, height: 900 });
+		const layout = await barLayout(page, '.vega-edit-top');
+		expect(layout.outside, `limpia a ${width}`).toEqual([]);
+		clean[width] = layout.height;
+	}
+	// Cambios sin guardar en una sección, y el Guardar de la pantalla con ella inválida: el aviso
+	// «Sin guardar: …» de la barra.
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await page.locator('.vega-block-toggle').first().click();
+	await page
+		.locator('.vega-block-body:not([hidden]) [data-field="heading"] input')
+		.first()
+		.fill('Sección con un nombre larguísimo para que el aviso de la barra no quepa entero');
+	for (const width of widths) {
+		await page.setViewportSize({ width, height: 900 });
+		expect(await barLayout(page, '.vega-edit-top'), `cambios a ${width}`).toMatchObject({
+			height: clean[width],
+			outside: []
+		});
+	}
+	await page
+		.locator('.vega-edit-top')
+		.getByRole('button', { name: 'Guardar', exact: true })
+		.click();
+	const notice = page.locator('.vega-edit-top [role="alert"]');
+	await expect(notice).toBeVisible();
+	for (const width of widths) {
+		await page.setViewportSize({ width, height: 900 });
+		expect(await barLayout(page, '.vega-edit-top'), `aviso a ${width}`).toMatchObject({
+			height: clean[width],
+			outside: []
+		});
+		await expect(notice).toHaveAttribute('title', /^Sin guardar: /);
+		if (width === 1024)
+			await page.screenshot({ path: testInfo.outputPath('formulario-aviso-1024.png') });
+	}
+});
+
 test('UX11: índice de secciones conserva borrador/error y el formulario respeta cancelar o guardar', async ({
 	page
 }) => {
