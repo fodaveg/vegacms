@@ -2313,45 +2313,77 @@ test('ronda 4 del QA de fodaveg: la barra del formulario no cambia de alto con c
 	await openLongBlockForm(page, site);
 	await formLink(page).click();
 	await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
+	// Con la barra lateral de la app ABIERTA, como la midió el QA (ronda 5, `r4-form.json`: a 1024 px,
+	// 2 filas en limpio y 3 con «Cambios sin guardar» o con el error de un campo vacío).
+	await expect(page.getByRole('navigation', { name: 'Navegación principal' })).toBeVisible();
 	const widths = [1024, 1180, 1280, 1440];
-	const clean: Record<number, number> = {};
+	/** Alto de la barra y dónde cae cada pieza: un estado no puede mover nada de sitio (ni «Guardar»
+	 *  a otra fila ni el resto un píxel), así que a ningún ancho cambia el alto. */
+	const placement = (page: Page) =>
+		page.locator('.vega-edit-top').evaluate((bar) =>
+			[...bar.children]
+				.filter((el) => el.getBoundingClientRect().width > 0)
+				.map((el) => {
+					const b = el.getBoundingClientRect();
+					return `${el.className.toString().split(' ')[0]} ${Math.round(b.left)},${Math.round(b.top)}`;
+				})
+		);
+	const clean: Record<number, { height: number; placement: string[] }> = {};
 	for (const width of widths) {
 		await page.setViewportSize({ width, height: 900 });
 		const layout = await barLayout(page, '.vega-edit-top');
 		expect(layout.outside, `limpia a ${width}`).toEqual([]);
-		clean[width] = layout.height;
+		clean[width] = { height: layout.height, placement: await placement(page) };
+		if (width === 1024)
+			await page.screenshot({ path: testInfo.outputPath('formulario-limpio-1024.png') });
 	}
-	// Cambios sin guardar en una sección, y el Guardar de la pantalla con ella inválida: el aviso
-	// «Sin guardar: …» de la barra.
-	await page.setViewportSize({ width: 1440, height: 900 });
+	const sameAsClean = async (state: string) => {
+		for (const width of widths) {
+			await page.setViewportSize({ width, height: 900 });
+			const layout = await barLayout(page, '.vega-edit-top');
+			expect(layout, `${state} a ${width}`).toMatchObject({
+				height: clean[width].height,
+				outside: []
+			});
+			expect(await placement(page), `${state} a ${width}`).toEqual(clean[width].placement);
+			if (width === 1024)
+				await page.screenshot({ path: testInfo.outputPath(`formulario-${state}-1024.png`) });
+		}
+	};
+	// Cambios sin guardar en un campo de la página.
+	const title = page
+		.locator('.vega-record-form')
+		.getByRole('textbox', { name: 'Título', exact: true });
+	await title.fill('Inicio con cambios');
+	await sameAsClean('pendiente');
+	// El error de un campo obligatorio vacío (la «clave» de fodaveg; aquí la ruta).
+	const path = page.locator('.vega-record-form [data-field="path"] input');
+	const originalPath = await path.inputValue();
+	await path.fill('');
+	await page
+		.locator('.vega-edit-top')
+		.getByRole('button', { name: 'Guardar', exact: true })
+		.click();
+	await expect(
+		page.locator('.vega-record-form [data-field="path"] .vega-field-error')
+	).toBeVisible();
+	await sameAsClean('error');
+	await path.fill(originalPath);
+	await title.fill('Inicio');
+	// Una sección con cambios no válida: el aviso «Sin guardar: …» de la barra.
 	await page.locator('.vega-block-toggle').first().click();
 	await page
 		.locator('.vega-block-body:not([hidden]) [data-field="heading"] input')
 		.first()
 		.fill('Sección con un nombre larguísimo para que el aviso de la barra no quepa entero');
-	for (const width of widths) {
-		await page.setViewportSize({ width, height: 900 });
-		expect(await barLayout(page, '.vega-edit-top'), `cambios a ${width}`).toMatchObject({
-			height: clean[width],
-			outside: []
-		});
-	}
 	await page
 		.locator('.vega-edit-top')
 		.getByRole('button', { name: 'Guardar', exact: true })
 		.click();
 	const notice = page.locator('.vega-edit-top [role="alert"]');
 	await expect(notice).toBeVisible();
-	for (const width of widths) {
-		await page.setViewportSize({ width, height: 900 });
-		expect(await barLayout(page, '.vega-edit-top'), `aviso a ${width}`).toMatchObject({
-			height: clean[width],
-			outside: []
-		});
-		await expect(notice).toHaveAttribute('title', /^Sin guardar: /);
-		if (width === 1024)
-			await page.screenshot({ path: testInfo.outputPath('formulario-aviso-1024.png') });
-	}
+	await expect(notice).toHaveAttribute('title', /^Sin guardar: /);
+	await sameAsClean('aviso');
 });
 
 test('UX11: índice de secciones conserva borrador/error y el formulario respeta cancelar o guardar', async ({

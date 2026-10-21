@@ -2033,6 +2033,10 @@
 						<span class="vega-editor-dirty" title={ctx.t('editor.dirty')}>
 							<span class="vega-visually-hidden">{ctx.t('editor.dirty')}</span>
 						</span>
+					{:else}
+						<!-- Sin cambios, su hueco se queda (vacío e invisible): que aparezca el punto no
+						     puede empujar nada de la barra a otra fila (ronda 5 del QA de fodaveg). -->
+						<span class="vega-editor-dirty-room" aria-hidden="true"></span>
 					{/if}
 					{#if typeReadonly}
 						<span class="vega-editor-readonly-badge">{ctx.t('nav.readonlyBadge')}</span>
@@ -3017,6 +3021,12 @@
 		overflow: hidden;
 	}
 
+	.vega-editor-dirty-room {
+		flex-shrink: 0;
+		width: 8px;
+		height: 8px;
+	}
+
 	/* Estado de guardado (mockup `.save-state`): tenue; con `⟳` en `--info` mientras se guarda. */
 	.vega-publication-scope {
 		margin: 0.5rem 0;
@@ -3052,12 +3062,17 @@
 	.vega-editor-state-slot {
 		flex: none;
 		width: 14rem;
+		/* Alto fijo también: el aviso usa otro cuerpo de letra que el estado, y no puede mover la
+		   barra ni un píxel. */
+		height: 1.25rem;
+		line-height: 1.25rem;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
 	.vega-editor-state-slot > * {
+		line-height: inherit;
 		display: block;
 		max-width: none;
 		overflow: hidden;
