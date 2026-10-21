@@ -43,6 +43,12 @@
 	 * `100vh`), NUNCA `min-height` — ver el comentario de esa regla. Como columna `flex`, la Topbar
 	 * toma su altura intrínseca y `.vega-body` (`flex: 1`, `min-height: 0`) el resto, así que el
 	 * scroll sigue siendo INTERNO (`.vega-main`/`Sidebar`), nunca del documento.
+	 *
+	 * **Editor visual (`/c/[type]/[id]/visual`, lámina «edición en vivo», nota 3)**: la barra del
+	 * editor SUSTITUYE a la de la app, así que en esa ruta `Topbar` no se monta y `<main>` pierde su
+	 * aire (`.vega-shell--visual`). Se conservan los banners en el flujo, el skip-link a `<main>` y el
+	 * buscador global por teclado: `GlobalSearch` se monta solo, `floating`, y ⌘K/Ctrl+K o `/` lo
+	 * abren como capa (sin barra no tendría dónde vivir, y el atajo existía en esta ruta).
 	 */
 	import type { Snippet } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
@@ -50,6 +56,7 @@
 	import { page } from '$app/state';
 	import { readSidebarCollapsed, setSidebarCollapsed } from '$lib/theme/apply';
 	import Topbar from './Topbar.svelte';
+	import GlobalSearch from './GlobalSearch.svelte';
 	import Sidebar from './Sidebar.svelte';
 	import GlobalBanner from './GlobalBanner.svelte';
 	import UpdateBanner from './UpdateBanner.svelte';
@@ -67,6 +74,9 @@
 		return () => onpresence?.(false);
 	});
 
+	/** Id de ruta de SvelteKit del editor visual. */
+	const VISUAL_ROUTE_ID = '/c/[type]/[id]/visual';
+
 	const ctx = getVegaContext();
 	let mainEl: HTMLElement | null = null;
 	function skipToContent(event: MouseEvent): void {
@@ -78,12 +88,12 @@
 	let manualSidebarCollapsed = readSidebarCollapsed();
 	// La restauración de sesión/modelo puede montar la carcasa después de la navegación inicial:
 	// esa entrada directa ya tiene ruta, aunque no llegue otro evento afterNavigate.
-	let visualRoute = page.route.id === '/c/[type]/[id]/visual';
+	let visualRoute = page.route.id === VISUAL_ROUTE_ID;
 	let sidebarCollapsed = $state(visualRoute ? true : manualSidebarCollapsed);
 
 	afterNavigate(({ to }) => {
 		sidebarOpen = false;
-		const nextVisualRoute = to?.route.id === '/c/[type]/[id]/visual';
+		const nextVisualRoute = to?.route.id === VISUAL_ROUTE_ID;
 		if (nextVisualRoute !== visualRoute) {
 			visualRoute = nextVisualRoute;
 			sidebarCollapsed = visualRoute ? true : manualSidebarCollapsed;
@@ -105,6 +115,8 @@
 	 * barra (una o dos filas, banners) se mide y viaja como `--vega-chrome-h`.
 	 */
 	const overlayChrome = $derived(page.route.id === '/');
+	/** Ruta del editor visual: su barra sustituye a la de la app (ver cabecera). */
+	const visualChrome = $derived(page.route.id === VISUAL_ROUTE_ID);
 	let chromeHeight = $state(0);
 	let chromeEl = $state<HTMLElement | null>(null);
 
@@ -123,6 +135,7 @@
 <div
 	class="vega-shell"
 	class:vega-shell--overlay={overlayChrome}
+	class:vega-shell--visual={visualChrome}
 	id="vega-app-shell"
 	style:--vega-chrome-h={overlayChrome && chromeHeight > 0 ? `${chromeHeight}px` : undefined}
 >
@@ -130,12 +143,17 @@
 		>{ctx.t('shell.skipToContent')}</a
 	>
 	<div class="vega-chrome" bind:this={chromeEl}>
-		<Topbar
-			{sidebarOpen}
-			onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
-			{sidebarCollapsed}
-			onToggleCollapse={toggleSidebarCollapsed}
-		/>
+		{#if visualChrome}
+			<!-- Sin barra de la app (la del editor la sustituye): solo el buscador por teclado. -->
+			<GlobalSearch floating />
+		{:else}
+			<Topbar
+				{sidebarOpen}
+				onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
+				{sidebarCollapsed}
+				onToggleCollapse={toggleSidebarCollapsed}
+			/>
+		{/if}
 
 		<!-- Pila de banners EN EL FLUJO (bajo la barra): EMPUJA el contenido en vez de tapar el
 		     título/recuento/botones del listado, como hacía la pila `position: fixed`. Vacía (sin
@@ -256,6 +274,17 @@
 
 	.vega-shell--overlay .vega-body > :global(.vega-sidebar) {
 		margin-top: calc(var(--vega-chrome-h, var(--topbar-h)) + var(--sp-3));
+	}
+
+	/* Editor visual: su pantalla ocupa `<main>` de borde a borde y lleva su propio scroll. */
+	.vega-shell--visual .vega-body {
+		padding: 0;
+		gap: 0;
+	}
+
+	.vega-shell--visual .vega-main {
+		padding: 0;
+		overflow: hidden;
 	}
 
 	.vega-shell--overlay .vega-main {

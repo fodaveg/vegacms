@@ -20,6 +20,7 @@ const harness = vi.hoisted(() => ({
 	navigate: null as null | ((navigation: { to: { route: { id: string } } | null }) => void),
 	topbar: null as TopbarProps | null,
 	sidebar: null as SidebarProps | null,
+	search: null as { floating?: boolean } | null,
 	read: vi.fn(() => false),
 	persist: vi.fn(),
 	page: { route: { id: '/c/[type]' as string | null } }
@@ -42,6 +43,11 @@ vi.mock('./Topbar.svelte', () => ({
 vi.mock('./Sidebar.svelte', () => ({
 	default: (_anchor: unknown, props: SidebarProps) => {
 		harness.sidebar = props;
+	}
+}));
+vi.mock('./GlobalSearch.svelte', () => ({
+	default: (_anchor: unknown, props: { floating?: boolean }) => {
+		harness.search = props;
 	}
 }));
 vi.mock('./GlobalBanner.svelte', () => ({ default: () => {} }));
@@ -71,6 +77,8 @@ function toggle(): void {
 beforeEach(() => {
 	vi.clearAllMocks();
 	harness.navigate = null;
+	harness.topbar = null;
+	harness.search = null;
 	harness.page.route.id = '/c/[type]';
 	target = document.createElement('div');
 	document.body.appendChild(target);
@@ -97,6 +105,26 @@ describe('AppShell: sidebar durante edición visual', () => {
 		first.click();
 		expect(document.activeElement).toBe(main);
 		expect(main.inert).toBe(false);
+	});
+
+	test('en el editor visual no hay barra de la app: buscador flotante, skip-link y main intactos', () => {
+		harness.page.route.id = '/c/[type]/[id]/visual';
+		start();
+		expect(harness.topbar).toBeNull();
+		expect(harness.search).toEqual({ floating: true });
+		expect(target.querySelector('.vega-shell')!.classList).toContain('vega-shell--visual');
+		const first = target.querySelector<HTMLAnchorElement>('a')!;
+		const main = target.querySelector<HTMLElement>('main')!;
+		first.focus();
+		first.click();
+		expect(document.activeElement).toBe(main);
+	});
+
+	test('fuera del editor visual la barra de la app lleva el buscador (no hay otro flotante)', () => {
+		start();
+		expect(harness.topbar).not.toBeNull();
+		expect(harness.search).toBeNull();
+		expect(target.querySelector('.vega-shell')!.classList).not.toContain('vega-shell--visual');
 	});
 
 	test.each([false, true])(

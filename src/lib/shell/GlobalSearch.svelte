@@ -31,6 +31,11 @@
 	 * literal del backlog ("mientras no exista, valorar esconderlo"), y una caja que no puede
 	 * encontrar nada se lee como app rota, no como funcionalidad ausente. Ocurre, por ejemplo, en un
 	 * proyecto cuyas colecciones visibles no tengan ningún campo de texto elegible.
+	 *
+	 * **`floating`**: sin barra donde vivir (el editor visual sustituye la barra de la app por la
+	 * suya, ver `AppShell.svelte`), el buscador no se pinta hasta que ⌘K/Ctrl+K o `/` lo abren;
+	 * entonces aparece como capa centrada arriba, con el mismo combobox, y se vuelve a ocultar al
+	 * salir de él con la caja vacía (o con Escape). Así el atajo global no se pierde en esa ruta.
 	 */
 	import { tick } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
@@ -39,6 +44,9 @@
 	import { createGlobalSearchState } from './global-search.svelte';
 	import { globalSearchTypes, GLOBAL_SEARCH_MIN_CHARS } from './global-search';
 	import { isEditableTarget } from './keyboard';
+
+	/** Ver cabecera, "`floating`". */
+	let { floating = false }: { floating?: boolean } = $props();
 
 	const ctx = getVegaContext();
 	const search = createGlobalSearchState(ctx);
@@ -146,8 +154,10 @@
 			}
 			if (search.input === '' && expanded) {
 				// Caja ya vacía: en móvil, Escape la vuelve a plegar en la lupa con el foco en ella.
+				// Flotante no hay lupa a la vista: se cierra la capa y el foco vuelve a `<main>`.
 				expanded = false;
-				toggleEl?.focus();
+				if (floating) document.getElementById('vega-main-content')?.focus();
+				else toggleEl?.focus();
 				return;
 			}
 			search.clear();
@@ -197,7 +207,8 @@
 		if (next && rootEl?.contains(next)) return;
 		focused = false;
 		// Plegada de nuevo salvo que quede algo escrito (volver a la lupa lo perdería de vista).
-		if (search.input.trim() === '') expanded = false;
+		// Flotante se oculta siempre: una capa abierta sin foco taparía la barra del editor.
+		if (floating || search.input.trim() === '') expanded = false;
 	}
 </script>
 
@@ -205,6 +216,8 @@
 	<div
 		class="vega-search-root"
 		class:expanded
+		class:floating
+		hidden={floating && !expanded}
 		bind:this={rootEl}
 		onfocusout={handleFocusOut}
 		role="search"
@@ -357,6 +370,31 @@
 	/* La lupa solo existe en la barra móvil (ver el bloque de 768 px). */
 	.vega-search-toggle {
 		display: none;
+	}
+
+	/* Capa del atajo cuando no hay barra (ver cabecera, "`floating`"): centrada arriba, sobre todo
+	   lo demás, a cualquier ancho. Las reglas llevan dos clases para ganar a las del bloque móvil. */
+	.vega-search-root.floating {
+		position: fixed;
+		z-index: 70;
+		top: var(--sp-3);
+		left: 50%;
+		width: min(560px, calc(100vw - 2 * var(--sp-4)));
+		min-width: 0;
+		margin: 0;
+		transform: translateX(-50%);
+	}
+
+	.vega-search-root.floating .vega-search-toggle {
+		display: none;
+	}
+
+	.vega-search-root.floating .vega-search-box {
+		display: block;
+		position: static;
+		padding: 0;
+		border: 0;
+		background: none;
 	}
 
 	/* Píldora de 38 px de la lámina (`.cmd`); en densidad compacta (barra de 44 px) baja lo justo
