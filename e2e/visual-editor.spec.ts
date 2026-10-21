@@ -2614,6 +2614,41 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 		).toEqual([]);
 	});
 
+	test('ronda 3 del QA de fodaveg: campos de texto e interruptor tienen 44 px de área de toque', async ({
+		page
+	}) => {
+		// Medido en la copia de producción: campos de 42 px de alto e interruptor de 38×22.
+		await page.setViewportSize({ width: 1180, height: 820 });
+		await loginAsDemo(page);
+		await waitForHome(page);
+		await page.goto('/c/posts/post_1');
+		const fieldSelector =
+			'.vega-widget-text, .vega-widget-url, .vega-widget-email, .vega-widget-number, .vega-widget-datetime, .vega-widget-select';
+		await expect(page.locator('.vega-widget-url').first()).toBeVisible();
+		expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+		expect(await smallTargets(page, fieldSelector)).toEqual([]);
+
+		await page.goto('/c/metrics/new');
+		const active = page.getByLabel('Active');
+		await expect(active).toBeVisible();
+		// El dibujo no cambia; lo que mide 44×44 es lo que responde al dedo: las cuatro esquinas de un
+		// cuadrado de 44 px centrado en la pista son el propio interruptor.
+		const corners = await active.evaluate((el) => {
+			const r = el.getBoundingClientRect();
+			const [x, y] = [r.left + r.width / 2, r.top + r.height / 2];
+			return [
+				[-21.5, -21.5],
+				[21.5, -21.5],
+				[-21.5, 21.5],
+				[21.5, 21.5]
+			].map(([dx, dy]) => document.elementFromPoint(x + dx, y + dy) === el);
+		});
+		expect(corners).toEqual([true, true, true, true]);
+		const box = (await active.boundingBox())!;
+		await page.touchscreen.tap(box.x + box.width / 2 + 20, box.y + box.height / 2 + 20);
+		await expect(active).toBeChecked();
+	});
+
 	test('QA de fodaveg: la barra Markdown mide 44 px con el dedo en una tableta', async ({
 		page
 	}) => {

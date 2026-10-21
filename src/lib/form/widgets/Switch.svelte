@@ -83,4 +83,19 @@
 	.vega-widget-switch[aria-invalid='true'] {
 		border-color: var(--danger);
 	}
+
+	/* Con el dedo, el área de toque mide 44×44 (ronda 3 del QA de fodaveg: 38×22) sin cambiar el
+	   dibujo del interruptor: una caja invisible centrada sobre la pista que es parte del propio
+	   control (su `::before`), así que tocarla lo conmuta igual que tocar la pista. */
+	@media (pointer: coarse) {
+		.vega-widget-switch::before {
+			content: '';
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			width: max(100%, 44px);
+			height: max(100%, 44px);
+			transform: translate(-50%, -50%);
+		}
+	}
 </style>

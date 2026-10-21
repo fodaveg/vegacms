@@ -97,6 +97,20 @@ textarea:enabled::placeholder {
 	outline-offset: 2px;
 }
 
+/* Objetivo táctil de 44 px con el dedo en los campos de una línea de los widgets escalares (ronda 3
+   del QA de fodaveg: medían 42 de alto). Una sola regla para los seis, que cada uno pinta con su
+   propia caja: ninguno declara alto, así que no compite con su CSS. */
+@media (pointer: coarse) {
+	.vega-widget-text,
+	.vega-widget-url,
+	.vega-widget-email,
+	.vega-widget-number,
+	.vega-widget-datetime,
+	.vega-widget-select {
+		min-height: 44px;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
