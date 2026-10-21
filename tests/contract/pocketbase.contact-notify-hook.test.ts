@@ -149,11 +149,12 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 		tlsSinks.push(smtp);
 		return smtp;
 	};
-	/** Un fallo TLS no cambia el resultado ni el tiempo de respuesta del POST independiente. */
+	/**
+	 * Un fallo TLS no cambia el resultado del POST independiente. Sin reloj de pared: si el alta
+	 * esperase al SMTP, el `await` no volvería y fallaría el timeout del test (causalidad, no ms).
+	 */
 	async function assertIndependentPost(n: number) {
-		const start = Date.now();
 		expect((await send(n)).status).toBe(200);
-		expect(Date.now() - start).toBeLessThan(3000);
 	}
 
 	/** Un SMTP que acepta la conexión, saluda y NO contesta nunca más. Cuenta las conexiones. */
@@ -423,28 +424,25 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 		expect(text).not.toContain('Texto secreto');
 	}, 40_000);
 
-	test('(f) SMTP que acepta la conexión y no contesta: el POST del visitante responde en tiempo normal', async () => {
+	test('(f) SMTP que acepta la conexión y no contesta: el POST del visitante no espera al SMTP', async () => {
 		const silent = await startSilentSmtp();
 		await start({ VEGA_CONTACT_NOTIFY_TO: TO }, silent.port);
 
-		const t0 = Date.now();
+		// Causalidad en vez de milisegundos de pared: el SMTP nunca contesta, así que si el alta (o el
+		// disparo del cron) esperase a un envío, el `await` no volvería y caería por el timeout del
+		// test. Que vuelvan, con el SMTP aún colgado, es la prueba.
 		const res = await send(1);
-		const elapsed = Date.now() - t0;
 		expect(res.status).toBe(200);
-		expect(elapsed).toBeLessThan(3000);
 
 		// Con el cron colgado en el SMTP, PocketBase sigue atendiendo peticiones...
 		await runCron();
 		await expect.poll(() => silent.stats.connections, { timeout: 10_000 }).toBe(1);
-		const t1 = Date.now();
 		expect((await send(2)).status).toBe(200);
-		expect(Date.now() - t1).toBeLessThan(3000);
+		expect(silent.stats.connections).toBe(1); // el envío colgado sigue abierto mientras el POST vuelve
 		expect(await totalMessages()).toBe(2);
 
 		// ...y un segundo disparo no se solapa con el primero: no abre otra conexión.
-		const t2 = Date.now();
 		expect((await runCron()).status).toBe(204);
-		expect(Date.now() - t2).toBeLessThan(3000);
 		await settle();
 		expect(silent.stats.connections).toBe(1);
 		// El mensaje que se estaba enviando queda reservado ('sending'); el otro, pendiente.

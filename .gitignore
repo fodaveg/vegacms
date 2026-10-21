@@ -49,3 +49,6 @@ vite.config.ts.timestamp-*
 /test-results
 /playwright-report
 /blob-report
+
+# Evidencia de lotes y worktrees de verificación: viven en $(git rev-parse --git-common-dir)/verification/
+.verification/

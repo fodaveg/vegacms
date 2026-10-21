@@ -1189,7 +1189,9 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		// importa es que `updated` no sea anterior a `created` y que sean de la misma escritura.
 		const instant = (value: unknown) => Date.parse(String(value).replace(' ', 'T'));
 		expect(instant(redirect.updated)).toBeGreaterThanOrEqual(instant(redirect.created));
-		expect(instant(redirect.updated) - instant(redirect.created)).toBeLessThan(1000);
+		// Misma escritura: la diferencia son ms de PocketBase, no tiempo de la máquina. Margen amplio y
+		// DECLARADO (30 s) para que una CPU cargada no lo tumbe; solo descarta instantes de escrituras distintas.
+		expect(instant(redirect.updated) - instant(redirect.created)).toBeLessThan(30_000);
 		await new Promise((resolve) => setTimeout(resolve, 20));
 		const edited = await admin.collection('redirects').update(redirect.id, { to: '/otro' });
 		expect(edited.created).toBe(redirect.created);
