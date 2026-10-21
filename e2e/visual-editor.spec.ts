@@ -124,6 +124,45 @@ const headingInput = (page: Page) =>
  *  publicar/despublicar y el de «solo textos», así que vive aquí, en el ámbito del fichero. */
 const statusGroup = (page: Page) => page.getByRole('group', { name: 'Estado de la página' });
 
+/** «Volver al formulario» de la barra del editor (lámina «edición en vivo»; antes «Campos de
+ *  página»): navegación CLIENTE al formulario de la página, nunca un `goto()` que reinicie `memory`. */
+const formLink = (page: Page, name = 'Volver al formulario') =>
+	page.getByRole('link', { name, exact: true });
+
+/** Tamaño de pantalla de la barra (lámina, `.segm`): un botón por preset, `aria-pressed` el vigente.
+ *  Sustituye al antiguo `<select>` «Vista» (`mobile`/`tablet`/`desktop`). */
+const SCREEN = { mobile: 'Móvil', tablet: 'Tableta', desktop: 'Escritorio' } as const;
+const screenButton = (page: Page, preset: keyof typeof SCREEN) =>
+	page
+		.getByRole('group', { name: 'Tamaño de pantalla', exact: true })
+		.getByRole('button', { name: SCREEN[preset], exact: true });
+
+/** Zoom de la barra: el texto «1280 px · 58 %» abre un menú de `menuitemradio` (antes, el `<select>`
+ *  «Zoom» con `fit`/`50`/`75`/`100`). `fit` es «Ajustar · N %». */
+const zoomName = (zoom: string) => (zoom === 'fit' ? /^Ajustar · \d+ %$/ : `${zoom} %`);
+async function chooseZoom(page: Page, zoom: string): Promise<void> {
+	await page.locator('.vega-visual-zoom-trigger').click();
+	await page.getByRole('menuitemradio', { name: zoomName(zoom), exact: true }).click();
+	await expect(page.locator('#vega-visual-zoom-menu')).toHaveCount(0);
+}
+/** El zoom vigente es el `menuitemradio` marcado; se abre el menú para leerlo y se cierra. */
+async function expectZoom(page: Page, zoom: string): Promise<void> {
+	const trigger = page.locator('.vega-visual-zoom-trigger');
+	await trigger.click();
+	await expect(
+		page.getByRole('menuitemradio', { name: zoomName(zoom), exact: true })
+	).toHaveAttribute('aria-checked', 'true');
+	await trigger.click();
+	await expect(page.locator('#vega-visual-zoom-menu')).toHaveCount(0);
+}
+
+/** Las acciones de una fila del árbol aparecen al pasar o enfocar la fila (lámina, `.trow`): se
+ *  enfoca primero, como haría quien navega con teclado. */
+async function treeAction(page: Page, rowId: string, name: string) {
+	await page.locator(`[data-vega-tree-row="${rowId}"]`).focus();
+	return page.getByRole('button', { name, exact: true });
+}
+
 test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-origin', () => {
 	test('escritorio 1280 con ajustar conserva media queries y overlay al redimensionar', async ({
 		page
@@ -159,14 +198,17 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 					Math.abs(block[key as keyof typeof block] - overlay[key as keyof typeof overlay]) < 2
 			);
 		};
+		// «Ajustar» llena la caja de CONTENIDO del lienzo: el escenario deja su margen alrededor de la
+		// hoja (lámina «edición en vivo», `.stage`), que no es sitio para la página.
 		const fitFillsCanvas = async () => {
-			const canvasWidth = await page
-				.locator('.vega-visual-canvas')
-				.evaluate((el) => el.clientWidth);
+			const canvasWidth = await page.locator('.vega-visual-canvas').evaluate((el) => {
+				const style = getComputedStyle(el);
+				return el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+			});
 			const painted = await iframe.boundingBox();
 			return !!painted && Math.abs(Math.min(canvasWidth, 1280) - painted.width) < 2;
 		};
-		await expect(page.getByRole('combobox', { name: 'Zoom', exact: true })).toHaveValue('fit');
+		await expectZoom(page, 'fit');
 		await expect(page.locator('#vega-sidebar')).toHaveClass(/vega-sidebar-collapsed/);
 		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
 		await expect.poll(fitFillsCanvas).toBe(true);
@@ -178,18 +220,18 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await expect.poll(fitFillsCanvas).toBe(true);
 		await expect.poll(alignedOverlay).toBe(true);
 		for (const width of [390, 834] as const) {
-			await page
-				.getByRole('combobox', { name: 'Vista', exact: true })
-				.selectOption(width === 390 ? 'mobile' : 'tablet');
+			const preset = screenButton(page, width === 390 ? 'mobile' : 'tablet');
+			await preset.click();
+			await expect(preset).toHaveAttribute('aria-pressed', 'true');
 			await expect.poll(siteViewport).toEqual({ width, desktop: false, layout: 'narrow' });
 			await expect.poll(alignedOverlay).toBe(true);
 		}
-		await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('50');
-		await page.getByRole('combobox', { name: 'Vista', exact: true }).selectOption('desktop');
-		await expect(page.getByRole('combobox', { name: 'Zoom', exact: true })).toHaveValue('50');
+		await chooseZoom(page, '50');
+		await screenButton(page, 'desktop').click();
+		await expectZoom(page, '50');
 		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
 		await expect.poll(alignedOverlay).toBe(true);
-		await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('fit');
+		await chooseZoom(page, 'fit');
 		await expect.poll(fitFillsCanvas).toBe(true);
 		// Ventanas pequeñas conservan el modo de textos; el nuevo preset no habilita el lienzo allí.
 		for (const width of [834, 390]) {
@@ -202,7 +244,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		// navegación SPA conserva la preferencia manual y vuelve a aplicar el plegado temporal.
 		await page.setViewportSize({ width: 1440, height: 900 });
 		await waitConnected(page, 3);
-		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
+		await formLink(page).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 		await expect(page.locator('#vega-sidebar')).not.toHaveClass(/vega-sidebar-collapsed/);
 		await page.locator('.vega-editor-visual-button').click();
@@ -266,8 +308,15 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 			page.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_2"]')
 		).toHaveClass(/vega-visual-overlay-box--selected/);
 
-		await expect(visibleInspectorBody(page).locator('.vega-block-context-title')).toHaveText(
+		// La ficha visible es la de ESE bloque: se nombra con su título y la cabecera del inspector
+		// (lámina, `.insp .head`) dice su tipo y su posición en la página.
+		await expect(visibleInspectorBody(page)).toHaveAttribute(
+			'aria-label',
 			'Tu contenido, en tu servidor'
+		);
+		await expect(page.locator('#vega-inspector-heading')).toHaveText('Texto');
+		await expect(page.locator('.vega-inspector-title small')).toHaveText(
+			'Sección 2 de 3 · seccion_2'
 		);
 		await expect(headingInput(page)).toHaveValue('Tu contenido, en tu servidor');
 		// Aserción que el hallazgo original esquivaba (ver la cabecera de `headingInput`): el arreglo
@@ -369,7 +418,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await openStructure(page);
 
 		// Baja «Escribe. Publica…» (índice 0) un puesto: intercambia con «Tu contenido…».
-		await page.getByRole('button', { name: `Bajar «${SECCIONES[0].text}»` }).click();
+		await (await treeAction(page, 'seccion_1', `Bajar «${SECCIONES[0].text}»`)).click();
 		await expect(page.locator('.vega-tree-list li').first().locator('.vega-tree-title')).toHaveText(
 			SECCIONES[1].text
 		);
@@ -377,7 +426,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		// Navegación CLIENTE (el botón llama a `ctx.nav.toRecord`, nunca `page.goto`): un `goto()`
 		// real recargaría el documento y con él el adaptador `memory` entero (vuelve a la semilla),
 		// perdiendo la escritura que este test quiere comprobar.
-		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
+		await formLink(page).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 
 		// `RecordBlocks.svelte` hace su PROPIO `list()` sobre el mismo adaptador — si el orden
@@ -447,7 +496,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		// elegido viajó a su columna REAL (`tipo`), no se perdió por el camino: `RecordBlocks.svelte`
 		// pinta `.vega-block-type` desde `blocks.blockTypeOf(record)`, que lee esa columna, nunca el
 		// menú que se acaba de cerrar.
-		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
+		await formLink(page).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 		await expect(page.locator('.vega-block-title')).toHaveCount(4);
 		await expect(page.locator('.vega-block-type').last()).toHaveText(/Galería/);
@@ -520,7 +569,7 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
 
 		// Comprueba el resultado leyendo el backend por su cuenta (`RecordBlocks.svelte`, un
 		// `list()` PROPIO), no la lista del árbol que el propio gesto acaba de tocar.
-		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
+		await formLink(page).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 		const titles = page.locator('.vega-block-title');
 		const types = page.locator('.vega-block-type');
@@ -574,7 +623,7 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
 
 		await expect(page.locator('.vega-visual-overlay-empty-drop')).toHaveCount(0);
 
-		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
+		await formLink(page).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_2$/);
 		await expect(page.locator('.vega-block-title')).toHaveCount(1);
 		await expect(page.locator('.vega-block-type')).toHaveText(/Portada/);
@@ -683,13 +732,22 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 
 		const sections = textsSections(page);
 		await expect(sections).toHaveCount(3);
-		// Cabecera = etiqueta del tipo de bloque del manifiesto (`SHOWCASE_MANIFEST.blockTypes`).
-		await expect(sections.nth(0).getByRole('heading', { level: 3 })).toHaveText(SECCIONES[0].text);
-		await expect(sections.nth(0).locator('option').nth(0)).toContainText('Portada');
-		await expect(sections.nth(1).getByRole('heading', { level: 3 })).toHaveText(SECCIONES[1].text);
-		await expect(sections.nth(1).locator('option').nth(1)).toContainText('Texto');
-		await expect(sections.nth(2).getByRole('heading', { level: 3 })).toHaveText(SECCIONES[2].text);
-		await expect(sections.nth(2).locator('option').nth(2)).toContainText('Galería');
+		// Cabecera de cada tarjeta (lámina «Solo textos», `.tcard .head`) = etiqueta del TIPO de bloque
+		// del manifiesto (`SHOWCASE_MANIFEST.blockTypes`), con el título del bloque como `title`; el
+		// índice «Ir a sección» nombra cada sección por tipo y título, en el orden de la página.
+		const expected = [
+			['Portada', SECCIONES[0].text],
+			['Texto', SECCIONES[1].text],
+			['Galería', SECCIONES[2].text]
+		] as const;
+		for (const [index, [type, title]] of expected.entries()) {
+			const head = sections.nth(index).getByRole('heading', { level: 3 });
+			await expect(head).toHaveText(type);
+			await expect(head).toHaveAttribute('title', title);
+			await expect(sections.nth(index).locator('option').nth(index)).toContainText(
+				`${type} — ${title}`
+			);
+		}
 		// Cada campo con su etiqueta, alcanzable por nombre accesible dentro de SU sección (los ids
 		// van namespaceados por bloque, `field-scope.ts`): «Título» en las tres, «Cuerpo» solo en
 		// «Texto», «Subtítulo» solo en «Portada». SIEMPRE `exact: true`: `getByLabel` casa por
@@ -708,7 +766,7 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 		).toBeDisabled();
 
 		// La barra de arriba es la de hoy: volver, migas y estado de la página.
-		await expect(page.getByRole('link', { name: 'Campos de página', exact: true })).toBeVisible();
+		await expect(formLink(page)).toBeVisible();
 		await expect(statusGroup(page)).toContainText('Borrador');
 
 		// Y el sitio NO se ha descargado en el móvil: ni una petición de token.
@@ -739,7 +797,7 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 		expect(site.tokenRequestCount()).toBe(0);
 
 		// Navegación CLIENTE (ver el test del reorden): un `goto()` reiniciaría el adaptador `memory`.
-		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
+		await formLink(page).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 		const titles = page.locator('.vega-block-title');
 		await expect(titles).toHaveCount(3);
@@ -762,7 +820,8 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 			.frameLocator('iframe.vega-visual-frame')
 			.locator('[data-vega-block-id="seccion_1"]')
 			.click();
-		await expect(page.getByRole('region', { name: 'Inspector' })).toBeVisible();
+		// El inspector (región nombrada por su cabecera: el tipo del bloque seleccionado) aparece.
+		await expect(page.getByRole('region', { name: 'Portada', exact: true })).toBeVisible();
 		expect(site.tokenRequestCount()).toBe(1);
 	});
 });
@@ -803,11 +862,76 @@ test.describe('editor visual — programar la publicación desde la cabecera', (
 		await expect(change).toBeFocused();
 
 		// Lo guardado es lo que dice la cabecera: el formulario de la página lo enseña igual.
-		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
+		await formLink(page).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 		await expect(page.locator('.vega-editor-tag')).toContainText(/Programada · /);
 	});
 });
+
+/**
+ * Barra única (lámina «edición en vivo», nota 3): en el editor la barra de la app NO se monta
+ * (`AppShell.svelte`), pero el buscador global por teclado sigue: ⌘K/Ctrl+K lo abre como capa.
+ */
+test('editor visual: sin barra de la app, ⌘K abre el buscador global y Escape lo cierra', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await expect(page.locator('.vega-topbar')).toHaveCount(0);
+	const search = page.getByRole('combobox', { name: 'Búsqueda global', exact: true });
+	await expect(search).toBeHidden();
+	await page.locator('.vega-visual-back').focus();
+	await page.keyboard.press('ControlOrMeta+k');
+	await expect(search).toBeVisible();
+	await expect(search).toBeFocused();
+	await search.fill('Inicio');
+	await expect(page.getByRole('option', { name: /Inicio/ }).first()).toBeVisible();
+	await page.keyboard.press('Escape');
+	await page.keyboard.press('Escape');
+	await page.keyboard.press('Escape');
+	await expect(search).toBeHidden();
+	// Sigue el editor, sin haber navegado.
+	await expect(page).toHaveURL(/\/c\/paginas\/pagina_1\/visual$/);
+});
+
+/**
+ * Lámina «edición en vivo»: la píldora de inserción va centrada sobre la línea divisoria y la barra
+ * flotante del seleccionado a la derecha, SIN solaparse, y la línea pasa por detrás de la barra.
+ */
+for (const width of [1440, 1100]) {
+	test(`píldora de inserción y barra flotante no se solapan a ${width}`, async ({ page }) => {
+		await page.setViewportSize({ width, height: 900 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+		await page
+			.frameLocator('iframe.vega-visual-frame')
+			.locator('[data-vega-block-id="seccion_2"]')
+			.click();
+		const toolbar = page.locator('.vega-visual-overlay-toolbar');
+		const pill = page.locator('.vega-visual-overlay-insert--pill').first();
+		await expect(toolbar).toBeVisible();
+		await expect(pill).toBeVisible();
+		await expect
+			.poll(async () => {
+				const t = (await toolbar.boundingBox())!;
+				const p = (await pill.boundingBox())!;
+				return p.x + p.width + 4 <= t.x;
+			})
+			.toBe(true);
+		// Lo que se ve en el centro de cada botón de la barra es ese botón, no la línea divisoria.
+		for (const button of await toolbar.getByRole('button').all()) {
+			const hit = await button.evaluate((el) => {
+				const r = el.getBoundingClientRect();
+				const at = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+				return el === at || el.contains(at);
+			});
+			expect(hit).toBe(true);
+		}
+	});
+}
 
 /** UX03: el borrador de A explica la guarda aunque B esté seleccionado; acceso nativo de teclado. */
 test('UX03: abrir y guardar el bloque pendiente desbloquea la paleta', async ({
@@ -875,7 +999,7 @@ test('UX01: título largo, controles de vista y error del puente conservan las a
 	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 	await openVisualEditor(page, site, 'pagina_1');
 	await waitConnected(page, 3);
-	await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
+	await formLink(page).click();
 	const longTitle =
 		'Una página con un título largo para editar sin perder el contexto del documento';
 	await page
@@ -892,18 +1016,18 @@ test('UX01: título largo, controles de vista y error del puente conservan las a
 	await waitConnected(page, 3);
 	await expect(page.getByRole('heading', { name: longTitle, level: 1, exact: true })).toBeVisible();
 	const preview = page.getByRole('region', { name: 'Vista previa', exact: true });
-	const view = preview.getByRole('combobox', { name: 'Vista', exact: true });
-	await view.focus();
-	await view.press('ArrowUp');
-	await view.press('Enter');
-	await expect(view).toHaveValue('tablet');
+	// El tamaño de pantalla se cambia con el teclado: el segmentado de la barra son botones nativos.
+	const tablet = screenButton(page, 'tablet');
+	await tablet.focus();
+	await tablet.press('Enter');
+	await expect(tablet).toHaveAttribute('aria-pressed', 'true');
 	const frame = await (await page
 		.locator('iframe.vega-visual-frame')
 		.elementHandle())!.contentFrame();
 	if (!frame) throw new Error('El marco conectado debe existir');
 	await expect.poll(() => frame.evaluate(() => innerWidth)).toBe(834);
-	await view.selectOption('desktop');
-	await preview.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('50');
+	await screenButton(page, 'desktop').click();
+	await chooseZoom(page, '50');
 	await expect.poll(() => frame.evaluate(() => innerWidth)).toBe(1280);
 	await expect(page.locator('.vega-visual-stage')).toHaveCSS(
 		'transform',
@@ -945,12 +1069,17 @@ test('UX01: los selectores conservan el bloque al usar teclas nativas y CtrlS gu
 	await openStructure(page);
 	await page.locator('[data-vega-tree-row="seccion_1"]').click();
 	const originalOrder = await page.locator('.vega-tree-row').allTextContents();
-	for (const name of ['Vista', 'Zoom']) {
-		const select = page.getByRole('combobox', { name, exact: true });
-		await select.focus();
-		await select.press('Alt+ArrowDown');
-		await select.press('Escape');
-		for (const key of ['Delete', 'Backspace', 'Escape']) await select.press(key);
+	// Los controles de vista de la barra (tamaño de pantalla y disparador del zoom; antes, los dos
+	// `<select>` «Vista» y «Zoom»): sus teclas no son gestos sobre la sección seleccionada.
+	for (const control of [
+		screenButton(page, 'desktop'),
+		page.locator('.vega-visual-zoom-trigger')
+	]) {
+		await control.focus();
+		await control.press('Alt+ArrowDown');
+		await page.keyboard.press('Escape');
+		await control.focus();
+		for (const key of ['Delete', 'Backspace', 'Escape']) await control.press(key);
 		await expect(page.locator('[data-vega-tree-row="seccion_1"]')).toHaveClass(
 			/vega-tree-row--selected/
 		);
@@ -958,10 +1087,10 @@ test('UX01: los selectores conservan el bloque al usar teclas nativas y CtrlS gu
 		await expect(page.locator('.vega-tree-row')).toHaveText(originalOrder);
 	}
 	await headingInput(page).fill('Borrador guardado desde el selector');
-	await page.getByRole('combobox', { name: 'Vista', exact: true }).focus();
+	await screenButton(page, 'desktop').focus();
 	await page.keyboard.press('Control+s');
 	await expect(page.locator('.vega-visual-pending')).toHaveCount(0);
-	await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
+	await formLink(page).click();
 	await expect(page.locator('.vega-block-title').first()).toHaveText(
 		'Borrador guardado desde el selector'
 	);
@@ -971,7 +1100,7 @@ test('UX01: los selectores conservan el bloque al usar teclas nativas y CtrlS gu
 async function openLongBlockForm(page: Page, site: VisualSite): Promise<void> {
 	await openVisualEditor(page, site, 'pagina_1');
 	await waitConnected(page, 3);
-	await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
+	await formLink(page).click();
 	await page.getByRole('link', { name: 'Ajustes', exact: true }).click();
 	const editor = page.getByRole('textbox', { name: 'JSON del manifiesto' });
 	const manifest = JSON.parse(await editor.inputValue());
@@ -1054,12 +1183,20 @@ test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo
 	await expect(
 		page.locator('[data-block-id="seccion_2"] [data-field="heading"] input')
 	).toHaveValue('Borrador B retenido');
-	await expect(first.locator('.vega-block-context-title')).toHaveText(longName);
+	// Contexto de la ficha (lámina «edición en vivo»): la cabecera del inspector dice el TIPO y la
+	// POSICIÓN del bloque (antes, su título en `.vega-block-context-title`), y el título lo nombra.
+	await expect(first).toHaveAttribute('aria-label', longName);
+	await expect(page.locator('.vega-inspector-head')).toContainText('Portada');
+	await expect(page.locator('.vega-inspector-head')).toContainText('Sección 1 de 3');
 	await expect(first.locator('.vega-block-context-state')).toHaveText(
 		'Revisa los campos señalados.'
 	);
 	await expect(first.getByRole('button', { name: 'Guardar', exact: true })).toHaveCount(1);
 	const panel = page.locator('.vega-inspector-panel');
+	/** Lo fijo ARRIBA mientras se recorre la ficha: la cabecera del inspector con lienzo, la de la
+	 *  tarjeta en «Solo textos» (< 901 px). Lo fijo ABAJO es el pie con Guardar (`.vega-block-context`). */
+	const contextOf = (section: typeof first, width: number) =>
+		width >= 901 ? page.locator('.vega-inspector-head') : section.locator('.vega-texts-head');
 	for (const size of [
 		{ width: 1440, height: 900 },
 		{ width: 901, height: 900 },
@@ -1085,7 +1222,16 @@ test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo
 				);
 			})
 			.toBe(true);
-		await expect(first.locator('.vega-block-context-title')).toBeVisible();
+		// El contexto sigue a la vista, dentro del panel, a media ficha.
+		const context = contextOf(first, size.width);
+		await expect(context).toBeVisible();
+		await expect
+			.poll(async () => {
+				const box = (await context.boundingBox())!;
+				const container = (await panel.boundingBox())!;
+				return box.y >= container.y - 1 && box.y + box.height <= container.y + container.height;
+			})
+			.toBe(true);
 		expect(await page.locator('body').evaluate((el) => el.scrollWidth <= innerWidth)).toBe(true);
 		await page.screenshot({
 			path: testInfo.outputPath(`ux02-${size.width}-long-error-scroll.png`)
@@ -1096,25 +1242,31 @@ test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo
 			.getByRole('button', { name: `Abrir bloque: ${longName}`, exact: true })
 			.click();
 		await expect(heading).toBeFocused();
-		const contextBox = (await first.locator('.vega-block-context').boundingBox())!;
+		// El campo enfocado queda ENTRE lo fijo: ni bajo la cabecera ni bajo el pie con Guardar.
+		const contextBox = (await contextOf(first, size.width).boundingBox())!;
+		const footBox = (await first.locator('.vega-block-context').boundingBox())!;
 		const fieldBox = (await heading.boundingBox())!;
 		expect(fieldBox.y).toBeGreaterThanOrEqual(contextBox.y + contextBox.height);
+		expect(fieldBox.y + fieldBox.height).toBeLessThanOrEqual(footBox.y + 1);
 	}
-	// Al entrar en B la cabecera A sale con SU ficha, en lugar de apilarse encima de B.
+	// Al entrar en B lo fijo de A (cabecera y pie de su tarjeta) sale con SU ficha, en lugar de
+	// apilarse encima de B.
 	const second = page.locator('.vega-inspector-body[data-block-id="seccion_2"]');
 	await panel.evaluate((el) => {
 		el.scrollTop = el.querySelector<HTMLElement>('[data-block-id="seccion_2"]')!.offsetTop + 400;
 	});
-	await expect
-		.poll(
-			async () =>
-				(await first.locator('.vega-block-context').boundingBox())!.y +
-					(await first.locator('.vega-block-context').boundingBox())!.height <=
-				(await panel.boundingBox())!.y
-		)
-		.toBe(true);
-	const secondHeader = (await second.locator('.vega-block-context').boundingBox())!;
-	expect(secondHeader.y).toBeGreaterThanOrEqual((await panel.boundingBox())!.y);
+	for (const sticky of [first.locator('.vega-block-context'), first.locator('.vega-texts-head')])
+		await expect
+			.poll(
+				async () =>
+					(await sticky.boundingBox())!.y + (await sticky.boundingBox())!.height <=
+					(await panel.boundingBox())!.y
+			)
+			.toBe(true);
+	for (const sticky of [second.locator('.vega-block-context'), second.locator('.vega-texts-head')])
+		expect((await sticky.boundingBox())!.y).toBeGreaterThanOrEqual(
+			(await panel.boundingBox())!.y - 1
+		);
 	// UX03 puede abrir cualquier borrador, aunque su ficha esté completamente fuera del panel.
 	for (const size of [
 		{ width: 390, height: 844 },
@@ -1141,12 +1293,14 @@ test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo
 				)
 		);
 		const field = (await secondInput.boundingBox())!,
-			header = (await second.locator('.vega-block-context').boundingBox())!,
+			header = (await second.locator('.vega-texts-head').boundingBox())!,
+			foot = (await second.locator('.vega-block-context').boundingBox())!,
 			viewport = (await panel.boundingBox())!;
 		expect(field.y).toBeGreaterThanOrEqual(header.y + header.height);
 
 		expect(field.y - 3).toBeGreaterThanOrEqual(header.y + header.height - 1);
 		expect(field.y + field.height + 3).toBeLessThanOrEqual(viewport.y + viewport.height + 1);
+		expect(field.y + field.height).toBeLessThanOrEqual(foot.y + 1);
 		await (
 			await openPendingDetails(page)
 		)
@@ -1160,12 +1314,14 @@ test('UX02: contexto y Guardar siguen accesibles al recorrer un formulario largo
 				)
 		);
 		const firstField = (await heading.boundingBox())!,
-			firstHeader = (await first.locator('.vega-block-context').boundingBox())!;
+			firstHeader = (await first.locator('.vega-texts-head').boundingBox())!,
+			firstFoot = (await first.locator('.vega-block-context').boundingBox())!;
 		expect(firstField.y).toBeGreaterThanOrEqual(firstHeader.y + firstHeader.height);
 		expect(firstField.y - 3).toBeGreaterThanOrEqual(firstHeader.y + firstHeader.height - 1);
 		expect(firstField.y + firstField.height + 3).toBeLessThanOrEqual(
 			viewport.y + viewport.height + 1
 		);
+		expect(firstField.y + firstField.height).toBeLessThanOrEqual(firstFoot.y + 1);
 		if (size.width === 720)
 			await page.screenshot({
 				path: testInfo.outputPath('ux02-720x500-two-drafts-focused-field.png')
@@ -1207,7 +1363,7 @@ test.afterEach(async ({ page }, testInfo) => {
 			viewport: { width: innerWidth, height: innerHeight, scale: devicePixelRatio },
 			fonts: document.fonts.status,
 			screen: measure(document.querySelector('.vega-visual-screen')),
-			topbar: measure(document.querySelector('.vega-edit-top')),
+			topbar: measure(document.querySelector('.vega-visual-bar')),
 			pending: measure(document.querySelector('.vega-visual-pending')),
 			pendingTitle: measure(document.querySelector('.vega-visual-pending h2')),
 			pendingGuide: measure(document.querySelector('.vega-visual-pending p')),
@@ -1274,7 +1430,10 @@ for (const empty of [false, true]) {
 					: el.getBoundingClientRect().toJSON()
 			};
 		});
-		const headerBox = (await page
+		// Lo fijo del panel: la cabecera del inspector arriba y el pie con Guardar de la ficha abajo;
+		// el caret queda entre los dos.
+		const headerBox = (await page.locator('.vega-inspector-head').boundingBox())!;
+		const footBox = (await page
 			.locator('[data-block-id="seccion_2"] .vega-block-context')
 			.boundingBox())!;
 		const panelBox = (await page.locator('.vega-inspector-panel').boundingBox())!;
@@ -1282,6 +1441,7 @@ for (const empty of [false, true]) {
 		expect(caret.inside && caret.collapsed).toBe(true);
 		expect(caret.rect.top).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
 		expect(caret.rect.bottom).toBeLessThanOrEqual(panelBox.y + panelBox.height);
+		expect(caret.rect.bottom).toBeLessThanOrEqual(footBox.y + 1);
 
 		await openPendingDetails(page);
 		await pending
@@ -1413,7 +1573,7 @@ test('UX02: desmontar mientras carga ayuda no abre ni enfoca el diálogo despué
 	await waitConnected(page, 3);
 	await page.getByRole('button', { name: 'Atajos de teclado', exact: true }).click();
 	await expect(page.locator('.vega-visual-help-loading')).toBeVisible();
-	await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
+	await formLink(page).click();
 	await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 	const response = page.waitForResponse((r) => r.url().endsWith(chunk));
 	release();
@@ -1448,16 +1608,22 @@ for (const insertion of [
 			await trigger.focus();
 			await trigger.press('Enter');
 		} else await trigger.click();
+		// El menú se nombra con el destino exacto; su título visible dice la posición (lámina,
+		// «Insertar en la posición N de M») y conserva el destino como `title`.
 		const menu = page.getByRole('menu', { name: insertion.label, exact: true });
-		await expect(menu.locator('.vega-visual-insert-destination')).toHaveText(insertion.label);
+		const destination = menu.locator('.vega-visual-insert-destination');
+		await expect(destination).toHaveText(`Insertar en la posición ${insertion.index + 1} de 4`);
+		await expect(destination).toHaveAttribute('title', insertion.label);
 		await expect(page.locator('.vega-tree-list li')).toHaveCount(3);
-		const item = menu.getByRole('menuitem', { name: insertion.type, exact: true });
+		// Cada opción se nombra con el tipo y su descripción del catálogo (lámina «Añadir bloque»):
+		// se elige por el nombre del tipo, que va primero.
+		const item = menu.getByRole('menuitem', { name: new RegExp(`^${insertion.type}(\\s|$)`) });
 		if (insertion.keyboard) {
 			await item.focus();
 			await item.press('Enter');
 		} else await item.click();
 		await expect(page.locator('.vega-tree-list li')).toHaveCount(4);
-		await page.getByRole('link', { name: 'Campos de página', exact: true }).click();
+		await formLink(page).click();
 		await expect(page.locator('.vega-block-type').nth(insertion.index)).toHaveText(insertion.type);
 	});
 }
@@ -1696,18 +1862,16 @@ for (const locale of ['es', 'en']) {
 		const option = (await last.boundingBox())!;
 		expect(option.y).toBeGreaterThanOrEqual(options.y - 1);
 		expect(option.y + option.height).toBeLessThanOrEqual(options.y + options.height + 1);
-		await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport({ ratio: 1 });
+		// Misma tolerancia de 1 ppm que arriba: Chromium midió 0.99999994 (redondeo de subpíxel).
+		await expect(menu.locator('.vega-visual-insert-destination')).toBeInViewport({
+			ratio: 0.999999
+		});
 		await page.screenshot({
 			path: testInfo.outputPath(`ux04-901x420-${locale}-long-destination.png`)
 		});
 		await page.keyboard.press('Enter');
 		await expect(page.locator('.vega-tree-list li')).toHaveCount(4);
-		await page
-			.getByRole('link', {
-				name: locale === 'es' ? 'Campos de página' : 'Page fields',
-				exact: true
-			})
-			.click();
+		await formLink(page, locale === 'es' ? 'Volver al formulario' : 'Back to the form').click();
 		await expect(page.locator('.vega-block-type').nth(2)).toHaveText(
 			manifest.blockTypes['texto-variante-20'].label
 		);
@@ -1737,7 +1901,7 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 				await Promise.all(el.getAnimations().map((animation) => animation.finished));
 			});
 			for (const zoom of ['50', '75', '100']) {
-				await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption(zoom);
+				await chooseZoom(page, zoom);
 				await expect(selected).toHaveAttribute('aria-current', 'true');
 				await expect(page.locator('.vega-visual-overlay-insert:enabled')).toHaveCount(4);
 				const targets = page.locator(
@@ -1885,7 +2049,7 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 		await expect(page.getByRole('region', { name: 'Text only' })).toBeVisible();
 		await expect(page.locator('.vega-visual-overlay-insert')).toHaveCount(0);
 		const textActions = page.locator(
-			'.vega-edit-top button:visible:enabled, .vega-visual-grid--texts button:visible:enabled'
+			'.vega-visual-bar button:visible:enabled, .vega-visual-grid button:visible:enabled'
 		);
 		expect(await textActions.count()).toBeGreaterThan(0);
 		for (const action of await textActions.all()) {
