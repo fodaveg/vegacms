@@ -734,6 +734,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 		'This block has no type. It stays read-only until the model says how to edit it.',
 	'editor.blocks.form.reviewFields': 'Review the highlighted fields.',
 	'editor.blocks.form.errorSummary': 'The block was not saved. Check: {fields}.',
+	'editor.blocks.notSaved': 'Not saved: {labels}. Each section says what is missing.',
 	'editor.blocks.form.invalidData':
 		'The “{field}” column does not contain a JSON object. Saving would replace the existing value, so Vega has blocked this block.',
 	'editor.blocks.form.rawData': 'Raw value of “{field}”',

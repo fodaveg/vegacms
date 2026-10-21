@@ -52,7 +52,7 @@
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import BlockEditor from './BlockEditor.svelte';
-	import { createBlocksState } from './blocks-state.svelte';
+	import { createBlocksState, type BlockSaveResult } from './blocks-state.svelte';
 
 	interface Props {
 		/** El tipo padre que declara `blocks` (`ResolvedContentType.blocks`, ya validado por P2). */
@@ -220,6 +220,32 @@
 	 */
 	export function expand(id: string): void {
 		blocks.expand(id);
+	}
+
+	/** Ficha de cada fila (`bind:this`), para guardar desde el formulario de la página. */
+	let editorRefs = $state<
+		Record<
+			string,
+			{ save: (options?: { focus?: boolean }) => Promise<BlockSaveResult> } | undefined
+		>
+	>({});
+
+	/**
+	 * «Guardar» y ⌘S del formulario de la página (QA de fodaveg, 21 oct 2026: guardaban solo la
+	 * página y la sección editada seguía igual en el servidor). Guarda, en orden, cada bloque con
+	 * cambios por su PROPIO camino (`BlockEditor#save`: la misma validación, versión esperada y aviso
+	 * de conflicto que su botón). Uno que no se puede guardar no escribe nada y lo dice en su ficha;
+	 * el foco va al primer campo con error del PRIMERO rechazado, nunca salta de uno a otro.
+	 * Devuelve los títulos de los que siguen sin guardar.
+	 */
+	export async function saveDirty(): Promise<readonly string[]> {
+		let focus = true;
+		for (const record of blocks.records.filter((item) => blocks.isDirty(item.id))) {
+			const result = await editorRefs[record.id]?.save({ focus });
+			if (result === 'rejected') focus = false;
+		}
+		await tick();
+		return pendingBlockTitles();
 	}
 </script>
 
@@ -409,6 +435,7 @@
 						     escribir sobrevive a plegar/desplegar la fila. -->
 						<div id={`vega-block-body-${record.id}`} class="vega-block-body" hidden={!expanded}>
 							<BlockEditor
+								bind:this={editorRefs[record.id]}
 								childType={type}
 								blockType={blocks.blockTypeOf(record)}
 								rawBlockType={blocks.blockTypeRawName(record)}

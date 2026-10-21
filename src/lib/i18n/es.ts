@@ -791,6 +791,8 @@ export const es = {
 		'Este bloque no tiene tipo. Queda en solo lectura hasta que el modelo indique cómo editarlo.',
 	'editor.blocks.form.reviewFields': 'Revisa los campos señalados.',
 	'editor.blocks.form.errorSummary': 'No se ha guardado el bloque. Revisa: {fields}.',
+	// «Guardar» de la página con secciones que no se pudieron guardar (cada ficha dice por qué).
+	'editor.blocks.notSaved': 'Sin guardar: {labels}. Cada sección dice qué falta.',
 	'editor.blocks.form.invalidData':
 		'La columna «{field}» no contiene un objeto JSON. Guardar sustituiría el valor existente, así que Vega ha bloqueado este bloque.',
 	'editor.blocks.form.rawData': 'Valor crudo de «{field}»',

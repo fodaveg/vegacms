@@ -87,6 +87,7 @@
 	import { fieldErrorMessage } from './field-error-message';
 	import { setRecordIdentity } from './record-context';
 	import { setFieldScope } from './field-scope';
+	import type { BlockSaveResult } from './blocks-state.svelte';
 	import { autodateInstant } from './record-meta';
 	import { diffRecordValues } from '$lib/revisions/diff';
 	import { threeWayDiff, toComparableValues, touchedBlockData } from './conflict';
@@ -683,10 +684,12 @@
 	 *
 	 * El `import()` de `focus-target` puede resolverse una tarea después, cuando el error ya se ve:
 	 * si para entonces el foco se ha movido (quien edita saltó a otra sección con «Ir a sección»),
-	 * no se le roba — mismo criterio que `focusField` de `RecordForm`.
+	 * no se le roba — mismo criterio que `focusField` de `RecordForm`. Con `focus = false` (el
+	 * Guardar de la página ya llevó el foco a otra sección rechazada antes) solo se despliega.
 	 */
-	async function revealFirstError(view: FieldErrorsView): Promise<void> {
+	async function revealFirstError(view: FieldErrorsView, focus: boolean): Promise<void> {
 		onReveal();
+		if (!focus) return;
 		await tick();
 		const visible = new Set(visibleFieldNames);
 		const first = fieldOrder.find((name) => name in view.byField && visible.has(name));
@@ -699,10 +702,13 @@
 		target?.scrollIntoView?.({ block: 'center' });
 	}
 
-	async function handleSave(): Promise<void> {
+	/** Guarda la ficha. `saved`: escrita y reasentada; `rejected`: no se escribió (error de campo,
+	 *  conflicto o fallo) y la ficha lo dice; `idle`: nada que guardar ahora, o lo guarda otro
+	 *  dueño (`beforeSave`). `focus` decide si un rechazo de cliente se lleva el foco. */
+	async function handleSave(focus = true): Promise<BlockSaveResult> {
 		if (saving || validating || disabled || invalidData || (typed && blockType === null) || !dirty)
-			return;
-		if (beforeSave?.()) return;
+			return 'idle';
+		if (beforeSave?.()) return 'idle';
 
 		onSaveError(false);
 		const validation = validateBeforeSave();
@@ -720,12 +726,13 @@
 		clientErrors = clientView;
 		if (Object.keys(clientView.byField).length > 0 || clientView.record) {
 			onSaveError(true);
-			await revealFirstError(clientView);
-			return;
+			await revealFirstError(clientView, focus);
+			return 'rejected';
 		}
 
 		backendErrors = EMPTY_ERRORS;
 		saving = true;
+		let result: BlockSaveResult = 'rejected';
 		try {
 			const input = toRecordInput(childType, baseline, current);
 			if (typed && blockType !== null && dataField !== null && dataDirty) {
@@ -740,6 +747,7 @@
 			adoptRecord(saved);
 			onSaveError(false);
 			onSaved(saved);
+			result = 'saved';
 		} catch (err) {
 			onSaveError(true);
 			const vegaErr = err instanceof VegaError ? err : VegaError.backend('Error al guardar', err);
@@ -754,21 +762,22 @@
 			saving = false;
 			await tick();
 		}
+		return result;
 	}
 
 	/**
-	 * Handle para el atajo ⌘S/Ctrl+S del editor visual (`VisualInspector.svelte#saveSelected`,
-	 * `VisualEditorScreen.svelte`): este componente no renderiza un `<form>` (su guardado es un
-	 * `<button type="button">`, más abajo), así que el truco de `formEl.requestSubmit()` que usa
-	 * `RecordForm.svelte` no sirve aquí — hace falta un handle EXPORTADO en vez de un
-	 * `querySelector` sobre el DOM del botón (que además tendría que reinventar la guarda).
-	 * Aditivo: `RecordBlocks.svelte`, el OTRO consumidor de este componente, nunca llama a esto y
-	 * no se entera de que existe. Misma guarda EXACTA que el atributo `disabled` del botón "Guardar"
-	 * de más abajo — si el botón está deshabilitado, este handle tampoco hace nada.
+	 * Handle de guardado desde FUERA de la ficha: el atajo ⌘S/Ctrl+S del editor visual
+	 * (`VisualInspector.svelte#saveSelected`) y el «Guardar» / ⌘S del formulario de la página
+	 * (`RecordBlocks.svelte#saveDirty`, QA de fodaveg del 21 oct 2026: hasta entonces guardaba solo
+	 * la página). Este componente no renderiza un `<form>` (su guardado es un `<button
+	 * type="button">`, más abajo), así que el truco de `formEl.requestSubmit()` no sirve aquí. Misma
+	 * guarda EXACTA que el atributo `disabled` del botón "Guardar" de más abajo — si el botón está
+	 * deshabilitado, este handle tampoco hace nada (`idle`). `focus: false` deja el foco donde está
+	 * si el guardado se rechaza (otra ficha rechazada antes ya se lo llevó).
 	 */
-	export function save(): void {
-		if (inert || !dirty || (typed && blockType === null)) return;
-		void handleSave();
+	export function save(options: { focus?: boolean } = {}): Promise<BlockSaveResult> {
+		if (inert || !dirty || (typed && blockType === null)) return Promise.resolve('idle');
+		return handleSave(options.focus ?? true);
 	}
 
 	/**
@@ -817,7 +826,7 @@
 		type="button"
 		class="vega-block-save-button"
 		disabled={inert || !dirty || (typed && blockType === null)}
-		onclick={handleSave}
+		onclick={() => void handleSave()}
 	>
 		{saving ? ctx.t('editor.saving') : ctx.t('editor.save')}
 	</button>

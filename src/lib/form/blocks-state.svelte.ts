@@ -83,6 +83,11 @@ import { canDuplicateBlock, duplicateInput } from '$lib/duplicate/records';
 export type BlocksStatus =
 	{ kind: 'loading' } | { kind: 'ready'; records: VegaRecord[] } | { kind: 'error' };
 
+/** Resultado de guardar UNA ficha de bloque desde fuera (`BlockEditor#save`): `saved` (escrita y
+ *  reasentada), `rejected` (no se escribió y la ficha dice por qué) o `idle` (nada que guardar, o
+ *  lo guarda otro dueño, como la edición en línea del editor visual). */
+export type BlockSaveResult = 'saved' | 'rejected' | 'idle';
+
 interface BlocksStateOptions {
 	ctx: VegaAppContext;
 	/** El tipo padre que declara `blocks` (`ResolvedContentType.blocks`, ya validado por P2).

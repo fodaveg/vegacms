@@ -574,7 +574,7 @@
 
 	const dirty = $derived(isDirty(baseline, current) || blocksDirty);
 	$effect(() => {
-		onStateChange?.({ dirty, busy: saving || publishing });
+		onStateChange?.({ dirty, busy: saving || screenSaving || publishing });
 	});
 	/** Envío explícito desde las acciones del diálogo, con validez nativa del form. */
 	export function requestSubmit(): void {
@@ -850,8 +850,17 @@
 	 *  servidor, igual que `savedCount` para el registro. */
 	let blocksSavedCount = $state(0);
 	let recordBlocksRef = $state<
-		{ expand: (id: string) => void; pendingBlockTitles: () => readonly string[] } | undefined
+		| {
+				expand: (id: string) => void;
+				pendingBlockTitles: () => readonly string[];
+				saveDirty: () => Promise<readonly string[]>;
+		  }
+		| undefined
 	>(undefined);
+	/** «Guardar» de la pantalla en curso con secciones (`saveScreen`): página y luego secciones. */
+	let screenSaving = $state(false);
+	/** Secciones que ese guardado no pudo escribir; se dice mientras sigan sin guardar. */
+	let blocksNotice = $state<string | null>(null);
 	let reviewCardRef = $state<{ focus: () => void } | undefined>(undefined);
 	/** Ficha de Medios abierta desde «Describir la imagen…», o `null`. */
 	let reviewMediaId = $state<string | null>(null);
@@ -1550,6 +1559,9 @@
 		deferFocus?: boolean;
 		/** Paso interno de publicación: mantiene el mutex y difiere aviso/navegación del padre. */
 		publication?: boolean;
+		/** `false`: no avisa al padre (`onSaved`, «Guardado.»); lo hace quien llama cuando todo lo
+		 *  de la pantalla está guardado (`saveScreen`). Por defecto `true`. */
+		notify?: boolean;
 	}
 
 	/** Foco al primer campo con error que `save({ deferFocus: true })` dejó pendiente. */
@@ -1681,7 +1693,7 @@
 				runAfterSave: (saved) => afterSave.run(saved),
 				note: options.note,
 				commitSaved: (saved, note) => {
-					commitSaved(saved, note, !options.publication);
+					commitSaved(saved, note, !options.publication && options.notify !== false);
 					outcome = { kind: 'saved', record: saved, note };
 				}
 			});
@@ -1792,7 +1804,41 @@
 	async function handleSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
 		event.stopPropagation();
-		await save();
+		if (blocksDirty && recordBlocksRef) await saveScreen(recordBlocksRef);
+		else await save();
+	}
+
+	/**
+	 * «Guardar» y ⌘S con secciones sin guardar (QA de fodaveg, 21 oct 2026: el botón guardaba solo
+	 * la página, decía «Guardado.» y la sección editada seguía igual en el servidor). Primero la
+	 * página, con su validación de siempre: si no se guarda, no se escribe nada más y su error
+	 * manda. Después cada sección con cambios, por su propio camino (`RecordBlocks#saveDirty`).
+	 * «Guardado.» (`onSaved`) solo sale cuando no queda nada sin guardar en la pantalla; si queda
+	 * alguna sección, el aviso la nombra y su ficha dice por qué.
+	 */
+	async function saveScreen(sections: {
+		saveDirty: () => Promise<readonly string[]>;
+	}): Promise<void> {
+		if (screenSaving || saving) return;
+		screenSaving = true;
+		blocksNotice = null;
+		try {
+			let note: string | undefined;
+			if (isDirty(baseline, current)) {
+				const outcome = await save({ notify: false });
+				if (outcome.kind !== 'saved') return;
+				note = outcome.note;
+			}
+			const pending = await sections.saveDirty();
+			if (pending.length > 0) {
+				blocksNotice = ctx.t('editor.blocks.notSaved', { labels: pending.join(', ') });
+				return;
+			}
+			savedAt = new Date();
+			onSaved({ id: model.recordId ?? '', type: type.name, values: baseline }, note);
+		} finally {
+			screenSaving = false;
+		}
 	}
 
 	/** Abre el diálogo de «Programar…» / «Cambiar fecha…». */
@@ -2004,7 +2050,7 @@
 			     vuelo, si no la hora del último guardado conocido. El BOTÓN ya no cambia de texto al
 			     guardar (el mockup lo deja fijo en "Guardar" y solo lo deshabilita): así su nombre
 			     accesible es estable para cualquier locator, y el feedback vive aquí. -->
-				{#if saving}
+				{#if saving || screenSaving}
 					<span class="vega-editor-saved-at vega-editor-saved-at--saving">
 						{ctx.t('editor.saving')}
 					</span>
@@ -2113,7 +2159,15 @@
 					{#if publicationNotice}<span class="vega-visual-publish-error" role="alert"
 							>{publicationNotice}</span
 						>{/if}
-					<button type="submit" class="vega-editor-save-button" disabled={formDisabled}>
+					{#if blocksNotice && blocksDirty && !screenSaving}<span
+							class="vega-visual-publish-error"
+							role="alert">{blocksNotice}</span
+						>{/if}
+					<button
+						type="submit"
+						class="vega-editor-save-button"
+						disabled={formDisabled || screenSaving}
+					>
 						{ctx.t('editor.save')}
 						<kbd aria-hidden="true">{shortcutLabel}</kbd>
 					</button>
