@@ -421,6 +421,7 @@
 								onDraftChange={(draft) => blocks.handleBlockDraftChange(record.id, draft)}
 								disabled={disabled || blocks.structuralBusy}
 								onBusyChange={(saving) => blocks.setSaving(record.id, saving)}
+								onReveal={() => blocks.expand(record.id)}
 							/>
 						</div>
 					</li>

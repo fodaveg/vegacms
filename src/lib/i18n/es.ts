@@ -787,6 +787,7 @@ export const es = {
 	'editor.blocks.form.noType':
 		'Este bloque no tiene tipo. Queda en solo lectura hasta que el modelo indique cómo editarlo.',
 	'editor.blocks.form.reviewFields': 'Revisa los campos señalados.',
+	'editor.blocks.form.errorSummary': 'No se ha guardado el bloque. Revisa: {fields}.',
 	'editor.blocks.form.invalidData':
 		'La columna «{field}» no contiene un objeto JSON. Guardar sustituiría el valor existente, así que Vega ha bloqueado este bloque.',
 	'editor.blocks.form.rawData': 'Valor crudo de «{field}»',
@@ -1012,6 +1013,12 @@ export const es = {
 	'form.markdown.placeholderAlt': 'descripción',
 	'form.markdown.unsafeUri':
 		'El Markdown contiene HTML o una dirección no permitida. Usa sintaxis Markdown y enlaces http, https, mailto o relativos.',
+	'form.markdown.unsafeLegacy':
+		'Este texto ya traía HTML o una dirección no permitida. Puedes guardar los demás campos; para guardar cambios en este, pásalo a sintaxis Markdown.',
+	'form.markdown.unsafeFragment': 'Primer fragmento: {fragment}',
+	'form.markdown.unsafeSave':
+		'No se puede guardar: el Markdown contiene HTML o una dirección no permitida ({fragment}). Usa sintaxis Markdown y enlaces http, https, mailto o relativos.',
+	'form.errorSummary': 'No se ha guardado. Revisa: {fields}.',
 	'form.json.invalid': 'El JSON no es válido: corrígelo para poder guardar.',
 
 	// ————— Listado (Fase 4c del contrato P4) —————

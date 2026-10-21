@@ -284,7 +284,7 @@
 	import { vegaErrorMessage } from '$lib/shell/vega-error-message';
 	import { getVegaContext } from '$lib/app-context';
 	import { describeCell, describeStatusBadge } from '$lib/list/cell';
-	import { statusValueLabel } from '$lib/model/default-labels';
+	import { fieldDisplayLabel, statusValueLabel } from '$lib/model/default-labels';
 	import { resolveTitleCellText } from '$lib/list/list-load';
 	import DeleteConfirm from '$lib/list/DeleteConfirm.svelte';
 	import EditorRail from '$lib/list/EditorRail.svelte';
@@ -320,6 +320,8 @@
 	import { isDirty, type FormInputValues } from './dirty';
 	import { slugWriteForTitleEdit } from './slug-from-title';
 	import { validateForm } from './validation';
+	import { nativeFieldErrors } from './native-validity';
+	import { markdownSafetyErrors, type MarkdownSafetyErrors } from './markdown-safety';
 	import { type FieldErrorsView } from './field-errors';
 	import { fieldErrorMessage } from './field-error-message';
 	import { firstErrorFieldName } from './first-error-field';
@@ -1338,6 +1340,44 @@
 	 * no hay ningún error POR CAMPO (p.ej. solo el de registro, clave `''`, sin campo al que
 	 * asociar el foco).
 	 */
+	/** `true` mientras `save()` valida (la regla `markdown` carga su lexer bajo demanda): un segundo
+	 *  envío en ese hueco no puede colarse antes de que `saving` suba. */
+	let validating = false;
+
+	/**
+	 * Validación de cliente de un guardado: `validateForm` (obligatorios, ruta, `maxSelect`), la
+	 * validez nativa de los controles PROPIOS del registro (`native-validity.ts`: el `<form>` va con
+	 * `novalidate`, así que un control inválido oculto ya no cancela el envío en silencio) y la
+	 * regla de los campos `markdown` cambiados (`markdown-safety.ts`, la misma que el editor
+	 * visual y «Solo textos»). Los controles de un bloque embebido no son de este registro: se
+	 * guardan con su propio botón y nunca impiden guardar la página. La validez nativa se lee
+	 * ANTES de cualquier espera, con los campos todavía habilitados (uno deshabilitado no valida).
+	 */
+	function validateBeforeSave(values: FormInputValues): FieldErrorsView | Promise<FieldErrorsView> {
+		const view = validateForm(type, values);
+		const native = formEl
+			? nativeFieldErrors(formEl, (control) => !control.closest('[data-vega-block-editor]'))
+			: {};
+		const saveBaseline =
+			modal && model.mode === 'create' ? buildFormModel(type, null).baseline : baseline;
+		const merge = (markdown: MarkdownSafetyErrors): FieldErrorsView => ({
+			byField: { ...markdown, ...native, ...view.byField },
+			record: view.record
+		});
+		// Promesa solo con un campo `markdown` cambiado que mirar (`markdownSafetyErrors`): sin él,
+		// el envío sigue en el mismo turno, como hasta 0.14.0.
+		const markdown = markdownSafetyErrors(type.fields, saveBaseline, values, ctx.t);
+		return markdown instanceof Promise ? markdown.then(merge) : merge(markdown);
+	}
+
+	/** Campos con error de cliente tras un envío, por su rótulo: el resumen accesible del banner
+	 *  (`form.errorSummary`). Se vacía solo a medida que el autor corrige cada campo. */
+	const clientErrorLabels = $derived(
+		type.fields
+			.filter((field) => field.name in clientErrors.byField)
+			.map((field) => fieldDisplayLabel(field, ctx.t))
+	);
+
 	async function focusFirstErrorField(errorsView: FieldErrorsView): Promise<void> {
 		const name = firstErrorFieldName(type.fields, errorsView);
 		if (name === null) return;
@@ -1565,7 +1605,14 @@
 	 */
 	async function save(options: SaveOptions = {}): Promise<SaveOutcome> {
 		if (!options.publication) publicationNotice = null;
-		if (saving || duplicating || locked || submitBlocked || (publishing && !options.publication))
+		if (
+			saving ||
+			validating ||
+			duplicating ||
+			locked ||
+			submitBlocked ||
+			(publishing && !options.publication)
+		)
 			return { kind: 'busy' };
 		const values = options.overrides ? { ...current, ...options.overrides } : current;
 		const keepOverrides = (): void => {
@@ -1574,8 +1621,21 @@
 
 		// D-P5.3: validación cliente MÍNIMA, solo UX — evita un roundtrip evidente. Si el cliente
 		// ya ve un error, el envío se bloquea aquí SIN tocar la red (L-P5.12 solo exige lo
-		// contrario: si el cliente lo cree válido, SIEMPRE se envía).
-		const clientView = validateForm(type, values);
+		// contrario: si el cliente lo cree válido, SIEMPRE se envía). Incluye la validez nativa de
+		// los controles y la regla `markdown` (ver `validateBeforeSave`): el `<form>` va con
+		// `novalidate` y ningún error bloquea el guardado sin pintarse.
+		const validation = validateBeforeSave(values);
+		let clientView: FieldErrorsView;
+		if (validation instanceof Promise) {
+			validating = true;
+			try {
+				clientView = await validation;
+			} finally {
+				validating = false;
+			}
+		} else {
+			clientView = validation;
+		}
 		clientErrors = clientView;
 		if (Object.keys(clientView.byField).length > 0 || clientView.record) {
 			keepOverrides();
@@ -1878,10 +1938,14 @@
 	});
 </script>
 
+<!-- `novalidate`: el navegador no decide el envío (ver `validateBeforeSave`). Con él decidiendo,
+     un control inválido que no podía enfocar —un bloque plegado, otra pestaña de idioma— cancelaba
+     el guardado sin enseñar nada. -->
 <form
 	class="vega-record-form"
 	class:vega-record-form--relation={modal}
 	bind:this={formEl}
+	novalidate
 	onsubmit={handleSubmit}
 >
 	<!-- Ver cabecera del módulo: h1 presente para a11y (jerarquía de headings) pero sin el peso
@@ -2250,11 +2314,22 @@
 		{/if}
 	{/snippet}
 
+	<!-- Resumen accesible de un envío rechazado en el cliente (ver `clientErrorLabels`): dice QUÉ
+	     campos lo impiden aunque estén en otra pestaña de idioma; el foco ya va al primero. -->
+	{#snippet errorSummary()}
+		{#if clientErrorLabels.length > 0}
+			<p class="vega-record-form-banner" role="alert">
+				{ctx.t('form.errorSummary', { fields: clientErrorLabels.join(', ') })}
+			</p>
+		{/if}
+	{/snippet}
+
 	{#if modal}
 		{@render localeTabs()}
 		{#if errors.record}
 			<p class="vega-record-form-banner" role="alert">{fieldErrorMessage(ctx.t, errors.record)}</p>
 		{/if}
+		{@render errorSummary()}
 		<div
 			class="vega-relation-form-fields"
 			id={type.localization ? `vega-locale-panel-${fieldScope}` : undefined}
@@ -2323,6 +2398,7 @@
 						{fieldErrorMessage(ctx.t, errors.record)}
 					</p>
 				{/if}
+				{@render errorSummary()}
 
 				{@render localeTabs()}
 

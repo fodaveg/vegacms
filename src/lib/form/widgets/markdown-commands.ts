@@ -145,20 +145,44 @@ function prefixLines(
 	return replaceRange(value, blockStart, blockEnd, replacement, 0, replacement.length);
 }
 
-/** Rejects embedded HTML and dangerous link/image schemes without reserializing raw Markdown. */
-export function hasUnsafeMarkdownContent(value: string, manager: MarkdownManager): boolean {
-	let unsafe = false;
+/** Longest excerpt of an unsafe fragment that is quoted back to the author. */
+const UNSAFE_FRAGMENT_MAX = 60;
+
+/**
+ * First piece of embedded HTML or dangerous link/image destination, as the author wrote it (one
+ * line, trimmed, at most {@link UNSAFE_FRAGMENT_MAX} characters), or `null` when the Markdown is
+ * safe. Same lexer and same rule as the preview, without reserializing the raw Markdown: HTML
+ * inside a code span or block is code, not HTML, and does not count.
+ *
+ * The rule is a Vega guarantee, not a site option: a `markdown` field never gets HTML or a
+ * `javascript:`-like destination written by Vega (the manifest has no key to allow it). Content
+ * that already holds it is shown and can stay untouched; the save paths only reject it in a field
+ * the author changed (`markdown-safety.ts`).
+ */
+export function findUnsafeMarkdown(value: string, manager: MarkdownManager): string | null {
+	let fragment: string | null = null;
 	const tokens = manager.instance.lexer(value);
 	manager.instance.walkTokens(tokens, (token) => {
+		if (fragment !== null) return;
 		if (token.type === 'html') {
-			unsafe = true;
+			fragment = excerpt(token.raw);
 			return;
 		}
 		if (token.type !== 'link' && token.type !== 'image') return;
 		const href = 'href' in token && typeof token.href === 'string' ? token.href : '';
-		if (href.trim() !== '' && safeUri(href) === '') unsafe = true;
+		if (href.trim() !== '' && safeUri(href) === '') fragment = excerpt(token.raw);
 	});
-	return unsafe;
+	return fragment;
+}
+
+function excerpt(raw: string): string {
+	const line = raw.replace(/\s+/g, ' ').trim();
+	return line.length > UNSAFE_FRAGMENT_MAX ? `${line.slice(0, UNSAFE_FRAGMENT_MAX - 1)}…` : line;
+}
+
+/** Rejects embedded HTML and dangerous link/image schemes without reserializing raw Markdown. */
+export function hasUnsafeMarkdownContent(value: string, manager: MarkdownManager): boolean {
+	return findUnsafeMarkdown(value, manager) !== null;
 }
 
 function insertBlock(

@@ -619,11 +619,15 @@ test.describe('editores de texto largo: richtext TipTap y Markdown asistido (F5-
 			'HTML o una dirección no permitida'
 		);
 		await expect(page.locator('.vega-editor-dirty')).toBeVisible();
-		expect(
-			await source.evaluate((element) => (element as HTMLTextAreaElement).validity.valid)
-		).toBe(false);
+		await expect(source).toHaveAttribute('aria-invalid', 'true');
+		// Sin validez nativa (el `<form>` va con `novalidate`): el guardado lo rechaza la regla
+		// `markdown` del propio formulario, que lo DICE (error de campo + resumen) y enfoca el campo.
 		await save.click();
-		await expect(summaryField.getByRole('alert')).toBeVisible();
+		await expect(summaryField).toContainText('No se puede guardar');
+		await expect(
+			page.getByRole('alert').filter({ hasText: 'No se ha guardado. Revisa:' })
+		).toBeVisible();
+		await expect(source).toBeFocused();
 		await expect(source).toHaveValue(`${original}\n\n[peligro](javascript:alert(1))`);
 		page.once('dialog', (dialog) => void dialog.dismiss());
 		await page.getByRole('button', { name: 'Entradas' }).click();

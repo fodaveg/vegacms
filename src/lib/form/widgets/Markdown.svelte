@@ -23,7 +23,7 @@
 	import {
 		applyMarkdownCommand,
 		countMarkdownWords,
-		hasUnsafeMarkdownContent,
+		findUnsafeMarkdown,
 		type MarkdownCommand,
 		type MarkdownCommandPlaceholders
 	} from './markdown-commands';
@@ -43,7 +43,17 @@
 	const ids = $derived(fieldIds(field.name, fieldScope));
 	const previewId = $derived(`${ids.inputId}-preview`);
 	const unsafeUriErrorId = $derived(`${ids.inputId}-unsafe-uri`);
-	let unsafeUriError = $state(false);
+	/** Primer fragmento de HTML o destino no permitido del borrador (`findUnsafeMarkdown`), o
+	 *  `null`. Lo que hace con él quien GUARDA lo decide `form/markdown-safety.ts`: aquí solo se
+	 *  dice, sin `setCustomValidity` (ver más abajo, «Sin validez nativa»). */
+	let unsafeFragment = $state<string | null>(null);
+	const unsafeUriError = $derived(unsafeFragment !== null);
+	/** Último valor que llegó de FUERA (el guardado, otro registro): el texto heredado. */
+	let externalValue = $state(untrack(() => (typeof value === 'string' ? value : '')));
+	let draft = $state(untrack(() => (typeof value === 'string' ? value : '')));
+	/** El autor ha cambiado el texto: solo entonces el HTML impide guardar (un texto heredado que
+	 *  nadie toca no se reescribe, ver `markdown-safety.ts`) y el aviso pasa a error. */
+	const blocking = $derived(unsafeUriError && draft !== externalValue);
 	const describedBy = $derived(
 		[
 			field.help ? ids.helpId : null,
@@ -78,7 +88,6 @@
 	let previewContainer: HTMLDivElement;
 	let previewEditor = $state.raw<Editor | null>(null);
 	let markdownManager = $state.raw<MarkdownManager | null>(null);
-	let draft = $state(untrack(() => (typeof value === 'string' ? value : '')));
 	let mode = $state<EditorMode>('split');
 	let lastEmitted = untrack(() => (typeof value === 'string' ? value : ''));
 	const wordCount = $derived(countMarkdownWords(draft));
@@ -126,7 +135,7 @@
 				}
 			});
 			markdownManager = (previewEditor.storage.markdown as MarkdownExtensionStorage).manager;
-			unsafeUriError = hasUnsafeMarkdownContent(draft, markdownManager);
+			unsafeFragment = findUnsafeMarkdown(draft, markdownManager);
 			if (!unsafeUriError && draft !== lastEmitted) {
 				lastEmitted = draft;
 				onChange(draft);
@@ -148,7 +157,8 @@
 		if (incoming === lastEmitted) return;
 		lastEmitted = incoming;
 		draft = incoming;
-		unsafeUriError = markdownManager ? hasUnsafeMarkdownContent(incoming, markdownManager) : false;
+		externalValue = incoming;
+		unsafeFragment = markdownManager ? findUnsafeMarkdown(incoming, markdownManager) : null;
 	});
 
 	// Live proof: update the existing read-only editor, never recreate it and never emit changes.
@@ -164,19 +174,17 @@
 		return () => cancelAnimationFrame(frame);
 	});
 
-	// Native constraint validation blocks the parent form even if it was already dirty before an
-	// unsafe destination was completed (for example while typing `javascript:` character by
-	// character). This makes the rejection a form-level guarantee, not just a visual warning.
-	$effect(() => {
-		if (!textarea) return;
-		textarea.setCustomValidity(unsafeUriError ? ctx.t('form.markdown.unsafeUri') : '');
-	});
+	// Sin validez nativa (QA de fodaveg, 21 oct 2026). Hasta 0.14.0 este widget marcaba su
+	// `<textarea>` con `setCustomValidity`: el `<form>` padre se negaba a enviarse, también por un
+	// texto heredado que nadie había tocado y aunque el campo estuviera plegado en un bloque, y el
+	// navegador cancelaba el guardado sin poder enseñar el globo. Ahora la garantía es una regla
+	// sobre el valor que aplica cada camino de guardado (`form/markdown-safety.ts`); el widget solo
+	// la anticipa con su aviso.
 
 	function emit(next: string): void {
 		draft = next;
 		if (!markdownManager) return;
-		unsafeUriError = hasUnsafeMarkdownContent(next, markdownManager);
-		textarea.setCustomValidity(unsafeUriError ? ctx.t('form.markdown.unsafeUri') : '');
+		unsafeFragment = findUnsafeMarkdown(next, markdownManager);
 		if (next === lastEmitted) return;
 		lastEmitted = next;
 		onChange(next);
@@ -224,7 +232,7 @@
 <div
 	class="vega-markdown-workbench"
 	data-mode={mode}
-	data-invalid={error || unsafeUriError ? 'true' : undefined}
+	data-invalid={error || blocking ? 'true' : undefined}
 >
 	<div class="vega-markdown-bar">
 		<div class="vega-markdown-tools" role="toolbar" aria-label={ctx.t('form.editor.toolbarLabel')}>
@@ -263,7 +271,7 @@
 				placeholder={field.placeholder ?? ''}
 				aria-labelledby={ids.labelId}
 				aria-describedby={describedBy}
-				aria-invalid={error || unsafeUriError ? 'true' : undefined}
+				aria-invalid={error || blocking ? 'true' : undefined}
 				aria-controls={previewId}
 				disabled={disabled || markdownManager === null}
 				{readonly}
@@ -290,10 +298,24 @@
 		<span>{wordCountLabel}</span>
 		<span>{ctx.t('form.markdown.shortcutHint')}</span>
 	</div>
-	{#if unsafeUriError}
-		<p id={unsafeUriErrorId} class="vega-markdown-security-error" role="alert">
-			{ctx.t('form.markdown.unsafeUri')}
-		</p>
+	{#if unsafeFragment !== null && !error}
+		<!-- Cambiado por el autor: error, anunciado. Heredado y sin tocar: aviso informativo (guardar
+		     otros campos no lo reescribe). Con el error del guardado (`error`), lo dice `FieldRow`. -->
+		{#if blocking}
+			<p id={unsafeUriErrorId} class="vega-markdown-security-error" role="alert">
+				{ctx.t('form.markdown.unsafeUri')}
+				<span class="vega-markdown-security-fragment"
+					>{ctx.t('form.markdown.unsafeFragment', { fragment: unsafeFragment })}</span
+				>
+			</p>
+		{:else}
+			<p id={unsafeUriErrorId} class="vega-markdown-security-note">
+				{ctx.t('form.markdown.unsafeLegacy')}
+				<span class="vega-markdown-security-fragment"
+					>{ctx.t('form.markdown.unsafeFragment', { fragment: unsafeFragment })}</span
+				>
+			</p>
+		{/if}
 	{/if}
 </div>
 
@@ -580,13 +602,28 @@
 		font-size: 0.68rem;
 	}
 
-	.vega-markdown-security-error {
+	.vega-markdown-security-error,
+	.vega-markdown-security-note {
 		margin: 0;
 		padding: 0.55rem 0.7rem;
 		border-top: 1px solid var(--danger);
 		background: var(--danger-soft);
 		color: var(--danger);
 		font-size: 0.78rem;
+	}
+
+	/* Texto heredado sin tocar: se avisa, no se acusa (par `warning`/`warning-soft`, medido). */
+	.vega-markdown-security-note {
+		border-top-color: var(--warning);
+		background: var(--warning-soft);
+		color: var(--warning);
+	}
+
+	.vega-markdown-security-fragment {
+		display: block;
+		margin-top: 0.2rem;
+		font-family: var(--mono);
+		overflow-wrap: anywhere;
 	}
 
 	@media (max-width: 720px) {

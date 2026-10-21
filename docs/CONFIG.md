@@ -199,6 +199,25 @@ Vega mostrará un selector global de idioma en el formulario y mantendrá visibl
 compartidos. La referencia completa y versionada está en
 [`PROJECT-CONTRACT-v1.md`](./PROJECT-CONTRACT-v1.md#localized-fields).
 
+## Campos `markdown`
+
+Un campo con `widget: "markdown"` guarda Markdown, nunca HTML. Vega no escribe en él HTML
+embebido (`<a class="btn">`, `<br>`, `<iframe>`…) ni enlaces o imágenes con un destino que no sea
+`http`, `https`, `mailto` o una ruta relativa. El manifiesto no tiene ninguna clave para
+permitirlo: si un sitio necesita un botón o un vídeo dentro de una página, eso es un tipo de
+bloque propio, no HTML dentro del texto.
+
+La regla es la misma en el formulario, en el editor visual y en «Solo textos», y solo se aplica a
+lo que se guarda:
+
+- Un texto que **ya** trae HTML (contenido importado o anterior a Vega) se enseña con un aviso y el
+  primer fragmento afectado. Se pueden guardar los demás campos del registro: no se reescribe.
+- Si cambias ese campo y sigue conteniendo HTML, no se guarda. El campo se marca, el foco va a él
+  (desplegando el bloque si estaba plegado) y un resumen dice qué campos lo impiden.
+
+HTML dentro de un bloque de código (`` `<div>` `` o un bloque entre ```) es código, no HTML, y no
+cuenta.
+
 ## Bloques ordenables y heterogéneos (`blocks` y `blockTypes`)
 
 PocketBase no tiene campos repetidores, así que el contenido compuesto —una página hecha de

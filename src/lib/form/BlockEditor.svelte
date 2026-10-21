@@ -75,6 +75,8 @@
 	import { isDirty, type FormInputValues } from './dirty';
 	import { toRecordInput } from './to-record-input';
 	import { validateForm } from './validation';
+	import { nativeFieldErrors } from './native-validity';
+	import { markdownSafetyErrors, type MarkdownSafetyErrors } from './markdown-safety';
 	import {
 		isFieldValidationError,
 		mapFieldErrors,
@@ -136,6 +138,9 @@
 		/** Antes de guardar: `true` = otro dueño lo resuelve (el editor visual espera el valor final de
 		 *  una edición en línea abierta y guarda él al recibirlo). Sin él, guarda como siempre. */
 		beforeSave?: () => boolean;
+		/** Un guardado rechazado en el cliente: quien monta la ficha la hace visible (la fila plegada
+		 *  de `RecordBlocks` se despliega) ANTES de que el foco vaya al primer campo con error. */
+		onReveal?: () => void;
 	}
 
 	let {
@@ -159,7 +164,8 @@
 		fullFormHref,
 		onInlineTakeover = () => {},
 		contextualPlacement = 'top',
-		beforeSave
+		beforeSave,
+		onReveal = () => {}
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -326,23 +332,37 @@
 	 *  etiqueta de cada campo, para que el botón «Guardar» nunca falle en silencio. */
 	const hiddenErrorLabels = $derived.by<string[]>(() => {
 		if (!textsOnly) return [];
-		const visibleNames = new Set(
-			typed
-				? visibleTypedFields.flatMap((item) =>
-						item.kind === 'missing-record' ? [] : [item.field.name]
-					)
-				: visibleLegacyFields.map((field) => field.name)
-		);
-		const labelOf = (fieldName: string): string => {
-			const field = typed
-				? typedFields.flatMap((item) => (item.kind === 'missing-record' ? [] : [item.field]))
-				: legacyFields;
-			const match = field.find((f) => f.name === fieldName);
-			return match ? fieldDisplayLabel(match, ctx.t) : fieldName;
-		};
+		const visibleNames = new Set(visibleFieldNames);
 		return Object.keys(errors.byField)
 			.filter((fieldName) => !visibleNames.has(fieldName))
-			.map(labelOf);
+			.map(errorFieldLabel);
+	});
+
+	/** Nombres de los campos que la ficha PINTA ahora (todos, o solo los textos en «solo textos»). */
+	const visibleFieldNames = $derived(
+		typed
+			? visibleTypedFields.flatMap((item) =>
+					item.kind === 'missing-record' ? [] : [item.field.name]
+				)
+			: visibleLegacyFields.map((field) => field.name)
+	);
+
+	/** Rótulo de un campo con error, para los dos banners; sin campo que lo nombre, su nombre. */
+	function errorFieldLabel(fieldName: string): string {
+		const fields = typed
+			? typedFields.flatMap((item) => (item.kind === 'missing-record' ? [] : [item.field]))
+			: legacyFields;
+		const match = fields.find((f) => f.name === fieldName);
+		return match ? fieldDisplayLabel(match, ctx.t) : fieldName;
+	}
+
+	/** Resumen accesible de un guardado rechazado (ver `revealFirstError`): los campos con error
+	 *  que la ficha pinta, en su orden. Los que no pinta los nombra `hiddenErrorLabels`. */
+	const errorSummaryLabels = $derived.by<string[]>(() => {
+		const visible = new Set(visibleFieldNames);
+		return fieldOrder
+			.filter((name) => name in errors.byField && visible.has(name))
+			.map(errorFieldLabel);
 	});
 
 	$effect(() => {
@@ -598,15 +618,94 @@
 		return { byField, record: dataView.record };
 	}
 
+	/** Raíz de la ficha: la validez nativa de SUS controles (`native-validity.ts`) y el destino del
+	 *  foco al primer error. `data-vega-block-editor` la separa de los del registro padre. */
+	let rootEl = $state<HTMLElement | undefined>(undefined);
+	/** `true` mientras `handleSave` valida (la regla `markdown` carga su lexer bajo demanda). */
+	let validating = false;
+
+	/**
+	 * Validación de cliente del guardado, la MISMA en el formulario clásico, el editor visual y
+	 * «Solo textos» (QA de fodaveg, 21 oct 2026): obligatorios y opciones del tipo, validez nativa
+	 * de los controles de esta ficha (un `type="email"`, el JSON a medio escribir) y la regla de los
+	 * campos `markdown` CAMBIADOS (`markdown-safety.ts`). Hasta 0.14.0 esta ficha, que guarda con un
+	 * botón y no con un `<form>`, ignoraba lo nativo: el editor visual guardaba el HTML que el
+	 * campo marcaba en rojo. La validez nativa se lee ANTES de esperar a nada.
+	 *
+	 * Solo devuelve una promesa si hay un campo `markdown` cambiado que mirar: sin él, el guardado
+	 * sigue en el mismo turno del clic (el botón pasa a «Guardando» en el acto, como hasta 0.14.0).
+	 */
+	function validateBeforeSave(): FieldErrorsView | Promise<FieldErrorsView> {
+		const view = typed ? validateTypedForm() : validateForm(childType, current);
+		const native = rootEl ? nativeFieldErrors(rootEl) : {};
+		const checks = typed
+			? [
+					markdownSafetyErrors(physicalFields, baseline, current, ctx.t),
+					markdownSafetyErrors(
+						dataFields,
+						dataBaseline as FormValues,
+						dataCurrent as FormInputValues,
+						ctx.t
+					)
+				]
+			: [markdownSafetyErrors(legacyFields, baseline, current, ctx.t)];
+		const merge = (markdown: readonly MarkdownSafetyErrors[]): FieldErrorsView => ({
+			byField: Object.assign({}, ...markdown, native, view.byField),
+			record: view.record
+		});
+		const settled = checks.filter((check) => !(check instanceof Promise));
+		return settled.length === checks.length
+			? merge(settled as MarkdownSafetyErrors[])
+			: Promise.all(checks).then(merge);
+	}
+
+	/** Nombres de campo en el orden en que la ficha los pinta (tipados o del modo legado). */
+	const fieldOrder = $derived(
+		typed
+			? typedFields.flatMap((item) => (item.kind === 'missing-record' ? [] : [item.field.name]))
+			: legacyFields.map((field) => field.name)
+	);
+
+	/**
+	 * Un guardado rechazado nunca se queda mudo: la ficha se hace visible (`onReveal`: la fila
+	 * plegada se despliega), y el foco va al primer campo con error QUE SE PINTA, con el resumen
+	 * (`editor.blocks.form.errorSummary`) anunciado como alerta. Un error de un campo que «Solo
+	 * textos» no pinta lo dice su propio banner (`hiddenErrorLabels`).
+	 */
+	async function revealFirstError(view: FieldErrorsView): Promise<void> {
+		onReveal();
+		await tick();
+		const visible = new Set(visibleFieldNames);
+		const first = fieldOrder.find((name) => name in view.byField && visible.has(name));
+		if (!first || !rootEl) return;
+		const { resolveFocusTarget } = await import('./focus-target');
+		const target = resolveFocusTarget(rootEl, first, String(initialRecord.id));
+		target?.focus();
+		target?.scrollIntoView?.({ block: 'center' });
+	}
+
 	async function handleSave(): Promise<void> {
-		if (saving || disabled || invalidData || (typed && blockType === null) || !dirty) return;
+		if (saving || validating || disabled || invalidData || (typed && blockType === null) || !dirty)
+			return;
 		if (beforeSave?.()) return;
 
 		onSaveError(false);
-		const clientView = typed ? validateTypedForm() : validateForm(childType, current);
+		const validation = validateBeforeSave();
+		let clientView: FieldErrorsView;
+		if (validation instanceof Promise) {
+			validating = true;
+			try {
+				clientView = await validation;
+			} finally {
+				validating = false;
+			}
+		} else {
+			clientView = validation;
+		}
 		clientErrors = clientView;
 		if (Object.keys(clientView.byField).length > 0 || clientView.record) {
 			onSaveError(true);
+			await revealFirstError(clientView);
 			return;
 		}
 
@@ -709,7 +808,7 @@
 	</button>
 {/snippet}
 
-<div class="vega-block-fields">
+<div class="vega-block-fields" bind:this={rootEl} data-vega-block-editor>
 	{#if contextualPlacement === 'top'}{@render contextual()}{/if}
 	{#if typed && blockType === null}
 		<section class="vega-block-readonly" role="status">
@@ -748,6 +847,13 @@
 		{/if}
 		{#if errors.record}
 			<p class="vega-block-banner" role="alert">{fieldErrorMessage(ctx.t, errors.record)}</p>
+		{/if}
+		{#if errorSummaryLabels.length > 0}
+			<!-- Resumen accesible (ver `revealFirstError`): qué impide guardar, con el nombre de cada
+			     campo; el foco ya está en el primero. -->
+			<p class="vega-block-banner" role="alert">
+				{ctx.t('editor.blocks.form.errorSummary', { fields: errorSummaryLabels.join(', ') })}
+			</p>
 		{/if}
 		{#if hiddenErrorLabels.length > 0}
 			<!-- «Solo textos» (ver cabecera): el error vive en un campo que esta presentación no

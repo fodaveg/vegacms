@@ -22,6 +22,7 @@
 import { Markdown, MarkdownManager } from '@tiptap/markdown';
 import type { JSONContent } from '@tiptap/core';
 import { createExtensions } from './editor';
+import { findUnsafeMarkdown } from '$lib/form/widgets/markdown-commands';
 
 /** Extensiones del widget `markdown` (D-P5.7 + D-P5.8): las base de `editor.ts` más `Markdown`,
  *  la extensión que le da a TipTap el vocabulario de parseo/serialización MD↔JSON. */
@@ -47,4 +48,11 @@ export function parseMarkdown(markdown: string): JSONContent {
 /** Documento TipTap (JSON de ProseMirror) → Markdown serializado. */
 export function serializeMarkdown(content: JSONContent): string {
 	return getManager().serialize(content);
+}
+
+/** Primer fragmento de HTML o destino peligroso de `markdown`, o `null` si es seguro. El MISMO
+ *  lexer que monta el widget (mismas extensiones), sin `Editor` ni DOM: lo usan los caminos de
+ *  guardado (`form/markdown-safety.ts`), que lo cargan perezosamente como el propio widget. */
+export function findUnsafeMarkdownFragment(markdown: string): string | null {
+	return findUnsafeMarkdown(markdown, getManager());
 }

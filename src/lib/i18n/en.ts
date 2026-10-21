@@ -730,6 +730,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.blocks.form.noType':
 		'This block has no type. It stays read-only until the model says how to edit it.',
 	'editor.blocks.form.reviewFields': 'Review the highlighted fields.',
+	'editor.blocks.form.errorSummary': 'The block was not saved. Check: {fields}.',
 	'editor.blocks.form.invalidData':
 		'The “{field}” column does not contain a JSON object. Saving would replace the existing value, so Vega has blocked this block.',
 	'editor.blocks.form.rawData': 'Raw value of “{field}”',
@@ -943,6 +944,12 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'form.markdown.placeholderAlt': 'description',
 	'form.markdown.unsafeUri':
 		'The Markdown contains HTML or a disallowed address. Use Markdown syntax and http, https, mailto, or relative links.',
+	'form.markdown.unsafeLegacy':
+		'This text already contained HTML or a disallowed address. You can save the other fields; to save changes to this one, convert it to Markdown syntax.',
+	'form.markdown.unsafeFragment': 'First fragment: {fragment}',
+	'form.markdown.unsafeSave':
+		'Cannot save: the Markdown contains HTML or a disallowed address ({fragment}). Use Markdown syntax and http, https, mailto, or relative links.',
+	'form.errorSummary': 'Not saved. Check: {fields}.',
 	'form.json.invalid': 'The JSON is not valid: fix it to be able to save.',
 
 	// ————— List (P4 contract, Phase 4c) —————
