@@ -48,7 +48,15 @@
 	import { parseRevisionRecord, type RevisionRecord } from './revision';
 	import { revisionAuthorLabel, revisionDateLabel, revisionDisplayLabel } from './revision-label';
 	import { VEGA_REVISIONS_COLLECTION } from './revisions-collection';
-	import RevisionDiff from './RevisionDiff.svelte';
+	/** `RevisionDiff.svelte` se descarga al abrir una revisión, no al abrir el registro: el
+	 *  editor de registro estaba al tope de su presupuesto (`scripts/check-bundle-budget.mjs`, la
+	 *  0.14.1 lo pasaba por 0.22 KB) y el diff solo lo usa quien entra en el historial. Una sola
+	 *  petición: `import()` devuelve siempre el mismo módulo. */
+	let revisionDiff: Promise<typeof import('./RevisionDiff.svelte')> | null = null;
+	function loadRevisionDiff(): Promise<typeof import('./RevisionDiff.svelte')> {
+		revisionDiff ??= import('./RevisionDiff.svelte');
+		return revisionDiff;
+	}
 
 	interface Props {
 		type: ResolvedContentType;
@@ -234,13 +242,20 @@
 					</button>
 				</p>
 			{:else if status === 'ready' && selected}
-				<RevisionDiff
-					{type}
-					{recordId}
-					revision={selected}
-					onRestore={handleRestore}
-					onBack={backToList}
-				/>
+				{#await loadRevisionDiff() then { default: RevisionDiff }}
+					<RevisionDiff
+						{type}
+						{recordId}
+						revision={selected}
+						onRestore={handleRestore}
+						onBack={backToList}
+					/>
+				{:catch}
+					<p class="vega-revisions-error" role="alert">
+						{ctx.t('revisions.panel.error')}
+						<button type="button" onclick={backToList}>{ctx.t('revisions.diff.back')}</button>
+					</p>
+				{/await}
 			{:else if status === 'ready'}
 				{#if revisions.length === 0}
 					<p class="vega-revisions-empty">{ctx.t('revisions.panel.empty')}</p>
