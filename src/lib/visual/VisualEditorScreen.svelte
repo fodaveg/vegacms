@@ -321,7 +321,7 @@
 	import VisualColumnResizer from './VisualColumnResizer.svelte';
 	import VisualPublishControl from './VisualPublishControl.svelte';
 	import type { InlineRect, InlineRequest } from './inline-session';
-	import { readInlineAppearance } from './inline-appearance';
+	import { inlineAppearanceMessage } from './inline-appearance';
 	import {
 		INSPECTOR_DEFAULT_WIDTH,
 		INSPECTOR_MAX_WIDTH,
@@ -897,7 +897,7 @@
 						: undefined;
 				inlineEdit = { ...inlineEdit, rect, anchor: block ? { ...block.rect } : null };
 			},
-			inlineAppearance: () => readInlineAppearance(screenEl),
+			inlineAppearance: () => inlineAppearanceMessage(screenEl, zoomFactor),
 			onInlineEnd: (blockId, cancel) => {
 				inspectorRef?.finishInline(blockId, cancel);
 				inlineEdit = null;
@@ -1284,6 +1284,7 @@
 		<a
 			href={recordRoute(type.name, record.id)}
 			class="vega-visual-back"
+			aria-label={ctx.t('editor.visual.back')}
 			onclick={(event) => openDestination(event, 'form')}
 			><Icon id="back" size={16} strokeWidth={1.6} /><span class="vega-visual-hide-narrow"
 				>{ctx.t('editor.visual.back')}</span
@@ -1314,30 +1315,28 @@
 
 		<!-- Estado de GUARDADO (lámina, `.savestate`): punto + texto, y el error DENTRO de la barra con
 		     «Reintentar». Con bloques sin guardar es un desplegable con su lista: ocultar paneles no
-		     deja ningún borrador sin camino de vuelta (audit del 19 oct). -->
-		{#if saveErrorBlockId}
-			<span
-				class="vega-visual-savestate vega-visual-savestate--err"
-				role="alert"
-				title={ctx.t('editor.visual.bar.saveError', { label: saveErrorLabel })}
-				><i aria-hidden="true"></i>{ctx.t('editor.visual.bar.saveError', {
-					label: saveErrorLabel
-				})}</span
-			>
-			<button type="button" class="vega-visual-retry" onclick={retrySave}
-				><Icon id="update" size={14} />{ctx.t('common.retry')}</button
-			>
-		{:else if pendingBlocks.length > 0}
+		     deja ningún borrador sin camino de vuelta (audit del 19 oct). Con un error de guardado Y
+		     bloques pendientes, el error es el RESUMEN de ese mismo desplegable: la lista no se pierde
+		     (la paleta manda a «abrir los bloques pendientes en el aviso»). -->
+		{#if pendingBlocks.length > 0}
 			<!-- Con bloques pendientes la lista sigue a mano hasta que el guardado se CONFIRMA (audit
 			     del 19 oct); mientras uno está en vuelo, el resumen dice «Guardando…». -->
 			<details class="vega-visual-pending">
 				<summary
 					class="vega-visual-savestate"
-					class:vega-visual-savestate--dirty={!(blocks.anySaving || blocks.structuralBusy)}
-					class:vega-visual-savestate--saving={blocks.anySaving || blocks.structuralBusy}
+					class:vega-visual-savestate--err={saveErrorBlockId !== null}
+					class:vega-visual-savestate--dirty={saveErrorBlockId === null &&
+						!(blocks.anySaving || blocks.structuralBusy)}
+					class:vega-visual-savestate--saving={saveErrorBlockId === null &&
+						(blocks.anySaving || blocks.structuralBusy)}
+					title={saveErrorBlockId
+						? ctx.t('editor.visual.bar.saveError', { label: saveErrorLabel })
+						: undefined}
 				>
 					<i aria-hidden="true"></i>
-					{#if blocks.anySaving || blocks.structuralBusy}<span
+					{#if saveErrorBlockId}<span class="vega-visual-savestate-text" role="alert"
+							>{ctx.t('editor.visual.bar.saveError', { label: saveErrorLabel })}</span
+						>{:else if blocks.anySaving || blocks.structuralBusy}<span
 							class="vega-visual-saved-at--saving"
 							role="status">{ctx.t('editor.saving')}</span
 						>{:else}<span class="vega-visual-dirty" role="status"
@@ -1372,6 +1371,23 @@
 					</ul>
 				</div>
 			</details>
+			{#if saveErrorBlockId}
+				<button type="button" class="vega-visual-retry" onclick={retrySave}
+					><Icon id="update" size={14} />{ctx.t('common.retry')}</button
+				>
+			{/if}
+		{:else if saveErrorBlockId}
+			<span
+				class="vega-visual-savestate vega-visual-savestate--err"
+				role="alert"
+				title={ctx.t('editor.visual.bar.saveError', { label: saveErrorLabel })}
+				><i aria-hidden="true"></i>{ctx.t('editor.visual.bar.saveError', {
+					label: saveErrorLabel
+				})}</span
+			>
+			<button type="button" class="vega-visual-retry" onclick={retrySave}
+				><Icon id="update" size={14} />{ctx.t('common.retry')}</button
+			>
 		{:else if blocks.anySaving || blocks.structuralBusy}
 			<span class="vega-visual-savestate vega-visual-savestate--saving vega-visual-saved-at--saving"
 				><i aria-hidden="true"></i><span role="status">{ctx.t('editor.saving')}</span></span
@@ -1402,10 +1418,12 @@
 					><Icon id="pen" size={16} strokeWidth={1.6} /></button
 				>
 			{/if}
+			<!-- `data-vega-own-keys` (ver `visual-keyboard.ts`): sus teclas no son gestos de bloque. -->
 			<div
 				class="vega-visual-segm"
 				role="group"
 				aria-label={ctx.t('editor.visual.screen.groupLabel')}
+				data-vega-own-keys
 			>
 				{#each SCREEN_PRESETS as preset (preset)}
 					<button
@@ -1419,7 +1437,7 @@
 					>
 				{/each}
 			</div>
-			<div class="vega-visual-zoom" bind:this={zoomEl}>
+			<div class="vega-visual-zoom" bind:this={zoomEl} data-vega-own-keys>
 				<button
 					type="button"
 					class="vega-visual-zoom-trigger"
@@ -1431,9 +1449,9 @@
 						percent: Math.round(zoomFactor * 100)
 					})}
 					onclick={toggleZoomMenu}
-					>{ctx.t('editor.visual.screen.width', { width: frameWidth })} · {Math.round(
-						zoomFactor * 100
-					)} %</button
+					><span class="vega-visual-zoom-width"
+						>{`${ctx.t('editor.visual.screen.width', { width: frameWidth })} · `}</span
+					>{Math.round(zoomFactor * 100)} %</button
 				>
 				{#if zoomMenuOpen}
 					<div
@@ -1800,23 +1818,8 @@
 {/if}
 
 <style>
-	/* La barra del editor SUSTITUYE a la de la app en esta ruta (lámina «edición en vivo», nota 3): la
-	   carcasa conserva sus banners en el flujo y el resto de su chrome, pero su barra superior y el
-	   aire alrededor de `<main>` no se pintan mientras esta pantalla está montada. `:global` con
-	   `:has()` en vez de un cambio en `AppShell.svelte` porque la carcasa es de otro dueño; al
-	   desmontar la pantalla la regla deja de casar sola. */
-	:global(.vega-shell:has(.vega-visual-screen) > .vega-topbar) {
-		display: none;
-	}
-	:global(.vega-shell:has(.vega-visual-screen) .vega-body) {
-		padding: 0;
-		gap: 0;
-	}
-	:global(.vega-shell:has(.vega-visual-screen) .vega-main) {
-		padding: 0;
-		overflow: hidden;
-	}
-
+	/* La barra del editor SUSTITUYE a la de la app en esta ruta (lámina «edición en vivo», nota 3):
+	   lo resuelve `AppShell.svelte` (`.vega-shell--visual`), que no monta su barra aquí. */
 	.vega-visual-screen {
 		display: flex;
 		flex-direction: column;
@@ -2052,7 +2055,7 @@
 
 	.vega-visual-retry {
 		height: 30px;
-		padding: 0 12px;
+		padding: 0 10px;
 		font-size: var(--fs-12);
 	}
 
@@ -2075,6 +2078,18 @@
 	.vega-visual-pending[open] summary {
 		background: var(--btn);
 		color: var(--ink-hi);
+	}
+
+	/* Con error, el resumen del desplegable ES el error: sigue en rojo al pasar o abrirlo, y su
+	   texto se corta con puntos suspensivos (el completo, en el `title`). */
+	.vega-visual-pending summary.vega-visual-savestate--err {
+		color: var(--danger);
+	}
+
+	.vega-visual-savestate-text {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.vega-visual-pending-pop {
@@ -2168,6 +2183,15 @@
 			overflow: hidden;
 			clip: rect(0, 0, 0, 0);
 			white-space: nowrap;
+		}
+	}
+
+	/* Con «Publicar» y por debajo de 1600 px la barra no cabe entera en una fila cuando además lleva
+	   el error de guardado y «Reintentar» (medido a 1440: 1449 px). El disparador de zoom se queda en
+	   el porcentaje: la anchura sigue en su nombre accesible y en el `title` de cada tamaño. */
+	@media (max-width: 1599px) {
+		.vega-visual-bar--publish .vega-visual-zoom-width {
+			display: none;
 		}
 	}
 

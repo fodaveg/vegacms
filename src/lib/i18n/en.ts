@@ -2155,7 +2155,6 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.inline.active': 'in the page',
 	'editor.visual.inline.typing': 'typing in the page',
 	'editor.visual.inline.apply': 'apply',
-	'editor.visual.inline.newline': 'line break',
 	'editor.visual.inline.cancel': 'cancel',
 	'editor.visual.inspector.position': 'Section {position} of {total} · {id}',
 	'editor.visual.inspector.discard': 'Discard',

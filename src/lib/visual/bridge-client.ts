@@ -3,7 +3,7 @@ import {
 	isInlineField,
 	matchesInline,
 	parseInlineRect,
-	type InlineAppearance,
+	type InlineAppearanceMessage,
 	type InlineIdentity,
 	type InlineRect,
 	type InlineRequest
@@ -399,10 +399,10 @@ interface VisualBridgeClientOptions {
 	onInlineRect?: (blockId: string, rect: InlineRect) => void;
 	onInlineEnd?: (blockId: string, cancel: boolean) => void;
 	onInlineSave?: () => void;
-	/** Colores de la pista de edición para `editField.appearance`, leídos de los tokens vigentes en
-	 *  el momento de entrar (el autor puede haber cambiado de tema). `null` = el sitio usa su valor
-	 *  por defecto documentado. */
-	inlineAppearance?: () => InlineAppearance | null;
+	/** `editField.appearance`: colores de la pista leídos de los tokens vigentes en el momento de
+	 *  entrar (el autor puede haber cambiado de tema) y el hueco bajo el texto para la pista
+	 *  (`hintSpace`). Sin colores, el sitio usa su valor por defecto documentado; `null` = nada. */
+	inlineAppearance?: () => InlineAppearanceMessage | null;
 	/**
 	 * El puntero está sobre ese bloque DENTRO del marco, o sobre ninguno (`null`) — §"Hover" del
 	 * contrato. Mientras el puntero está sobre un iframe de otro origen la ventana de Vega no recibe

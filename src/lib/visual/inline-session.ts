@@ -31,6 +31,10 @@ export interface InlineAppearance {
 	soft: string;
 }
 
+/** Lo que va en `editField.appearance`: los colores cuando el tema los da y, siempre, el hueco
+ *  (`hintSpace`, px de la página) que el sitio deja bajo el texto para la pista de Vega. */
+export type InlineAppearanceMessage = Partial<InlineAppearance> & { hintSpace?: number };
+
 /** Caja del campo que se escribe, en coordenadas del documento del marco (las mismas que
  *  `VisualBlock.rect`). La manda el sitio en cada `input` para colocar la pista debajo. */
 export interface InlineRect {

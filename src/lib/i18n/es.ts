@@ -2257,7 +2257,6 @@ export const es = {
 	'editor.visual.inline.active': 'en la página',
 	'editor.visual.inline.typing': 'escribiendo en la página',
 	'editor.visual.inline.apply': 'aplicar',
-	'editor.visual.inline.newline': 'salto de línea',
 	'editor.visual.inline.cancel': 'cancelar',
 	'editor.visual.inspector.position': 'Sección {position} de {total} · {id}',
 	'editor.visual.inspector.discard': 'Descartar',

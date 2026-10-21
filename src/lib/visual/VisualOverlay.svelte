@@ -231,6 +231,8 @@
 	} from '$lib/list/reorder-dnd';
 	import { typeMenuItems, typeMenuKeydownIndex } from './type-menu';
 	import { resolveInsertPosition } from './insert-position';
+	import { INLINE_HINT_GEOMETRY } from './inline-appearance';
+	import { currentPlatform, isApplePlatform } from '$lib/form/save-shortcut';
 	import type { VisualBlock } from './bridge-client';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
 	import type { ResolvedBlockType } from '$lib/model/types';
@@ -294,6 +296,9 @@
 	}: Props = $props();
 
 	const ctx = getVegaContext();
+
+	/** Tecla que aplica en un `textarea` en línea, como la anuncia la plataforma (⌘ en Apple). */
+	const applyMultilineKey = isApplePlatform(currentPlatform()) ? '⌘⏎' : 'Ctrl ⏎';
 
 	/** `type` de cada bloque contra el vocabulario que el sitio anuncia (ver cabecera). Un `Set`
 	 *  por render evita un `includes` lineal por bloque cuando la lista de renderers crece. */
@@ -366,6 +371,45 @@
 	const TOOLBAR_INSET = 12;
 	/** Ancho de la barra, independiente del zoom, para mantener todas las acciones en el lienzo. */
 	let toolbarWidth = $state(0);
+	/** Ancho del overlay en píxeles de la página (el escenario lo escala, `offsetWidth` no). */
+	let overlayWidth = $state(0);
+	/** Ancho físico de la píldora del hueco de ARRIBA del seleccionado, la que comparte fila con la
+	 *  barra flotante. */
+	let topPillWidth = $state(0);
+
+	/**
+	 * Centro horizontal (px de la página) de la píldora de arriba del seleccionado. La lámina la
+	 * centra sobre la línea divisoria y deja la barra a la derecha SIN solaparse: centrada mientras
+	 * quepa; si el lienzo es estrecho, se desplaza a la izquierda hasta quedar a 12 px de la barra
+	 * (nunca fuera del lienzo). `null` = centrada (sin barra o aún sin medir).
+	 */
+	const topPillCenter = $derived.by(() => {
+		if (!selectedBridgeBlock || toolbarWidth <= 0 || topPillWidth <= 0 || overlayWidth <= 0)
+			return null;
+		const scale = 1 / zoomFactor;
+		const rect = selectedBridgeBlock.rect;
+		const toolbarRight = Math.min(
+			Math.max((toolbarWidth + 4) * scale, rect.left + rect.width - TOOLBAR_INSET),
+			overlayWidth - 4 * scale
+		);
+		const toolbarLeft = toolbarRight - toolbarWidth * scale;
+		const half = (topPillWidth * scale) / 2;
+		const fits = toolbarLeft - 12 * scale - half;
+		return Math.max(half + 4 * scale, Math.min(overlayWidth / 2, fits));
+	});
+
+	/** Mide la píldora de arriba del seleccionado (`topPillWidth`) mientras lo sea. */
+	function measureTopPill(active: boolean) {
+		return (node: HTMLElement) => {
+			if (!active) return;
+			const read = () => (topPillWidth = node.offsetWidth);
+			read();
+			if (typeof ResizeObserver === 'undefined') return;
+			const observer = new ResizeObserver(read);
+			observer.observe(node);
+			return () => observer.disconnect();
+		};
+	}
 
 	async function handleDuplicateSelected(): Promise<void> {
 		if (!selectedRecord) return;
@@ -729,6 +773,7 @@
 	class="vega-visual-overlay-root"
 	style:pointer-events="none"
 	style:--menu-scale={1 / zoomFactor}
+	bind:offsetWidth={overlayWidth}
 >
 	<!-- Decorativo (ver cabecera): el propio grupo de cajas, aparte de la región de estados de
 	     abajo. -->
@@ -776,14 +821,14 @@
 		<p
 			class="vega-visual-inline-hint"
 			aria-hidden="true"
-			style:top="{inlineHint.rect.top + inlineHint.rect.height + 10}px"
+			style:top="{inlineHint.rect.top + inlineHint.rect.height + INLINE_HINT_GEOMETRY.gap}px"
 			style:left="{Math.max(4, inlineHint.rect.left)}px"
 		>
 			<b>{inlineHint.label}</b> · {ctx.t('editor.visual.inline.typing')}
-			<kbd>⏎</kbd>
+			<!-- La tecla que APLICA según el campo (§"Inline editing"): ⏎ en `text`; en `textarea` el ⏎
+			     es salto de línea y aplica ⌘⏎ (Ctrl ⏎ fuera de Apple). -->
+			<kbd>{inlineHint.widget === 'textarea' ? applyMultilineKey : '⏎'}</kbd>
 			{ctx.t('editor.visual.inline.apply')}
-			{#if inlineHint.widget === 'textarea'}<kbd>⇧⏎</kbd>
-				{ctx.t('editor.visual.inline.newline')}{/if}
 			<kbd>Esc</kbd>
 			{ctx.t('editor.visual.inline.cancel')}
 		</p>
@@ -941,6 +986,8 @@
 				{@const pill =
 					selectedBridgeIndex >= 0 &&
 					(point.position === selectedBridgeIndex || point.position === selectedBridgeIndex + 1)}
+				{@const topPill = pill && point.position === selectedBridgeIndex}
+				{@const insertLeft = topPill && topPillCenter !== null ? `${topPillCenter}px` : undefined}
 				{@const positionText = ctx.t('editor.visual.overlay.insertLabel', {
 					position: recordIndexForInsertion(point.position) + 1,
 					total: blocksState.records.length + 1
@@ -954,8 +1001,10 @@
 					class="vega-visual-overlay-insert"
 					class:vega-visual-overlay-insert--pill={pill}
 					style:--insert-top="{point.top}px"
+					style:--insert-left={insertLeft}
 					style:--insert-touch-top="{touchTop}px"
 					style:pointer-events="auto"
+					{@attach measureTopPill(topPill)}
 					aria-disabled={structuralGuard}
 					aria-haspopup={blocksState.hasTypeMenu ? 'menu' : undefined}
 					aria-expanded={blocksState.hasTypeMenu
@@ -995,6 +1044,7 @@
 							? undefined
 							: `${upward ? point.top * zoomFactor : canvasHeight - point.top * zoomFactor}px`}
 						style:--insert-top="{point.top}px"
+						style:--insert-left={insertLeft}
 						style:--insert-touch-top="{touchTop}px"
 						bind:this={insertMenuEl}
 						onkeydown={handleInsertMenuKeydown}
@@ -1260,10 +1310,12 @@
 	   center` + `translate(-100%, -50%)` deja su borde derecho en `left` y su centro vertical en
 	   `top` a cualquier escala. Un bloque pegado al borde de arriba la baja lo justo para no
 	   recortarla. NUNCA `pointer-events` propio: lo hereda `none` del raíz, solo cada botón lo
-	   reactiva (ver cabecera, "DOS capas nuevas"). */
+	   reactiva (ver cabecera, "DOS capas nuevas"). Por ENCIMA de la fila de inserción (`z-index` 5
+	   frente a 4): la línea divisoria de la píldora pasa por detrás de la barra, nunca la cruza, y la
+	   píldora de arriba se aparta a su izquierda (`topPillCenter`). */
 	.vega-visual-overlay-toolbar {
 		position: absolute;
-		z-index: 4;
+		z-index: 5;
 		top: max(var(--toolbar-top), calc(20px * var(--menu-scale)));
 		left: clamp(
 			calc((var(--toolbar-width) + 4px) * var(--menu-scale)),
@@ -1338,7 +1390,7 @@
 	.vega-visual-overlay-insert {
 		position: absolute;
 		top: var(--insert-top);
-		left: 50%;
+		left: var(--insert-left, 50%);
 		z-index: 4;
 		display: inline-flex;
 		align-items: center;
@@ -1414,7 +1466,7 @@
 	.vega-visual-overlay-insert-menu {
 		top: var(--insert-top);
 		position: absolute;
-		left: 50%;
+		left: var(--insert-left, 50%);
 		z-index: 10;
 		margin-top: 0.9rem;
 		transform: translateX(-50%) scale(var(--menu-scale));

@@ -241,17 +241,21 @@ test.describe('actual Astro inline bridge', () => {
 		await expect(page.locator('.vega-visual-dirty')).toHaveCount(0);
 	});
 
-	test('Shift+Enter breaks the line only in a textarea; Enter applies there too', async ({
+	test('a textarea takes Enter as a line break and applies on Cmd/Ctrl+Enter; text applies on Enter', async ({
 		page
 	}) => {
 		await openEditor(page);
 		const body = await startEditing(page, 'seccion_2', 'texto');
-		await page.keyboard.press('Shift+Enter');
+		// The hint names the applying key of a textarea (⌘⏎ on Apple, Ctrl ⏎ elsewhere).
+		const hint = page.locator('.vega-visual-inline-hint');
+		await expect(hint).toContainText(/(⌘|Ctrl )⏎\s*aplicar/);
+		await page.keyboard.press('Enter');
 		await page.keyboard.type('Segunda línea.');
+		await expect(body).toHaveAttribute('contenteditable', 'plaintext-only');
 		await expect(inspectorControl(page, 'texto')).toHaveValue(
 			`${SEED.seccion_2.texto}\nSegunda línea.`
 		);
-		await page.keyboard.press('Enter');
+		await page.keyboard.press('ControlOrMeta+Enter');
 		await expect(body).not.toHaveAttribute('contenteditable');
 		await expect(inspectorControl(page, 'texto')).toHaveValue(
 			`${SEED.seccion_2.texto}\nSegunda línea.`
@@ -260,11 +264,61 @@ test.describe('actual Astro inline bridge', () => {
 		await expect
 			.poll(() => body.evaluate((node) => (node as HTMLElement).innerText))
 			.toBe(`${SEED.seccion_2.texto}\nSegunda línea.`);
-		// A single-line field never gets a break: Shift+Enter applies.
+		// A single-line field never gets a break: Enter (and Shift+Enter) applies.
 		const heading = await startEditing(page, 'seccion_2', 'heading');
+		await expect(hint).toContainText(/(?<![⌘ ])⏎\s*aplicar/);
 		await page.keyboard.press('Shift+Enter');
 		await expect(heading).not.toHaveAttribute('contenteditable');
 		await expect(inspectorControl(page, 'heading')).toHaveValue(SEED.seccion_2.heading);
+	});
+
+	test('the outline hugs the text and the hint pushes the next content instead of covering it', async ({
+		page
+	}) => {
+		await openEditor(page);
+		const frame = frameOf(page);
+		const heading = field(frame, 'seccion_2', 'heading');
+		const next = field(frame, 'seccion_2', 'texto');
+		const box = (node: ReturnType<typeof field>) =>
+			node.evaluate((element) => {
+				const { left, right, top, bottom, width } = element.getBoundingClientRect();
+				const range = element.ownerDocument.createRange();
+				range.selectNodeContents(element);
+				return { left, right, top, bottom, width, text: range.getBoundingClientRect().width };
+			});
+		const before = await box(heading);
+		const nextBefore = await box(next);
+		await startEditing(page, 'seccion_2', 'heading');
+		const editing = await box(heading);
+		// The box shrinks to the text (a few pixels of slack for the caret), the text does not move.
+		expect(editing.width).toBeLessThan(before.width);
+		expect(editing.width - editing.text).toBeLessThan(8);
+		expect(Math.abs(editing.left - before.left)).toBeLessThan(1);
+		// The tint is Vega's translucent token, computed in the CMS and sent in `appearance.soft`.
+		expect(await heading.evaluate((node) => getComputedStyle(node).backgroundColor)).toBe(
+			await page.evaluate(() => {
+				const probe = document.createElement('span');
+				probe.style.backgroundColor = 'var(--v-ol-inline-tint)';
+				document.body.append(probe);
+				const colour = getComputedStyle(probe).backgroundColor;
+				probe.remove();
+				return colour;
+			})
+		);
+		// The hint (screen coordinates) ends above the next text, which moved down to make room.
+		const hint = await page.locator('.vega-visual-inline-hint').boundingBox();
+		const frameBox = await page.locator('.vega-visual-frame').boundingBox();
+		const zoom = await page
+			.locator('.vega-visual-frame')
+			.evaluate((el) => el.getBoundingClientRect().width / (el as HTMLIFrameElement).offsetWidth);
+		const nextEditing = await box(next);
+		expect(nextEditing.top).toBeGreaterThan(nextBefore.top);
+		expect(hint!.y + hint!.height).toBeLessThanOrEqual(frameBox!.y + nextEditing.top * zoom);
+		expect(hint!.y).toBeGreaterThan(frameBox!.y + editing.bottom * zoom);
+		await page.keyboard.press('Escape');
+		await expect(heading).not.toHaveAttribute('contenteditable');
+		expect((await box(heading)).width).toBe(before.width);
+		expect((await box(next)).top).toBe(nextBefore.top);
 	});
 
 	test('pasting HTML from the system clipboard inserts plain text', async ({ page, context }) => {

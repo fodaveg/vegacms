@@ -482,15 +482,25 @@ start times out. Stale sessions, documents, edit IDs and sequences are discarded
 **Editing cue.** While a field is typed the site outlines it and tints it, distinct
 from the selection outline Vega draws outside the frame. Vega sends its theme's
 colours as `appearance { outline, soft }`, resolved at the moment of entry: `outline` is the
-computed `--v-ol-inline`, `soft` that colour at 14 % alpha (the page keeps its own theme, so
-Vega's opaque `--v-ol-inline-soft`, mixed with Vega's paper, is not used inside it). The site accepts
+computed `--v-ol-inline`, `soft` the computed `--v-ol-inline-tint` (that colour at 12 % alpha in
+light, 16 % in dark, over transparent; the page keeps its own theme, so Vega's opaque
+`--v-ol-inline-soft`, mixed with Vega's paper, is not used inside it). The site accepts
 only colour syntax (hex or one colour function, never `var()`/`url()`) and applies
 it through CSSOM (`element.style`, valid under a CSP without inline styles),
-restoring every property on exit. Without `appearance` the site uses the
+restoring every property on exit. Without `appearance` colours the site uses the
 documented default: outline and caret `#e8562a`, fill `rgb(232 86 42 / 0.12)`. The
-system `Highlight` colour is never used: it reads as a text selection. Vega shows
-a hint below the field: “<Field> · typing in the page ⏎ apply (⇧⏎ line break in a
-textarea) Esc cancel”.
+system `Highlight` colour is never used: it reads as a text selection.
+
+The outline hugs the text, as in the live-editing sheet: while typed, a block element
+in normal flow (not a flex or grid item, not floated or positioned) becomes
+`width: fit-content`, capped at the width it had so lines never rewrap wider, with
+`auto` margins that keep its `text-align`. Vega shows a hint below the field:
+“<Field> · typing in the page ⏎ apply Esc cancel” (⌘⏎, or Ctrl ⏎ outside Apple
+platforms, for a `textarea`). So that the hint never covers the content below,
+Vega always sends `appearance.hintSpace`, the page pixels to keep clear under the
+text (an integer 0–240: the hint's gap and height at the current zoom), and the
+site adds it to the element's bottom margin while it is typed. Out-of-range or
+non-numeric values reserve nothing. Every layout property is restored on exit.
 
 `BlockEditor` remains the sole owner of current/dataCurrent. Its controlled
 beginInline/updateInline/finishInline API uses existing field handlers and validation.
@@ -507,12 +517,11 @@ A Save from the parent toolbar first requests `finishField { requestValue: true 
 and waits for the final commit value; a missing acknowledgement never saves stale
 text.
 
-Enter applies (commits to the draft) in both `text` and `textarea`; Cmd/Ctrl+Enter
-also applies. Shift+Enter is the only line break and only in a `textarea`, inserted
-as a plain `\n` text node; in a `text` field it applies like Enter. Sites render
-textarea fields with `white-space: pre-line` or `pre-wrap` so saved breaks show.
-(Before 21 October 2026 a textarea took Enter as a newline; changed to match the
-live-editing sheet, where ⏎ always applies.)
+In a `text` field Enter applies (commits to the draft) and a line break is never
+inserted. In a `textarea` Enter inserts a line break as plain `\n` text and
+Cmd/Ctrl+Enter applies. Sites render textarea fields with `white-space: pre-line`
+or `pre-wrap` so saved breaks show. The hint on the canvas names the applying key
+of the current widget (⏎ for `text`, ⌘⏎ for `textarea`).
 Escape cancels and restores the text the page showed; neither action finalises during IME composition. Blur or a field
 change commits to draft only. Blur and a toolbar Save requested during composition
 wait for compositionend and its final value. The final-value wait has no short

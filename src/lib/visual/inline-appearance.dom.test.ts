@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { readInlineAppearance } from './inline-appearance';
+import {
+	INLINE_HINT_GEOMETRY,
+	inlineAppearanceMessage,
+	inlineHintSpace,
+	readInlineAppearance
+} from './inline-appearance';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -28,6 +33,46 @@ describe('readInlineAppearance', () => {
 		} as CSSStyleDeclaration);
 		expect(readInlineAppearance(host)).toBeNull();
 		expect(readInlineAppearance(undefined)).toBeNull();
+		host.remove();
+	});
+
+	test('la sonda pinta con los tokens, sin color crudo', () => {
+		const host = document.createElement('div');
+		document.body.append(host);
+		let probe: HTMLElement | null = null;
+		vi.spyOn(window, 'getComputedStyle').mockImplementation((el) => {
+			probe = el as HTMLElement;
+			return { color: 'o', backgroundColor: 's' } as CSSStyleDeclaration;
+		});
+		readInlineAppearance(host);
+		expect(probe!.style.color).toBe('var(--v-ol-inline)');
+		expect(probe!.style.backgroundColor).toBe('var(--v-ol-inline-tint)');
+		host.remove();
+	});
+});
+
+describe('hueco de la pista (hintSpace)', () => {
+	test('a zoom 1 es hueco + alto + respiro; al reducir crece en píxeles de la página', () => {
+		const { gap, height, after } = INLINE_HINT_GEOMETRY;
+		expect(inlineHintSpace(1)).toBe(gap + height + after);
+		expect(inlineHintSpace(0.5)).toBe(gap + (height + after) * 2);
+		expect(inlineHintSpace(0.58)).toBe(Math.ceil(gap + (height + after) / 0.58));
+	});
+
+	test('nunca sale del rango que acepta el sitio, ni con un zoom absurdo', () => {
+		expect(inlineHintSpace(0.01)).toBe(240);
+		expect(inlineHintSpace(0)).toBe(inlineHintSpace(1));
+		expect(inlineHintSpace(Number.NaN)).toBe(inlineHintSpace(1));
+	});
+
+	test('el mensaje lleva el hueco aunque el tema no dé colores', () => {
+		vi.spyOn(window, 'getComputedStyle').mockReturnValue({
+			color: 'x',
+			backgroundColor: 'transparent'
+		} as CSSStyleDeclaration);
+		const host = document.createElement('div');
+		document.body.append(host);
+		expect(inlineAppearanceMessage(host, 1)).toEqual({ hintSpace: inlineHintSpace(1) });
 		host.remove();
 	});
 });
