@@ -2790,7 +2790,8 @@
 		.vega-visual-retry,
 		.vega-visual-meta-retry,
 		.vega-visual-back,
-		.vega-visual-segm button {
+		.vega-visual-segm button,
+		.vega-visual-zoom-trigger {
 			min-width: 44px;
 			min-height: 44px;
 		}
