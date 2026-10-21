@@ -914,6 +914,101 @@ describe('VisualInspector.svelte', () => {
 			expect(handleBlockSaved).toHaveBeenCalledWith('b1', expect.objectContaining({ id: 'b1' }));
 		});
 
+		test('el cuerpo Markdown se edita como texto fuente, con la misma regla de guardado (21 oct 2026)', async () => {
+			// Como «Sobre mí» en fodaveg: el cuerpo es una columna `markdown` con HTML heredado. Antes
+			// quedaba fuera de «Solo textos» y desde el teléfono no había forma de tocarlo.
+			const legacy = 'Hola.\n\n<a href="/contacto" class="btn">Contacto</a>\n';
+			const model = resolveContentModel({
+				types: [
+					postType,
+					{
+						...postBlockType,
+						fields: [
+							...postBlockType.fields,
+							{
+								name: 'body',
+								type: 'text',
+								subtype: 'plain',
+								required: false,
+								readonly: false,
+								presentable: false,
+								hidden: false,
+								unique: false
+							}
+						]
+					}
+				],
+				manifestRaw: {
+					schemaVersion: 1,
+					collections: {
+						post: {
+							blocks: { collection: 'post_block', parentField: 'post', orderField: 'sort' }
+						},
+						post_block: { fields: { body: { label: 'Cuerpo', widget: 'markdown' } } }
+					}
+				}
+			});
+			expect(model.warnings).toEqual([]);
+			const withBody = model.types.find((t) => t.name === 'post_block')!;
+			const saved = {
+				id: 'b1',
+				type: 'post_block',
+				values: { post: 'rec-1', sort: 0, heading: 'Hero', body: 'Hola.' }
+			};
+			const update = vi.fn().mockResolvedValue(saved);
+			const blocks = fakeBlocksState(
+				{
+					records: [
+						{
+							id: 'b1',
+							type: 'post_block',
+							values: { post: 'rec-1', sort: 0, heading: 'Hero', body: legacy }
+						}
+					]
+				},
+				withBody,
+				structuralFields
+			);
+			mounted = mountTexts(blocks, fakeCtx(update));
+			await tick();
+
+			const row = mounted.target.querySelector<HTMLElement>('[data-field="body"]')!;
+			expect(row).not.toBeNull();
+			// Texto fuente en un `<textarea>` plano: sin barra de formato ni vista previa.
+			const source = row.querySelector<HTMLTextAreaElement>('textarea')!;
+			expect(source.value).toBe(legacy);
+			expect(row.querySelector('.vega-markdown-bar')).toBeNull();
+			expect(mounted.target.querySelector('.vega-block-rest')).toBeNull();
+
+			// Cambiado y con el HTML dentro: no se guarda, y se dice.
+			source.value = `${legacy}Y algo más.`;
+			source.dispatchEvent(new Event('input', { bubbles: true }));
+			await tick();
+			mounted.target.querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
+			for (let i = 0; i < 20 && !row.textContent?.includes('No se puede guardar'); i++) {
+				await new Promise((resolve) => setTimeout(resolve, 10));
+				await tick();
+			}
+			expect(row.textContent).toContain('No se puede guardar');
+			expect(update).not.toHaveBeenCalled();
+
+			// En Markdown, se guarda por el mismo `port.update`.
+			source.value = 'Hola.\n\n[Contacto](/contacto)\n';
+			source.dispatchEvent(new Event('input', { bubbles: true }));
+			await tick();
+			mounted.target.querySelector<HTMLButtonElement>('.vega-block-save-button')!.click();
+			for (let i = 0; i < 20 && update.mock.calls.length === 0; i++) {
+				await new Promise((resolve) => setTimeout(resolve, 10));
+				await tick();
+			}
+			expect(update).toHaveBeenCalledWith(
+				'post_block',
+				'b1',
+				{ body: 'Hola.\n\n[Contacto](/contacto)\n' },
+				expect.anything()
+			);
+		});
+
 		test('cambiar de modo NO remonta las fichas: un borrador a medio escribir sobrevive al cambio de ancho', async () => {
 			const blocks = fakeBlocksState(
 				{ records: [record('b1', 'Hero'), record('b2', 'Features')] },

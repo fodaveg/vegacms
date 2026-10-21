@@ -31,8 +31,9 @@
 	 *
 	 * **Modo «solo textos»** (`textsOnly`, Lote 12, lámina 8; lo pide `VisualInspector.svelte` por
 	 * debajo de los 900 px del lienzo): la ficha pinta SOLO los campos de texto (`texts-mode.ts`:
-	 * `text`/`textarea`) y cuenta y nombra el resto en una línea («Esta sección tiene 2 campos más
-	 * (Imágenes, Enlace)…»). Es una PRESENTACIÓN del mismo estado, no otro formulario: `current`/
+	 * `text`/`textarea`, y desde el 21 oct 2026 el `markdown` como `<textarea>` con su fuente, sin
+	 * barra de formato, `textsModeField`) y cuenta y nombra el resto en una línea («Esta sección
+	 * tiene 2 campos más (Imágenes, Enlace)…»). Es una PRESENTACIÓN del mismo estado, no otro formulario: `current`/
 	 * `dataCurrent`, el `dirty`, la validación, `handleSave` y el conflicto son los de siempre, así
 	 * que guardar desde el móvil escribe por el MISMO `onSubmit` → `port.update` con la MISMA
 	 * `expectedVersion`. La prop es REACTIVA a propósito (nunca `untrack`): la pantalla la cambia al
@@ -63,7 +64,7 @@
 	import { buildRelationFilter } from './widgets/relation-search';
 	import { settingsRoute } from '$lib/nav/routes';
 	import { fieldDisplayLabel } from '$lib/model/default-labels';
-	import { isTextWidget } from '$lib/visual/texts-mode';
+	import { isPlainTextWidget, isTextWidget, textsModeField } from '$lib/visual/texts-mode';
 	import {
 		readBlockData,
 		resolveBlockDataFields,
@@ -292,6 +293,12 @@
 	 *  declarada que falta (`missing-record`) no se puede editar en ningún modo, así que va al resto. */
 	function isTypedText(item: TypedField): boolean {
 		return item.kind !== 'missing-record' && isTextWidget(item.field.widget);
+	}
+
+	/** Control con el que se pinta un campo: en «solo textos» el `markdown` va como `<textarea>`
+	 *  con su fuente (`textsModeField`); nombre, valor y validación siguen siendo los del campo. */
+	function shown(field: ResolvedField): ResolvedField {
+		return textsOnly ? textsModeField(field) : field;
 	}
 
 	/** Lo que la ficha PINTA: en modo normal, todo; en «solo textos», solo los textos. */
@@ -567,7 +574,8 @@
 				? item.field
 				: null
 			: legacyFields.find((field) => field.name === name);
-		if (!field || field.hidden || field.schema.readonly || !isTextWidget(field.widget)) return null;
+		if (!field || field.hidden || field.schema.readonly || !isPlainTextWidget(field.widget))
+			return null;
 		return { field, source: item?.kind === 'data' ? ('data' as const) : ('record' as const) };
 	}
 
@@ -808,7 +816,12 @@
 	</button>
 {/snippet}
 
-<div class="vega-block-fields" bind:this={rootEl} data-vega-block-editor>
+<div
+	class="vega-block-fields"
+	class:vega-block-fields--texts={textsOnly}
+	bind:this={rootEl}
+	data-vega-block-editor
+>
 	{#if contextualPlacement === 'top'}{@render contextual()}{/if}
 	{#if typed && blockType === null}
 		<section class="vega-block-readonly" role="status">
@@ -906,7 +919,7 @@
 					</div>
 				{:else if item.kind === 'data'}
 					<FieldRow
-						field={item.field}
+						field={shown(item.field)}
 						value={dataCurrent[item.field.name]}
 						error={errors.byField[item.field.name] ?? null}
 						disabled={inert}
@@ -918,7 +931,7 @@
 					/>
 				{:else}
 					<FieldRow
-						field={item.field}
+						field={shown(item.field)}
 						value={current[item.field.name]}
 						error={errors.byField[item.field.name] ?? null}
 						disabled={inert || structuralFields.includes(item.field.name)}
@@ -933,7 +946,7 @@
 		{:else}
 			{#each visibleLegacyFields as field (field.name)}
 				<FieldRow
-					{field}
+					field={shown(field)}
 					value={current[field.name]}
 					error={errors.byField[field.name] ?? null}
 					disabled={inert}
@@ -982,6 +995,14 @@
 		flex-direction: column;
 		gap: var(--gap-field);
 		min-width: 0;
+	}
+
+	/* «Solo textos»: un cuerpo Markdown se escribe aquí entero, así que el `<textarea>` crece con su
+	   texto (donde el navegador sabe, `field-sizing`) y empieza alto donde no. */
+	.vega-block-fields--texts :global(textarea) {
+		field-sizing: content;
+		min-height: 5lh;
+		max-height: 70vh;
 	}
 
 	.vega-block-banner,
