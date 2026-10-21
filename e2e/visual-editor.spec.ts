@@ -2215,7 +2215,29 @@ async function barLayout(page: Page, selector: string) {
 			});
 		const retry = bar.querySelector<HTMLElement>('.vega-visual-retry');
 		const retryBox = retry?.getBoundingClientRect();
+		// El estado de guardado del editor visual: se recorta con «…» DENTRO de su caja, lleva el texto
+		// entero en `title` y no se mete debajo de lo que viene detrás (ronda 5 del QA).
+		const stateEl = bar.querySelector<HTMLElement>(
+			':scope > .vega-visual-savestate, :scope > .vega-visual-pending > summary'
+		);
+		let state: Record<string, unknown> | null = null;
+		if (stateEl) {
+			const box = stateEl.getBoundingClientRect();
+			const text = stateEl.querySelector<HTMLElement>('.vega-visual-savestate-text');
+			const top = stateEl.closest('.vega-visual-bar > *')!;
+			const after = [...bar.children]
+				.slice([...bar.children].indexOf(top) + 1)
+				.map((el) => el.getBoundingClientRect())
+				.filter((b) => b.width > 0);
+			state = {
+				title: Boolean(stateEl.getAttribute('title')),
+				ellipsis: text ? getComputedStyle(text).textOverflow : 'sin texto recortable',
+				textInside: text ? text.getBoundingClientRect().right <= box.right + 0.5 : false,
+				overlapsNext: after.length > 0 && box.right > after[0].left + 0.5
+			};
+		}
 		return {
+			state,
 			height: Math.round(r.height),
 			outside,
 			retry: retry
@@ -2274,13 +2296,33 @@ for (const publish of [false, true]) {
 		await page.getByRole('button', { name: 'Editor visual', exact: true }).click();
 		await waitConnected(page, 3);
 		await openStructure(page);
+		// Ronda 5 (`r4c-estado-titulo-largo-1440.png`): con el título largo, «Sin cambios locales» se
+		// cortaba sin «…» y sin `title`, metido bajo el grupo de dispositivos.
+		const stateOk = { title: true, ellipsis: 'ellipsis', textInside: true, overlapsNext: false };
+		for (const width of widths) {
+			await page.setViewportSize({ width, height: 900 });
+			const layout = await barLayout(page, '.vega-visual-bar');
+			expect(layout, `título largo, limpia, a ${width}`).toMatchObject({
+				height: clean[width],
+				outside: [],
+				state: stateOk
+			});
+			if (width === 1440)
+				await page.screenshot({
+					path: testInfo.outputPath(`barra-titulo-largo-1440${publish ? '-publicar' : ''}.png`)
+				});
+		}
 		// Pendiente, y después error de guardado con «Reintentar» (el campo obligatorio vacío).
 		await page.locator('[data-vega-tree-row="seccion_1"]').click();
 		await headingInput(page).fill('Cita destacada con un nombre largo que no cabe en la barra');
 		for (const width of widths) {
 			await page.setViewportSize({ width, height: 900 });
 			const layout = await barLayout(page, '.vega-visual-bar');
-			expect(layout, `pendiente a ${width}`).toMatchObject({ height: clean[width], outside: [] });
+			expect(layout, `pendiente a ${width}`).toMatchObject({
+				height: clean[width],
+				outside: [],
+				state: stateOk
+			});
 		}
 		await page.setViewportSize({ width: 1440, height: 900 });
 		await visibleInspectorBody(page).getByRole('button', { name: 'Guardar', exact: true }).click();
@@ -2291,7 +2333,8 @@ for (const publish of [false, true]) {
 			expect(layout, `error a ${width}`).toMatchObject({
 				height: clean[width],
 				outside: [],
-				retry: { clipped: false, inside: true, text: 'Reintentar' }
+				retry: { clipped: false, inside: true, text: 'Reintentar' },
+				state: stateOk
 			});
 			// El mensaje completo sigue disponible aunque se recorte.
 			await expect(

@@ -1421,7 +1421,7 @@
 					{#if saveErrorBlockId}<span class="vega-visual-savestate-text" role="alert"
 							>{ctx.t('editor.visual.bar.saveError', { label: saveErrorLabel })}</span
 						>{:else if blocks.anySaving || blocks.structuralBusy}<span
-							class="vega-visual-saved-at--saving"
+							class="vega-visual-saved-at--saving vega-visual-savestate-text"
 							role="status">{ctx.t('editor.saving')}</span
 						>{:else}<span class="vega-visual-dirty vega-visual-savestate-text" role="status"
 							>{ctx.t(
@@ -1473,14 +1473,21 @@
 				><Icon id="update" size={14} />{ctx.t('common.retry')}</button
 			>
 		{:else if blocks.anySaving || blocks.structuralBusy}
-			<span class="vega-visual-savestate vega-visual-savestate--saving vega-visual-saved-at--saving"
-				><i aria-hidden="true"></i><span role="status">{ctx.t('editor.saving')}</span></span
+			<span
+				class="vega-visual-savestate vega-visual-savestate--saving vega-visual-saved-at--saving"
+				title={ctx.t('editor.saving')}
+				><i aria-hidden="true"></i><span class="vega-visual-savestate-text" role="status"
+					>{ctx.t('editor.saving')}</span
+				></span
 			>
 		{:else}
+			<!-- Con poco sitio (un título largo) el estado se recorta con «…» dentro de su caja y se lee
+			     entero en el `title` (ronda 5 del QA de fodaveg: se cortaba a «Sin cambios local»). -->
 			<span
 				class="vega-visual-savestate vega-visual-local-state"
 				class:vega-visual-savestate--saved={savedAtText}
-				><i aria-hidden="true"></i><span role="status"
+				title={savedAtText ?? ctx.t('editor.noLocalChanges')}
+				><i aria-hidden="true"></i><span class="vega-visual-savestate-text" role="status"
 					>{#if savedAtText}<span class="vega-visual-saved-at">{savedAtText}</span>{:else}{ctx.t(
 							'editor.noLocalChanges'
 						)}{/if}</span
@@ -1982,8 +1989,11 @@
 			min-width: 6rem;
 		}
 
+		/* `border-box`: el relleno cuenta dentro del 100 %, o el resumen se salía 16 px de su caja y se
+		   metía bajo el grupo de dispositivos (ronda 5 del QA de fodaveg). */
 		.vega-visual-bar > .vega-visual-savestate,
 		.vega-visual-pending > summary {
+			box-sizing: border-box;
 			max-width: 100%;
 			overflow: hidden;
 		}
