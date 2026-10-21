@@ -11,6 +11,19 @@
 	 * inyectar ni un nodo en su DOM — y aunque pudiera, el contorno heredaría (y ensuciaría) el
 	 * CSS del sitio del cliente. Se dibuja fuera, con el `rect` que manda el puente.
 	 *
+	 * **Nada sobre la página (QA de fodaveg, 21 oct 2026; manda sobre lo que digan los párrafos de
+	 * más abajo sobre «barra flotante» y «píldoras»).** Sobre la hoja solo se dibuja el CONTORNO,
+	 * por fuera del bloque. Lo demás tapaba texto del sitio —la etiqueta y la barra encima del
+	 * bloque cubrían el subtítulo de «Sobre mí» y de «Música» y la última línea de la sección
+	 * anterior en «Blog»; el «+» de la junta, «desarrollo web, Swift…»—, así que vive en el
+	 * ESCENARIO, fuera del iframe: el tipo, el nombre, «Sección N de M», las acciones (arrastrar,
+	 * subir, bajar, duplicar, borrar), los avisos y la llamada de la página vacía, en una franja
+	 * encima de la hoja (`chromeTarget`); los «+» de inserción, en el margen a su izquierda, a la
+	 * altura de cada junta (`gutterTarget`), visibles al pasar por la junta del margen o con el foco
+	 * de teclado. Los pinta `portal.ts`: este componente sigue siendo su ÚNICO dueño (estado,
+	 * manejadores, foco), solo cambia DÓNDE se pintan. La pista de la edición en línea sigue bajo el
+	 * campo que se escribe porque el sitio le deja ese hueco (`hintSpace`), no tapa nada.
+	 *
 	 * **`pointer-events: none` de arriba abajo, en el contenedor RAÍZ y en cada caja — sigue siendo
 	 * la pieza de diseño CENTRAL de este componente, no un detalle.** El lienzo tiene que poder
 	 * hacer scroll con normalidad y el sitio tiene que seguir recibiendo los clics de sus propios
@@ -232,7 +245,8 @@
 	import { typeMenuItems, typeMenuKeydownIndex } from './type-menu';
 	import { resolveInsertPosition } from './insert-position';
 	import { INLINE_HINT_GEOMETRY } from './inline-appearance';
-	import { outlineRect, placeChrome, type ChromePlacement } from './overlay-chrome';
+	import { outlineRect } from './overlay-chrome';
+	import { portalTo } from './portal';
 	import { currentPlatform, isApplePlatform } from '$lib/form/save-shortcut';
 	import type { VisualBlock } from './bridge-client';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
@@ -278,6 +292,13 @@
 		/** Escala del escenario, solo para mantener legible el menú de inserción. */
 		zoomFactor?: number;
 		canvasHeight?: number;
+		/** Franja del escenario ENCIMA de la hoja (fuera del iframe): ahí van el nombre, la posición
+		 *  y las acciones del seleccionado, la pista de la edición en línea y los avisos. `null` (un
+		 *  montaje aislado) = se pintan dentro del overlay. Ver cabecera, «Nada sobre la página». */
+		chromeTarget?: HTMLElement | null;
+		/** Margen del escenario a la IZQUIERDA de la hoja, mismo alto que ella: ahí van los «+» de
+		 *  inserción, a la altura de cada junta. `null` = dentro del overlay. */
+		gutterTarget?: HTMLElement | null;
 	}
 
 	let {
@@ -293,7 +314,9 @@
 		onStructuralChange,
 		paletteDragType = null,
 		zoomFactor = 1,
-		canvasHeight
+		canvasHeight,
+		chromeTarget = null,
+		gutterTarget = null
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -364,87 +387,31 @@
 	const structuralGuard = $derived(
 		blocksState.anyDirty || blocksState.anySaving || blocksState.structuralBusy
 	);
-	/** Hueco desde el borde DERECHO del bloque seleccionado hasta la barra (lámina, `.tb { right:
-	 *  12px }`). La barra y la etiqueta van en una fila FUERA del bloque (`placeChrome`, 21 oct
-	 *  2026): la lámina la centraba sobre el borde superior y, en una sección cuyo contenido llega
-	 *  a ese borde, tapaba su primera línea. Comparte fila con la etiqueta del tipo y queda a 4 px del
-	 *  contorno, así que se sigue leyendo como parte de ESTE bloque y no del de encima. */
-	const TOOLBAR_INSET = 12;
-	/** Ancho de la barra, independiente del zoom, para mantener todas las acciones en el lienzo. */
-	let toolbarWidth = $state(0);
-	/** Alto de la barra, para que un bloque pegado arriba no la recorte (ver su CSS). */
-	let toolbarHeight = $state(0);
 	/** Ancho del overlay en píxeles de la página (el escenario lo escala, `offsetWidth` no). */
 	let overlayWidth = $state(0);
 	/** Alto del overlay, mismo sistema: el sitio que queda bajo un bloque para su contorno. */
 	let overlayHeight = $state(0);
 
-	/** Fila de controles (etiqueta y, en el seleccionado, barra) de un bloque: fuera de él, ver
-	 *  `placeChrome`. La del seleccionado mide lo que la barra (40 px mientras no se ha medido). */
-	function chromeFor(rect: { top: number; height: number }, selected: boolean): ChromePlacement {
-		return placeChrome({
-			top: rect.top,
-			height: rect.height,
-			canvasHeight: overlayHeight,
-			scale: 1 / zoomFactor,
-			rowHeight: selected ? Math.max(toolbarHeight > 0 ? toolbarHeight : 40, 22) : 22
-		});
-	}
-	const selectedChrome = $derived(
-		selectedBridgeBlock === null ? null : chromeFor(selectedBridgeBlock.rect, true)
+	/** Página sin ninguna sección (ni en Vega ni en el sitio): la franja ofrece crear la primera. */
+	const emptyPage = $derived(
+		status === 'ready' &&
+			!blocksState.hidden &&
+			blocksState.records.length === 0 &&
+			blocks.length === 0 &&
+			paletteDragType === null
 	);
-	/** Ancho máximo físico de la etiqueta del seleccionado: comparte fila con la barra, a su
-	 *  izquierda (12 px de margen a cada lado del bloque y 12 entre las dos). */
-	function selectedLabelMax(width: number): string | undefined {
-		if (toolbarWidth <= 0) return undefined;
-		return `${Math.max(0, width * zoomFactor - 36 - toolbarWidth)}px`;
-	}
-	/** Ancho físico de la píldora del hueco de ARRIBA del seleccionado, la que comparte fila con la
-	 *  barra flotante. */
-	let topPillWidth = $state(0);
 
-	/**
-	 * Centro horizontal (px de la página) de la píldora de arriba del seleccionado. La lámina la
-	 * centra sobre la línea divisoria y deja la barra a la derecha SIN solaparse: centrada mientras
-	 * quepa; si el lienzo es estrecho, se desplaza a la izquierda hasta quedar a 12 px de la barra;
-	 * si a la izquierda no cabe (bloque estrecho con la barra pegada a ese borde), va a su derecha
-	 * (nunca fuera del lienzo). `null` = centrada (sin barra o aún sin medir).
-	 */
-	const topPillCenter = $derived.by(() => {
-		if (!selectedBridgeBlock || toolbarWidth <= 0 || topPillWidth <= 0 || overlayWidth <= 0)
-			return null;
-		const scale = 1 / zoomFactor;
-		const rect = selectedBridgeBlock.rect;
-		const toolbarRight = Math.min(
-			Math.max((toolbarWidth + 4) * scale, rect.left + rect.width - TOOLBAR_INSET),
-			overlayWidth - 4 * scale
-		);
-		const toolbarLeft = toolbarRight - toolbarWidth * scale;
-		const half = (topPillWidth * scale) / 2;
-		const center = overlayWidth / 2;
-		const leftMost = half + 4 * scale;
-		const rightMost = overlayWidth - half - 4 * scale;
-		// A la izquierda de la barra si cabe; si no (bloque estrecho, barra pegada a la izquierda),
-		// a su derecha; y si tampoco, centrada.
-		const leftOfBar = toolbarLeft - 12 * scale - half;
-		if (leftOfBar >= leftMost) return Math.min(center, leftOfBar);
-		const rightOfBar = toolbarRight + 12 * scale + half;
-		if (rightOfBar <= rightMost) return Math.max(center, rightOfBar);
-		return center;
-	});
-
-	/** Mide la píldora de arriba del seleccionado (`topPillWidth`) mientras lo sea. */
-	function measureTopPill(active: boolean) {
-		return (node: HTMLElement) => {
-			if (!active) return;
-			const read = () => (topPillWidth = node.offsetWidth);
-			read();
-			if (typeof ResizeObserver === 'undefined') return;
-			const observer = new ResizeObserver(read);
-			observer.observe(node);
-			return () => observer.disconnect();
-		};
-	}
+	/** Tipo declarado del seleccionado (icono y nombre de la franja) y si el sitio sabe pintarlo. */
+	const selectedType = $derived(
+		(selectedRecord === null ? null : blocksState.blockTypeOf(selectedRecord)) ??
+			(selectedBridgeBlock === null ? null : blockTypeByName.get(selectedBridgeBlock.type)) ??
+			null
+	);
+	const selectedUnsupported = $derived(
+		selectedBridgeBlock !== null &&
+			(decoratedBlocks.find((item) => item.block.id === selectedBridgeBlock.id)?.unsupported ??
+				false)
+	);
 
 	async function handleDuplicateSelected(): Promise<void> {
 		if (!selectedRecord) return;
@@ -643,16 +610,26 @@
 		insertMenuTriggerEl = null;
 	}
 
-	/** Sólo el control táctil de los extremos se separa del borde: 22px de radio + 2 de
-	 *  offset + 2 de outline. El punto real y su índice no cambian. Un punto fuera del lienzo
-	 *  sigue fuera: no apilamos acciones de secciones no visibles en el borde. */
-	function insertTouchTop(point: InsertPoint): number {
-		if (point.position !== 0 && point.position !== blocks.length) return point.top;
-		const inset = 26 / zoomFactor;
-		if (canvasHeight === undefined) return point.top;
-		const height = canvasHeight / zoomFactor;
-		if (point.top < 0 || point.top > height) return point.top;
-		return Math.min(Math.max(point.top, inset), Math.max(inset, height - inset));
+	/** Lo que se separan del borde de la hoja las juntas de los extremos: medio «+» táctil (22 px)
+	 *  más su anillo de foco (2 + 2), para que ni el botón ni su foco se salgan del margen. */
+	const GAP_HALF = 26;
+
+	/** Altura FÍSICA (px de pantalla, desde el borde superior de la hoja) de una junta en el margen
+	 *  del escenario: la de la página por el zoom. Las de los extremos se separan del borde lo justo
+	 *  para que su franja no se salga de la hoja; el punto real y su índice no cambian. */
+	function gapTop(point: InsertPoint): number {
+		const y = point.top * zoomFactor;
+		if (canvasHeight === undefined || canvasHeight <= 0) return y;
+		if (point.position !== 0 && point.position !== blocks.length) return y;
+		return Math.min(Math.max(y, GAP_HALF), Math.max(GAP_HALF, canvasHeight - GAP_HALF));
+	}
+
+	/** Solo las juntas que se ven en la hoja: una fuera de vista no se apila en el borde ni cae
+	 *  sobre la franja de arriba. Sin medida (consumidor aislado, lienzo aún sin medir), todas. */
+	function gapVisible(point: InsertPoint): boolean {
+		if (canvasHeight === undefined || canvasHeight <= 0) return true;
+		const y = point.top * zoomFactor;
+		return y >= 0 && y <= canvasHeight;
 	}
 
 	/** Abre hacia el lado con más espacio real del lienzo. Sin medida (consumidor aislado),
@@ -835,28 +812,11 @@
 				style:--room-left="{block.rect.left}px"
 				style:--room-right="{overlayWidth - block.rect.left - block.rect.width}px"
 				style:--room-bottom="{overlayHeight - outline.top - outline.height}px"
-				style:--label-y="{chromeFor(block.rect, block.id === selectedId).center - block.rect.top}px"
-				style:--label-max={block.id === selectedId ? selectedLabelMax(block.rect.width) : undefined}
+				data-unsupported={unsupported ? 'true' : undefined}
+				data-unpublished={block.unpublished ? 'true' : undefined}
 			>
-				<span
-					class="vega-visual-overlay-label"
-					class:vega-visual-overlay-label--unsupported={unsupported}
-				>
-					<!-- Lámina «edición en vivo», `.lbl`: icono y NOMBRE del tipo («Texto»), no su id. Sin
-					     vocabulario que lo nombre, el id que manda el sitio. -->
-					<Icon id={declared?.icon ?? 'document'} size={12} strokeWidth={1.8} />
-					{declared?.label ?? block.type}
-					{#if unsupported}
-						<Icon id="warning" size={12} />
-						<span>({ctx.t('editor.visual.overlay.unsupported')})</span>
-					{/if}
-					{#if block.unpublished}
-						<!-- Ver cabecera, "Sección no pública": texto, no solo color. -->
-						<span class="vega-visual-overlay-label-unpublished">
-							{ctx.t('editor.visual.unpublished')}
-						</span>
-					{/if}
-				</span>
+				<!-- Solo el contorno: el nombre del tipo y sus marcas («no soportado», «No pública») van
+				     en la franja del escenario (ver «Nada sobre la página» en la cabecera). -->
 				{#if outline.empty}
 					<span class="vega-visual-overlay-empty-name">
 						{ctx.t('editor.visual.overlay.emptyBlock', { label: declared?.label ?? block.type })}
@@ -885,66 +845,122 @@
 		</p>
 	{/if}
 
-	<!-- Barra flotante del seleccionado (ver cabecera, "Duplicar/mover/borrar"): HERMANA del grupo
-	     de cajas, no `aria-hidden` — controles de verdad. El contenedor NO fija `pointer-events`
-	     (hereda `none` del raíz); solo cada `<button>` lo pone en `auto`. -->
-	{#if !blocksState.hidden && selectedRecord && selectedBridgeBlock}
-		{@const label = blocksState.blockTitle(selectedRecord)}
-		<div
-			class="vega-visual-overlay-toolbar"
-			bind:offsetWidth={toolbarWidth}
-			bind:offsetHeight={toolbarHeight}
-			style:--toolbar-width="{toolbarWidth}px"
-			style:--toolbar-height={toolbarHeight > 0 ? `${toolbarHeight}px` : undefined}
-			role="group"
-			aria-label={ctx.t('editor.visual.overlay.toolbar.label', { label })}
-			style:--toolbar-top="{selectedChrome?.center ?? selectedBridgeBlock.rect.top}px"
-			style:--toolbar-right="{selectedBridgeBlock.rect.left +
-				selectedBridgeBlock.rect.width -
-				TOOLBAR_INSET}px"
-		>
-			<!-- Asa de arrastre (ver cabecera, "Arrastrar una sección por el lienzo"): mismo glifo,
-			     misma clave de rótulo y mismo cableado del controlador que el asa de `RecordBlocks`
-			     y de las dos tablas. `draggable` cae a la vez que `disabled` para que un bloque
-			     congelado por el guard tampoco se pueda agarrar (un `disabled` no basta: el arrastre
-			     nativo no lo mira). -->
-			<button
-				type="button"
-				class="vega-visual-overlay-toolbar-btn vega-visual-overlay-handle"
-				style:pointer-events="auto"
-				disabled={structuralGuard || selectedBridgeIndex < 0}
-				draggable={!structuralGuard && selectedBridgeIndex >= 0}
-				aria-label={ctx.t('list.reorder.handleLabel', { label })}
-				ondragstart={(event) => dnd.handleDragStart(event, selectedBridgeIndex)}
-				ondragend={dnd.handleDragEnd}
-				onkeydown={(event) => dnd.handleHandleKeydown(event, selectedBridgeIndex)}
-			>
-				<span aria-hidden="true">⠿</span>
-			</button>
-			<span class="vega-visual-overlay-toolbar-sep" aria-hidden="true"></span>
-			{#each selectedActions as action (action.key)}
-				{#if action.key === 'duplicate'}<span
-						class="vega-visual-overlay-toolbar-sep"
-						aria-hidden="true"
-					></span>{/if}
-				{#if action.key !== 'duplicate' || blocksState.blockDuplicateAllowed}
+	<!-- Franja del seleccionado (ver cabecera, «Nada sobre la página»): se PINTA en el escenario,
+	     encima de la hoja (`chromeTarget`), con el tipo, el nombre, «Sección N de M» y las acciones
+	     (arrastrar, subir, bajar, duplicar, borrar); este componente sigue siendo su dueño. El
+	     envoltorio `display: contents` se queda aquí para que Svelte retire el bloque sin tocar el
+	     destino (`portal.ts`). Controles de verdad: fuera de `aria-hidden`, con `pointer-events`
+	     propio (la franja no está sobre el sitio). -->
+	<div class="vega-visual-portal">
+		<div class="vega-visual-chrome-bar" {@attach portalTo(chromeTarget)}>
+			{#if !blocksState.hidden && selectedRecord}
+				{@const label = blocksState.blockTitle(selectedRecord)}
+				{@const typeLabel = selectedType?.label ?? selectedBridgeBlock?.type ?? label}
+				<p class="vega-visual-chrome-main">
+					<!-- Lámina «edición en vivo», `.lbl`: icono y NOMBRE del tipo («Texto»), no su id. -->
+					<span
+						class="vega-visual-overlay-label"
+						class:vega-visual-overlay-label--unsupported={selectedUnsupported}
+					>
+						<Icon id={selectedType?.icon ?? 'document'} size={12} strokeWidth={1.8} />
+						{typeLabel}
+						{#if selectedUnsupported}
+							<Icon id="warning" size={12} />
+							<span>({ctx.t('editor.visual.overlay.unsupported')})</span>
+						{/if}
+						{#if selectedBridgeBlock?.unpublished}
+							<!-- Ver cabecera, "Sección no pública": texto, no solo color. -->
+							<span class="vega-visual-overlay-label-unpublished">
+								{ctx.t('editor.visual.unpublished')}
+							</span>
+						{/if}
+					</span>
+					{#if label !== typeLabel}<span class="vega-visual-chrome-name" title={label}>{label}</span
+						>{/if}
+					<span class="vega-visual-chrome-position"
+						>{ctx.t('editor.visual.inspector.position', {
+							position: selectedIndex + 1,
+							total: blocksState.records.length
+						})}{#if selectedBridgeBlock === null}
+							· {ctx.t('editor.visual.chrome.notPainted')}{/if}</span
+					>
+				</p>
+				<div
+					class="vega-visual-overlay-toolbar"
+					role="group"
+					aria-label={ctx.t('editor.visual.overlay.toolbar.label', { label })}
+				>
+					<!-- Asa de arrastre (ver cabecera, "Arrastrar una sección por el lienzo"): mismo glifo,
+					     misma clave de rótulo y mismo cableado del controlador que el asa de `RecordBlocks`
+					     y de las dos tablas. `draggable` cae a la vez que `disabled` para que un bloque
+					     congelado por el guard tampoco se pueda agarrar (un `disabled` no basta: el
+					     arrastre nativo no lo mira). Sin contorno en el lienzo no hay dónde soltar. -->
 					<button
 						type="button"
-						class="vega-visual-overlay-toolbar-btn"
-						class:vega-visual-overlay-toolbar-btn--danger={action.key === 'delete'}
+						class="vega-visual-overlay-toolbar-btn vega-visual-overlay-handle"
 						style:pointer-events="auto"
-						disabled={action.disabled}
-						aria-label={ctx.t(action.label, { label })}
-						onclick={() => void action.run()}
+						disabled={structuralGuard || selectedBridgeIndex < 0}
+						draggable={!structuralGuard && selectedBridgeIndex >= 0}
+						aria-label={ctx.t('list.reorder.handleLabel', { label })}
+						ondragstart={(event) => dnd.handleDragStart(event, selectedBridgeIndex)}
+						ondragend={dnd.handleDragEnd}
+						onkeydown={(event) => dnd.handleHandleKeydown(event, selectedBridgeIndex)}
 					>
-						<span class="vega-visual-overlay-toolbar-icon">
-							<Icon id={action.icon} size={15} strokeWidth={1.6} />
-						</span>
+						<span aria-hidden="true">⠿</span>
 					</button>
-				{/if}
-			{/each}
+					<span class="vega-visual-overlay-toolbar-sep" aria-hidden="true"></span>
+					{#each selectedActions as action (action.key)}
+						{#if action.key === 'duplicate'}<span
+								class="vega-visual-overlay-toolbar-sep"
+								aria-hidden="true"
+							></span>{/if}
+						{#if action.key !== 'duplicate' || blocksState.blockDuplicateAllowed}
+							<button
+								type="button"
+								class="vega-visual-overlay-toolbar-btn"
+								class:vega-visual-overlay-toolbar-btn--danger={action.key === 'delete'}
+								style:pointer-events="auto"
+								disabled={action.disabled}
+								aria-label={ctx.t(action.label, { label })}
+								onclick={() => void action.run()}
+							>
+								<span class="vega-visual-overlay-toolbar-icon">
+									<Icon id={action.icon} size={15} strokeWidth={1.6} />
+								</span>
+							</button>
+						{/if}
+					{/each}
+				</div>
+			{:else if emptyPage}
+				<!-- Página sin secciones (QA de fodaveg): el lienzo no tenía ni un «+». La llamada abre
+				     el MISMO catálogo de tipos que los «+» de las juntas, en la posición 0. -->
+				<div class="vega-visual-chrome-main vega-visual-chrome-empty">
+					<button
+						type="button"
+						class="vega-visual-empty-add"
+						style:pointer-events="auto"
+						aria-disabled={structuralGuard}
+						aria-haspopup={blocksState.hasTypeMenu ? 'menu' : undefined}
+						aria-expanded={blocksState.hasTypeMenu ? insertMenuPosition === 0 : undefined}
+						aria-controls={blocksState.hasTypeMenu ? insertMenuId(0) : undefined}
+						onclick={(event) => handleInsertClick(0, event)}
+						><Icon id="plus" size={14} strokeWidth={2} />{ctx.t(
+							'editor.visual.chrome.addFirst'
+						)}</button
+					>
+					{#if blocksState.hasTypeMenu && insertMenuPosition === 0}
+						{@render typeMenu(
+							0,
+							ctx.t('editor.visual.chrome.addFirst'),
+							false,
+							canvasHeight === undefined || canvasHeight <= 0 ? undefined : canvasHeight
+						)}
+					{/if}
+				</div>
+			{/if}
+			{@render statusRegion()}
 		</div>
-	{/if}
+	</div>
 
 	<!-- Destinos del arrastre (ver cabecera, "Por qué hay una capa de destinos que solo existe
 	     DURANTE el arrastre"): montada y desmontada con el gesto —REORDEN o PALETA, ver cabecera,
@@ -1024,142 +1040,134 @@
 		</div>
 	{/if}
 
-	<!-- Puntos de inserción (ver cabecera): mismo criterio de capa hermana + `pointer-events` solo
-	     en los botones. Se retiran MIENTRAS dura un arrastre —REORDEN o PALETA—: caen justo en los
-	     huecos entre contornos, que es donde el puntero suelta, y un botón sin manejador de `drop`
-	     se traga el evento y cancela el gesto sin decir nada. Insertar durante un arrastre no es una
-	     acción posible, así que no se pierde nada quitándolos (y el `$effect` de arriba cierra el
-	     menú de tipos si estaba abierto cuando cualquiera de los dos gestos empieza). Tampoco hay
-	     ninguno durante una edición en línea (`inlineId`): se escribe en la página y nada del
-	     overlay debe caer sobre ese texto. -->
-	{#if !blocksState.hidden && insertPoints.length > 0 && dragState.fromIndex === null && paletteDragType === null && inlineId === null}
-		<div class="vega-visual-overlay-insert-points">
-			{#each insertPoints as point (point.position)}
-				{@const destination = insertionLabel(point.position)}
-				{@const upward = insertMenuOpensUpward(point)}
-				{@const touchTop = insertTouchTop(point)}
-				{@const pill =
-					selectedBridgeIndex >= 0 &&
-					(point.position === selectedBridgeIndex || point.position === selectedBridgeIndex + 1)}
-				{@const topPill = pill && point.position === selectedBridgeIndex}
-				{@const insertLeft = topPill && topPillCenter !== null ? `${topPillCenter}px` : undefined}
-				{@const positionText = ctx.t('editor.visual.overlay.insertLabel', {
-					position: recordIndexForInsertion(point.position) + 1,
+	<!-- Puntos de inserción (ver cabecera): un «+» por junta, en el MARGEN del escenario a la
+	     izquierda de la hoja (`gutterTarget`), a la altura de la junta — nunca sobre la página
+	     (QA de fodaveg, 21 oct 2026: tapaba «desarrollo web, Swift…»). Se ve al pasar el ratón por
+	     la junta del margen, con el foco de teclado o con su menú abierto (y siempre con dedo, que no
+	     tiene «pasar por encima»). Se retiran MIENTRAS dura un arrastre —REORDEN o PALETA—: caen
+	     justo en los huecos donde se suelta, y un botón sin manejador de `drop` se traga el evento.
+	     Tampoco hay ninguno durante una edición en línea (`inlineId`). -->
+	<div class="vega-visual-portal">
+		<div class="vega-visual-gutter-layer" {@attach portalTo(gutterTarget)}>
+			{#if !blocksState.hidden && insertPoints.length > 0 && dragState.fromIndex === null && paletteDragType === null && inlineId === null}
+				{#each insertPoints.filter(gapVisible) as point (point.position)}
+					{@const destination = insertionLabel(point.position)}
+					{@const upward = insertMenuOpensUpward(point)}
+					{@const top = gapTop(point)}
+					{@const positionText = ctx.t('editor.visual.overlay.insertLabel', {
+						position: recordIndexForInsertion(point.position) + 1,
+						total: blocksState.records.length + 1
+					})}
+					<div
+						class="vega-visual-gap"
+						class:vega-visual-gap--open={insertMenuPosition === point.position}
+						style:top="{top}px"
+						style:pointer-events="auto"
+					>
+						<!-- Con menú de tipos (`hasTypeMenu`), mismo contrato APG que `.vega-tree-add` de
+						     `VisualBlockTree.svelte`: `aria-haspopup`/`aria-expanded`/`aria-controls` en
+						     el disparador. Sin menú (modo homogéneo), ninguno de los tres. -->
+						<button
+							type="button"
+							class="vega-visual-overlay-insert"
+							style:pointer-events="auto"
+							aria-disabled={structuralGuard}
+							aria-haspopup={blocksState.hasTypeMenu ? 'menu' : undefined}
+							aria-expanded={blocksState.hasTypeMenu
+								? insertMenuPosition === point.position
+								: undefined}
+							aria-controls={blocksState.hasTypeMenu ? insertMenuId(point.position) : undefined}
+							aria-label={`${positionText}: ${destination}`}
+							title={destination}
+							onclick={(event) => handleInsertClick(point.position, event)}
+						>
+							<Icon id="plus" size={14} strokeWidth={2} />
+						</button>
+						{#if blocksState.hasTypeMenu && insertMenuPosition === point.position}
+							{@render typeMenu(
+								point.position,
+								destination,
+								upward,
+								canvasHeight === undefined || canvasHeight <= 0
+									? undefined
+									: upward
+										? top
+										: canvasHeight - top
+							)}
+						{/if}
+					</div>
+				{/each}
+			{/if}
+		</div>
+	</div>
+</div>
+
+<!-- Menú de tipos de un punto de inserción (o de la llamada de la página vacía): mismo algoritmo de
+     foco que el menú «Añadir sección» del árbol (`type-menu.ts`, compartido). Se ancla junto a su
+     disparador; `upward` lo abre hacia arriba cuando abajo queda menos sitio en el lienzo. -->
+{#snippet typeMenu(
+	position: number,
+	destination: string,
+	upward: boolean,
+	space: number | undefined
+)}
+	<div
+		id={insertMenuId(position)}
+		class="vega-visual-overlay-insert-menu"
+		class:vega-visual-overlay-insert-menu--up={upward}
+		role="menu"
+		tabindex="-1"
+		aria-label={destination}
+		style:pointer-events="auto"
+		style:--menu-space={space === undefined ? undefined : `${space}px`}
+		bind:this={insertMenuEl}
+		onkeydown={handleInsertMenuKeydown}
+		onfocusout={handleInsertMenuFocusOut}
+	>
+		<p class="vega-visual-insert-destination" title={destination}>
+			<span
+				>{ctx.t('editor.visual.insert.menuTitle', {
+					position: recordIndexForInsertion(position) + 1,
 					total: blocksState.records.length + 1
-				})}
-				<!-- Con menú de tipos (`hasTypeMenu`), mismo contrato APG que `.vega-tree-add` de
-				     `VisualBlockTree.svelte`: `aria-haspopup`/`aria-expanded`/`aria-controls` en el
-				     disparador. Sin menú (modo homogéneo), ninguno de los tres — igual que el botón
-				     "Añadir" del árbol en su rama sin menú. -->
+				})}</span
+			>
+		</p>
+		<div role="presentation" class="vega-visual-insert-options">
+			{#each blocksState.blockTypes as blockType (blockType.name)}
 				<button
 					type="button"
-					class="vega-visual-overlay-insert"
-					class:vega-visual-overlay-insert--pill={pill}
-					style:--insert-top="{point.top}px"
-					style:--insert-left={insertLeft}
-					style:--insert-touch-top="{touchTop}px"
-					style:pointer-events={pill ? 'none' : 'auto'}
-					{@attach measureTopPill(topPill)}
-					aria-disabled={structuralGuard}
-					aria-haspopup={blocksState.hasTypeMenu ? 'menu' : undefined}
-					aria-expanded={blocksState.hasTypeMenu
-						? insertMenuPosition === point.position
-						: undefined}
-					aria-controls={blocksState.hasTypeMenu ? insertMenuId(point.position) : undefined}
-					aria-label={pill ? `${positionText}: ${destination}` : destination}
-					title={destination}
-					onclick={(event) => handleInsertClick(point.position, event)}
+					role="menuitem"
+					tabindex="-1"
+					class="vega-visual-overlay-insert-menu-item"
+					onclick={() => handleInsertMenuSelect(position, blockType)}
 				>
-					<!-- Píldora de un hueco del SELECCIONADO: oculta en reposo (no puede tapar su contenido,
-					     21 oct 2026). Solo su «+» atrapa el puntero (el botón va a `none`): pasar por él, el
-					     foco de teclado o el menú abierto la muestran entera (ver su CSS). -->
-					{#if pill}
-						<span class="vega-visual-overlay-insert-hit" style:pointer-events="auto"
-							><Icon id="plus" size={14} strokeWidth={2} /></span
-						>
-					{:else}
-						<Icon id="plus" size={14} strokeWidth={2} />
-					{/if}
-					<!-- Lámina `.ins`: en los dos huecos del bloque seleccionado el «+» dice su posición;
-					     el resto se queda en un punto, para no llenar la página de rótulos. -->
-					{#if pill}<span class="vega-visual-overlay-insert-text">{positionText}</span>{/if}
-				</button>
-				{#if blocksState.hasTypeMenu && insertMenuPosition === point.position}
-					<!-- Mismo algoritmo de foco que el menú "Añadir sección" que existía antes en
-					     `VisualBlockTree.svelte` (`type-menu.ts`, ver cabecera del script, EXTRAÍDO de
-					     ahí para que este menú lo comparta): el marcado y el posicionamiento SÍ son
-					     propios de aquí, anclados al mismo eje del disparador (ajustado sólo en coarse) en vez de
-					     a `top: 100%` de un botón en flujo normal — su custom property
-					     coincide con el mismo eje Y del "+" (ver el CSS, la dirección hacia arriba/abajo
-					     la decide `insertMenuOpensUpward` con `margin-top`/`transform`), y queda
-					     recortado dentro del lienzo porque vive dentro del `overflow: hidden` de
-					     `.vega-visual-overlay-root`. -->
-					<div
-						id={insertMenuId(point.position)}
-						class="vega-visual-overlay-insert-menu"
-						class:vega-visual-overlay-insert-menu--up={upward}
-						role="menu"
-						tabindex="-1"
-						aria-label={destination}
-						style:--touch-menu-space={canvasHeight === undefined
-							? undefined
-							: `${upward ? touchTop * zoomFactor : canvasHeight - touchTop * zoomFactor}px`}
-						style:--menu-space={canvasHeight === undefined
-							? undefined
-							: `${upward ? point.top * zoomFactor : canvasHeight - point.top * zoomFactor}px`}
-						style:--insert-top="{point.top}px"
-						style:--insert-left={insertLeft}
-						style:--insert-touch-top="{touchTop}px"
-						bind:this={insertMenuEl}
-						onkeydown={handleInsertMenuKeydown}
-						onfocusout={handleInsertMenuFocusOut}
+					<!-- Lámina «Añadir bloque: paleta de tipos»: icono en baldosa, nombre y descripción
+					     del tipo (`blockTypes[].description`, opcional). -->
+					<span class="vega-visual-insert-ic" aria-hidden="true"
+						><Icon id={blockType.icon ?? 'document'} size={16} strokeWidth={1.6} /></span
 					>
-						<p class="vega-visual-insert-destination" title={destination}>
-							<span
-								>{ctx.t('editor.visual.insert.menuTitle', {
-									position: recordIndexForInsertion(point.position) + 1,
-									total: blocksState.records.length + 1
-								})}</span
-							>
-						</p>
-						<div role="presentation" class="vega-visual-insert-options">
-							{#each blocksState.blockTypes as blockType (blockType.name)}
-								<button
-									type="button"
-									role="menuitem"
-									tabindex="-1"
-									class="vega-visual-overlay-insert-menu-item"
-									style:pointer-events="auto"
-									onclick={() => handleInsertMenuSelect(point.position, blockType)}
-								>
-									<!-- Lámina «Añadir bloque: paleta de tipos»: icono en baldosa, nombre y
-									     descripción del tipo (`blockTypes[].description`, opcional). -->
-									<span class="vega-visual-insert-ic" aria-hidden="true"
-										><Icon id={blockType.icon ?? 'document'} size={16} strokeWidth={1.6} /></span
-									>
-									<span class="vega-visual-insert-copy">
-										<b>{blockType.label}</b>
-										{#if blockType.description}<small>{blockType.description}</small>{/if}
-									</span>
-								</button>
-							{/each}
-						</div>
-					</div>
-				{/if}
+					<span class="vega-visual-insert-copy">
+						<b>{blockType.label}</b>
+						{#if blockType.description}<small>{blockType.description}</small>{/if}
+					</span>
+				</button>
 			{/each}
 		</div>
-	{/if}
+	</div>
+{/snippet}
 
-	<!-- Informativo, NO decorativo (ver cabecera): estados que sí hay que anunciar. -->
+<!-- Informativo, NO decorativo (ver cabecera): estados que sí hay que anunciar. Viven en la franja
+     del escenario, no sobre la página. -->
+{#snippet statusRegion()}
 	<div class="vega-visual-overlay-status" aria-live="polite">
 		{#if status === 'waiting'}
 			<p>{ctx.t('editor.visual.overlay.waiting')}</p>
 		{:else if missingBlocks > 0}
-			<!-- Defecto "el lienzo no dice nada cuando le faltan bloques" (ver cabecera, `missingBlocks`):
-			     SUSTITUYE al aviso de "sin bloques" en vez de sumarse cuando `blocks.length === 0`
-			     también es cierto (todos los registros están "missing") — el aviso genérico de vacío
-			     sería ENGAÑOSO ahí, porque sugiere crear una sección cuando en realidad ya existen y es
-			     el sitio quien no las pinta. -->
+			<!-- Defecto "el lienzo no dice nada cuando le faltan bloques" (ver cabecera,
+			     `missingBlocks`): SUSTITUYE al aviso de "sin bloques" en vez de sumarse cuando
+			     `blocks.length === 0` también es cierto — el aviso genérico de vacío sería ENGAÑOSO ahí,
+			     porque sugiere crear una sección cuando en realidad ya existen y es el sitio quien no
+			     las pinta. -->
 			<p class="vega-visual-overlay-status--warning">
 				{ctx.t(
 					missingBlocks === 1
@@ -1182,7 +1190,7 @@
 			</p>
 		{/if}
 	</div>
-</div>
+{/snippet}
 
 <style>
 	/* Cubre exactamente el mismo hueco que el `<iframe>` (`.vega-visual-canvas` de
@@ -1203,6 +1211,12 @@
 	.vega-visual-overlay-boxes {
 		position: absolute;
 		inset: 0;
+	}
+
+	/* Envoltorio que se queda en el overlay mientras su contenido se pinta en el escenario
+	   (`portal.ts`): no ocupa caja. */
+	.vega-visual-portal {
+		display: contents;
 	}
 
 	/* Contorno (lámina «edición en vivo», `.blk::before`): una caja 4 px FUERA del bloque (ver
@@ -1315,27 +1329,100 @@
 		font-size: 10px;
 	}
 
-	/* Etiqueta del tipo (lámina `.lbl`): píldora FUERA del bloque, en la misma fila que la barra
-	   flotante (`--label-y`, centro vertical relativo a la caja, sale de `placeChrome`; ver la
-	   barra), icono + nombre. Sólida en el seleccionado (`--v-ol-select` + `--v-ol-select-ink`,
-	   medido ≥4.5:1 en los dos modos); al pasar, clara con borde de acento. Tamaño físico constante
-	   con cualquier zoom; `--label-max` le deja sitio a la barra en el seleccionado. */
-	.vega-visual-overlay-label {
-		position: absolute;
-		top: var(--label-y, 0px);
-		left: calc(12px * var(--menu-scale));
-		z-index: 3;
+	/* Franja del escenario (ver «Nada sobre la página»): una fila encima de la hoja, fuera del
+	   iframe, que el escenario coloca y dimensiona (`.vega-visual-chrome` de `VisualEditorScreen`).
+	   A la izquierda, qué está seleccionado; a la derecha, sus acciones; los avisos, entre medias.
+	   No escala con el zoom: vive fuera del escenario escalado. */
+	.vega-visual-chrome-bar {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		height: 100%;
+		min-width: 0;
+		pointer-events: none;
+		font-family: var(--sans);
+	}
+
+	.vega-visual-chrome-main {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-width: 0;
+		margin: 0;
+		color: var(--ink-2);
+		font-size: 12px;
+	}
+
+	.vega-visual-chrome-name {
+		overflow: hidden;
+		color: var(--ink-hi);
+		font-weight: 600;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	.vega-visual-chrome-position {
+		flex-shrink: 0;
+		color: var(--ink-2);
+		font-family: var(--mono);
+		font-size: 11px;
+		white-space: nowrap;
+	}
+
+	.vega-visual-chrome-empty {
+		position: relative;
+	}
+
+	/* «Añadir la primera sección» (página vacía): mismo lenguaje que el «+» de las juntas. */
+	.vega-visual-empty-add {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
+		min-height: 32px;
+		padding: 0 12px 0 8px;
+		border: 1px solid var(--accent-line);
+		border-radius: var(--r-pill);
+		background: var(--surface);
+		color: var(--accent-text);
+		box-shadow: var(--shadow-card);
+		font: inherit;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.vega-visual-empty-add:hover:not([aria-disabled='true']),
+	.vega-visual-empty-add[aria-expanded='true'] {
+		border-color: var(--accent);
+		background: var(--accent);
+		color: var(--accent-ink);
+	}
+
+	.vega-visual-empty-add:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
+	}
+
+	.vega-visual-empty-add[aria-disabled='true'] {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
+	/* Etiqueta del tipo (lámina `.lbl`), ahora en la franja: icono y nombre del tipo, sólida
+	   (`--v-ol-select` + `--v-ol-select-ink`, medido ≥4.5:1 en los dos modos). */
+	.vega-visual-overlay-label {
+		display: inline-flex;
+		flex-shrink: 0;
+		align-items: center;
+		gap: 6px;
 		height: 22px;
-		max-width: var(--label-max, calc(100% / var(--menu-scale) - 24px));
+		max-width: 18rem;
 		padding: 0 9px;
 		border: 1px solid transparent;
 		border-radius: var(--r-pill);
 		background: var(--v-ol-select);
 		color: var(--v-ol-select-ink);
-		box-shadow: var(--shadow-card);
 		font-family: var(--sans);
 		font-size: 11px;
 		font-weight: 600;
@@ -1343,15 +1430,6 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		transform: translateY(-50%) scale(var(--menu-scale));
-		transform-origin: left center;
-	}
-
-	.vega-visual-overlay-box--highlighted:not(.vega-visual-overlay-box--selected)
-		.vega-visual-overlay-label {
-		border-color: var(--accent-line);
-		background: var(--surface);
-		color: var(--accent-text);
 	}
 
 	/* Par `warning`/`warning-soft`, mismo gate (ver cabecera): separa "tipo no soportado" del eje
@@ -1372,54 +1450,40 @@
 		color: var(--info);
 	}
 
-	/* Franja de estados (ver cabecera, "Informativo, NO decorativo"): flota en la esquina en vez
-	   de empujar el lienzo, mismo criterio que `.vega-visual-overlay` (skeleton del token) de
-	   `VisualEditorScreen.svelte` — cubre información, no bloquea la lectura del sitio detrás
-	   salvo en la esquina que ocupa. Vacía (nada que decir) no pinta nada visible: los `<p>` de
-	   dentro son los únicos con fondo. */
+	/* Estados (ver cabecera, "Informativo, NO decorativo"): en la franja, entre lo seleccionado y
+	   sus acciones; ya no sobre la esquina de la página. Vacía no pinta nada. */
 	.vega-visual-overlay-status {
-		position: absolute;
-		left: 0.75rem;
-		bottom: 0.75rem;
 		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
+		flex: 1;
+		align-items: center;
+		justify-content: flex-end;
 		gap: 0.35rem;
-		max-width: calc(100% - 1.5rem);
+		min-width: 0;
 	}
 
 	.vega-visual-overlay-status p {
 		margin: 0;
-		padding: 0.35rem 0.6rem;
+		overflow: hidden;
+		padding: 0.2rem 0.55rem;
 		border-radius: var(--r);
 		background: var(--surface-2);
-		box-shadow: var(--shadow-card);
 		color: var(--ink);
-		font-size: 0.8125rem;
+		font-size: 12px;
+		white-space: nowrap;
+		text-overflow: ellipsis;
 	}
 
 	.vega-visual-overlay-status--warning {
 		color: var(--warning);
 	}
 
-	/* Barra flotante del seleccionado (lámina `.tb`): píldora horizontal FUERA del bloque, encima
-	   del contorno y pegada a su derecha (`--toolbar-right`); su centro vertical (`--toolbar-top`)
-	   lo decide `placeChrome` (`./overlay-chrome.ts`): encima, debajo si arriba no cabe, y dentro
-	   al pie solo si el bloque ocupa todo el alto visible. Nunca sobre el contenido del
-	   seleccionado (21 oct 2026; la lámina la centraba sobre el borde). `transform-origin: right
-	   center` + `translate(-100%, -50%)` deja su borde derecho en `left` y su centro vertical en
-	   `top` a cualquier escala. NUNCA `pointer-events` propio: lo hereda `none` del raíz, solo cada
-	   botón lo reactiva (ver cabecera, "DOS capas nuevas"). Por ENCIMA de la fila de inserción
-	   (`z-index` 5 frente a 4), y la píldora de arriba se aparta a su izquierda (`topPillCenter`). */
+	/* Acciones del seleccionado (lámina `.tb`): píldora horizontal al final de la franja, nunca
+	   sobre la página (QA de fodaveg, 21 oct 2026: encima del bloque tapaba el subtítulo de «Sobre
+	   mí» y de «Música» y la última línea de la sección anterior en «Blog»). El contenedor no fija
+	   `pointer-events` (lo hereda de la franja); solo cada botón lo activa. */
 	.vega-visual-overlay-toolbar {
-		position: absolute;
-		z-index: 5;
-		top: var(--toolbar-top);
-		left: clamp(
-			calc((var(--toolbar-width) + 4px) * var(--menu-scale)),
-			var(--toolbar-right),
-			calc(100% - 4px * var(--menu-scale))
-		);
+		flex-shrink: 0;
+		margin-left: auto;
 		display: inline-flex;
 		align-items: center;
 		gap: 2px;
@@ -1427,10 +1491,8 @@
 		border: 1px solid var(--line);
 		border-radius: var(--r-pill);
 		background: var(--surface);
-		box-shadow: var(--shadow-raised);
+		box-shadow: var(--shadow-card);
 		font-family: var(--sans);
-		transform: translate(-100%, -50%) scale(var(--menu-scale));
-		transform-origin: right center;
 	}
 
 	.vega-visual-overlay-toolbar-sep {
@@ -1477,23 +1539,37 @@
 		display: inline-flex;
 	}
 
-	/* Puntos de inserción (ver cabecera): un punto «+» centrado en cada hueco; en los dos huecos
-	   del bloque seleccionado, la píldora de la lámina (`.ins`) con su posición y una línea a cada
-	   lado. Nunca una franja del ancho del lienzo capturando el puntero. */
-	.vega-visual-overlay-insert-points {
+	/* Puntos de inserción (ver cabecera): en el MARGEN del escenario a la izquierda de la hoja
+	   (`.vega-visual-gutter` de `VisualEditorScreen`, sin escalar). Cada junta es una franja de
+	   28 px del ancho del margen (`.vega-visual-gap`, centrada en la junta) que recibe el puntero;
+	   su «+» solo se ve al pasar por ella, con el foco o con el menú abierto. Nada de esto cae
+	   sobre la página. */
+	.vega-visual-gutter-layer {
 		position: absolute;
 		inset: 0;
+		pointer-events: none;
+	}
+
+	.vega-visual-gap {
+		position: absolute;
+		left: 0;
+		right: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 28px;
+		transform: translateY(-50%);
+	}
+
+	.vega-visual-gap:hover,
+	.vega-visual-gap--open {
+		z-index: 2;
 	}
 
 	.vega-visual-overlay-insert {
-		position: absolute;
-		top: var(--insert-top);
-		left: var(--insert-left, 50%);
-		z-index: 4;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
 		width: 24px;
 		height: 24px;
 		padding: 0;
@@ -1502,62 +1578,39 @@
 		background: var(--surface);
 		color: var(--accent-text);
 		box-shadow: var(--shadow-card);
-		font-family: var(--sans);
-		font-size: 11px;
-		font-weight: 600;
-		white-space: nowrap;
 		cursor: pointer;
-		/* El escenario escala iframe y overlay juntos; el botón conserva su tamaño físico. */
-		transform: translate(-50%, -50%) scale(var(--menu-scale));
-	}
-
-	.vega-visual-overlay-insert--pill {
-		width: auto;
-		height: 28px;
-		padding: 0 10px 0 6px;
-	}
-
-	/* Píldoras de los huecos del seleccionado (21 oct 2026): no se quedan fijas sobre su contenido.
-	   En reposo no se ven y el botón no atrapa el puntero (`pointer-events: none` en línea); solo su
-	   «+» (`.vega-visual-overlay-insert-hit`, 24 px) lo hace. Al pasar por él, con el foco de teclado
-	   o con su menú abierto se muestra entera y recupera el puntero (`!important` gana al estilo en
-	   línea, que es justo el reposo). */
-	.vega-visual-overlay-insert--pill:not(:hover, :focus, [aria-expanded='true']) {
 		opacity: 0;
+		transition: opacity 0.12s ease;
 	}
 
-	.vega-visual-overlay-insert--pill:is(:hover, :focus, [aria-expanded='true']) {
-		pointer-events: auto !important;
-	}
-
-	.vega-visual-overlay-insert-hit {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 24px;
-		height: 24px;
-		margin-left: -5px;
-	}
-
-	.vega-visual-overlay-insert--pill::before,
-	.vega-visual-overlay-insert--pill::after {
+	/* Una guía corta desde el «+» hasta la hoja dice a qué junta pertenece. */
+	.vega-visual-overlay-insert::after {
 		content: '';
 		position: absolute;
 		top: 50%;
-		width: 120px;
+		left: calc(50% + 14px);
+		right: 0;
 		height: 1.5px;
 		background: var(--accent-line);
+		opacity: 0;
 		pointer-events: none;
 	}
 
-	.vega-visual-overlay-insert--pill::before {
-		right: 100%;
-		margin-right: 6px;
+	.vega-visual-gap:hover .vega-visual-overlay-insert,
+	.vega-visual-overlay-insert:focus-visible,
+	.vega-visual-overlay-insert[aria-expanded='true'],
+	.vega-visual-gap:hover .vega-visual-overlay-insert::after,
+	.vega-visual-overlay-insert:focus-visible::after,
+	.vega-visual-overlay-insert[aria-expanded='true']::after {
+		opacity: 1;
 	}
 
-	.vega-visual-overlay-insert--pill::after {
-		left: 100%;
-		margin-left: 6px;
+	/* Con dedo no hay «pasar por encima»: los «+» del margen se ven siempre. Están en el margen,
+	   fuera de la página, así que verlos no tapa nada. */
+	@media (hover: none) {
+		.vega-visual-overlay-insert {
+			opacity: 1;
+		}
 	}
 
 	.vega-visual-overlay-insert:hover:not([aria-disabled='true']),
@@ -1567,35 +1620,40 @@
 		color: var(--accent-ink);
 	}
 
-	/* El exterior es el sitio del cliente: el doble trazo mantiene el foco sobre cualquier foto. */
 	.vega-visual-overlay-insert:focus-visible {
-		outline: 2px solid var(--paper);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
-		box-shadow: 0 0 0 2px var(--ink-hi);
 	}
 
 	.vega-visual-overlay-insert[aria-disabled='true'] {
 		cursor: not-allowed;
+	}
+
+	.vega-visual-gap:hover .vega-visual-overlay-insert[aria-disabled='true'],
+	.vega-visual-overlay-insert[aria-disabled='true']:focus-visible {
 		opacity: 0.4;
 	}
 
-	/* Menú de tipos del punto de inserción (lámina «Añadir bloque: paleta de tipos», `.pop`): tarjeta
-	   elevada anclada al eje del «+», con título de posición y una fila por tipo con icono en
-	   baldosa, nombre y descripción. La lista interior recibe el puntero para desplazarse; el resto
-	   del overlay sigue sin interceptar la página. */
+	@media (prefers-reduced-motion: reduce) {
+		.vega-visual-overlay-insert {
+			transition: none;
+		}
+	}
+
+	/* Menú de tipos del punto de inserción (lámina «Añadir bloque: paleta de tipos», `.pop`):
+	   tarjeta elevada que sale a la DERECHA del «+» del margen, desde la junta hacia abajo (o hacia
+	   arriba, `--up`, si abajo queda menos lienzo: `--menu-space`). Es un menú abierto a petición:
+	   mientras está abierto tapa la página, como cualquier desplegable. */
 	.vega-visual-overlay-insert-menu {
-		top: var(--insert-top);
 		position: absolute;
-		left: var(--insert-left, 50%);
+		top: 50%;
+		left: calc(100% + 6px);
 		z-index: 10;
-		margin-top: 0.9rem;
-		transform: translateX(-50%) scale(var(--menu-scale));
-		transform-origin: top center;
 		display: flex;
 		flex-direction: column;
 		box-sizing: border-box;
-		width: min(300px, calc(90% / var(--menu-scale)));
-		max-height: min(22rem, calc(var(--menu-space, 100vh) - 0.9rem / var(--menu-scale)));
+		width: 300px;
+		max-height: min(22rem, calc(var(--menu-space, 100vh) - 8px));
 		overflow: hidden;
 		padding: 8px;
 		border: 1px solid var(--line);
@@ -1605,14 +1663,15 @@
 		font-family: var(--sans);
 	}
 
-	/* Abre hacia ARRIBA (ver `insertMenuOpensUpward` del script): mismo `top` de partida que la
-	   variante de abajo, pero el margen y la traslación empujan la tarjeta por ENCIMA del punto en
-	   vez de por debajo — así el punto DESPUÉS del último bloque ("al final de la página") no
-	   intenta crecer hacia un hueco que ya no existe dentro del `overflow: hidden` del lienzo. */
 	.vega-visual-overlay-insert-menu--up {
-		margin-top: -0.9rem;
-		transform: translate(-50%, -100%) scale(var(--menu-scale));
-		transform-origin: bottom center;
+		top: auto;
+		bottom: 50%;
+	}
+
+	/* La llamada de la página vacía, en la franja: el menú cae bajo el botón. */
+	.vega-visual-chrome-empty .vega-visual-overlay-insert-menu {
+		top: calc(100% + 6px);
+		left: 0;
 	}
 
 	.vega-visual-insert-options {
@@ -1796,24 +1855,15 @@
 	}
 
 	@media (pointer: coarse) {
-		/* El zoom pertenece al sitio; los controles conservan su caja y glifo en pantalla. */
-		.vega-visual-overlay-insert {
-			top: var(--insert-touch-top);
-		}
-
-		.vega-visual-overlay-insert-menu {
-			top: var(--insert-touch-top);
-			/* El menú deja 2px tras el radio44 del disparador y usa el espacio desde su ancla visible. */
-			margin-top: calc(24px * var(--menu-scale));
-			max-height: min(18rem, calc(var(--touch-menu-space, 100vh) - 24px));
-		}
-
-		.vega-visual-overlay-insert-menu--up {
-			margin-top: calc(-24px * var(--menu-scale));
-		}
-
-		.vega-visual-overlay-insert-menu-item {
+		/* Objetivo táctil de 44 px físicos (`scripts/check-touch-targets.mjs`): la franja y el margen
+		   no escalan con el zoom, así que basta con el tamaño de la caja. */
+		.vega-visual-overlay-insert-menu-item,
+		.vega-visual-empty-add {
 			min-height: 44px;
+		}
+
+		.vega-visual-gap {
+			height: 44px;
 		}
 
 		.vega-visual-overlay-toolbar-btn,
@@ -1825,17 +1875,8 @@
 			flex-shrink: 0;
 		}
 
-		.vega-visual-overlay-insert--pill {
-			width: auto;
-			padding: 0 14px 0 10px;
-		}
-
-		/* En reposo la píldora del seleccionado solo atrapa el puntero en su «+»: con dedo, ese
-		   objetivo mide los 44 px físicos de los demás. */
-		.vega-visual-overlay-insert-hit {
-			width: 44px;
-			height: 44px;
-			margin-left: -10px;
+		.vega-visual-overlay-insert::after {
+			left: calc(50% + 24px);
 		}
 	}
 </style>

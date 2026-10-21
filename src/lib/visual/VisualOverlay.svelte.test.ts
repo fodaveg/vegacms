@@ -134,6 +134,10 @@ function mountOverlay(props: {
 	onStructuralChange?: () => void;
 	paletteDragType?: ResolvedBlockType | null;
 	inlineId?: string | null;
+	chromeTarget?: HTMLElement | null;
+	gutterTarget?: HTMLElement | null;
+	canvasHeight?: number;
+	zoomFactor?: number;
 }): { target: HTMLElement; instance: ReturnType<typeof mount> } {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
@@ -420,25 +424,64 @@ describe('VisualOverlay.svelte', () => {
 
 	// ————— Secciones NO públicas (`unpublished` del puente) —————
 
-	test('sección no pública: la etiqueta lo DICE con texto, las demás no', async () => {
+	test('sección no pública: la etiqueta de la franja lo DICE con texto, las demás no', async () => {
+		const blocksState = fakeBlocksState({
+			records: [record('b1', 'Hero'), record('b2', 'Borrador')]
+		});
+		const blocks: VisualBlock[] = [
+			block('b1', 'hero'),
+			{ ...block('b2', 'gallery'), unpublished: true }
+		];
+		mounted = mountOverlay({ status: 'ready', blocks, selectedId: 'b1', blocksState });
+		await tick();
+		expect(
+			mounted.target.querySelector('.vega-visual-chrome-bar .vega-visual-overlay-label-unpublished')
+		).toBeNull();
+		await unmount(mounted.instance);
+		mounted.target.remove();
+
+		mounted = mountOverlay({ status: 'ready', blocks, selectedId: 'b2', blocksState });
+		await tick();
+		const label = mounted.target.querySelector(
+			'.vega-visual-chrome-bar .vega-visual-overlay-label'
+		);
+		expect(
+			label?.querySelector('.vega-visual-overlay-label-unpublished')?.textContent?.trim()
+		).toBe(translate('es', 'editor.visual.unpublished'));
+		// Sigue siendo una sección normal: el tipo sigue en su etiqueta, y la caja lo marca.
+		expect(label?.textContent).toContain('gallery');
+		expect(
+			mounted.target.querySelector('[data-vega-block-id="b2"]')?.getAttribute('data-unpublished')
+		).toBe('true');
+	});
+
+	test('ninguna etiqueta ni control sobre la página: las cajas solo dibujan el contorno', async () => {
+		// QA de fodaveg (21 oct 2026): la etiqueta del tipo y la barra iban ENCIMA del bloque y
+		// tapaban el subtítulo de la página. Ahora viven en la franja del escenario.
+		const chrome = document.createElement('div');
+		const gutter = document.createElement('div');
+		document.body.append(chrome, gutter);
 		mounted = mountOverlay({
 			status: 'ready',
-			blocks: [block('b1', 'hero'), { ...block('b2', 'gallery'), unpublished: true }]
+			blocks: [block('b1', 'hero', { top: 0, height: 100 }), block('b2', 'gallery', { top: 100 })],
+			selectedId: 'b1',
+			blocksState: fakeBlocksState({ records: [record('b1', 'Hero'), record('b2', 'Galería')] }),
+			chromeTarget: chrome,
+			gutterTarget: gutter
 		});
 		await tick();
 
-		const publicLabel = mounted.target.querySelector(
-			'[data-vega-block-id="b1"] .vega-visual-overlay-label'
-		);
-		const draftLabel = mounted.target.querySelector(
-			'[data-vega-block-id="b2"] .vega-visual-overlay-label'
-		);
-		expect(publicLabel?.querySelector('.vega-visual-overlay-label-unpublished')).toBeNull();
-		expect(
-			draftLabel?.querySelector('.vega-visual-overlay-label-unpublished')?.textContent?.trim()
-		).toBe(translate('es', 'editor.visual.unpublished'));
-		// Sigue siendo una caja normal: el tipo sigue en su etiqueta.
-		expect(draftLabel?.textContent).toContain('gallery');
+		const root = mounted.target.querySelector('.vega-visual-overlay-root')!;
+		expect(root.querySelector('.vega-visual-overlay-label')).toBeNull();
+		expect(root.querySelector('.vega-visual-overlay-toolbar')).toBeNull();
+		expect(root.querySelector('.vega-visual-overlay-insert')).toBeNull();
+		// La franja dice qué es y dónde está, con sus acciones; el margen tiene los «+».
+		expect(chrome.querySelector('.vega-visual-overlay-label')?.textContent).toContain('hero');
+		expect(chrome.textContent).toContain('Sección 1 de 2');
+		expect(chrome.querySelector('.vega-visual-overlay-toolbar')).not.toBeNull();
+		expect(gutter.querySelectorAll('.vega-visual-overlay-insert')).toHaveLength(3);
+		chrome.remove();
+		gutter.remove();
 	});
 
 	test('una sección no pública que el sitio SÍ reporta no cuenta como faltante', async () => {
@@ -495,41 +538,53 @@ describe('VisualOverlay.svelte', () => {
 	});
 
 	test('tipo que el sitio no sabe pintar: la etiqueta se marca no soportada, la caja sigue ahí', async () => {
+		const blocksState = fakeBlocksState({
+			records: [record('b1', 'Hero'), record('b2', 'Raro')]
+		});
+		const blocks = [block('b1', 'hero'), block('b2', 'carrusel-raro')];
 		mounted = mountOverlay({
 			status: 'ready',
-			blocks: [block('b1', 'hero'), block('b2', 'carrusel-raro')],
-			renderedBlockTypes: ['hero']
+			blocks,
+			renderedBlockTypes: ['hero'],
+			selectedId: 'b2',
+			blocksState
 		});
 		await tick();
 
-		const supported = mounted.target.querySelector(
-			'[data-vega-block-id="b1"] .vega-visual-overlay-label'
-		);
 		const unsupported = mounted.target.querySelector(
-			'[data-vega-block-id="b2"] .vega-visual-overlay-label'
+			'.vega-visual-chrome-bar .vega-visual-overlay-label'
 		);
-		expect(supported?.classList.contains('vega-visual-overlay-label--unsupported')).toBe(false);
 		expect(unsupported?.classList.contains('vega-visual-overlay-label--unsupported')).toBe(true);
 		expect(unsupported?.textContent).toContain(
 			translate('es', 'editor.visual.overlay.unsupported')
 		);
+		expect(
+			mounted.target.querySelector('[data-vega-block-id="b2"]')?.getAttribute('data-unsupported')
+		).toBe('true');
+		expect(
+			mounted.target.querySelector('[data-vega-block-id="b1"]')?.hasAttribute('data-unsupported')
+		).toBe(false);
 	});
 
 	test('sin `renderedBlockTypes` (proyecto legacy o sin discovery): ningún bloque se marca', async () => {
 		mounted = mountOverlay({
 			status: 'ready',
 			blocks: [block('b1', 'hero'), block('b2', 'carrusel-raro')],
-			renderedBlockTypes: null
+			renderedBlockTypes: null,
+			selectedId: 'b2',
+			blocksState: fakeBlocksState({ records: [record('b1', 'Hero'), record('b2', 'Raro')] })
 		});
 		await tick();
 
-		const labels = mounted.target.querySelectorAll('.vega-visual-overlay-label--unsupported');
-		expect(labels).toHaveLength(0);
+		expect(mounted.target.querySelectorAll('.vega-visual-overlay-label--unsupported')).toHaveLength(
+			0
+		);
+		expect(mounted.target.querySelectorAll('[data-unsupported]')).toHaveLength(0);
 	});
 
 	// ————— Barra flotante del seleccionado (tarea "acciones estructurales desde el editor visual") —————
 
-	test('la barra flotante SOLO aparece con registro Y rect a la vez; ninguna de las dos cajas basta sola', async () => {
+	test('las acciones de la franja necesitan un REGISTRO; sin contorno en el lienzo no se arrastra', async () => {
 		const blocksState = fakeBlocksState({ records: [record('b1', 'Hero')] });
 		// Sin selección: nada.
 		mounted = mountOverlay({ status: 'ready', blocks: [block('b1', 'hero')], blocksState });
@@ -551,8 +606,9 @@ describe('VisualOverlay.svelte', () => {
 		await unmount(mounted.instance);
 		mounted.target.remove();
 
-		// El registro existe pero el sitio no lo pinta (sin rect, p.ej. `display:none`): hay a quién
-		// actuar, pero no hay coordenada honesta donde flotar la barra.
+		// El registro existe pero el sitio no lo pinta (una sección recién insertada sin contenido):
+		// la franja lo nombra y lo dice, y sus acciones siguen ahí — salvo el asa, que no tiene
+		// dónde soltar.
 		mounted = mountOverlay({
 			status: 'ready',
 			blocks: [],
@@ -560,7 +616,13 @@ describe('VisualOverlay.svelte', () => {
 			blocksState
 		});
 		await tick();
-		expect(mounted.target.querySelector('.vega-visual-overlay-toolbar')).toBeNull();
+		expect(mounted.target.querySelector('.vega-visual-overlay-toolbar')).not.toBeNull();
+		expect(mounted.target.querySelector('.vega-visual-chrome-bar')?.textContent).toContain(
+			translate('es', 'editor.visual.chrome.notPainted')
+		);
+		expect(
+			mounted.target.querySelector<HTMLButtonElement>('.vega-visual-overlay-handle')?.disabled
+		).toBe(true);
 		await unmount(mounted.instance);
 		mounted.target.remove();
 
@@ -705,17 +767,43 @@ describe('VisualOverlay.svelte', () => {
 			'.vega-visual-overlay-insert'
 		);
 		expect(points).toHaveLength(3);
+		// Nombre accesible: la posición y el destino («Insertar bloque en la posición 2 de 3: Añadir
+		// después de «Hero»»), ya que el «+» del margen no lleva texto visible.
+		const position = (n: number) =>
+			translate('es', 'editor.visual.overlay.insertLabel', { position: n, total: 3 });
 		expect(points[0].getAttribute('aria-label')).toBe(
-			translate('es', 'editor.visual.insert.start')
+			`${position(1)}: ${translate('es', 'editor.visual.insert.start')}`
 		);
 		expect(points[1].getAttribute('aria-label')).toBe(
-			translate('es', 'editor.visual.insert.after', { label: 'Hero' })
+			`${position(2)}: ${translate('es', 'editor.visual.insert.after', { label: 'Hero' })}`
 		);
-		expect(points[2].getAttribute('aria-label')).toBe(translate('es', 'editor.visual.insert.end'));
-		// Antes del primero, entre los dos, y después del segundo — mismo orden Y creciente.
-		expect(points[0].style.getPropertyValue('--insert-top')).toBe('0px');
-		expect(points[1].style.getPropertyValue('--insert-top')).toBe('75px'); // punto medio entre 50 (fin de b1) y 100 (inicio de b2)
-		expect(points[2].style.getPropertyValue('--insert-top')).toBe('150px');
+		expect(points[2].getAttribute('aria-label')).toBe(
+			`${position(3)}: ${translate('es', 'editor.visual.insert.end')}`
+		);
+		// Antes del primero, entre los dos, y después del segundo — mismo orden Y creciente, en la
+		// franja de su junta (`.vega-visual-gap`, px físicos = px de la página a zoom 1).
+		const gapTop = (i: number) => points[i].closest<HTMLElement>('.vega-visual-gap')?.style.top;
+		expect(gapTop(0)).toBe('0px');
+		expect(gapTop(1)).toBe('75px'); // punto medio entre 50 (fin de b1) y 100 (inicio de b2)
+		expect(gapTop(2)).toBe('150px');
+	});
+
+	test('las juntas van a la altura física (zoom) y solo las que se ven en la hoja', async () => {
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [
+				block('b1', 'hero', { top: 0, height: 400 }),
+				block('b2', 'gallery', { top: 400, height: 2000 })
+			],
+			blocksState: fakeBlocksState({ records: [record('b1', 'Hero'), record('b2', 'Galería')] }),
+			zoomFactor: 0.5,
+			canvasHeight: 600
+		});
+		await tick();
+		const gaps = Array.from(mounted.target.querySelectorAll<HTMLElement>('.vega-visual-gap'));
+		// La del principio se separa del borde lo que mide medio «+» táctil con su foco (26 px); la
+		// del final (2400 × 0,5 = 1200 px) cae fuera de los 600 px visibles: no se pinta.
+		expect(gaps.map((gap) => gap.style.top)).toEqual(['26px', '200px']);
 	});
 
 	test.each(['dirty', 'saving', 'busy'])(
@@ -1001,7 +1089,7 @@ describe('VisualOverlay.svelte', () => {
 		expect(mounted.target.querySelector('[role="menu"]')).toBeNull();
 	});
 
-	test('pointer-events: la barra y los puntos de inserción activan `auto` SOLO en sus botones, nunca en el contenedor', async () => {
+	test('pointer-events: la franja y el margen activan `auto` SOLO en sus botones y en la franja de cada junta', async () => {
 		const blocksState = fakeBlocksState({ records: [record('b1', 'Hero')] });
 		mounted = mountOverlay({
 			status: 'ready',
@@ -1015,22 +1103,18 @@ describe('VisualOverlay.svelte', () => {
 		const toolbarBtn = mounted.target.querySelector<HTMLElement>(
 			'.vega-visual-overlay-toolbar-btn'
 		);
-		const insertPointsWrap = mounted.target.querySelector<HTMLElement>(
-			'.vega-visual-overlay-insert-points'
-		);
+		const gutterLayer = mounted.target.querySelector<HTMLElement>('.vega-visual-gutter-layer');
+		const gap = mounted.target.querySelector<HTMLElement>('.vega-visual-gap');
 		const insertBtn = mounted.target.querySelector<HTMLElement>('.vega-visual-overlay-insert');
 
-		// Los contenedores no fijan nada (heredan `none` del raíz); los botones sí, en línea.
+		// Los contenedores no fijan nada (heredan `none`); los botones sí, en línea.
 		expect(toolbar?.style.pointerEvents).toBe('');
 		expect(toolbarBtn?.style.pointerEvents).toBe('auto');
-		expect(insertPointsWrap?.style.pointerEvents).toBe('');
-		// Con b1 seleccionado sus dos huecos son píldoras: en reposo el botón no atrapa el puntero y
-		// solo su «+» lo hace (no pueden tapar el contenido del seleccionado, 21 oct 2026).
-		expect(insertBtn?.classList.contains('vega-visual-overlay-insert--pill')).toBe(true);
-		expect(insertBtn?.style.pointerEvents).toBe('none');
-		expect(
-			insertBtn?.querySelector<HTMLElement>('.vega-visual-overlay-insert-hit')?.style.pointerEvents
-		).toBe('auto');
+		expect(gutterLayer?.style.pointerEvents).toBe('');
+		// La franja de la junta recibe el puntero para enseñar su «+» al pasar (en el margen del
+		// escenario, fuera de la página: no le quita nada al sitio).
+		expect(gap?.style.pointerEvents).toBe('auto');
+		expect(insertBtn?.style.pointerEvents).toBe('auto');
 	});
 
 	test('edición en línea: sin puntos de inserción mientras dura', async () => {

@@ -717,6 +717,9 @@
 	/** Mismo punto de corte en el que `PreviewPanel.svelte` se retira entera (ver su cabecera). Vive
 	 *  aquí y no solo en el CSS porque decide si se MONTA el lienzo, no si se ve. */
 	const NARROW_QUERY = '(max-width: 900px)';
+	/** Margen del escenario a la IZQUIERDA de la hoja, donde viven los «+» de las juntas (44 px de
+	 *  objetivo táctil + aire). Debe casar con el `padding-left` de `.vega-visual-canvas`. */
+	const STAGE_GUTTER = 52;
 	/** Mismo punto de corte en el que el árbol deja de reservar columna (ver la cabecera de
 	 *  `VisualBlockTree.svelte`, "Colapsable"): por debajo, su manilla no tiene columna que mover. */
 	const TREE_QUERY = '(max-width: 1180px)';
@@ -1062,9 +1065,20 @@
 	const fitZoomFactor = $derived(resolveZoomFactor('fit', canvasSize.width, frameWidth));
 	/** Alto propio del escenario, para que al escalarlo llene el lienzo exacto (ver `viewport.ts`). */
 	const stageHeightPx = $derived(stageHeightFor(canvasSize.height, zoomFactor));
-	/** Borde izquierdo de la hoja: centrada en el escenario cuando cabe, pegada al aire de la
-	 *  izquierda (24 px, el `padding` del escenario) cuando el zoom la hace más ancha que él. */
-	const stageLeft = $derived(24 + Math.max(0, (canvasSize.width - frameWidth * zoomFactor) / 2));
+	/** Borde izquierdo de la hoja: centrada en el escenario cuando cabe, pegada al margen de la
+	 *  izquierda (`STAGE_GUTTER`, el `padding` izquierdo del escenario) cuando el zoom la hace más
+	 *  ancha que él. */
+	const stageLeft = $derived(
+		STAGE_GUTTER + Math.max(0, (canvasSize.width - frameWidth * zoomFactor) / 2)
+	);
+	/** Ancho en pantalla de la franja: el de la hoja, sin salirse del escenario. */
+	const chromeWidth = $derived(
+		Math.max(0, Math.min(frameWidth * zoomFactor, STAGE_GUTTER + canvasSize.width - stageLeft))
+	);
+	/** Franja del escenario y margen izquierdo de la hoja (ver «Nada sobre la página» en la cabecera
+	 *  de `VisualOverlay.svelte`): el overlay pinta ahí sus controles, no sobre el sitio. */
+	let chromeEl = $state<HTMLElement | null>(null);
+	let gutterEl = $state<HTMLElement | null>(null);
 
 	/** Tarjeta de error del lienzo (lámina `.cerr`): el token que no llega o el puente que no
 	 *  contesta, con su texto propio. `null` si el lienzo no tiene nada que contar. */
@@ -1674,6 +1688,20 @@
 						<!-- La HOJA: caja sin escalar con radio y sombra, del tamaño ya escalado del
 						     escenario; dentro, el escenario del zoom (iframe + overlay en la MISMA caja
 						     escalada, así los contornos siguen casando con las coordenadas del puente). -->
+						<!-- Franja y margen de la hoja (ver `VisualOverlay.svelte`, «Nada sobre la página»):
+						     el overlay pinta aquí la selección, sus acciones y los «+»; fuera de la página. -->
+						<div
+							class="vega-visual-chrome"
+							bind:this={chromeEl}
+							style:left="{stageLeft}px"
+							style:width="{chromeWidth}px"
+						></div>
+						<div
+							class="vega-visual-gutter"
+							bind:this={gutterEl}
+							style:left="{stageLeft - STAGE_GUTTER}px"
+							style:height="{stageHeightPx * zoomFactor}px"
+						></div>
 						<div
 							class="vega-visual-sheet"
 							style:left="{stageLeft}px"
@@ -1711,6 +1739,8 @@
 									{paletteDragType}
 									{zoomFactor}
 									canvasHeight={canvasSize.height}
+									chromeTarget={chromeEl}
+									gutterTarget={gutterEl}
 								/>
 							</div>
 						</div>
@@ -2419,12 +2449,14 @@
 	}
 
 	/* Escenario (lámina `.stage`): el gris propio y radio de panel. El relleno lo mide el
-	   `ResizeObserver` fuera (`contentRect`), así que «Ajustar» ya descuenta el aire. */
+	   `ResizeObserver` fuera (`contentRect`), así que «Ajustar» ya descuenta el aire. Arriba, la
+	   línea de estado (28 px) y la franja del seleccionado (40 + 8 de aire); a la izquierda, el
+	   margen de los «+» (`STAGE_GUTTER`, 52 px). Ningún control del editor cae sobre la hoja. */
 	.vega-visual-canvas {
 		flex: 1;
 		position: relative;
 		min-height: 0;
-		padding: 28px 24px 24px;
+		padding: 76px 24px 24px 52px;
 		border: 1px solid var(--line);
 		border-radius: var(--r-md);
 		background: var(--v-stage);
@@ -2480,10 +2512,32 @@
 		cursor: pointer;
 	}
 
+	/* Franja del seleccionado (ver la cabecera de `VisualOverlay.svelte`, «Nada sobre la página»):
+	   una fila de 40 px ENCIMA de la hoja, alineada con ella; el overlay pinta dentro. */
+	.vega-visual-chrome {
+		position: absolute;
+		top: 28px;
+		z-index: 3;
+		display: flex;
+		align-items: center;
+		height: 40px;
+		pointer-events: none;
+	}
+
+	/* Margen de los «+»: a la izquierda de la hoja y de su mismo alto. No recorta: el menú de tipos
+	   sale hacia la derecha, sobre la página, mientras está abierto. */
+	.vega-visual-gutter {
+		position: absolute;
+		top: 76px;
+		z-index: 3;
+		width: 52px;
+		pointer-events: none;
+	}
+
 	/* La HOJA (lámina `.site`): radio y sombra de dos capas sobre el escenario, sin escalar. */
 	.vega-visual-sheet {
 		position: absolute;
-		top: 28px;
+		top: 76px;
 		border-radius: 12px;
 		background: var(--surface);
 		box-shadow: var(--shadow-raised);

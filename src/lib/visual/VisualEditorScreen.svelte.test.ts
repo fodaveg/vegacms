@@ -1093,16 +1093,19 @@ describe('VisualEditorScreen.svelte — árbol de secciones e inspector', () => 
 		expect(rows[1].getAttribute('aria-label')).toBe(
 			translate('es', 'editor.visual.tree.selectLabelUnpublished', { label: 'Borrador' })
 		);
+		// El contorno lo marca; el texto «No pública» lo dice la franja al seleccionarla (ningún
+		// rótulo se pinta sobre la página).
 		expect(
-			mounted.target.querySelector(
-				'[data-vega-block-id="b2"] .vega-visual-overlay-label-unpublished'
-			)
+			mounted.target.querySelector('[data-vega-block-id="b2"]')?.getAttribute('data-unpublished')
+		).toBe('true');
+		expect(
+			mounted.target.querySelector('[data-vega-block-id="b1"]')?.hasAttribute('data-unpublished')
+		).toBe(false);
+		rows[1].click();
+		await tick();
+		expect(
+			mounted.target.querySelector('.vega-visual-chrome .vega-visual-overlay-label-unpublished')
 		).not.toBeNull();
-		expect(
-			mounted.target.querySelector(
-				'[data-vega-block-id="b1"] .vega-visual-overlay-label-unpublished'
-			)
-		).toBeNull();
 		// Reportada = no falta: ningún aviso de secciones que el sitio no pinta.
 		expect(mounted.target.querySelector('.vega-visual-overlay-status')?.textContent).not.toContain(
 			translate('es', 'editor.visual.overlay.missing.one', { count: 1 })
@@ -1620,6 +1623,55 @@ describe('VisualEditorScreen.svelte — acciones estructurales (árbol + lienzo)
 		expect(rows.items[1].id).not.toBe('b1');
 		expect(rows.items[1].id).not.toBe('b2');
 		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+	});
+
+	test('ningún control sobre la página: acciones en la franja del escenario, «+» en su margen', async () => {
+		// QA de fodaveg (21 oct 2026): la etiqueta, la barra y el «+» tapaban texto del sitio.
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'gallery' }
+		]);
+		mounted.target.querySelectorAll<HTMLButtonElement>('.vega-tree-row')[1].click();
+		await tick();
+
+		const sheet = mounted.target.querySelector('.vega-visual-sheet')!;
+		for (const selector of [
+			'.vega-visual-overlay-label',
+			'.vega-visual-overlay-toolbar',
+			'.vega-visual-overlay-insert'
+		])
+			expect(sheet.querySelector(selector), selector).toBeNull();
+		const chrome = mounted.target.querySelector('.vega-visual-chrome')!;
+		expect(chrome.querySelector('.vega-visual-overlay-toolbar')).not.toBeNull();
+		expect(chrome.textContent).toContain('Sección 2 de 2');
+		expect(
+			mounted.target.querySelectorAll('.vega-visual-gutter .vega-visual-overlay-insert')
+		).toHaveLength(3);
+	});
+
+	test('una página sin secciones ofrece «Añadir la primera sección» en la franja, que crea en la posición 0', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type, port } = await setup([]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, []);
+
+		const add = mounted.target.querySelector<HTMLButtonElement>(
+			'.vega-visual-chrome .vega-visual-empty-add'
+		)!;
+		expect(add.textContent).toContain('Añadir la primera sección');
+		add.click();
+		await flush();
+		await flush();
+		const rows = await port.list('post_block', { perPage: 50 });
+		expect(rows.items).toHaveLength(1);
 	});
 
 	test('insertar deja rastro: la sección nueva queda seleccionada, con su ficha y el foco en su primer campo', async () => {

@@ -923,20 +923,24 @@ test.describe('UX12: toolbar táctil sobre bloque estrecho', () => {
 					last.style.marginBottom = '0';
 					window.dispatchEvent(new Event('resize'));
 				}, boundaryHeight);
+				// La junta del final queda en el borde inferior de la hoja: su «+» del margen se separa
+				// de él lo justo (26 px) para que ni el botón táctil ni su foco se salgan.
+				const gutterHeight = await page
+					.locator('.vega-visual-gutter')
+					.evaluate((el) => el.getBoundingClientRect().height);
 				await expect
 					.poll(() =>
 						page
-							.locator('.vega-visual-overlay-insert')
+							.locator('.vega-visual-gap')
 							.last()
-							.evaluate((el) =>
-								parseFloat((el as HTMLElement).style.getPropertyValue('--insert-top'))
-							)
+							.evaluate((el) => parseFloat((el as HTMLElement).style.top))
 					)
-					.toBeCloseTo(boundaryHeight, 1);
+					.toBeCloseTo(gutterHeight - 26, 0);
 				const toolbar = page.locator('.vega-visual-overlay-toolbar');
 				await expect(toolbar).toBeVisible();
 				const report = await toolbar.evaluate((el) => {
-					const root = el.closest('.vega-visual-overlay-root')!.getBoundingClientRect();
+					// La barra vive en la franja del escenario, encima de la hoja.
+					const root = el.closest('.vega-visual-canvas')!.getBoundingClientRect();
 					return [...el.querySelectorAll<HTMLButtonElement>('button')].map((button) => {
 						const r = button.getBoundingClientRect();
 						const target = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
@@ -962,8 +966,9 @@ test.describe('UX12: toolbar táctil sobre bloque estrecho', () => {
 					await page.keyboard.press('Shift+Tab');
 					await expect(control).toBeFocused();
 					const bounds = await control.evaluate((el) => {
+						// Los «+» viven en el margen del escenario, a la izquierda de la hoja y de su alto.
 						const r = el.getBoundingClientRect(),
-							root = el.closest('.vega-visual-overlay-root')!.getBoundingClientRect(),
+							root = el.closest('.vega-visual-gutter')!.getBoundingClientRect(),
 							css = getComputedStyle(el);
 						const gap = parseFloat(css.outlineWidth) + parseFloat(css.outlineOffset);
 						const points = [

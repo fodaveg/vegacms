@@ -555,6 +555,8 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// flight (see `es.ts` for the full rationale).
 	'editor.visual.overlay.emptyDrop': 'Drop here to create the first block',
 	'editor.visual.overlay.emptyBlock': '{label} · no content yet',
+	'editor.visual.chrome.notPainted': 'not shown on the page',
+	'editor.visual.chrome.addFirst': 'Add the first section',
 	// ————— Block tree (`VisualBlockTree.svelte`) and inspector (`VisualInspector.svelte`): the
 	// ACCESSIBLE way to select a block (the overlay above is `aria-hidden`) and the selected
 	// block's form. See `es.ts` for the full rationale, incl. which existing keys are reused.

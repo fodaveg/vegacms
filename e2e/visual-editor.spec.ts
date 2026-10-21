@@ -71,6 +71,84 @@ async function openVisualEditor(page: Page, site: VisualSite, pageId: string): P
 	await page.goto(`/c/paginas/${pageId}/visual`);
 }
 
+/**
+ * Controles VISIBLES del editor (etiqueta y acciones del seleccionado, «+» de inserción y la
+ * franja de su junta, pista en línea, llamada de la página vacía) que se cruzan con CUALQUIER
+ * contenido visible del marco: cada línea de texto y cada imagen, vídeo o control del sitio, de
+ * todas las secciones y también de fuera de ellas (la cabecera de la página). Devuelve los cruces
+ * («control → texto»); vacío = nada del editor tapa la página (QA de fodaveg, 21 oct 2026).
+ */
+async function controlsOverPageContent(page: Page): Promise<string[]> {
+	const frameEl = page.locator('iframe.vega-visual-frame');
+	const frame = (await (await frameEl.elementHandle())!.contentFrame())!;
+	const content = await frame.evaluate(() => {
+		const rects: { x: number; y: number; w: number; h: number; what: string }[] = [];
+		const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+		for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+			const text = node.textContent?.trim();
+			if (!text || node.parentElement?.closest('script, style')) continue;
+			const range = document.createRange();
+			range.selectNodeContents(node);
+			for (const r of range.getClientRects())
+				if (r.width > 1 && r.height > 1)
+					rects.push({ x: r.x, y: r.y, w: r.width, h: r.height, what: text.slice(0, 40) });
+		}
+		for (const el of document.querySelectorAll(
+			'img, video, iframe, svg, input, textarea, button'
+		)) {
+			const r = el.getBoundingClientRect();
+			if (r.width > 1 && r.height > 1)
+				rects.push({ x: r.x, y: r.y, w: r.width, h: r.height, what: el.tagName });
+		}
+		return { rects, layoutWidth: document.documentElement.clientWidth };
+	});
+	return page.evaluate(
+		({ rects }) => {
+			const iframe = document.querySelector<HTMLIFrameElement>('iframe.vega-visual-frame')!;
+			const box = iframe.getBoundingClientRect();
+			const scale = box.width / iframe.offsetWidth;
+			const onPage = rects
+				.map((r) => ({
+					x: box.left + r.x * scale,
+					y: box.top + r.y * scale,
+					w: r.w * scale,
+					h: r.h * scale,
+					what: r.what
+				}))
+				.filter((r) => r.y + r.h > box.top && r.y < box.bottom);
+			const controls = [
+				...document.querySelectorAll<HTMLElement>(
+					'.vega-visual-overlay-label, .vega-visual-overlay-toolbar, .vega-visual-overlay-insert, .vega-visual-gap, .vega-visual-inline-hint, .vega-visual-empty-add'
+				)
+			].filter((el) => {
+				let opacity = 1;
+				for (let node: HTMLElement | null = el; node; node = node.parentElement) {
+					const style = getComputedStyle(node);
+					if (style.display === 'none' || style.visibility === 'hidden') return false;
+					opacity *= parseFloat(style.opacity);
+				}
+				// La franja de una junta es invisible pero recibe el puntero: cuenta siempre.
+				return el.classList.contains('vega-visual-gap') || opacity > 0.05;
+			});
+			const hits: string[] = [];
+			for (const control of controls) {
+				const c = control.getBoundingClientRect();
+				if (c.width === 0 || c.height === 0) continue;
+				for (const r of onPage)
+					if (
+						c.x < r.x + r.w - 0.5 &&
+						c.x + c.width > r.x + 0.5 &&
+						c.y < r.y + r.h - 0.5 &&
+						c.y + c.height > r.y + 0.5
+					)
+						hits.push(`${String(control.className).split(' ')[0]} → ${r.what}`);
+			}
+			return hits;
+		},
+		{ rects: content.rects }
+	);
+}
+
 /** Espera a que la barra superior confirme el saludo (§contrato, "ready es la prueba, no el
  *  anuncio"): antes de esto cualquier aserción sobre el lienzo sería una carrera contra el
  *  handshake. */
@@ -314,85 +392,132 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		for (const offset of ring) expect(offset).toBeLessThan(0);
 	});
 
-	// «Sobre mí» de fodaveg (21 oct 2026): sección de texto SIN relleno, con el contenido pegado a sus
-	// cuatro bordes. Ningún control visible del overlay (etiqueta, barra, píldoras de inserción,
-	// pista en línea) puede pisar el rect del contenido del bloque SELECCIONADO: la fila de controles
-	// va fuera (encima, o debajo si el bloque toca el borde superior del lienzo) y las píldoras de
-	// sus huecos solo aparecen al pasar por su «+» o con el foco.
-	for (const [variant, css] of [
-		['con sitio arriba', 'main { padding-top: 120px; }'],
-		['pegado al borde superior del lienzo', 'body { padding: 0; }']
-	] as const) {
-		const above = variant === 'con sitio arriba';
-		test(`contenido pegado al borde (${variant}): ningún control tapa el bloque seleccionado`, async ({
+	// QA de fodaveg (21 oct 2026): la etiqueta y la barra del seleccionado iban ENCIMA del bloque y
+	// tapaban el subtítulo de la página en «Sobre mí» y «Música» y la última línea de la sección de
+	// arriba en «Blog»; el «+» de la junta tapaba texto. Regla: NINGÚN control del editor se dibuja
+	// sobre contenido de la página — ni del seleccionado ni del vecino. Se mide contra TODO lo
+	// visible del marco (cada línea de texto, imágenes y controles del sitio), con las secciones
+	// pegadas (sin relleno ni margen) y la cabecera de la página justo encima, en reposo, con el
+	// ratón sobre cada junta del margen y con el foco de teclado en cada «+».
+	const FODAVEG_CASES = [
+		{
+			name: 'Sobre mí',
+			title: 'Sobre mí',
+			subtitle: 'Desarrollador. Artista. Músico. Curioso por naturaleza.',
+			blocks: [
+				{
+					id: 'seccion_1',
+					type: 'seccion',
+					text: 'Hola, soy David. Trabajo como desarrollador web.'
+				}
+			],
+			select: 'seccion_1'
+		},
+		{
+			name: 'Música',
+			title: 'Música',
+			subtitle: 'Lo que suena cuando no programo.',
+			blocks: [{ id: 'seccion_1', type: 'seccion', text: 'Canciones' }],
+			select: 'seccion_1'
+		},
+		{
+			name: 'Blog',
+			title: 'Blog',
+			subtitle: 'Notas sobre desarrollo web, Swift y lo que voy aprendiendo.',
+			blocks: [
+				{
+					id: 'seccion_1',
+					type: 'seccion',
+					text: 'Escribo sobre desarrollo web, Swift y herramientas.'
+				},
+				{ id: 'seccion_2', type: 'seccion', text: 'Últimas entradas' }
+			],
+			select: 'seccion_2'
+		}
+	] as const;
+
+	for (const visualCase of FODAVEG_CASES) {
+		test(`${visualCase.name}: ningún control del editor tapa contenido de la página`, async ({
 			page
 		}, testInfo) => {
-			await page.setViewportSize({ width: 1628, height: 953 });
-			const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+			await page.setViewportSize({ width: 1440, height: 900 });
+			const site = createVisualSite({
+				collection: 'paginas',
+				id: 'pagina_1',
+				blocks: [...visualCase.blocks]
+			});
 			await openVisualEditor(page, site, 'pagina_1');
-			await waitConnected(page, 3);
+			await waitConnected(page, visualCase.blocks.length);
 			const frame = (await (await page
 				.locator('iframe.vega-visual-frame')
 				.elementHandle())!.contentFrame())!;
+			// Como fodaveg: cabecera de la página (título + subtítulo) pegada a la primera sección y
+			// secciones SIN relleno, borde ni margen entre ellas.
 			await frame.addStyleTag({
-				content: `.block { border: 0; padding: 0; margin: 0 auto 32px; max-width: 768px; }
-					.block h2 { margin: 0; font-size: 18px; line-height: 1.6; }
-					${css}`
+				content: `body { padding: 24px 0 0; }
+					header.intro { max-width: 768px; margin: 0 auto; }
+					header.intro h1 { margin: 0; font-size: 32px; }
+					header.intro p { margin: 0; font-size: 16px; }
+					.block { border: 0; padding: 0; margin: 0 auto; max-width: 768px; }
+					.block h2 { margin: 0; font-size: 18px; line-height: 1.6; }`
 			});
-			await frame.evaluate(() => window.dispatchEvent(new Event('resize')));
+			await frame.evaluate(
+				({ title, subtitle }) => {
+					const header = document.createElement('header');
+					header.className = 'intro';
+					header.innerHTML = `<h1></h1><p></p>`;
+					header.querySelector('h1')!.textContent = title;
+					header.querySelector('p')!.textContent = subtitle;
+					document.body.prepend(header);
+					window.dispatchEvent(new Event('resize'));
+				},
+				{ title: visualCase.title, subtitle: visualCase.subtitle }
+			);
 			await page
 				.frameLocator('iframe.vega-visual-frame')
-				.locator('[data-vega-block-id="seccion_1"] h2')
+				.locator(`[data-vega-block-id="${visualCase.select}"] h2`)
 				.click();
-			const selected = page.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_1"]');
-			await expect(selected).toHaveClass(/vega-visual-overlay-box--selected/);
+			await expect(
+				page.locator(`.vega-visual-overlay-box[data-vega-block-id="${visualCase.select}"]`)
+			).toHaveClass(/vega-visual-overlay-box--selected/);
 			const toolbar = page.locator('.vega-visual-overlay-toolbar');
 			await expect(toolbar).toBeVisible();
 
-			const content = page
-				.frameLocator('iframe.vega-visual-frame')
-				.locator('[data-vega-block-id="seccion_1"]');
-			const overlaps = async () => {
-				const c = (await content.boundingBox())!;
-				const controls = page.locator(
-					'.vega-visual-overlay-box--selected .vega-visual-overlay-label, .vega-visual-overlay-toolbar, .vega-visual-overlay-insert, .vega-visual-inline-hint'
-				);
-				const hits: string[] = [];
-				for (const control of await controls.all()) {
-					const visible = await control.evaluate(
-						(el) => parseFloat(getComputedStyle(el).opacity) > 0.01
-					);
-					const b = await control.boundingBox();
-					if (!visible || !b) continue;
-					const intersects =
-						b.x < c.x + c.width - 0.5 &&
-						b.x + b.width > c.x + 0.5 &&
-						b.y < c.y + c.height - 0.5 &&
-						b.y + b.height > c.y + 0.5;
-					if (intersects) hits.push(await control.evaluate((el) => el.className));
-				}
-				return hits;
-			};
-			await expect.poll(overlaps).toEqual([]);
-			// Y en el lado que toca: encima con sitio; debajo si el bloque toca el borde superior.
-			const c = (await content.boundingBox())!;
-			const t = (await toolbar.boundingBox())!;
-			if (above) expect(t.y + t.height).toBeLessThanOrEqual(c.y);
-			else expect(t.y).toBeGreaterThanOrEqual(c.y + c.height);
-			await page.screenshot({ path: testInfo.outputPath(`sobre-mi-${variant}.png`) });
+			await expect.poll(() => controlsOverPageContent(page)).toEqual([]);
+			await page.screenshot({ path: testInfo.outputPath(`${visualCase.name}-reposo.png`) });
 
-			// Las píldoras de sus huecos existen y son accesibles; en reposo no se ven.
-			const pill = page.locator('.vega-visual-overlay-insert--pill').first();
-			const opacity = () => pill.evaluate((el) => getComputedStyle(el).opacity);
-			await expect.poll(opacity).toBe('0');
-			// El foco de teclado la muestra; al salir, se oculta otra vez.
-			await pill.focus();
-			await expect.poll(opacity).toBe('1');
-			await pill.blur();
-			await expect.poll(opacity).toBe('0');
-			// Pasar el ratón por su «+» también.
-			await pill.locator('.vega-visual-overlay-insert-hit').hover();
-			await expect.poll(opacity).toBe('1');
+			// La franja va ENCIMA de la hoja y los «+» a su IZQUIERDA: fuera de la página.
+			const sheet = (await page.locator('.vega-visual-sheet').boundingBox())!;
+			const t = (await toolbar.boundingBox())!;
+			expect(t.y + t.height).toBeLessThanOrEqual(sheet.y);
+			await expect(page.locator('.vega-visual-chrome')).toContainText(
+				`Sección ${visualCase.blocks.findIndex((b) => b.id === visualCase.select) + 1} de ${visualCase.blocks.length}`
+			);
+			const points = page.locator('.vega-visual-overlay-insert');
+			await expect(points).toHaveCount(visualCase.blocks.length + 1);
+			for (const point of await points.all()) {
+				const p = (await point.boundingBox())!;
+				expect(p.x + p.width).toBeLessThanOrEqual(sheet.x);
+			}
+
+			// Con el ratón en cada junta del margen y con el foco en cada «+»: se ve, y sigue sin
+			// tapar nada.
+			const opacity = (el: import('@playwright/test').Locator) =>
+				el.evaluate((node) => getComputedStyle(node).opacity);
+			for (const [index, gap] of (await page.locator('.vega-visual-gap').all()).entries()) {
+				const point = points.nth(index);
+				await expect.poll(() => opacity(point)).toBe('0');
+				await gap.hover();
+				await expect.poll(() => opacity(point)).toBe('1');
+				expect(await controlsOverPageContent(page)).toEqual([]);
+				await page.mouse.move(2, 2);
+				await point.focus();
+				await expect.poll(() => opacity(point)).toBe('1');
+				expect(await controlsOverPageContent(page)).toEqual([]);
+				await point.blur();
+			}
+			await page.locator('.vega-visual-gap').nth(1).hover();
+			await page.screenshot({ path: testInfo.outputPath(`${visualCase.name}-junta.png`) });
 		});
 	}
 
@@ -1005,11 +1130,12 @@ test('editor visual: sin barra de la app, ⌘K abre el buscador global y Escape 
 });
 
 /**
- * Lámina «edición en vivo»: la píldora de inserción va centrada sobre la línea divisoria y la barra
- * flotante del seleccionado a la derecha, SIN solaparse, y la línea pasa por detrás de la barra.
+ * Franja y margen del escenario (QA de fodaveg, 21 oct 2026): las acciones del seleccionado van
+ * en una franja ENCIMA de la hoja y los «+» en el margen de su IZQUIERDA, sin solaparse entre sí
+ * ni con la página, a cualquier ancho; y cada botón de la barra es lo que se ve en su centro.
  */
 for (const width of [1440, 1100]) {
-	test(`píldora de inserción y barra flotante no se solapan a ${width}`, async ({ page }) => {
+	test(`franja de acciones y «+» del margen fuera de la hoja a ${width}`, async ({ page }) => {
 		await page.setViewportSize({ width, height: 900 });
 		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
 		await openVisualEditor(page, site, 'pagina_1');
@@ -1019,17 +1145,17 @@ for (const width of [1440, 1100]) {
 			.locator('[data-vega-block-id="seccion_2"]')
 			.click();
 		const toolbar = page.locator('.vega-visual-overlay-toolbar');
-		const pill = page.locator('.vega-visual-overlay-insert--pill').first();
 		await expect(toolbar).toBeVisible();
-		await expect(pill).toBeVisible();
-		await expect
-			.poll(async () => {
-				const t = (await toolbar.boundingBox())!;
-				const p = (await pill.boundingBox())!;
-				return p.x + p.width + 4 <= t.x;
-			})
-			.toBe(true);
-		// Lo que se ve en el centro de cada botón de la barra es ese botón, no la línea divisoria.
+		const sheet = (await page.locator('.vega-visual-sheet').boundingBox())!;
+		const t = (await toolbar.boundingBox())!;
+		expect(t.y + t.height).toBeLessThanOrEqual(sheet.y);
+		expect(t.x + t.width).toBeLessThanOrEqual(sheet.x + sheet.width + 0.5);
+		for (const point of await page.locator('.vega-visual-overlay-insert').all()) {
+			const p = (await point.boundingBox())!;
+			expect(p.x + p.width).toBeLessThanOrEqual(sheet.x);
+			expect(p.x).toBeGreaterThanOrEqual(0);
+		}
+		// Lo que se ve en el centro de cada botón de la barra es ese botón.
 		for (const button of await toolbar.getByRole('button').all()) {
 			const hit = await button.evaluate((el) => {
 				const r = el.getBoundingClientRect();
@@ -1711,7 +1837,11 @@ for (const insertion of [
 		await waitConnected(page, 3);
 		await openStructure(page);
 		const trigger = page.locator('.vega-visual-overlay-insert').nth(insertion.point);
-		await expect(trigger).toHaveAccessibleName(insertion.label);
+		// El «+» del margen no lleva texto: su nombre dice la posición y el destino.
+		await expect(trigger).toHaveAccessibleName(
+			`Insertar bloque en la posición ${insertion.index + 1} de 4: ${insertion.label}`
+		);
+		await expect(trigger).toHaveAttribute('title', insertion.label);
 		if (insertion.keyboard) {
 			await trigger.focus();
 			await trigger.press('Enter');
@@ -1906,9 +2036,11 @@ for (const locale of ['es', 'en']) {
 				const menu = page.getByRole('menu');
 				await expect(menu.getByRole('menuitem')).toHaveCount(23);
 				const measured = await menu.evaluate((el) => {
+					// El menú vive en el margen del escenario, fuera del escenario escalado: si algún día
+					// volviera dentro, su escala contaría.
 					const rect = el.getBoundingClientRect(),
 						canvas = el.closest('.vega-visual-canvas')!.getBoundingClientRect(),
-						stage = el.closest('.vega-visual-stage')!;
+						stage = el.closest('.vega-visual-stage');
 					return {
 						menu: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right },
 						canvas: {
@@ -1919,7 +2051,7 @@ for (const locale of ['es', 'en']) {
 						},
 						font:
 							parseFloat(getComputedStyle(el.querySelector('button')!).fontSize) *
-							new DOMMatrix(getComputedStyle(stage).transform).a *
+							(stage ? new DOMMatrix(getComputedStyle(stage).transform).a : 1) *
 							new DOMMatrix(getComputedStyle(el).transform).a
 					};
 				});
@@ -2038,10 +2170,9 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 					const measured = await target.evaluate((el) => {
 						const box = el.getBoundingClientRect();
 						const canvas = el.closest('.vega-visual-canvas')!.getBoundingClientRect();
-						// Una píldora de hueco del seleccionado deja pasar el puntero en reposo (no puede
-						// tapar su contenido) y solo lo atrapa en su «+»: ese es el objetivo que se mide.
-						const hitArea = el.querySelector('.vega-visual-overlay-insert-hit') ?? el;
-						const area = hitArea.getBoundingClientRect();
+						// Con dedo, los «+» del margen se ven en reposo (no hay «pasar por encima») y el
+						// objetivo es el botón entero.
+						const area = el.getBoundingClientRect();
 						const center = document.elementFromPoint(
 							area.x + area.width / 2,
 							area.y + area.height / 2
@@ -2081,12 +2212,8 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 								Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top) > 0.5
 						).toBe(false);
 					}
-				// Hueco de debajo del seleccionado: su píldora se toca por el «+» (ver arriba).
-				await page
-					.locator('.vega-visual-overlay-insert')
-					.nth(1)
-					.locator('.vega-visual-overlay-insert-hit')
-					.click();
+				// Junta de debajo del seleccionado: su «+» del margen abre el menú.
+				await page.locator('.vega-visual-overlay-insert').nth(1).click();
 				const menu = page.getByRole('menu');
 				await expect(menu).toBeVisible();
 				await expect(menu.getByRole('menuitem')).toHaveCount(3);
