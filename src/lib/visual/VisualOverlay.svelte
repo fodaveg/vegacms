@@ -855,14 +855,17 @@
 			{#if !blocksState.hidden && selectedRecord}
 				{@const label = blocksState.blockTitle(selectedRecord)}
 				{@const typeLabel = selectedType?.label ?? selectedBridgeBlock?.type ?? label}
-				<p class="vega-visual-chrome-main">
+				<p
+					class="vega-visual-chrome-main"
+					class:vega-visual-chrome-main--named={label !== typeLabel}
+				>
 					<!-- Lámina «edición en vivo», `.lbl`: icono y NOMBRE del tipo («Texto»), no su id. -->
 					<span
 						class="vega-visual-overlay-label"
 						class:vega-visual-overlay-label--unsupported={selectedUnsupported}
 					>
 						<Icon id={selectedType?.icon ?? 'document'} size={12} strokeWidth={1.8} />
-						{typeLabel}
+						<span class="vega-visual-overlay-label-text">{typeLabel}</span>
 						{#if selectedUnsupported}
 							<Icon id="warning" size={12} />
 							<span>({ctx.t('editor.visual.overlay.unsupported')})</span>
@@ -1343,6 +1346,28 @@
 		font-weight: 600;
 		white-space: nowrap;
 		text-overflow: ellipsis;
+	}
+
+	/* Con poco ancho (el lienzo «Móvil», QA de fodaveg del 21 oct 2026: el nombre quedaba en «Q»)
+	   manda el NOMBRE: primero sale el contador «Sección N de M» y después el texto del tipo (queda
+	   su icono), antes que recortar el nombre a una letra. La fila de la izquierda ocupa lo que deja
+	   la barra de acciones y es ella la que se mide. La llamada de la página vacía no entra: su menú
+	   se coloca contra ella. */
+	.vega-visual-chrome-main:not(.vega-visual-chrome-empty) {
+		flex: 1 1 0;
+		container: chrome-main / inline-size;
+	}
+
+	@container chrome-main (max-width: 22rem) {
+		.vega-visual-chrome-position {
+			display: none;
+		}
+	}
+
+	@container chrome-main (max-width: 14rem) {
+		.vega-visual-chrome-main--named .vega-visual-overlay-label-text {
+			display: none;
+		}
 	}
 
 	.vega-visual-chrome-position {

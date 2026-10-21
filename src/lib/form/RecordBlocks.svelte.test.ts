@@ -561,6 +561,8 @@ describe('RecordBlocks.svelte', () => {
 
 		const dialog = document.body.querySelector('[role="alertdialog"]')!;
 		expect(dialog).not.toBeNull();
+		// La sección por su nombre, nunca «¿Borrar esta entrada?» (QA de fodaveg, 21 oct 2026).
+		expect(dialog.querySelector('#vega-delete-title')?.textContent).toBe('¿Borrar «Hero»?');
 		const confirmButton = dialog.querySelector<HTMLButtonElement>('.vega-delete-confirm')!;
 		confirmButton.click();
 		await settle();

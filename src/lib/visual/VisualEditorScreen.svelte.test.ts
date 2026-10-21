@@ -2715,6 +2715,8 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		expect(treeShell.classList.contains('vega-visual-tree-shell--hidden')).toBe(false);
 		const dialog = mounted.target.querySelector<HTMLElement>('[role="alertdialog"]')!;
 		expect(dialog).not.toBeNull();
+		// Nombra la sección, no el término genérico de registro (QA de fodaveg: «entradas» son posts).
+		expect(dialog.querySelector('#vega-delete-title')?.textContent).toBe('¿Borrar «Hero»?');
 		expect(dialog.closest('.vega-visual-tree-shell--hidden')).toBeNull();
 		expect(document.activeElement).toBe(dialog.querySelector('.vega-delete-actions button'));
 		dialog.querySelector<HTMLButtonElement>('.vega-delete-actions button')!.click();

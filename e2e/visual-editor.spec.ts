@@ -544,14 +544,17 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 			page.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_2"]')
 		).toHaveClass(/vega-visual-overlay-box--selected/);
 
-		// La ficha visible es la de ESE bloque: se nombra con su título y la cabecera del inspector
-		// (lámina, `.insp .head`) dice su tipo y su posición en la página.
+		// La ficha visible es la de ESE bloque: se nombra con su título, y la cabecera del inspector
+		// (lámina, `.insp .head`) con el MISMO título que el árbol y la franja (QA de fodaveg, 21 oct
+		// 2026: aquí decía el tipo), y debajo su tipo y su posición en la página.
 		await expect(visibleInspectorBody(page)).toHaveAttribute(
 			'aria-label',
 			'Tu contenido, en tu servidor'
 		);
-		await expect(page.locator('#vega-inspector-heading')).toHaveText('Texto');
-		await expect(page.locator('.vega-inspector-title small')).toHaveText('Sección 2 de 3');
+		await expect(page.locator('#vega-inspector-heading')).toHaveText(
+			'Tu contenido, en tu servidor'
+		);
+		await expect(page.locator('.vega-inspector-title small')).toHaveText('Texto · Sección 2 de 3');
 		await expect(page.locator('.vega-inspector-title small')).toHaveAttribute('title', 'seccion_2');
 		await expect(headingInput(page)).toHaveValue('Tu contenido, en tu servidor');
 		// Aserción que el hallazgo original esquivaba (ver la cabecera de `headingInput`): el arreglo
@@ -1108,8 +1111,11 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 			.frameLocator('iframe.vega-visual-frame')
 			.locator('[data-vega-block-id="seccion_1"]')
 			.click();
-		// El inspector (región nombrada por su cabecera: el tipo del bloque seleccionado) aparece.
-		await expect(page.getByRole('region', { name: 'Portada', exact: true })).toBeVisible();
+		// El inspector aparece con la ficha del bloque seleccionado, nombrada por su título (la
+		// región del panel se llama «Inspector»: con el título de la ficha dentro, repetirlo daría
+		// dos regiones con el mismo nombre).
+		await expect(page.getByRole('region', { name: 'Inspector', exact: true })).toBeVisible();
+		await expect(page.locator('#vega-inspector-heading')).toHaveText(SECCIONES[0].text);
 		expect(site.tokenRequestCount()).toBe(1);
 	});
 });
@@ -1189,6 +1195,46 @@ test('editor visual: sin barra de la app, ⌘K abre el buscador global y Escape 
  * en una franja ENCIMA de la hoja y los «+» en el margen de su IZQUIERDA, sin solaparse entre sí
  * ni con la página, a cualquier ancho; y cada botón de la barra es lo que se ve en su centro.
  */
+test('QA de fodaveg: la sección se nombra igual en todas partes, también en el lienzo «Móvil» y al borrarla', async ({
+	page
+}, testInfo) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	// La paleta no parte palabras con guion («selecciona-da»).
+	const tileNames = page.locator('.vega-palette-copy strong');
+	await expect(tileNames.first()).toBeVisible();
+	expect(await tileNames.first().evaluate((el) => getComputedStyle(el).hyphens)).toBe('manual');
+
+	await screenButton(page, 'mobile').click();
+	await waitConnected(page, 3);
+	await page
+		.frameLocator('iframe.vega-visual-frame')
+		.locator('[data-vega-block-id="seccion_2"]')
+		.click();
+	// Inspector, árbol y franja: el mismo nombre (`blockTitle`).
+	await expect(page.locator('#vega-inspector-heading')).toHaveText(SECCIONES[1].text);
+	const name = page.locator('.vega-visual-chrome-name');
+	await expect(name).toHaveText(SECCIONES[1].text);
+	// Con el ancho del lienzo «Móvil» el nombre se lee: el contador y el texto del tipo ceden antes.
+	const strip = await name.evaluate((el) => ({
+		width: el.getBoundingClientRect().width,
+		position: getComputedStyle(el.parentElement!.querySelector('.vega-visual-chrome-position')!)
+			.display
+	}));
+	expect(strip.width).toBeGreaterThanOrEqual(120);
+	expect(strip.position).toBe('none');
+	await page.screenshot({ path: testInfo.outputPath('franja-movil-nombre.png') });
+
+	// Borrar desde la franja: el diálogo nombra la sección, no «esta entrada».
+	await page.locator('.vega-visual-overlay-toolbar-btn--danger').click();
+	const dialog = page.getByRole('alertdialog');
+	await expect(dialog.getByRole('heading')).toHaveText(`¿Borrar «${SECCIONES[1].text}»?`);
+	await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
+	await expect(dialog).toHaveCount(0);
+});
+
 test('una sección que el sitio pinta sin altura: contorno discontinuo sin fondo ni texto sobre la página; la franja lo dice', async ({
 	page
 }) => {

@@ -528,6 +528,9 @@
 <DeleteConfirm
 	open={blocks.pendingDelete !== null}
 	recordLabel={blocks.pendingDelete ? blocks.blockTitle(blocks.pendingDelete) : ''}
+	title={blocks.pendingDelete
+		? ctx.t('editor.blocks.deleteTitle', { label: blocks.blockTitle(blocks.pendingDelete) })
+		: undefined}
 	targetCollection={blocks.pendingDelete?.type ?? ''}
 	targetId={blocks.pendingDelete?.id ?? null}
 	deleting={blocks.deleting}

@@ -801,6 +801,8 @@ export const es = {
 	'editor.blocks.form.openSettings': 'Abrir Ajustes',
 	'editor.blocks.empty': 'Todavía no hay {label}.',
 	'editor.blocks.duplicateLabel': 'Duplicar «{label}»',
+	// Título del diálogo de borrar una sección: su nombre, nunca el genérico «esta entrada».
+	'editor.blocks.deleteTitle': '¿Borrar «{label}»?',
 	'editor.blocks.duplicateSuccess': 'Bloque duplicado.',
 	'editor.blocks.expandLabel': 'Desplegar «{label}»',
 	'editor.blocks.collapseLabel': 'Plegar «{label}»',

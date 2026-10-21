@@ -299,9 +299,10 @@
 	}
 
 	/* El nombre se lee ENTERO (QA de fodaveg, 21 oct 2026: «Entradas …», «Imagen co…»): hasta tres
-	   líneas, partiendo palabras con guion del idioma de la interfaz (`<html lang>`) solo si una no
-	   cabe en la baldosa. Un nombre aún más largo se recorta al final de la tercera línea y se lee
-	   completo en el `title` de la baldosa y en su nombre accesible. */
+	   líneas, por palabras. Sin `hyphens: auto` (el segundo QA del mismo día vio «selecciona-da»):
+	   solo una palabra que no cabe sola en la baldosa se parte, sin guion. Un nombre aún más largo se
+	   recorta al final de la tercera línea y se lee completo en el `title` de la baldosa y en su
+	   nombre accesible. */
 	.vega-palette-copy strong {
 		display: -webkit-box;
 		-webkit-box-orient: vertical;
@@ -310,7 +311,6 @@
 		overflow: hidden;
 		font-weight: 500;
 		line-height: 1.25;
-		hyphens: auto;
 		overflow-wrap: break-word;
 	}
 

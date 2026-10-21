@@ -743,6 +743,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.blocks.form.openSettings': 'Open Settings',
 	'editor.blocks.empty': 'There are no {label} yet.',
 	'editor.blocks.duplicateLabel': 'Duplicate “{label}”',
+	'editor.blocks.deleteTitle': 'Delete “{label}”?',
 	'editor.blocks.duplicateSuccess': 'Block duplicated.',
 	'editor.blocks.expandLabel': 'Expand «{label}»',
 	'editor.blocks.collapseLabel': 'Collapse «{label}»',

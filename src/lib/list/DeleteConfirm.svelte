@@ -95,6 +95,10 @@
 		/** Texto que identifica el registro a borrar (mismo `openText` de la fila, D-P4.11: "QUÉ se
 		 *  borra"), o el fallback i18n `list.untitled` si no hay campo-título resoluble. */
 		recordLabel: string;
+		/** Título del diálogo. Por defecto el genérico de registro («¿Borrar esta entrada?»); una
+		 *  sección lo da con su nombre, porque en un sitio «entradas» pueden ser otra cosa (en
+		 *  fodaveg son los posts, QA del 21 oct 2026). */
+		title?: string;
 		/** Colección del registro pendiente (`contentType.name`), o `''` para omitir la comprobación
 		 *  de referencias entera (ver cabecera: caso de los llamantes aún sin actualizar). */
 		targetCollection?: string;
@@ -119,6 +123,7 @@
 	let {
 		open,
 		recordLabel,
+		title,
 		targetCollection = '',
 		targetId = null,
 		deleting,
@@ -234,7 +239,7 @@
 			aria-describedby="vega-delete-body"
 			bind:this={dialogEl}
 		>
-			<h2 id="vega-delete-title">{ctx.t('list.delete.confirmTitle')}</h2>
+			<h2 id="vega-delete-title">{title ?? ctx.t('list.delete.confirmTitle')}</h2>
 			<!-- UNA sola frase (§4/§10.3, ver cabecera): nunca promete la papelera si el decorador no
 			     puede cumplirla (sin papelera, o con un `file` obligatorio que no se restaura). -->
 			<p id="vega-delete-body" data-trash-available={recoverable}>

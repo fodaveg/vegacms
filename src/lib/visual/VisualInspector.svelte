@@ -362,7 +362,8 @@
 	class="vega-inspector-panel"
 	class:vega-inspector-panel--texts={texts}
 	role="region"
-	aria-labelledby="vega-inspector-heading"
+	aria-labelledby={texts || selectedRecord === null ? 'vega-inspector-heading' : undefined}
+	aria-label={texts || selectedRecord === null ? undefined : ctx.t('editor.visual.inspector.title')}
 	bind:this={panelEl}
 >
 	<!-- Un solo `<h2>` para los dos modos (y un solo `bind:this`): en «solo textos» la cabecera es
@@ -374,21 +375,25 @@
 		class:vega-inspector-head--block={!texts && selectedRecord !== null}
 	>
 		{#if !texts && selectedRecord !== null}
-			<!-- Cabecera de la ficha (lámina, `.insp .head`): icono y NOMBRE del tipo, y dónde está
-			     la sección en la página. Sin vocabulario de tipos, el título del bloque. -->
+			<!-- Cabecera de la ficha (lámina, `.insp .head`): icono, el NOMBRE de la sección con la
+			     misma fuente que el árbol y la franja (`blockTitle`, QA de fodaveg del 21 oct 2026:
+			     aquí decía el tipo y allí el título), y debajo su tipo y dónde está en la página. -->
 			{@const selectedType = blocks.blockTypeOf(selectedRecord)}
+			{@const selectedTitle = blocks.blockTitle(selectedRecord)}
 			{@const position = blocks.records.findIndex((item) => item.id === selectedRecord.id) + 1}
 			<span class="vega-inspector-icon" aria-hidden="true"
 				><Icon id={selectedType?.icon ?? 'document'} size={17} /></span
 			>
 			<div class="vega-inspector-title">
 				<h2 id="vega-inspector-heading" bind:this={headingEl} tabindex="-1">
-					{selectedType?.label ?? blocks.blockTitle(selectedRecord)}
+					{selectedTitle}
 				</h2>
 				<!-- Posición en la página, sin el id crudo (QA de fodaveg, 21 oct 2026: «Sección 1 de 1
 				     · a2xiakqxtua8tk4»); el id queda en el `title` para quien lo necesite. -->
 				<small title={selectedRecord.id}
-					>{ctx.t('editor.visual.inspector.position', {
+					>{selectedType && selectedType.label !== selectedTitle
+						? `${selectedType.label} · `
+						: ''}{ctx.t('editor.visual.inspector.position', {
 						position,
 						total: blocks.records.length
 					})}</small
