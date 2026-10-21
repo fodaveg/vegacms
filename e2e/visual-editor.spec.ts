@@ -314,6 +314,88 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		for (const offset of ring) expect(offset).toBeLessThan(0);
 	});
 
+	// «Sobre mí» de fodaveg (21 oct 2026): sección de texto SIN relleno, con el contenido pegado a sus
+	// cuatro bordes. Ningún control visible del overlay (etiqueta, barra, píldoras de inserción,
+	// pista en línea) puede pisar el rect del contenido del bloque SELECCIONADO: la fila de controles
+	// va fuera (encima, o debajo si el bloque toca el borde superior del lienzo) y las píldoras de
+	// sus huecos solo aparecen al pasar por su «+» o con el foco.
+	for (const [variant, css] of [
+		['con sitio arriba', 'main { padding-top: 120px; }'],
+		['pegado al borde superior del lienzo', 'body { padding: 0; }']
+	] as const) {
+		const above = variant === 'con sitio arriba';
+		test(`contenido pegado al borde (${variant}): ningún control tapa el bloque seleccionado`, async ({
+			page
+		}, testInfo) => {
+			await page.setViewportSize({ width: 1628, height: 953 });
+			const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+			await openVisualEditor(page, site, 'pagina_1');
+			await waitConnected(page, 3);
+			const frame = (await (await page
+				.locator('iframe.vega-visual-frame')
+				.elementHandle())!.contentFrame())!;
+			await frame.addStyleTag({
+				content: `.block { border: 0; padding: 0; margin: 0 auto 32px; max-width: 768px; }
+					.block h2 { margin: 0; font-size: 18px; line-height: 1.6; }
+					${css}`
+			});
+			await frame.evaluate(() => window.dispatchEvent(new Event('resize')));
+			await page
+				.frameLocator('iframe.vega-visual-frame')
+				.locator('[data-vega-block-id="seccion_1"] h2')
+				.click();
+			const selected = page.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_1"]');
+			await expect(selected).toHaveClass(/vega-visual-overlay-box--selected/);
+			const toolbar = page.locator('.vega-visual-overlay-toolbar');
+			await expect(toolbar).toBeVisible();
+
+			const content = page
+				.frameLocator('iframe.vega-visual-frame')
+				.locator('[data-vega-block-id="seccion_1"]');
+			const overlaps = async () => {
+				const c = (await content.boundingBox())!;
+				const controls = page.locator(
+					'.vega-visual-overlay-box--selected .vega-visual-overlay-label, .vega-visual-overlay-toolbar, .vega-visual-overlay-insert, .vega-visual-inline-hint'
+				);
+				const hits: string[] = [];
+				for (const control of await controls.all()) {
+					const visible = await control.evaluate(
+						(el) => parseFloat(getComputedStyle(el).opacity) > 0.01
+					);
+					const b = await control.boundingBox();
+					if (!visible || !b) continue;
+					const intersects =
+						b.x < c.x + c.width - 0.5 &&
+						b.x + b.width > c.x + 0.5 &&
+						b.y < c.y + c.height - 0.5 &&
+						b.y + b.height > c.y + 0.5;
+					if (intersects) hits.push(await control.evaluate((el) => el.className));
+				}
+				return hits;
+			};
+			await expect.poll(overlaps).toEqual([]);
+			// Y en el lado que toca: encima con sitio; debajo si el bloque toca el borde superior.
+			const c = (await content.boundingBox())!;
+			const t = (await toolbar.boundingBox())!;
+			if (above) expect(t.y + t.height).toBeLessThanOrEqual(c.y);
+			else expect(t.y).toBeGreaterThanOrEqual(c.y + c.height);
+			await page.screenshot({ path: testInfo.outputPath(`sobre-mi-${variant}.png`) });
+
+			// Las píldoras de sus huecos existen y son accesibles; en reposo no se ven.
+			const pill = page.locator('.vega-visual-overlay-insert--pill').first();
+			const opacity = () => pill.evaluate((el) => getComputedStyle(el).opacity);
+			await expect.poll(opacity).toBe('0');
+			// El foco de teclado la muestra; al salir, se oculta otra vez.
+			await pill.focus();
+			await expect.poll(opacity).toBe('1');
+			await pill.blur();
+			await expect.poll(opacity).toBe('0');
+			// Pasar el ratón por su «+» también.
+			await pill.locator('.vega-visual-overlay-insert-hit').hover();
+			await expect.poll(opacity).toBe('1');
+		});
+	}
+
 	test('un clic DENTRO del segundo bloque en el marco abre ESE bloque en el inspector, no el primero', async ({
 		page
 	}) => {

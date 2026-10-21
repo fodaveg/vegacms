@@ -232,6 +232,7 @@
 	import { typeMenuItems, typeMenuKeydownIndex } from './type-menu';
 	import { resolveInsertPosition } from './insert-position';
 	import { INLINE_HINT_GEOMETRY } from './inline-appearance';
+	import { placeChrome, type ChromePlacement } from './overlay-chrome';
 	import { currentPlatform, isApplePlatform } from '$lib/form/save-shortcut';
 	import type { VisualBlock } from './bridge-client';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
@@ -364,10 +365,10 @@
 		blocksState.anyDirty || blocksState.anySaving || blocksState.structuralBusy
 	);
 	/** Hueco desde el borde DERECHO del bloque seleccionado hasta la barra (lámina, `.tb { right:
-	 *  12px }`). La barra se centra SOBRE el borde superior del contorno (lámina, `top: -18px` con
-	 *  36 px de alto): así se lee como parte de ESE contorno y no del bloque de encima, que era el
-	 *  fallo de la versión que flotaba entera por fuera (`rect.top - 44`). Un bloque pegado al borde
-	 *  de arriba la baja lo justo para no recortarla (ver `.vega-visual-overlay-toolbar`). */
+	 *  12px }`). La barra y la etiqueta van en una fila FUERA del bloque (`placeChrome`, 21 oct
+	 *  2026): la lámina la centraba sobre el borde superior y, en una sección cuyo contenido llega
+	 *  a ese borde, tapaba su primera línea. Comparte fila con la etiqueta del tipo y queda a 4 px del
+	 *  contorno, así que se sigue leyendo como parte de ESTE bloque y no del de encima. */
 	const TOOLBAR_INSET = 12;
 	/** Ancho de la barra, independiente del zoom, para mantener todas las acciones en el lienzo. */
 	let toolbarWidth = $state(0);
@@ -377,6 +378,27 @@
 	let overlayWidth = $state(0);
 	/** Alto del overlay, mismo sistema: el sitio que queda bajo un bloque para su contorno. */
 	let overlayHeight = $state(0);
+
+	/** Fila de controles (etiqueta y, en el seleccionado, barra) de un bloque: fuera de él, ver
+	 *  `placeChrome`. La del seleccionado mide lo que la barra (40 px mientras no se ha medido). */
+	function chromeFor(rect: { top: number; height: number }, selected: boolean): ChromePlacement {
+		return placeChrome({
+			top: rect.top,
+			height: rect.height,
+			canvasHeight: overlayHeight,
+			scale: 1 / zoomFactor,
+			rowHeight: selected ? Math.max(toolbarHeight > 0 ? toolbarHeight : 40, 22) : 22
+		});
+	}
+	const selectedChrome = $derived(
+		selectedBridgeBlock === null ? null : chromeFor(selectedBridgeBlock.rect, true)
+	);
+	/** Ancho máximo físico de la etiqueta del seleccionado: comparte fila con la barra, a su
+	 *  izquierda (12 px de margen a cada lado del bloque y 12 entre las dos). */
+	function selectedLabelMax(width: number): string | undefined {
+		if (toolbarWidth <= 0) return undefined;
+		return `${Math.max(0, width * zoomFactor - 36 - toolbarWidth)}px`;
+	}
 	/** Ancho físico de la píldora del hueco de ARRIBA del seleccionado, la que comparte fila con la
 	 *  barra flotante. */
 	let topPillWidth = $state(0);
@@ -809,6 +831,8 @@
 				style:--room-left="{block.rect.left}px"
 				style:--room-right="{overlayWidth - block.rect.left - block.rect.width}px"
 				style:--room-bottom="{overlayHeight - block.rect.top - block.rect.height}px"
+				style:--label-y="{chromeFor(block.rect, block.id === selectedId).center - block.rect.top}px"
+				style:--label-max={block.id === selectedId ? selectedLabelMax(block.rect.width) : undefined}
 			>
 				<span
 					class="vega-visual-overlay-label"
@@ -865,7 +889,7 @@
 			style:--toolbar-height={toolbarHeight > 0 ? `${toolbarHeight}px` : undefined}
 			role="group"
 			aria-label={ctx.t('editor.visual.overlay.toolbar.label', { label })}
-			style:--toolbar-top="{selectedBridgeBlock.rect.top}px"
+			style:--toolbar-top="{selectedChrome?.center ?? selectedBridgeBlock.rect.top}px"
 			style:--toolbar-right="{selectedBridgeBlock.rect.left +
 				selectedBridgeBlock.rect.width -
 				TOOLBAR_INSET}px"
@@ -996,8 +1020,10 @@
 	     huecos entre contornos, que es donde el puntero suelta, y un botón sin manejador de `drop`
 	     se traga el evento y cancela el gesto sin decir nada. Insertar durante un arrastre no es una
 	     acción posible, así que no se pierde nada quitándolos (y el `$effect` de arriba cierra el
-	     menú de tipos si estaba abierto cuando cualquiera de los dos gestos empieza). -->
-	{#if !blocksState.hidden && insertPoints.length > 0 && dragState.fromIndex === null && paletteDragType === null}
+	     menú de tipos si estaba abierto cuando cualquiera de los dos gestos empieza). Tampoco hay
+	     ninguno durante una edición en línea (`inlineId`): se escribe en la página y nada del
+	     overlay debe caer sobre ese texto. -->
+	{#if !blocksState.hidden && insertPoints.length > 0 && dragState.fromIndex === null && paletteDragType === null && inlineId === null}
 		<div class="vega-visual-overlay-insert-points">
 			{#each insertPoints as point (point.position)}
 				{@const destination = insertionLabel(point.position)}
@@ -1023,7 +1049,7 @@
 					style:--insert-top="{point.top}px"
 					style:--insert-left={insertLeft}
 					style:--insert-touch-top="{touchTop}px"
-					style:pointer-events="auto"
+					style:pointer-events={pill ? 'none' : 'auto'}
 					{@attach measureTopPill(topPill)}
 					aria-disabled={structuralGuard}
 					aria-haspopup={blocksState.hasTypeMenu ? 'menu' : undefined}
@@ -1035,7 +1061,16 @@
 					title={destination}
 					onclick={(event) => handleInsertClick(point.position, event)}
 				>
-					<Icon id="plus" size={14} strokeWidth={2} />
+					<!-- Píldora de un hueco del SELECCIONADO: oculta en reposo (no puede tapar su contenido,
+					     21 oct 2026). Solo su «+» atrapa el puntero (el botón va a `none`): pasar por él, el
+					     foco de teclado o el menú abierto la muestran entera (ver su CSS). -->
+					{#if pill}
+						<span class="vega-visual-overlay-insert-hit" style:pointer-events="auto"
+							><Icon id="plus" size={14} strokeWidth={2} /></span
+						>
+					{:else}
+						<Icon id="plus" size={14} strokeWidth={2} />
+					{/if}
 					<!-- Lámina `.ins`: en los dos huecos del bloque seleccionado el «+» dice su posición;
 					     el resto se queda en un punto, para no llenar la página de rótulos. -->
 					{#if pill}<span class="vega-visual-overlay-insert-text">{positionText}</span>{/if}
@@ -1249,19 +1284,21 @@
 		font-size: 10px;
 	}
 
-	/* Etiqueta del tipo (lámina `.lbl`): píldora sobre el borde superior, icono + nombre. Sólida
-	   en el seleccionado (`--v-ol-select` + `--v-ol-select-ink`, medido ≥4.5:1 en los dos modos);
-	   al pasar, clara con borde de acento. Tamaño físico constante con cualquier zoom. */
+	/* Etiqueta del tipo (lámina `.lbl`): píldora FUERA del bloque, en la misma fila que la barra
+	   flotante (`--label-y`, centro vertical relativo a la caja, sale de `placeChrome`; ver la
+	   barra), icono + nombre. Sólida en el seleccionado (`--v-ol-select` + `--v-ol-select-ink`,
+	   medido ≥4.5:1 en los dos modos); al pasar, clara con borde de acento. Tamaño físico constante
+	   con cualquier zoom; `--label-max` le deja sitio a la barra en el seleccionado. */
 	.vega-visual-overlay-label {
 		position: absolute;
-		top: 0;
+		top: var(--label-y, 0px);
 		left: calc(12px * var(--menu-scale));
 		z-index: 3;
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
 		height: 22px;
-		max-width: calc(100% / var(--menu-scale) - 24px);
+		max-width: var(--label-max, calc(100% / var(--menu-scale) - 24px));
 		padding: 0 9px;
 		border: 1px solid transparent;
 		border-radius: var(--r-pill);
@@ -1334,20 +1371,19 @@
 		color: var(--warning);
 	}
 
-	/* Barra flotante del seleccionado (lámina `.tb`): píldora horizontal centrada SOBRE el borde
-	   superior del contorno, pegada a su derecha (`--toolbar-right`). `transform-origin: right
+	/* Barra flotante del seleccionado (lámina `.tb`): píldora horizontal FUERA del bloque, encima
+	   del contorno y pegada a su derecha (`--toolbar-right`); su centro vertical (`--toolbar-top`)
+	   lo decide `placeChrome` (`./overlay-chrome.ts`): encima, debajo si arriba no cabe, y dentro
+	   al pie solo si el bloque ocupa todo el alto visible. Nunca sobre el contenido del
+	   seleccionado (21 oct 2026; la lámina la centraba sobre el borde). `transform-origin: right
 	   center` + `translate(-100%, -50%)` deja su borde derecho en `left` y su centro vertical en
-	   `top` a cualquier escala. Un bloque pegado al borde de arriba la baja lo justo para no
-	   recortarla. NUNCA `pointer-events` propio: lo hereda `none` del raíz, solo cada botón lo
-	   reactiva (ver cabecera, "DOS capas nuevas"). Por ENCIMA de la fila de inserción (`z-index` 5
-	   frente a 4): la línea divisoria de la píldora pasa por detrás de la barra, nunca la cruza, y la
-	   píldora de arriba se aparta a su izquierda (`topPillCenter`). */
+	   `top` a cualquier escala. NUNCA `pointer-events` propio: lo hereda `none` del raíz, solo cada
+	   botón lo reactiva (ver cabecera, "DOS capas nuevas"). Por ENCIMA de la fila de inserción
+	   (`z-index` 5 frente a 4), y la píldora de arriba se aparta a su izquierda (`topPillCenter`). */
 	.vega-visual-overlay-toolbar {
 		position: absolute;
 		z-index: 5;
-		/* Medio alto REAL de la barra (con dedo los botones miden 44 px) más 4 px: un bloque pegado
-		   arriba la baja lo justo para que no se recorte. */
-		top: max(var(--toolbar-top), calc((var(--toolbar-height, 40px) / 2 + 4px) * var(--menu-scale)));
+		top: var(--toolbar-top);
 		left: clamp(
 			calc((var(--toolbar-width) + 4px) * var(--menu-scale)),
 			var(--toolbar-right),
@@ -1448,6 +1484,28 @@
 		width: auto;
 		height: 28px;
 		padding: 0 10px 0 6px;
+	}
+
+	/* Píldoras de los huecos del seleccionado (21 oct 2026): no se quedan fijas sobre su contenido.
+	   En reposo no se ven y el botón no atrapa el puntero (`pointer-events: none` en línea); solo su
+	   «+» (`.vega-visual-overlay-insert-hit`, 24 px) lo hace. Al pasar por él, con el foco de teclado
+	   o con su menú abierto se muestra entera y recupera el puntero (`!important` gana al estilo en
+	   línea, que es justo el reposo). */
+	.vega-visual-overlay-insert--pill:not(:hover, :focus, [aria-expanded='true']) {
+		opacity: 0;
+	}
+
+	.vega-visual-overlay-insert--pill:is(:hover, :focus, [aria-expanded='true']) {
+		pointer-events: auto !important;
+	}
+
+	.vega-visual-overlay-insert-hit {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		margin-left: -5px;
 	}
 
 	.vega-visual-overlay-insert--pill::before,

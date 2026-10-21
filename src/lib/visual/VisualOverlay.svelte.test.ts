@@ -132,6 +132,7 @@ function mountOverlay(props: {
 	blocksState?: BlocksState;
 	onStructuralChange?: () => void;
 	paletteDragType?: ResolvedBlockType | null;
+	inlineId?: string | null;
 }): { target: HTMLElement; instance: ReturnType<typeof mount> } {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
@@ -998,7 +999,26 @@ describe('VisualOverlay.svelte', () => {
 		expect(toolbar?.style.pointerEvents).toBe('');
 		expect(toolbarBtn?.style.pointerEvents).toBe('auto');
 		expect(insertPointsWrap?.style.pointerEvents).toBe('');
-		expect(insertBtn?.style.pointerEvents).toBe('auto');
+		// Con b1 seleccionado sus dos huecos son píldoras: en reposo el botón no atrapa el puntero y
+		// solo su «+» lo hace (no pueden tapar el contenido del seleccionado, 21 oct 2026).
+		expect(insertBtn?.classList.contains('vega-visual-overlay-insert--pill')).toBe(true);
+		expect(insertBtn?.style.pointerEvents).toBe('none');
+		expect(
+			insertBtn?.querySelector<HTMLElement>('.vega-visual-overlay-insert-hit')?.style.pointerEvents
+		).toBe('auto');
+	});
+
+	test('edición en línea: sin puntos de inserción mientras dura', async () => {
+		const blocksState = fakeBlocksState({ records: [record('b1', 'Hero')] });
+		mounted = mountOverlay({
+			status: 'ready',
+			blocks: [block('b1', 'hero')],
+			selectedId: 'b1',
+			inlineId: 'b1',
+			blocksState
+		});
+		await tick();
+		expect(mounted.target.querySelectorAll('.vega-visual-overlay-insert')).toHaveLength(0);
 	});
 
 	// ————— Arrastrar en el lienzo (tarea "reordenar arrastrando en el lienzo") —————
