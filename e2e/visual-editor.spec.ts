@@ -970,9 +970,9 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 
 		const sections = textsSections(page);
 		await expect(sections).toHaveCount(3);
-		// Cabecera de cada tarjeta (lámina «Solo textos», `.tcard .head`) = etiqueta del TIPO de bloque
-		// del manifiesto (`SHOWCASE_MANIFEST.blockTypes`), con el título del bloque como `title`; el
-		// índice «Ir a sección» nombra cada sección por tipo y título, en el orden de la página.
+		// Cabecera de cada tarjeta (lámina «Solo textos», `.tcard .head`) = el TÍTULO de la sección
+		// (`blockTitle`, ronda 3 del QA de fodaveg) con la etiqueta del tipo del manifiesto debajo; el
+		// índice «Ir a sección» enseña «N/M» y su lista nombra cada sección por tipo y título.
 		const expected = [
 			['Portada', SECCIONES[0].text],
 			['Texto', SECCIONES[1].text],
@@ -980,11 +980,28 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 		] as const;
 		for (const [index, [type, title]] of expected.entries()) {
 			const head = sections.nth(index).getByRole('heading', { level: 3 });
-			await expect(head).toHaveText(type);
-			await expect(head).toHaveAttribute('title', title);
+			await expect(head).toHaveText(title);
+			await expect(sections.nth(index).locator('.vega-texts-name small')).toHaveText(type);
+			await expect(sections.nth(index).locator('.vega-texts-index > span')).toHaveText(
+				`${index + 1}/3`
+			);
 			await expect(sections.nth(index).locator('option').nth(index)).toContainText(
 				`${type} — ${title}`
 			);
+			// A 390 px el índice no recorta ni monta su chevrón sobre el texto, y el nombre se queda
+			// con el resto de la cabecera (antes: «1/5 · Text▾» y el tipo en vez del título).
+			const geometry = await sections.nth(index).evaluate((section) => {
+				const index = section.querySelector<HTMLElement>('.vega-texts-index')!;
+				const label = index.querySelector('span')!.getBoundingClientRect();
+				const chevron = index.querySelector('svg')!.getBoundingClientRect();
+				return {
+					clipped: index.scrollWidth > index.clientWidth,
+					overlap: chevron.left < label.right - 0.5,
+					title: section.querySelector('h3')!.getBoundingClientRect().width
+				};
+			});
+			expect(geometry).toMatchObject({ clipped: false, overlap: false });
+			expect(geometry.title).toBeGreaterThanOrEqual(180);
 		}
 		// Cada campo con su etiqueta, alcanzable por nombre accesible dentro de SU sección (los ids
 		// van namespaceados por bloque, `field-scope.ts`): «Título» en las tres, «Cuerpo» solo en

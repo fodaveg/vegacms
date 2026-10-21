@@ -499,36 +499,48 @@
 				tabindex="-1"
 			>
 				{#if texts}
-					<!-- Cabecera de la tarjeta (lámina, `.tcard .head`): icono y TIPO de la sección y la
-					     marca de «sin guardar»; el título del bloque queda como `title`. -->
+					<!-- Cabecera de la tarjeta (lámina, `.tcard .head`): icono, el NOMBRE de la sección
+					     (`blockTitle`, como el árbol, la franja y el inspector; ronda 3 del QA de fodaveg:
+					     con dos secciones «Texto» no se sabía en cuál se escribía) con su tipo debajo, y la
+					     marca de «sin guardar». -->
+					{@const title = blocks.blockTitle(record)}
+					{@const position = blocks.records.findIndex((item) => item.id === record.id) + 1}
 					<header class="vega-texts-head">
 						<span class="vega-texts-ic" aria-hidden="true"
 							><Icon id={blockType?.icon ?? 'document'} size={14} strokeWidth={1.6} /></span
 						>
-						<h3 id="vega-texts-title-{record.id}" title={blocks.blockTitle(record)}>
-							{sectionTitle(record)}
-						</h3>
+						<div class="vega-texts-name">
+							<h3 id="vega-texts-title-{record.id}" {title}>{title}</h3>
+							{#if sectionTitle(record) !== title}<small>{sectionTitle(record)}</small>{/if}
+						</div>
 						{#if blocks.records.length > 1 && onSelectBlock}
-							<!-- Índice de secciones (ya existía en «Solo textos»; la lámina lo da por «igual»). -->
-							<select
-								class="vega-texts-index"
-								aria-label={ctx.t('editor.visual.texts.jump')}
-								value={record.id}
-								onchange={(event) => {
-									const destination = event.currentTarget.value;
-									// Es navegación: al volver, esta cabecera sigue describiendo SU sección.
-									event.currentTarget.value = record.id;
-									onSelectBlock?.(destination);
-								}}
-							>
-								{#each blocks.records as item, index (item.id)}
-									<option value={item.id}
-										>{index + 1}/{blocks.records.length} · {sectionTitle(item)} — {blocks.blockTitle(
-											item
-										)}</option
-									>
-								{/each}
-							</select>
+							<!-- Índice de secciones (ya existía en «Solo textos»; la lámina lo da por «igual»).
+							     Cerrado enseña solo «N/M» y su chevrón, sin recortar ni solaparse (ronda 3 del
+							     QA: «1/5 · Text▾»); el `<select>` nativo, transparente, ocupa toda la píldora y
+							     es quien recibe el foco, el clic y las teclas, con la lista completa. -->
+							<span class="vega-texts-index">
+								<span aria-hidden="true">{position}/{blocks.records.length}</span>
+								<Icon id="chevron" size={12} />
+								<select
+									class="vega-texts-index-select"
+									aria-label={ctx.t('editor.visual.texts.jump')}
+									value={record.id}
+									onchange={(event) => {
+										const destination = event.currentTarget.value;
+										// Es navegación: al volver, esta cabecera sigue describiendo SU sección.
+										event.currentTarget.value = record.id;
+										onSelectBlock?.(destination);
+									}}
+								>
+									{#each blocks.records as item, index (item.id)}
+										<option value={item.id}
+											>{index + 1}/{blocks.records.length} · {sectionTitle(item)} — {blocks.blockTitle(
+												item
+											)}</option
+										>
+									{/each}
+								</select>
+							</span>
 						{/if}
 						{#if blocks.isDirty(record.id)}<span class="vega-texts-dirty"
 								>{ctx.t('editor.dirty')}</span
@@ -951,9 +963,14 @@
 		color: var(--accent-text);
 	}
 
-	.vega-texts-head h3 {
+	/* El nombre manda: se queda con todo el ancho que deja el índice y se recorta con elipsis; el
+	   tipo va debajo, más pequeño. */
+	.vega-texts-name {
 		flex: 1;
 		min-width: 0;
+	}
+
+	.vega-texts-head h3 {
 		margin: 0;
 		color: var(--ink-hi);
 		font-size: var(--fs-14);
@@ -963,21 +980,46 @@
 		white-space: nowrap;
 	}
 
-	/* Índice de secciones (ya existía en «Solo textos»): compacto, a la derecha de la cabecera. */
+	.vega-texts-name small {
+		display: block;
+		overflow: hidden;
+		color: var(--ink-3);
+		font-size: 11px;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	/* Índice de secciones (ya existía en «Solo textos»): compacto, a la derecha de la cabecera.
+	   Pinta «N/M» y un chevrón propio; el `<select>` va encima, transparente (ver el marcado). */
 	.vega-texts-index {
+		position: relative;
+		display: inline-flex;
 		flex: none;
-		width: 4.5rem;
+		align-items: center;
+		gap: 4px;
 		min-height: 30px;
-		padding: 0 6px;
+		padding: 0 10px;
 		border: 1px solid var(--line);
 		border-radius: var(--r-pill);
 		background: var(--surface);
 		color: var(--ink-2);
-		font: inherit;
 		font-size: var(--fs-12);
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
 	}
 
-	.vega-texts-index:focus-visible {
+	.vega-texts-index-select {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		opacity: 0;
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.vega-texts-index:has(.vega-texts-index-select:focus-visible) {
 		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
@@ -985,6 +1027,7 @@
 	@media (pointer: coarse) {
 		.vega-texts-index {
 			min-height: 44px;
+			min-width: 44px;
 		}
 	}
 
