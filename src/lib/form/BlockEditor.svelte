@@ -780,6 +780,12 @@
 		return handleSave(options.focus ?? true);
 	}
 
+	/** Lleva el foco al primer campo con error de un guardado ya rechazado con `focus: false`: el
+	 *  ⌘S del editor visual guarda todas las fichas y, al terminar, enseña la primera rechazada. */
+	export function revealErrors(): Promise<void> {
+		return revealFirstError(errors, true);
+	}
+
 	/**
 	 * «Descartar» del inspector visual: vuelve al último estado GUARDADO de esta ficha, sin tocar el
 	 * servidor (no relee; para eso está «Descartar y recargar» del aviso de conflicto). Una edición en

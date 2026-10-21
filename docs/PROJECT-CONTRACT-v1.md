@@ -531,8 +531,8 @@ invalidates the pending save and rejects late messages. The initial edit
 acknowledgement still has its bounded timeout. After v2 negotiation, eligible
 annotated text is keyboard-focusable and Enter/F2 requests editing through the
 same CMS authorisation; native controls retain their own keyboard behaviour.
-Cmd/Ctrl+S transmits explicit save intent to
-saveSelected. Paste and drop insert plain text only; values never use innerHTML.
+Cmd/Ctrl+S transmits explicit save intent; Vega handles it like its own
+shortcut, which saves every block with pending changes. Paste and drop insert plain text only; values never use innerHTML.
 
 Starting inline invalidates pending token/debounce/fallback work and site DOM
 replacement. Refresh and renewal stay paused throughout editing, preserving caret
@@ -595,7 +595,8 @@ shortcut there listens for it, calls `preventDefault()` and sends `save-shortcut
 ```
 
 - No payload: what gets saved is Vega's decision, exactly as if the shortcut had been pressed
-  in Vega itself. Anything else in the message is ignored.
+  in Vega itself (every block with pending changes; a block that is not valid is not saved, and
+  Vega names it and moves the focus to its field). Anything else in the message is ignored.
 - Same envelope as every other site message: `vega-visual-1` to each allowed origin before the
   sessions negotiate `vega-visual-2`, and afterwards `{ vega: "vega-visual-2", sessionId,
 documentId, type: "save-shortcut" }` only to the negotiated parent origin.

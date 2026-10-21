@@ -23,11 +23,13 @@ export function visualKeyboardAction(
 	canvasActive: boolean,
 	helpOpen: boolean
 ): VisualKeyboardAction {
-	if (!canvasActive) return null;
+	// Guardar no depende del lienzo: en «Solo textos» también hay fichas que guardar, y sin esto
+	// ⌘S abría el diálogo «Guardar página» del navegador.
 	if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
 		event.preventDefault();
 		return 'save';
 	}
+	if (!canvasActive) return null;
 	if (event.target instanceof HTMLElement && event.target.closest(OWN_KEYS_SELECTOR)) return null;
 	if (isEditableTarget(event.target)) return null;
 	if (event.key === 'Escape') return helpOpen ? 'close-help' : 'clear-selection';

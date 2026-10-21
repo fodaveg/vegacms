@@ -118,6 +118,18 @@ describe('inline v2', () => {
 		expect(h.save).toHaveBeenCalledOnce();
 		h.client.stop();
 	});
+	test('Cmd/Ctrl+S inside an open field (`save`) is the same shortcut: it reaches onSaveShortcut', () => {
+		const onSaveShortcut = vi.fn();
+		const h = setup({ onSaveShortcut });
+		const edit = h.start();
+		h.receive({ ...edit, type: 'input', sequence: 0 });
+		h.receive({ ...edit, type: 'input', sequence: 1, value: 'Draft' });
+		expect(h.receive({ type: 'save', collection: 'pages', id: 'page' })).toBe('accepted');
+		expect(h.end).toHaveBeenCalledWith('b', false);
+		expect(onSaveShortcut).toHaveBeenCalledOnce();
+		expect(h.save).not.toHaveBeenCalled();
+		h.client.stop();
+	});
 	test('save-shortcut after Enter (focus left in the frame) reaches the host; a stale document does not', () => {
 		const onSaveShortcut = vi.fn();
 		const h = setup({ onSaveShortcut });

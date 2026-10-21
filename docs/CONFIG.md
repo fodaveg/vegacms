@@ -453,7 +453,9 @@ formulario de bloques de siempre, que ahí funciona bien.
 Desde el lienzo se puede seleccionar, añadir en una posición concreta, duplicar, borrar y reordenar
 arrastrando. Todo ello tiene equivalente por teclado, porque el lienzo no puede ser la única vía:
 `Esc` deselecciona, `Alt` con las flechas mueve la sección seleccionada, `Supr` pide el borrado (con
-la misma confirmación y la misma papelera que el formulario), `⌘S`/`Ctrl+S` guarda la ficha abierta y
+la misma confirmación y la misma papelera que el formulario), `⌘S`/`Ctrl+S` guarda todas las
+secciones con cambios (como el «Guardar» del formulario; una no válida no se guarda, se nombra y se
+abre con el foco en su campo) y
 `?` abre el panel de ayuda con la lista completa.
 
 **La paleta** es la lista de tipos de bloque que la colección PUEDE tener, arriba de la columna

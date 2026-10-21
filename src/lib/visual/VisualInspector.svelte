@@ -62,7 +62,10 @@
 	 * recargarlo (sustitución en caliente) es la mitad cara y es OTRA tarea (§encargo) — no se monta
 	 * aquí. En modo `texts` no hay marco: la pantalla ignora el refresco (ver `applyWidth`).
 	 *
-	 * **Handle `saveSelected()` (tarea "el acabado": atajo ⌘S/Ctrl+S).** Cada `BlockEditor` del
+	 * **Handles `saveAll()` y `saveSelected()`.** Desde el 21 oct 2026 (ronda 3 del QA de fodaveg)
+	 * el atajo ⌘S/Ctrl+S usa `saveAll()`: guarda TODO lo pendiente, como el Guardar del formulario.
+	 * `saveSelected()` queda para el guardado de la edición en línea (`onInlineSave`). Lo que sigue
+	 * describe el diseño original, cuando ⌘S guardaba solo la ficha abierta. Cada `BlockEditor` del
 	 * `{#each}` de abajo se referencia por id (`bind:this` sobre un `$state`, no un objeto plano: el
 	 * compilador exige que el destino de un `bind:this` sea reactivo para poder rastrear la
 	 * reasignación, y con un objeto plano avisa `binding_property_non_reactive` en cada render.
@@ -194,6 +197,32 @@
 	export function saveSelected(): void {
 		if (selectedId === null) return;
 		editorRefs[selectedId]?.save();
+	}
+
+	/**
+	 * ⌘S/Ctrl+S del editor visual (decisión del 21 oct 2026, ronda 3 del QA de fodaveg): guarda TODO
+	 * lo pendiente, como el «Guardar» del formulario de la página — primero la ficha abierta y
+	 * después cada bloque con cambios, en el orden de la página, cada uno por su propio camino
+	 * (`BlockEditor#save`). Un bloque que no se puede guardar no escribe nada y lo dice en su ficha;
+	 * ninguno se lleva el foco aquí (`focus: false`): quien llama enseña el PRIMERO rechazado
+	 * (`revealBlockErrors`). Devuelve los ids rechazados, en ese orden.
+	 */
+	export async function saveAll(): Promise<string[]> {
+		const pending = blocks.records.map((record) => record.id).filter((id) => blocks.isDirty(id));
+		const order =
+			selectedId !== null && pending.includes(selectedId)
+				? [selectedId, ...pending.filter((id) => id !== selectedId)]
+				: pending;
+		const rejected: string[] = [];
+		for (const id of order) {
+			if ((await editorRefs[id]?.save({ focus: false })) === 'rejected') rejected.push(id);
+		}
+		return rejected;
+	}
+
+	/** Foco al primer campo con error de la ficha `id`, que ya tiene que estar a la vista. */
+	export function revealBlockErrors(id: string): Promise<void> {
+		return editorRefs[id]?.revealErrors() ?? Promise.resolve();
 	}
 
 	/** «Reintentar» del error de guardado de la barra: guarda ESA ficha aunque ya no esté abierta. */

@@ -243,8 +243,10 @@
 	 *   `RecordForm.svelte`, ver su cabecera): tiene que guardar con el foco DENTRO de cualquier
 	 *   campo de la ficha, así que nunca mira el `target`, y siempre hace `preventDefault()` para
 	 *   matar el diálogo nativo "Guardar página" del navegador. Llama a
-	 *   `VisualInspector.svelte#saveSelected()` a través de `inspectorRef` (ver su cabecera para
-	 *   por qué hace falta un handle en vez del truco `formEl.requestSubmit()` de `RecordForm`).
+	 *   `VisualInspector.svelte#saveAll()` a través de `inspectorRef` (ver su cabecera para por qué
+	 *   hace falta un handle en vez del truco `formEl.requestSubmit()` de `RecordForm`): desde el 21
+	 *   oct 2026 guarda TODO lo pendiente, no solo la ficha abierta (ver `saveFromShortcut`), y
+	 *   funciona también en «Solo textos», sin lienzo.
 	 * - Mover/borrar por teclado respetan la MISMA guarda que sus propios botones equivalentes en
 	 *   `VisualOverlay.svelte` — no una tercera copia del criterio: mover reusa
 	 *   `anyDirty || anySaving || structuralBusy` (igual que el botón de mover del overlay);
@@ -633,12 +635,11 @@
 		if (saveErrorBlockId === inlineBlockId && bridgeClient?.saveInline()) return;
 		inspectorRef?.saveBlock(saveErrorBlockId);
 	}
-	/** «Texto», «Portada»…: el NOMBRE del tipo del bloque que no se pudo guardar (lámina, «No se pudo
-	 *  guardar «Texto»»), o su título sin vocabulario de tipos. */
+	/** El bloque que no se pudo guardar, por su título (`blockTitle`, la misma fuente que el árbol,
+	 *  la franja y el inspector: con dos secciones «Texto» el tipo no dice cuál es). */
 	const saveErrorLabel = $derived.by(() => {
 		const failed = blocks.records.find((item) => item.id === saveErrorBlockId);
-		if (!failed) return '';
-		return blocks.blockTypeOf(failed)?.label ?? blocks.blockTitle(failed);
+		return failed ? blocks.blockTitle(failed) : '';
 	});
 	/** La vista previa de siempre (el panel lateral). Una edición en línea abierta se cierra antes:
 	 *  lo escrito ya está en el borrador y el panel lo enseña. */
@@ -704,6 +705,8 @@
 	let inspectorRef = $state<
 		| {
 				saveSelected: () => void;
+				saveAll: () => Promise<string[]>;
+				revealBlockErrors: (id: string) => Promise<void>;
 				saveBlock: (id: string) => void;
 				focusBlock: (id: string) => void;
 				beginInline: (blockId: string, field: string) => InlineRequest | null;
@@ -943,7 +946,7 @@
 			onInlineSave: saveSelectedBlock,
 			// ⌘S pulsado dentro del sitio (el foco se queda allí tras aplicar con Enter): el mismo
 			// guardado que el atajo de esta pantalla (`handleVisualKeydown`).
-			onSaveShortcut: saveFromShortcut,
+			onSaveShortcut: () => void saveFromShortcut(),
 			onHover: handlePageHover,
 			// El plazo interno de `refresh()` venció, o el propio puente avisó con
 			// `error/refresh-failed` (ver `bridge-client.ts`): en los dos casos el cambio no aterrizó
@@ -1159,10 +1162,28 @@
 		if (record) blocks.requestDelete(record);
 	}
 
-	/** ⌘S/Ctrl+S, pulsado en Vega (`handleVisualKeydown`) o en el sitio (mensaje `save-shortcut` del
-	 *  puente): guarda la ficha abierta, por un único camino. */
-	function saveFromShortcut(): void {
-		inspectorRef?.saveSelected();
+	/**
+	 * ⌘S/Ctrl+S, pulsado en Vega (`handleVisualKeydown`) o en el sitio (mensaje `save-shortcut` del
+	 * puente), por un único camino. Guarda TODO lo pendiente (`VisualInspector#saveAll`), como el
+	 * «Guardar» del formulario de la página: hasta el 21 oct 2026 guardaba solo la ficha abierta, y
+	 * con ella limpia y otra sección con cambios no hacía nada ni lo decía (ronda 3 del QA de
+	 * fodaveg; decisión técnica del coordinador). Un bloque que no se puede guardar no escribe nada:
+	 * la barra lo nombra («No se pudo guardar «…»») y la pantalla lo abre con el foco en su primer
+	 * campo con error. El estado limpio solo sale sin pendientes (`pendingBlocks`).
+	 */
+	async function saveFromShortcut(): Promise<void> {
+		const inspector = inspectorRef;
+		if (!inspector) return;
+		const rejected = await inspector.saveAll();
+		const first = rejected[0];
+		if (first === undefined) return;
+		saveErrorBlockId = first;
+		if (first !== selectedBlockId) {
+			handleBlockSelect(first);
+			await tick();
+			await tick();
+		}
+		await inspector.revealBlockErrors(first);
 	}
 
 	// ————— Atajos de teclado a nivel de PANTALLA (ver cabecera, tabla completa aquí) —————
@@ -1172,12 +1193,12 @@
 	// | Esc                     | deseleccionar el bloque (o cerrar el panel de ayuda) |
 	// | Alt+↑ / Alt+↓            | mover el bloque seleccionado arriba/abajo            |
 	// | Supr / Retroceso         | pedir el borrado del seleccionado (abre el diálogo)  |
-	// | ⌘S / Ctrl+S              | guardar el bloque seleccionado                       |
+	// | ⌘S / Ctrl+S              | guardar TODO lo pendiente (también en «Solo textos») |
 	// | ?                        | abrir/cerrar el panel de ayuda de atajos             |
 	function handleVisualKeydown(event: KeyboardEvent): void {
 		switch (visualKeyboardAction(event, canvasActive, helpRequest !== null)) {
 			case 'save':
-				saveFromShortcut();
+				void saveFromShortcut();
 				break;
 			case 'close-help':
 				closeHelp();

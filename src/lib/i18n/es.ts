@@ -675,7 +675,7 @@ export const es = {
 	'editor.visual.help.deselect': 'Deseleccionar el bloque',
 	'editor.visual.help.move': 'Mover el bloque seleccionado arriba/abajo',
 	'editor.visual.help.delete': 'Pedir el borrado del bloque seleccionado',
-	'editor.visual.help.save': 'Guardar el bloque seleccionado',
+	'editor.visual.help.save': 'Guardar todos los bloques con cambios',
 	'editor.visual.help.toggleHelp': 'Abrir o cerrar este panel',
 	'editor.visual.help.asymmetry':
 		'Mover, duplicar, borrar y crear bloques se guardan solos, en el momento en que ocurren. El texto de los campos de un bloque se guarda con el botón «Guardar» de su ficha.',

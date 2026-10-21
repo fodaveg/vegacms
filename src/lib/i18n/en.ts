@@ -620,7 +620,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.help.deselect': 'Deselect the block',
 	'editor.visual.help.move': 'Move the selected block up/down',
 	'editor.visual.help.delete': 'Ask to delete the selected block',
-	'editor.visual.help.save': 'Save the selected block',
+	'editor.visual.help.save': 'Save every block with changes',
 	'editor.visual.help.toggleHelp': 'Open or close this panel',
 	'editor.visual.help.asymmetry':
 		'Moving, duplicating, deleting and adding blocks save on their own, the moment they happen. A block’s field text saves with the "Save" button on its panel.',

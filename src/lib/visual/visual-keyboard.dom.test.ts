@@ -39,6 +39,16 @@ describe('visualKeyboardAction: dueños de sus teclas', () => {
 		expect(visualKeyboardAction(keydown(preset, 's', { ctrlKey: true }), true, false)).toBe('save');
 	});
 
+	test('⌘S guarda también sin lienzo («Solo textos»); el resto de atajos no', () => {
+		const field = document.createElement('input');
+		document.body.append(field);
+		const save = keydown(field, 's', { metaKey: true });
+		expect(visualKeyboardAction(save, false, false)).toBe('save');
+		expect(save.defaultPrevented).toBe(true);
+		expect(visualKeyboardAction(keydown(document.body, 'Escape'), false, false)).toBeNull();
+		field.remove();
+	});
+
 	test('un <select> y un menú conservan sus teclas como antes', () => {
 		const select = document.createElement('select');
 		const menu = document.createElement('div');

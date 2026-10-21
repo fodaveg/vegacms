@@ -1,6 +1,9 @@
 /** Contrato mínimo del propietario del borrador. Nunca recibe snapshots ni persiste por input. */
 export interface InlineEditor {
-	save(): void;
+	/** `BlockEditor#save`: `focus: false` no mueve el foco si se rechaza (ver `revealErrors`). */
+	save(options?: { focus?: boolean }): Promise<'saved' | 'rejected' | 'idle'>;
+	/** Lleva el foco al primer campo con error tras un rechazo con `focus: false`. */
+	revealErrors(): Promise<void>;
 	discard(): void;
 	beginInline(field: string): { widget: 'text' | 'textarea'; value: string; label?: string } | null;
 	updateInline(field: string, value: string): boolean;

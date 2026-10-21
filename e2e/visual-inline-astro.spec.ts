@@ -447,6 +447,10 @@ test.describe('actual Astro inline bridge', () => {
 		await expect(page.locator('.vega-visual-dirty')).toBeVisible();
 		// The focus is still inside the site's document.
 		expect(await page.evaluate(() => document.activeElement?.tagName)).toBe('IFRAME');
+		// And another, clean block is now the open one: Cmd+S still saves every pending block
+		// (decision of 21 Oct 2026; before, it saved only the open card and did nothing here).
+		await field(frameOf(page), 'seccion_1', 'heading').click();
+		await expect(inspector(page)).toHaveAttribute('data-block-id', 'seccion_1');
 		await page.keyboard.press('ControlOrMeta+s');
 		await expect(page.locator('.vega-visual-dirty')).toHaveCount(0);
 		await backToForm(page);

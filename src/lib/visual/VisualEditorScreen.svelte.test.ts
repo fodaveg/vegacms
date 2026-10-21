@@ -19,6 +19,7 @@ import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
 import type { ContentType } from '$lib/backend/types';
 import type { ResolvedContentType } from '$lib/model/types';
 import type { VegaRecord } from '$lib/backend';
+import { VegaError } from '$lib/backend/errors';
 import { createMemoryBackend, type MemoryBackendPort } from '$lib/backend/adapters/memory';
 import { resolveContentModel } from '$lib/model/resolve';
 import { t as translate } from '$lib/i18n';
@@ -2875,6 +2876,80 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 
 		expect(mounted.target.querySelector('.vega-visual-dirty')).toBeNull();
 		expect((await port.get('post_block', 'b1')).values.heading).toBe('Hero desde el sitio');
+	});
+
+	/** Abre la ficha de `id` desde el árbol y, si se da `value`, escribe su titular. */
+	async function openAndEdit(target: HTMLElement, id: string, value?: string): Promise<void> {
+		target.querySelector<HTMLButtonElement>(`[data-vega-tree-row="${id}"]`)!.click();
+		await tick();
+		if (value === undefined) return;
+		const input = target.querySelector<HTMLInputElement>(
+			`.vega-inspector-body[data-block-id="${id}"] input[type="text"]`
+		)!;
+		input.value = value;
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+	}
+
+	test('⌘S con la ficha abierta LIMPIA guarda la otra sección con cambios (ronda 3 del QA)', async () => {
+		// QA de fodaveg (21 oct 2026, `r2-1-cmds-otra-seccion-sucia.png`): ⌘S solo guardaba la ficha
+		// abierta; limpia ella y sucia otra, no hacía nada ni lo decía. Ahora guarda todo lo pendiente.
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await openAndEdit(mounted.target, 'b1', 'Hero pendiente');
+		await openAndEdit(mounted.target, 'b2');
+		expect(mounted.target.querySelector('.vega-visual-pending')).not.toBeNull();
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', metaKey: true, bubbles: true }));
+		await flush();
+
+		expect((await port.get('post_block', 'b1')).values.heading).toBe('Hero pendiente');
+		expect(mounted.target.querySelector('.vega-visual-pending')).toBeNull();
+	});
+
+	test('⌘S guarda las válidas; la rechazada no se escribe, la barra la nombra y se abre con el foco en su campo', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type, port } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		const update = port.update.bind(port);
+		vi.spyOn(port, 'update').mockImplementation(async (collection, id, input, opts) => {
+			if (id === 'b1')
+				throw VegaError.validation({
+					heading: { code: 'validation_invalid_value', message: 'Titular rechazado' }
+				});
+			return update(collection, id, input, opts);
+		});
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await openAndEdit(mounted.target, 'b1', 'Hero que el servidor rechaza');
+		await openAndEdit(mounted.target, 'b2', 'Features guardado');
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', metaKey: true, bubbles: true }));
+		await vi.waitFor(async () => {
+			await flush();
+			expect(document.activeElement).toBe(
+				mounted!.target.querySelector('.vega-inspector-body[data-block-id="b1"] input[type="text"]')
+			);
+		});
+
+		expect((await port.get('post_block', 'b2')).values.heading).toBe('Features guardado');
+		expect((await port.get('post_block', 'b1')).values.heading).toBe('Hero');
+		expect(
+			mounted.target
+				.querySelector('.vega-inspector-body[data-block-id="b1"]')
+				?.hasAttribute('hidden')
+		).toBe(false);
+		expect(mounted.target.querySelector('.vega-visual-savestate--err')?.textContent).toContain(
+			translate('es', 'editor.visual.bar.saveError', { label: 'Hero' })
+		);
+		expect(mounted.target.querySelector('.vega-visual-saved-at')).toBeNull();
 	});
 
 	test('sin bloque seleccionado, ⌘S no revienta (no-op)', async () => {

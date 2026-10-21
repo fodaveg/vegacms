@@ -1195,6 +1195,39 @@ test('editor visual: sin barra de la app, ⌘K abre el buscador global y Escape 
  * en una franja ENCIMA de la hoja y los «+» en el margen de su IZQUIERDA, sin solaparse entre sí
  * ni con la página, a cualquier ancho; y cada botón de la barra es lo que se ve en su centro.
  */
+test('ronda 3 del QA de fodaveg: ⌘S guarda TODO lo pendiente aunque la ficha abierta esté limpia, también desde el lienzo', async ({
+	page
+}, testInfo) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	await openStructure(page);
+	// Foco en el árbol: la ficha abierta (seccion_2) está limpia y seccion_1 tiene cambios.
+	await page.locator('[data-vega-tree-row="seccion_1"]').click();
+	await headingInput(page).fill('Titular guardado con el atajo');
+	await page.locator('[data-vega-tree-row="seccion_2"]').click();
+	await expect(pendingDetails(page)).toBeVisible();
+	await page.keyboard.press('ControlOrMeta+s');
+	await expect(pendingDetails(page)).toHaveCount(0);
+	await expect(page.locator('.vega-visual-saved-at')).toBeVisible();
+	await page.screenshot({ path: testInfo.outputPath('cmds-otra-seccion-guardada.png') });
+
+	// Y con el foco dentro de la ficha abierta, que también está limpia. (Desde el sitio llega por
+	// `save-shortcut`, mismo camino: lo cubre la e2e con el puente real.)
+	await page.locator('[data-vega-tree-row="seccion_3"]').click();
+	await headingInput(page).fill('Tercera con cambios');
+	await page.locator('[data-vega-tree-row="seccion_1"]').click();
+	await headingInput(page).focus();
+	await page.keyboard.press('ControlOrMeta+s');
+	await expect(pendingDetails(page)).toHaveCount(0);
+
+	await formLink(page).click();
+	const titles = page.locator('.vega-block-title');
+	await expect(titles.nth(0)).toHaveText('Titular guardado con el atajo');
+	await expect(titles.nth(2)).toHaveText('Tercera con cambios');
+});
+
 test('QA de fodaveg: la sección se nombra igual en todas partes, también en el lienzo «Móvil» y al borrarla', async ({
 	page
 }, testInfo) => {

@@ -778,7 +778,9 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 					)
 						return 'out-of-order';
 					endInline(false);
-					opts.onInlineSave?.();
+					// `save` es el Cmd/Ctrl+S pulsado DENTRO de un campo en edición: el mismo atajo que
+					// `save-shortcut`, así que guarda lo mismo (todo lo pendiente desde el 21 oct 2026).
+					(opts.onSaveShortcut ?? opts.onInlineSave)?.();
 					return 'accepted';
 				}
 			} else if (protocol === INLINE_PROTOCOL && raw?.vega === VISUAL_PROTOCOL_VERSION)
