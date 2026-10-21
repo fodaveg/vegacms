@@ -1924,7 +1924,7 @@
 	.vega-visual-pending-block:focus-visible,
 	.vega-visual-meta-retry:focus-visible,
 	.vega-visual-help-loading-close:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 

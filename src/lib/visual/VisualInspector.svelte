@@ -636,7 +636,7 @@
 	}
 
 	.vega-inspector-discard:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 
@@ -936,7 +936,7 @@
 	}
 
 	.vega-texts-index:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 

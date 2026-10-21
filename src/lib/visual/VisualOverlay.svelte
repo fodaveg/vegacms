@@ -371,6 +371,8 @@
 	const TOOLBAR_INSET = 12;
 	/** Ancho de la barra, independiente del zoom, para mantener todas las acciones en el lienzo. */
 	let toolbarWidth = $state(0);
+	/** Alto de la barra, para que un bloque pegado arriba no la recorte (ver su CSS). */
+	let toolbarHeight = $state(0);
 	/** Ancho del overlay en píxeles de la página (el escenario lo escala, `offsetWidth` no). */
 	let overlayWidth = $state(0);
 	/** Ancho físico de la píldora del hueco de ARRIBA del seleccionado, la que comparte fila con la
@@ -380,7 +382,8 @@
 	/**
 	 * Centro horizontal (px de la página) de la píldora de arriba del seleccionado. La lámina la
 	 * centra sobre la línea divisoria y deja la barra a la derecha SIN solaparse: centrada mientras
-	 * quepa; si el lienzo es estrecho, se desplaza a la izquierda hasta quedar a 12 px de la barra
+	 * quepa; si el lienzo es estrecho, se desplaza a la izquierda hasta quedar a 12 px de la barra;
+	 * si a la izquierda no cabe (bloque estrecho con la barra pegada a ese borde), va a su derecha
 	 * (nunca fuera del lienzo). `null` = centrada (sin barra o aún sin medir).
 	 */
 	const topPillCenter = $derived.by(() => {
@@ -394,8 +397,16 @@
 		);
 		const toolbarLeft = toolbarRight - toolbarWidth * scale;
 		const half = (topPillWidth * scale) / 2;
-		const fits = toolbarLeft - 12 * scale - half;
-		return Math.max(half + 4 * scale, Math.min(overlayWidth / 2, fits));
+		const center = overlayWidth / 2;
+		const leftMost = half + 4 * scale;
+		const rightMost = overlayWidth - half - 4 * scale;
+		// A la izquierda de la barra si cabe; si no (bloque estrecho, barra pegada a la izquierda),
+		// a su derecha; y si tampoco, centrada.
+		const leftOfBar = toolbarLeft - 12 * scale - half;
+		if (leftOfBar >= leftMost) return Math.min(center, leftOfBar);
+		const rightOfBar = toolbarRight + 12 * scale + half;
+		if (rightOfBar <= rightMost) return Math.max(center, rightOfBar);
+		return center;
 	});
 
 	/** Mide la píldora de arriba del seleccionado (`topPillWidth`) mientras lo sea. */
@@ -842,7 +853,9 @@
 		<div
 			class="vega-visual-overlay-toolbar"
 			bind:offsetWidth={toolbarWidth}
+			bind:offsetHeight={toolbarHeight}
 			style:--toolbar-width="{toolbarWidth}px"
+			style:--toolbar-height={toolbarHeight > 0 ? `${toolbarHeight}px` : undefined}
 			role="group"
 			aria-label={ctx.t('editor.visual.overlay.toolbar.label', { label })}
 			style:--toolbar-top="{selectedBridgeBlock.rect.top}px"
@@ -1316,7 +1329,9 @@
 	.vega-visual-overlay-toolbar {
 		position: absolute;
 		z-index: 5;
-		top: max(var(--toolbar-top), calc(20px * var(--menu-scale)));
+		/* Medio alto REAL de la barra (con dedo los botones miden 44 px) más 4 px: un bloque pegado
+		   arriba la baja lo justo para que no se recorte. */
+		top: max(var(--toolbar-top), calc((var(--toolbar-height, 40px) / 2 + 4px) * var(--menu-scale)));
 		left: clamp(
 			calc((var(--toolbar-width) + 4px) * var(--menu-scale)),
 			var(--toolbar-right),
@@ -1361,7 +1376,7 @@
 	}
 
 	.vega-visual-overlay-toolbar-btn:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 
@@ -1585,7 +1600,7 @@
 	}
 
 	.vega-visual-overlay-insert-menu-item:focus-visible {
-		box-shadow: inset 0 0 0 2px var(--ring);
+		box-shadow: inset 0 0 0 2px var(--ink);
 	}
 
 	.vega-visual-overlay-insert-menu-item:hover .vega-visual-insert-ic,

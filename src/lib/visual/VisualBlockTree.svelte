@@ -697,7 +697,7 @@
 	}
 
 	.vega-tree-row:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 
@@ -827,7 +827,8 @@
 		border: 0;
 		border-radius: 6px;
 		background: transparent;
-		color: var(--ink-3);
+		/* `ink-2`, no `ink-3`: una acción habilitada no es decoración (P7, UX12 ≥3:1). */
+		color: var(--ink-2);
 		cursor: pointer;
 	}
 
@@ -837,7 +838,7 @@
 	}
 
 	.vega-tree-action:focus-visible {
-		outline: 2px solid var(--ring);
+		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
 
