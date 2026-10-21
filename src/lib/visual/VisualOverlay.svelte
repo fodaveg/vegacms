@@ -378,6 +378,10 @@
 	const selectedBridgeBlock = $derived(
 		selectedId === null ? null : (blocks.find((b) => b.id === selectedId) ?? null)
 	);
+	/** El sitio pinta el seleccionado sin altura (`outlineRect`): la franja dice «aún sin contenido». */
+	const selectedEmpty = $derived(
+		selectedBridgeBlock !== null && outlineRect(selectedBridgeBlock.rect, 1 / zoomFactor).empty
+	);
 	const selectedIndex = $derived(
 		selectedRecord === null ? -1 : blocksState.records.findIndex((r) => r.id === selectedId)
 	);
@@ -792,10 +796,9 @@
 	     abajo. -->
 	<div class="vega-visual-overlay-boxes" aria-hidden="true">
 		{#each decoratedBlocks as { block, unsupported } (block.id)}
-			{@const declared = blockTypeByName.get(block.type)}
 			{@const outline = outlineRect(block.rect, 1 / zoomFactor)}
 			<!-- `outline`: un bloque que el sitio pinta sin altura (recién insertado, campos vacíos) se
-			     marca con una caja de altura mínima y el nombre de su tipo (`outlineRect`). -->
+			     marca con un contorno discontinuo en su sitio, sin crecer (`outlineRect`). -->
 			<div
 				class="vega-visual-overlay-box"
 				class:vega-visual-overlay-box--selected={block.id === selectedId}
@@ -815,13 +818,9 @@
 				data-unsupported={unsupported ? 'true' : undefined}
 				data-unpublished={block.unpublished ? 'true' : undefined}
 			>
-				<!-- Solo el contorno: el nombre del tipo y sus marcas («no soportado», «No pública») van
-				     en la franja del escenario (ver «Nada sobre la página» en la cabecera). -->
-				{#if outline.empty}
-					<span class="vega-visual-overlay-empty-name">
-						{ctx.t('editor.visual.overlay.emptyBlock', { label: declared?.label ?? block.type })}
-					</span>
-				{/if}
+				<!-- Solo el contorno: el nombre del tipo y sus marcas («no soportado», «No pública», «aún
+				     sin contenido») van en la franja del escenario (ver «Nada sobre la página» en la
+				     cabecera). -->
 			</div>
 		{/each}
 	</div>
@@ -881,8 +880,7 @@
 						>{ctx.t('editor.visual.inspector.position', {
 							position: selectedIndex + 1,
 							total: blocksState.records.length
-						})}{#if selectedBridgeBlock === null}
-							· {ctx.t('editor.visual.chrome.notPainted')}{/if}</span
+						})}{#if selectedBridgeBlock === null}{` · ${ctx.t('editor.visual.chrome.notPainted')}`}{:else if selectedEmpty}{` · ${ctx.t('editor.visual.chrome.empty')}`}{/if}</span
 					>
 				</p>
 				<div
@@ -1268,26 +1266,11 @@
 		box-shadow: 0 0 0 calc(4px * var(--menu-scale)) var(--accent-soft);
 	}
 
-	/* Bloque que el sitio aún no pinta (ver `outlineRect`): marcador discontinuo de altura mínima,
-	   con el nombre de su tipo en el centro, sobre un fondo propio (el del sitio no se conoce). */
+	/* Bloque que el sitio aún no pinta (ver `outlineRect`): el mismo contorno, discontinuo, en su
+	   junta y sin fondo ni texto propios — nada que tape la página (QA de fodaveg, 21 oct 2026). Que
+	   está vacío lo dice la franja del escenario. */
 	.vega-visual-overlay-box--empty::before {
 		border-style: dashed;
-		background: var(--surface);
-	}
-
-	.vega-visual-overlay-empty-name {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		max-width: calc(100% / var(--menu-scale) - 16px);
-		overflow: hidden;
-		color: var(--ink-2);
-		font-family: var(--sans);
-		font-size: 11px;
-		font-weight: 600;
-		white-space: nowrap;
-		text-overflow: ellipsis;
-		transform: translate(-50%, -50%) scale(var(--menu-scale));
 	}
 
 	/* Pista de la edición en línea (lámina, `.inl-hint`): píldora bajo el campo, con el nombre del

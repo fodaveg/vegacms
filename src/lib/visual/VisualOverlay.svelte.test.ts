@@ -22,7 +22,6 @@ import type { ResolvedBlockType, ResolvedContentType } from '$lib/model/types';
 import type { VegaRecord } from '$lib/backend';
 import { t as translate } from '$lib/i18n';
 import type { VisualBlock } from './bridge-client';
-import { EMPTY_BLOCK_MIN_HEIGHT } from './overlay-chrome';
 
 /** Mismo vocabulario que el `status` interno del componente (no exportado, ver su cabecera):
  *  duplicado aquí a propósito, dos literales no merecen un módulo compartido. */
@@ -230,9 +229,10 @@ describe('VisualOverlay.svelte', () => {
 		expect(b2?.style.width).toBe('640px');
 	});
 
-	test('una sección que el sitio pinta sin altura se marca igual: altura mínima y su tipo', async () => {
+	test('una sección que el sitio pinta sin altura: contorno vacío en su junta, sin tapar nada; la franja lo dice', async () => {
 		// QA de fodaveg (21 oct 2026): un «Botón» recién insertado, sin texto, no pinta nada y el
-		// lienzo no cambiaba. Ahora su contorno tiene altura mínima y dice qué es.
+		// lienzo no cambiaba. Después, su marcador de 28 px con fondo tapaba la línea de encima:
+		// ahora es el contorno de siempre, discontinuo, y «aún sin contenido» va en la franja.
 		mounted = mountOverlay({
 			status: 'ready',
 			blocks: [
@@ -240,15 +240,22 @@ describe('VisualOverlay.svelte', () => {
 				block('b2', 'gallery', { top: 300, height: 0 })
 			],
 			selectedId: 'b2',
-			blocksState: fakeBlocksState({ blockTypes: [HERO_TYPE, GALLERY_TYPE] })
+			blocksState: fakeBlocksState({
+				blockTypes: [HERO_TYPE, GALLERY_TYPE],
+				records: [record('b1', 'Hola'), record('b2', 'Fotos')]
+			})
 		});
 		await tick();
 
 		const empty = mounted.target.querySelector<HTMLElement>('[data-vega-block-id="b2"]')!;
 		expect(empty.classList.contains('vega-visual-overlay-box--empty')).toBe(true);
-		expect(empty.style.height).toBe(`${EMPTY_BLOCK_MIN_HEIGHT}px`);
-		expect(empty.style.top).toBe(`${300 - EMPTY_BLOCK_MIN_HEIGHT / 2}px`);
-		expect(empty.textContent).toContain('Galería · aún sin contenido');
+		// Ni crece sobre el bloque de encima ni lleva texto sobre la página.
+		expect(empty.style.height).toBe('0px');
+		expect(empty.style.top).toBe('300px');
+		expect(empty.textContent?.trim()).toBe('');
+		expect(mounted.target.querySelector('.vega-visual-chrome-position')?.textContent).toContain(
+			'Sección 2 de 2 · aún sin contenido'
+		);
 		const full = mounted.target.querySelector<HTMLElement>('[data-vega-block-id="b1"]')!;
 		expect(full.classList.contains('vega-visual-overlay-box--empty')).toBe(false);
 		expect(full.style.height).toBe('300px');

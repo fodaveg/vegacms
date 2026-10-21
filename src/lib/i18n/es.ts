@@ -597,7 +597,7 @@ export const es = {
 	// (decisión 3) — una sola caja SOBRE EL MARCO que solo existe mientras hay un arrastre de
 	// paleta en vuelo Y no hay ningún bloque (ver la cabecera de `VisualOverlay.svelte`).
 	'editor.visual.overlay.emptyDrop': 'Suelta aquí para crear el primer bloque',
-	'editor.visual.overlay.emptyBlock': '{label} · aún sin contenido',
+	'editor.visual.chrome.empty': 'aún sin contenido',
 	'editor.visual.chrome.notPainted': 'no se ve en la página',
 	'editor.visual.chrome.addFirst': 'Añadir la primera sección',
 	// ————— Árbol de bloques (`VisualBlockTree.svelte`) e inspector (`VisualInspector.svelte`):

@@ -554,7 +554,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// "Draggable block palette" task: the empty-canvas drop target, ONLY while a palette drag is in
 	// flight (see `es.ts` for the full rationale).
 	'editor.visual.overlay.emptyDrop': 'Drop here to create the first block',
-	'editor.visual.overlay.emptyBlock': '{label} · no content yet',
+	'editor.visual.chrome.empty': 'no content yet',
 	'editor.visual.chrome.notPainted': 'not shown on the page',
 	'editor.visual.chrome.addFirst': 'Add the first section',
 	// ————— Block tree (`VisualBlockTree.svelte`) and inspector (`VisualInspector.svelte`): the

@@ -11,24 +11,28 @@
  * `1 / zoom`, lo que mide en la página un píxel de pantalla.
  */
 
-/** Alto físico mínimo del contorno de un bloque que el sitio pinta sin altura. */
-export const EMPTY_BLOCK_MIN_HEIGHT = 28;
+/** Alto físico por debajo del cual un bloque cuenta como «aún sin contenido». */
+export const EMPTY_BLOCK_HEIGHT = 14;
 
 export interface OutlineRect {
 	top: number;
 	height: number;
-	/** `true` = el sitio no pinta nada todavía: el contorno es un marcador de altura mínima. */
+	/** `true` = el sitio no pinta nada todavía: contorno discontinuo y la franja lo dice. */
 	empty: boolean;
 }
 
 /**
- * Caja del contorno de un bloque, en px de la página. Un bloque que el sitio reporta casi sin
- * altura (una sección recién insertada con sus campos vacíos: un «Botón» sin texto no pinta nada)
- * se marca igual, con {@link EMPTY_BLOCK_MIN_HEIGHT} px físicos centrados en su sitio, para que
- * insertar deje rastro en el lienzo (QA de fodaveg, 21 oct 2026). El resto, tal cual.
+ * Caja del contorno de un bloque, en px de la página: la del bloque, tal cual. Un bloque que el
+ * sitio reporta casi sin altura (una sección recién insertada con sus campos vacíos: un «Botón»
+ * sin texto no pinta nada) se marca `empty` para que el contorno sea discontinuo y la franja diga
+ * «aún sin contenido». Su caja NO crece: hasta el 21 oct 2026 se inflaba a 28 px físicos con fondo
+ * opaco y el nombre dentro, y en fodaveg tapaba la línea de encima (QA de esa fecha). Sobre la
+ * página, la misma regla que cualquier contorno: solo el trazo, por fuera del bloque.
  */
 export function outlineRect(rect: { top: number; height: number }, scale: number): OutlineRect {
-	const min = EMPTY_BLOCK_MIN_HEIGHT * scale;
-	if (rect.height >= min / 2) return { top: rect.top, height: rect.height, empty: false };
-	return { top: rect.top + rect.height / 2 - min / 2, height: min, empty: true };
+	return {
+		top: rect.top,
+		height: rect.height,
+		empty: rect.height < EMPTY_BLOCK_HEIGHT * scale
+	};
 }

@@ -1189,6 +1189,38 @@ test('editor visual: sin barra de la app, ⌘K abre el buscador global y Escape 
  * en una franja ENCIMA de la hoja y los «+» en el margen de su IZQUIERDA, sin solaparse entre sí
  * ni con la página, a cualquier ancho; y cada botón de la barra es lo que se ve en su centro.
  */
+test('una sección que el sitio pinta sin altura: contorno discontinuo sin fondo ni texto sobre la página; la franja lo dice', async ({
+	page
+}) => {
+	// QA de fodaveg (21 oct 2026, `f8c-marcador-vacio-zoom.png`): el marcador «· aún sin contenido»
+	// medía 28 px con fondo opaco y tapaba parte de la línea de encima.
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+	await openVisualEditor(page, site, 'pagina_1');
+	await waitConnected(page, 3);
+	const frame = page.frames().find((item) => item.url().includes('vega-visual-site.example'))!;
+	await frame.evaluate(() => {
+		const block = document.querySelector<HTMLElement>('[data-vega-block-id="seccion_2"]')!;
+		block.style.cssText = 'height:0;padding:0;border:0;margin:0;overflow:hidden';
+		window.dispatchEvent(new Event('resize'));
+	});
+	await openStructure(page);
+	await page.locator('[data-vega-tree-row="seccion_2"]').click();
+	const marker = page.locator('.vega-visual-overlay-box--empty[data-vega-block-id="seccion_2"]');
+	await expect(marker).toHaveCount(1);
+	const painted = await marker.evaluate((el) => ({
+		height: el.getBoundingClientRect().height,
+		text: el.textContent?.trim() ?? '',
+		fill: getComputedStyle(el, '::before').backgroundColor,
+		border: getComputedStyle(el, '::before').borderTopStyle
+	}));
+	expect(painted).toEqual({ height: 0, text: '', fill: 'rgba(0, 0, 0, 0)', border: 'dashed' });
+	await expect(page.locator('.vega-visual-chrome-position')).toHaveText(
+		'Sección 2 de 3 · aún sin contenido'
+	);
+	expect(await controlsOverPageContent(page)).toEqual([]);
+});
+
 for (const width of [1440, 1100]) {
 	test(`franja de acciones y «+» del margen fuera de la hoja a ${width}`, async ({ page }) => {
 		await page.setViewportSize({ width, height: 900 });
