@@ -888,6 +888,27 @@
 		.vega-tree-close {
 			min-width: 44px;
 		}
+
+		/* Con dedo, las acciones (a 44 px cada una) superpuestas a la derecha de la fila tapaban su
+		   centro: un toque para SELECCIONAR caía en «Bajar» o «Borrar» (medido en
+		   `e2e/visual-editor.spec.ts`, «UX04: objetivos del menú con puntero táctil»). Aquí bajan a su
+		   propia línea, bajo la fila, y la fila recupera todo su ancho. */
+		.vega-tree-item {
+			flex-wrap: wrap;
+		}
+
+		.vega-tree-item:has(.vega-tree-row--selected) .vega-tree-row,
+		.vega-tree-item:is(:hover, :focus-within) .vega-tree-row {
+			padding-right: 10px;
+		}
+
+		.vega-tree-actions {
+			position: static;
+			flex-basis: 100%;
+			justify-content: flex-end;
+			padding: 2px 0 4px;
+			transform: none;
+		}
 	}
 
 	/* Por debajo de 1180px (ver cabecera, "Colapsable"): el panel se convierte en un cajón fijo. */
