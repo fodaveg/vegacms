@@ -20,7 +20,10 @@ empaquetados, sus tres ejes ortogonales y el gate AA medido. La implementación 
 - Editor: `--v-ol-select` (fondo de selección, el acento), `--v-ol-select-ink` (texto
   encima), `--v-ol-hover` (hover de bloque, acento al 55 %), `--v-ol-inline` (contorno y
   cursor de edición en línea), `--v-ol-inline-text` (texto activo), `--v-ol-inline-soft`
-  (fondo tenue, opaco sobre `--paper`) y `--v-stage` (escenario).
+  (fondo tenue, opaco sobre `--paper`), `--v-ol-inline-tint` (el mismo tinte translúcido,
+  12 % en claro y 16 % en oscuro sobre transparente, para dentro de la página del sitio, que
+  no cambia de tema con Vega: es el `appearance.soft` de `editField`) y `--v-stage`
+  (escenario).
   - La edición en línea tiene un color PROPIO, no derivado de la marca: naranja
     (#e8562a contorno y #bf3f14 texto en claro, #ff7a4d en oscuro, valores de
     `edicion-en-vivo.html`). Si el acento del tema ya es cálido (a menos de 45° de matiz

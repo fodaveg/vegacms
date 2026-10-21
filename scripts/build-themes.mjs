@@ -667,6 +667,7 @@ export function emittedTokenNames() {
 		'v-ol-inline',
 		'v-ol-inline-text',
 		'v-ol-inline-soft',
+		'v-ol-inline-tint',
 		'v-stage',
 		...Object.keys(DENSITY.comfortable),
 		'tint',
@@ -783,7 +784,10 @@ export function themeToCss(theme) {
 			`--v-stage: color-mix(in oklab, var(--ink) ${STAGE_INK_PCT[mode]}%, var(--bg));`,
 			`--v-ol-inline: ${inline.line};`,
 			`--v-ol-inline-text: ${inline.text};`,
-			`--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) ${INLINE_SOFT_PCT[mode]}%, var(--paper));`
+			`--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) ${INLINE_SOFT_PCT[mode]}%, var(--paper));`,
+			// Translúcido, para DENTRO de la página del sitio (`editField.appearance.soft`): el sitio
+			// no cambia de tema con Vega, así que el tinte no puede llevar el papel de Vega mezclado.
+			`--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) ${INLINE_SOFT_PCT[mode]}%, transparent);`
 		);
 
 		const modeSelector =

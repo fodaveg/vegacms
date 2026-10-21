@@ -307,6 +307,13 @@ export const THEME_TOKENS: readonly ThemeToken[] = [
 		themeWritable: false
 	},
 	{
+		name: 'v-ol-inline-tint',
+		family: 'marca',
+		description:
+			'Tinte translúcido de edición en línea para DENTRO de la página del sitio (editField.appearance.soft): el contorno al 12 % (claro) / 16 % (oscuro) sobre transparente.',
+		themeWritable: false
+	},
+	{
 		name: 'v-stage',
 		family: 'papel',
 		description:
