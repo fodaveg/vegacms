@@ -80,7 +80,7 @@ const landingBlockType: ContentType = {
  *  mutaciones que se prueban aquí son funciones imperativas que las leen en el momento de la
  *  llamada, igual que hace el componente real con sus props — no hace falta reactividad para
  *  ejercitarlas directamente. */
-async function setup(): Promise<{
+async function setup(onCreated?: Parameters<typeof createBlocksState>[0]['onCreated']): Promise<{
 	state: BlocksState;
 	port: ReturnType<typeof createMemoryBackend>;
 	feedback: { toast: ReturnType<typeof vi.fn>; reportError: ReturnType<typeof vi.fn> };
@@ -136,7 +136,8 @@ async function setup(): Promise<{
 			parentType,
 			getParentId: () => parentId,
 			getDisabled: () => disabled,
-			onDirtyChange
+			onDirtyChange,
+			onCreated
 		});
 	});
 	// El `$effect` de carga automática (mismo que dispara `RecordBlocks.svelte` al montar) corre en
@@ -212,6 +213,23 @@ describe('blocks-state.svelte.ts', () => {
 		expect(state.isExpanded(created.id)).toBe(true);
 		expect(state.structuralBusy).toBe(false);
 		expect(feedback.reportError).not.toHaveBeenCalled();
+	});
+
+	test('crear avisa a `onCreated` con el registro nuevo (el editor visual lo selecciona); un fallo, no', async () => {
+		const onCreated = vi.fn();
+		const ctxState = await setup(onCreated);
+		cleanup = ctxState.cleanup;
+		const { state, port } = ctxState;
+
+		await state.handleCreate();
+		expect(onCreated).toHaveBeenCalledTimes(1);
+		expect(onCreated).toHaveBeenCalledWith(state.records.at(-1));
+		// Cuando avisa, el mutex ya está libre: quien escucha puede abrir la ficha y escribir.
+		expect(state.structuralBusy).toBe(false);
+
+		vi.spyOn(port, 'create').mockRejectedValueOnce(new Error('fallo deliberado'));
+		await state.handleCreate();
+		expect(onCreated).toHaveBeenCalledTimes(1);
 	});
 
 	test('duplicar clona el bloque, lo inserta justo debajo y avisa con el toast de éxito', async () => {

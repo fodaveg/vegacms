@@ -597,6 +597,7 @@ export const es = {
 	// (decisión 3) — una sola caja SOBRE EL MARCO que solo existe mientras hay un arrastre de
 	// paleta en vuelo Y no hay ningún bloque (ver la cabecera de `VisualOverlay.svelte`).
 	'editor.visual.overlay.emptyDrop': 'Suelta aquí para crear el primer bloque',
+	'editor.visual.overlay.emptyBlock': '{label} · aún sin contenido',
 	// ————— Árbol de bloques (`VisualBlockTree.svelte`) e inspector (`VisualInspector.svelte`):
 	// la vía ACCESIBLE de seleccionar un bloque (el overlay de arriba es `aria-hidden`) y la ficha
 	// del bloque elegido. Reutilizan a propósito claves ya existentes del resto del ciclo de vida

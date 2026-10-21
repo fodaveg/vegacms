@@ -1621,6 +1621,40 @@ describe('VisualEditorScreen.svelte — acciones estructurales (árbol + lienzo)
 		expect(rows.items[1].id).not.toBe('b2');
 		expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
 	});
+
+	test('insertar deja rastro: la sección nueva queda seleccionada, con su ficha y el foco en su primer campo', async () => {
+		// QA de fodaveg (21 oct 2026): insertar un «Botón» con sus campos vacíos no cambiaba el lienzo
+		// ni seleccionaba nada. Ahora la ficha se abre sola, y sigue abierta aunque el sitio, al
+		// recargar, no pinte (ni reporte) la sección vacía.
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type, port } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
+		mounted = mountScreen(ctx, type);
+		await flush();
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }]);
+
+		mounted.target.querySelectorAll<HTMLButtonElement>('.vega-visual-overlay-insert')[1].click();
+		await flush();
+		await flush();
+
+		const rows = await port.list('post_block', {
+			sort: [{ field: 'sort', dir: 'asc' }],
+			perPage: 50
+		});
+		const created = rows.items.find((item) => item.id !== 'b1')!;
+		expect(created).toBeDefined();
+		const visible = mounted.target.querySelector<HTMLElement>(
+			'section.vega-inspector-body:not([hidden])'
+		);
+		expect(visible?.dataset.blockId).toBe(created.id);
+		expect(document.activeElement?.id).toBe(`vega-field-${created.id}-heading`);
+
+		// El sitio recarga y no reporta la sección vacía: la selección NO se pierde, la sección existe.
+		await connectBridge(mounted.target, [{ id: 'b1', type: 'hero' }]);
+		expect(
+			mounted.target.querySelector<HTMLElement>('section.vega-inspector-body:not([hidden])')
+				?.dataset.blockId
+		).toBe(created.id);
+	});
 });
 
 // ————— Anchos de columna ajustables (petición de David tras usar el editor visual en prod) —————

@@ -99,6 +99,10 @@ interface BlocksStateOptions {
 	onDraftChange?: (records: PreviewDraftRecord[]) => void;
 	/** Sube el mutex estructural para que el padre no clone una instantánea intermedia. */
 	onBusyChange?: (busy: boolean) => void;
+	/** Un bloque NUEVO ya está en `records` (crear desde cualquier superficie: paleta, «+» del
+	 *  lienzo, árbol). El editor visual lo selecciona y abre su ficha (QA de fodaveg, 21 oct
+	 *  2026: insertar no dejaba rastro); el formulario clásico ya lo despliega aquí mismo. */
+	onCreated?: (record: VegaRecord) => void;
 }
 
 export interface BlocksState {
@@ -418,6 +422,7 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 			return;
 		const view = captureViewIdentity();
 		const sourceRecords = [...records];
+		let createdRecord: VegaRecord | null = null;
 		structuralBusy = true;
 		try {
 			const maxOrder = sourceRecords.reduce((max, r) => {
@@ -444,6 +449,7 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 			// que vea de inmediato sus campos para rellenarlos (mismo criterio que abrir un registro
 			// recién creado en `/c/[type]/new`).
 			expandedIds.add(created.id);
+			createdRecord = created;
 		} catch (err) {
 			const vegaErr =
 				err instanceof VegaError ? err : VegaError.backend('No se pudo crear el bloque', err);
@@ -451,6 +457,8 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 		} finally {
 			structuralBusy = false;
 		}
+		// Fuera del `try`: lo que haga quien escucha no es un fallo al crear.
+		if (createdRecord) options.onCreated?.(createdRecord);
 	}
 
 	async function handleDuplicate(record: VegaRecord): Promise<void> {

@@ -232,7 +232,7 @@
 	import { typeMenuItems, typeMenuKeydownIndex } from './type-menu';
 	import { resolveInsertPosition } from './insert-position';
 	import { INLINE_HINT_GEOMETRY } from './inline-appearance';
-	import { placeChrome, type ChromePlacement } from './overlay-chrome';
+	import { outlineRect, placeChrome, type ChromePlacement } from './overlay-chrome';
 	import { currentPlatform, isApplePlatform } from '$lib/form/save-shortcut';
 	import type { VisualBlock } from './bridge-client';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
@@ -816,21 +816,25 @@
 	<div class="vega-visual-overlay-boxes" aria-hidden="true">
 		{#each decoratedBlocks as { block, unsupported } (block.id)}
 			{@const declared = blockTypeByName.get(block.type)}
+			{@const outline = outlineRect(block.rect, 1 / zoomFactor)}
+			<!-- `outline`: un bloque que el sitio pinta sin altura (recién insertado, campos vacíos) se
+			     marca con una caja de altura mínima y el nombre de su tipo (`outlineRect`). -->
 			<div
 				class="vega-visual-overlay-box"
 				class:vega-visual-overlay-box--selected={block.id === selectedId}
 				class:vega-visual-overlay-box--inline={block.id === inlineId}
 				class:vega-visual-overlay-box--highlighted={block.id === highlightedId}
+				class:vega-visual-overlay-box--empty={outline.empty}
 				data-vega-block-id={block.id}
 				style:pointer-events="none"
-				style:top="{block.rect.top}px"
+				style:top="{outline.top}px"
 				style:left="{block.rect.left}px"
 				style:width="{block.rect.width}px"
-				style:height="{block.rect.height}px"
-				style:--room-top="{block.rect.top}px"
+				style:height="{outline.height}px"
+				style:--room-top="{outline.top}px"
 				style:--room-left="{block.rect.left}px"
 				style:--room-right="{overlayWidth - block.rect.left - block.rect.width}px"
-				style:--room-bottom="{overlayHeight - block.rect.top - block.rect.height}px"
+				style:--room-bottom="{overlayHeight - outline.top - outline.height}px"
 				style:--label-y="{chromeFor(block.rect, block.id === selectedId).center - block.rect.top}px"
 				style:--label-max={block.id === selectedId ? selectedLabelMax(block.rect.width) : undefined}
 			>
@@ -853,6 +857,11 @@
 						</span>
 					{/if}
 				</span>
+				{#if outline.empty}
+					<span class="vega-visual-overlay-empty-name">
+						{ctx.t('editor.visual.overlay.emptyBlock', { label: declared?.label ?? block.type })}
+					</span>
+				{/if}
 			</div>
 		{/each}
 	</div>
@@ -1243,6 +1252,28 @@
 	.vega-visual-overlay-box--inline::before {
 		border: calc(2px * var(--menu-scale)) solid var(--v-ol-select);
 		box-shadow: 0 0 0 calc(4px * var(--menu-scale)) var(--accent-soft);
+	}
+
+	/* Bloque que el sitio aún no pinta (ver `outlineRect`): marcador discontinuo de altura mínima,
+	   con el nombre de su tipo en el centro, sobre un fondo propio (el del sitio no se conoce). */
+	.vega-visual-overlay-box--empty::before {
+		border-style: dashed;
+		background: var(--surface);
+	}
+
+	.vega-visual-overlay-empty-name {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		max-width: calc(100% / var(--menu-scale) - 16px);
+		overflow: hidden;
+		color: var(--ink-2);
+		font-family: var(--sans);
+		font-size: 11px;
+		font-weight: 600;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		transform: translate(-50%, -50%) scale(var(--menu-scale));
 	}
 
 	/* Pista de la edición en línea (lámina, `.inl-hint`): píldora bajo el campo, con el nombre del

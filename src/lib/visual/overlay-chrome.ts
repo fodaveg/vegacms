@@ -52,3 +52,25 @@ export function placeChrome({
 	const visibleBottom = Math.min(bottom, canvasHeight);
 	return { side: 'inside', center: Math.max(row / 2, visibleBottom - clearance - row / 2) };
 }
+
+/** Alto físico mínimo del contorno de un bloque que el sitio pinta sin altura. */
+export const EMPTY_BLOCK_MIN_HEIGHT = 28;
+
+export interface OutlineRect {
+	top: number;
+	height: number;
+	/** `true` = el sitio no pinta nada todavía: el contorno es un marcador de altura mínima. */
+	empty: boolean;
+}
+
+/**
+ * Caja del contorno de un bloque, en px de la página. Un bloque que el sitio reporta casi sin
+ * altura (una sección recién insertada con sus campos vacíos: un «Botón» sin texto no pinta nada)
+ * se marca igual, con {@link EMPTY_BLOCK_MIN_HEIGHT} px físicos centrados en su sitio, para que
+ * insertar deje rastro en el lienzo (QA de fodaveg, 21 oct 2026). El resto, tal cual.
+ */
+export function outlineRect(rect: { top: number; height: number }, scale: number): OutlineRect {
+	const min = EMPTY_BLOCK_MIN_HEIGHT * scale;
+	if (rect.height >= min / 2) return { top: rect.top, height: rect.height, empty: false };
+	return { top: rect.top + rect.height / 2 - min / 2, height: min, empty: true };
+}

@@ -375,6 +375,7 @@
 		getParentId: () => record.id,
 		getDisabled: () => false,
 		onDirtyChange: () => {}, // el guard de salida lee `blocks.anyDirty` directo, ver más abajo
+		onCreated: (created) => handleBlockCreated(created),
 		onDraftChange: (drafts) => {
 			// La fábrica emite un snapshot por cambio de campo; el token se pide tras el debounce.
 			if (blocks.status.kind !== 'ready' || !canvasActive) return;
@@ -778,6 +779,21 @@
 		scheduleCanvasRefresh();
 	}
 
+	/** Sección recién creada que el lienzo todavía no ha pintado: al reconectar con ella dentro, se
+	 *  resalta y se trae a la vista (ver `onState`). */
+	let revealOnConnect: string | null = null;
+
+	/**
+	 * Una sección NUEVA, venga de donde venga (paleta, «+» del lienzo, árbol: `onCreated` de
+	 * `blocks-state`), queda SELECCIONADA con su ficha abierta y el foco en su primer campo (QA de
+	 * fodaveg, 21 oct 2026: «insertar un bloque no deja rastro»). Su sitio en el lienzo lo marca el
+	 * overlay aunque el sitio aún no pinte nada (`VisualOverlay`, marcador de altura mínima).
+	 */
+	function handleBlockCreated(created: VegaRecord): void {
+		revealOnConnect = String(created.id);
+		void openPendingBlock(String(created.id));
+	}
+
 	/** Abre un borrador desde el aviso y lleva el foco a su ficha ya visible, sin guardar nada. */
 	async function openPendingBlock(blockId: string): Promise<void> {
 		handleBlockSelect(blockId);
@@ -851,12 +867,28 @@
 				// heredaría ese fantasma y abriría la ficha de un bloque que no está. Se hace en
 				// este callback, no en un `$effect`, para que siga habiendo UN solo escritor de
 				// `selectedBlockId` y ningún ciclo entre efectos.
+				// Salvo que el bloque EXISTA (`blocks.records`) y solo sea que el sitio no lo pinta:
+				// una sección recién insertada con sus campos vacíos (un «Botón» sin texto) no tiene
+				// nada que pintar, y es justo la que el autor acaba de pedir (QA de fodaveg, 21 oct
+				// 2026: insertar no dejaba rastro). Su ficha sigue abierta y el overlay marca su sitio.
 				if (
 					selectedBlockId !== null &&
 					state.status === 'connected' &&
-					!state.blocks.some((block) => block.id === selectedBlockId)
+					!state.blocks.some((block) => block.id === selectedBlockId) &&
+					!blocks.records.some((item) => item.id === selectedBlockId)
 				) {
 					selectedBlockId = null;
+				}
+				// La sección recién creada ya la pinta el sitio: se trae a la vista una vez.
+				if (
+					revealOnConnect !== null &&
+					state.status === 'connected' &&
+					state.blocks.some((block) => block.id === revealOnConnect)
+				) {
+					const id = revealOnConnect;
+					revealOnConnect = null;
+					bridgeClient?.highlight(id);
+					bridgeClient?.scrollTo(id);
 				}
 				// Mismo criterio para el resalte del puntero EN LA PÁGINA (ver cabecera): sin conexión
 				// no hay lienzo que resaltar, y un id que el sitio ya no reporta no tiene contorno. El
