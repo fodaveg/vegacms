@@ -232,9 +232,10 @@
 		focusContext(target ?? body);
 	}
 
-	/** El foco nativo no descuenta la cabecera sticky. Los controles se alinean debajo; TipTap
-	 *  puede restaurar después su caret, así que tras pintar solo se corrige su visibilidad,
-	 *  conservando la selección actual y sin desplazar otra ficha ni otro foco. */
+	/** El foco nativo no descuenta lo fijo del panel: la cabecera de arriba (la del inspector, o la de
+	 *  la tarjeta en «solo textos») y el pie con Guardar de abajo. Los controles se alinean entre los
+	 *  dos; TipTap puede restaurar después su caret, así que tras pintar solo se corrige su
+	 *  visibilidad, conservando la selección actual y sin desplazar otra ficha ni otro foco. */
 	function focusContext(target: HTMLElement | undefined): void {
 		if (!target || !panelEl) return;
 		const panel = panelEl;
@@ -244,7 +245,10 @@
 			if (document.activeElement !== target || !target.isConnected || target.closest('[hidden]'))
 				return;
 			const section = target.closest('.vega-inspector-body');
-			const header = section?.querySelector('.vega-block-context');
+			const head = texts
+				? section?.querySelector('.vega-texts-head')
+				: panel.querySelector('.vega-inspector-head');
+			const foot = section?.querySelector('.vega-block-context');
 			const viewport = panel.getBoundingClientRect();
 			const selection = document.getSelection();
 			const caret =
@@ -253,8 +257,11 @@
 					: null;
 			const rect = caret?.height ? caret : target.getBoundingClientRect();
 			const top =
-				viewport.top + (target === section ? 0 : (header?.getBoundingClientRect().height ?? 0)) + 3;
-			const bottom = viewport.bottom - 3;
+				viewport.top + (target === section ? 0 : (head?.getBoundingClientRect().height ?? 0)) + 3;
+			const bottom =
+				viewport.bottom -
+				(target === section ? 0 : (foot?.getBoundingClientRect().height ?? 0)) -
+				3;
 			// Desplazamiento mínimo; si no cabe, alinea el inicio.
 			panel.scrollTop += Math.min(rect.top - top, Math.max(0, rect.bottom - bottom));
 		};
@@ -704,8 +711,15 @@
 		box-shadow: none;
 	}
 
+	/* Fija arriba mientras la ficha se desplaza (audit UX02: el contexto de QUÉ bloque se edita no
+	   se pierde al recorrer un formulario largo), opaca para que lo que pasa por debajo no se lea
+	   a través. El pie con Guardar es el otro extremo fijo (`.vega-block-context--foot`). */
 	.vega-inspector-head {
+		position: sticky;
+		top: 0;
+		z-index: 3;
 		flex-shrink: 0;
+		background: var(--surface);
 		padding: 0.75rem 0.9rem;
 		border-bottom: 1px solid var(--line);
 		display: flex;
@@ -867,7 +881,15 @@
 	}
 
 	/* Tarjeta de «Solo textos» (lámina, `.tcard`): cabecera con icono y tipo, Guardar al pie. */
+	/* Como en el inspector (audit UX02): la cabecera de la tarjeta queda fija arriba y su Guardar
+	   abajo mientras se recorre una sección larga; cada una limitada por SU tarjeta, así que la
+	   siguiente desplaza a la anterior. */
 	.vega-texts-head {
+		position: sticky;
+		top: 0;
+		z-index: 2;
+		background: var(--surface);
+		border-radius: var(--r-md) var(--r-md) 0 0;
 		display: flex;
 		align-items: center;
 		gap: 10px;
@@ -931,10 +953,12 @@
 	}
 
 	.vega-block-context--texts {
-		position: static;
-		padding: 0;
+		position: sticky;
+		top: auto;
+		bottom: 0;
+		padding: 8px 0;
 		border: 0;
-		background: transparent;
+		background: var(--surface);
 	}
 
 	.vega-block-context--texts .vega-block-context-state {
