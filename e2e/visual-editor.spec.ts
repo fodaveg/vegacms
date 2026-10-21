@@ -1251,7 +1251,7 @@ test('QA de fodaveg: la sección se nombra igual en todas partes, también en el
 
 test('una sección que el sitio pinta sin altura: contorno discontinuo sin fondo ni texto sobre la página; la franja lo dice', async ({
 	page
-}) => {
+}, testInfo) => {
 	// QA de fodaveg (21 oct 2026, `f8c-marcador-vacio-zoom.png`): el marcador «· aún sin contenido»
 	// medía 28 px con fondo opaco y tapaba parte de la línea de encima.
 	await page.setViewportSize({ width: 1440, height: 900 });
@@ -1275,6 +1275,7 @@ test('una sección que el sitio pinta sin altura: contorno discontinuo sin fondo
 		border: getComputedStyle(el, '::before').borderTopStyle
 	}));
 	expect(painted).toEqual({ height: 0, text: '', fill: 'rgba(0, 0, 0, 0)', border: 'dashed' });
+	await page.screenshot({ path: testInfo.outputPath('seccion-vacia-1440.png') });
 	await expect(page.locator('.vega-visual-chrome-position')).toHaveText(
 		'Sección 2 de 3 · aún sin contenido'
 	);
