@@ -490,8 +490,10 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 			const sheet = (await page.locator('.vega-visual-sheet').boundingBox())!;
 			const t = (await toolbar.boundingBox())!;
 			expect(t.y + t.height).toBeLessThanOrEqual(sheet.y);
+			// «Sección N de M» cuenta las secciones del REGISTRO (`pagina_1` de la semilla tiene las
+			// tres de `SECCIONES`), no las que este sitio pinta: aquí pinta un subconjunto.
 			await expect(page.locator('.vega-visual-chrome')).toContainText(
-				`Sección ${visualCase.blocks.findIndex((b) => b.id === visualCase.select) + 1} de ${visualCase.blocks.length}`
+				`Sección ${SECCIONES.findIndex((b) => b.id === visualCase.select) + 1} de ${SECCIONES.length}`
 			);
 			const points = page.locator('.vega-visual-overlay-insert');
 			await expect(points).toHaveCount(visualCase.blocks.length + 1);
