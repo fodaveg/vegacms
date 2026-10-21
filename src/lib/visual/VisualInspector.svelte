@@ -999,6 +999,14 @@
 		color: var(--accent-ink);
 	}
 
+	/* Con el dedo, 44 px como el resto (QA de fodaveg, 21 oct 2026: medía 71×30). Después de la
+	   regla de arriba a propósito: misma especificidad, gana la última. */
+	@media (pointer: coarse) {
+		.vega-block-context--texts :global(.vega-block-save-button) {
+			min-height: 44px;
+		}
+	}
+
 	/* Página sin secciones (lámina 8.5): la caja de la antigua pantalla de salida de
 	   `VisualEditorScreen.svelte` (`.vega-visual-narrow`), que vivía allí y ahora vive aquí. */
 	.vega-texts-empty {

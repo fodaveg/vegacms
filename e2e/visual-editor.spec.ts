@@ -2375,4 +2375,54 @@ test.describe('UX04: objetivos del menú con puntero táctil', () => {
 			contentType: 'application/json'
 		});
 	});
+
+	/** Todos los botones y enlaces visibles de la barra y la columna, también los deshabilitados (el
+	 *  «Guardar» de una sección sin cambios es el que el dedo va a buscar después de escribir). */
+	async function smallTargets(page: Page, selector: string): Promise<string[]> {
+		const small: string[] = [];
+		for (const target of await page.locator(selector).all()) {
+			if (!(await target.isVisible())) continue;
+			await target.scrollIntoViewIfNeeded();
+			const box = (await target.boundingBox())!;
+			if (box.width < 43.99 || box.height < 43.99)
+				small.push(
+					`${Math.round(box.width)}×${Math.round(box.height)} ${(await target.getAttribute('aria-label')) ?? (await target.textContent())?.trim()}`
+				);
+		}
+		return small;
+	}
+
+	test('QA de fodaveg: Guardar de «Solo textos», la miga, Volver, Móvil/Tableta/Escritorio y la barra Markdown miden 44 px', async ({
+		page
+	}) => {
+		// Medido en la copia de producción (21 oct 2026): «Guardar» 71×30 y «Páginas» 47×17 a 390 px;
+		// Móvil/Tableta/Escritorio 32×44 y la barra Markdown 32×32 en una tableta de 1180 px.
+		await page.setViewportSize({ width: 390, height: 844 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+		await expect(page.locator('.vega-block-save-button')).toHaveCount(3);
+		expect(
+			await smallTargets(
+				page,
+				'.vega-visual-bar :is(button, a[href]), .vega-visual-grid :is(button, a[href])'
+			)
+		).toEqual([]);
+
+		await page.setViewportSize({ width: 1180, height: 820 });
+		await waitConnected(page, 3);
+		expect(
+			await smallTargets(
+				page,
+				'.vega-visual-back, .vega-visual-crumbs a, .vega-visual-segm button, .vega-visual-zoom-trigger'
+			)
+		).toEqual([]);
+
+		await page.goto('/c/posts/post_1');
+		const tools = page.locator('.vega-markdown-tools button, .vega-markdown-modes button');
+		await expect(tools.first()).toBeVisible();
+		expect(
+			await smallTargets(page, '.vega-markdown-tools button, .vega-markdown-modes button')
+		).toEqual([]);
+	});
 });

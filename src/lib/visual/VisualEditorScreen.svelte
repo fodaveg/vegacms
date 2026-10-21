@@ -1350,6 +1350,7 @@
 		<nav class="vega-visual-crumbs" aria-label={ctx.t('editor.visual.breadcrumbs.label')}>
 			<a
 				href={listRoute(type.name)}
+				class="vega-visual-crumbs-link"
 				title={ctx.t('editor.visual.backToList', { label: type.label })}
 				onclick={(event) => openDestination(event, 'list')}>{type.label}</a
 			>
@@ -2696,7 +2697,17 @@
 
 		.vega-visual-iconbtn,
 		.vega-visual-retry,
-		.vega-visual-meta-retry {
+		.vega-visual-meta-retry,
+		.vega-visual-back,
+		.vega-visual-segm button {
+			min-width: 44px;
+			min-height: 44px;
+		}
+
+		/* La miga del listado (QA de fodaveg, 21 oct 2026: «Páginas» medía 47×17 con el dedo). */
+		.vega-visual-crumbs-link {
+			display: inline-flex;
+			align-items: center;
 			min-width: 44px;
 			min-height: 44px;
 		}

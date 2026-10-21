@@ -685,4 +685,13 @@
 			transition: none;
 		}
 	}
+
+	/* Objetivo táctil de 44 px con el dedo (QA de fodaveg, 21 oct 2026: 32×32 en una tableta). */
+	@media (pointer: coarse) {
+		.vega-markdown-tools button,
+		.vega-markdown-modes button {
+			min-width: 44px;
+			height: 44px;
+		}
+	}
 </style>
