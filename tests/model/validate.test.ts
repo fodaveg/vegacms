@@ -20,6 +20,7 @@ import { resolveContentModel } from '$lib/model/resolve';
 import { validateManifestStrict } from '$lib/model/validate';
 import manifestSchema from '$lib/model/manifest-schema.json';
 import { kitchenSinkTypes } from './fixture';
+import { SHOWCASE_SEED } from '$lib/session/demo-seed';
 
 // ————— 1. Casos puntuales —————
 
@@ -624,6 +625,33 @@ describe('1c. blockTypes (vocabulario de tipos de bloque, #4cfd4f7f) contra el s
 		expect(result).toEqual({ ok: true });
 	});
 
+	test('description de 1–240 caracteres → válido; vacía o más larga → inválido', () => {
+		const withDescription = (description: string) =>
+			validateManifestStrict({
+				schemaVersion: 1,
+				blockTypes: {
+					hero: {
+						label: 'Portada',
+						description,
+						fields: [{ name: 'titulo', label: 'Título', widget: 'text' }]
+					}
+				}
+			});
+		expect(withDescription('Título y subtítulo')).toEqual({ ok: true });
+		expect(withDescription('x'.repeat(240))).toEqual({ ok: true });
+		for (const bad of ['', 'x'.repeat(241)]) {
+			const result = withDescription(bad);
+			expect(result.ok).toBe(false);
+			if (!result.ok) expect(result.errors[0].path).toBe('/blockTypes/hero/description');
+		}
+	});
+
+	test('el manifiesto del escaparate (con descripciones de bloque) valida tal cual', () => {
+		const manifest = SHOWCASE_SEED.records?.vega?.[0]?.values.manifest;
+		expect(manifest).toBeDefined();
+		expect(validateManifestStrict(manifest as JsonValue)).toEqual({ ok: true });
+	});
+
 	test('clave que no casa ^[a-z][a-z0-9-]*$ → inválido (propertyNames)', () => {
 		const result = validateManifestStrict({
 			schemaVersion: 1,
@@ -1033,6 +1061,8 @@ const VALID_ZERO_WARNING_MANIFESTS: JsonValue[] = [
 			hero: {
 				label: 'Portada',
 				icon: 'image',
+				// Descripción del catálogo («Añadir bloque»): la admiten el schema y el validador.
+				description: 'Título y subtítulo',
 				fields: [
 					{ name: 'titulo', label: 'Título', widget: 'text', required: true },
 					{
@@ -1194,6 +1224,26 @@ const INVALID_MANIFESTS: JsonValue[] = [
 	},
 	{ schemaVersion: 1, blockTypes: { hero: { label: '' } } },
 	{ schemaVersion: 1, blockTypes: { hero: { label: 'x'.repeat(61) } } },
+	{
+		schemaVersion: 1,
+		blockTypes: {
+			hero: {
+				label: 'Portada',
+				description: '',
+				fields: [{ name: 'a', label: 'A', widget: 'text' }]
+			}
+		}
+	},
+	{
+		schemaVersion: 1,
+		blockTypes: {
+			hero: {
+				label: 'Portada',
+				description: 'x'.repeat(241),
+				fields: [{ name: 'a', label: 'A', widget: 'text' }]
+			}
+		}
+	},
 	{ schemaVersion: 1, blockTypes: { hero: { label: 'Portada' } } },
 	{ schemaVersion: 1, blockTypes: { hero: { label: 'Portada', fields: [] } } },
 	{ schemaVersion: 1, blockTypes: { hero: { label: 'Portada', fields: 'nope' } } },

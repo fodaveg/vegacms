@@ -109,7 +109,7 @@ const PAGE_REQUIRED_KEYS = ['pathField'] as const;
 const PAGE_OPTIONAL_KEYS = ['layoutField'] as const;
 const PAGE_ALLOWED_KEYS = [...PAGE_REQUIRED_KEYS, ...PAGE_OPTIONAL_KEYS] as const;
 /** Claves de un tipo de bloque `blockTypes.<t>` (vocabulario de tipos de bloque `#4cfd4f7f`). */
-const BLOCK_TYPE_ALLOWED_KEYS = ['label', 'icon', 'fields'] as const;
+const BLOCK_TYPE_ALLOWED_KEYS = ['label', 'icon', 'description', 'fields'] as const;
 /** Claves de un item de `blockTypes.<t>.fields[]`. */
 const BLOCK_TYPE_FIELD_ALLOWED_KEYS = [
 	'name',
@@ -1092,6 +1092,16 @@ function validateBlockType(
 	}
 	if ('icon' in value) {
 		checkString(value.icon, `${base}/icon`, 1, Infinity, errors, `icon de blockTypes.${name}`);
+	}
+	if ('description' in value) {
+		checkString(
+			value.description,
+			`${base}/description`,
+			1,
+			240,
+			errors,
+			`description de blockTypes.${name}`
+		);
 	}
 	if (!('fields' in value)) {
 		fail(errors, `${base}/fields`, `blockTypes.${name} debe declarar "fields".`);
