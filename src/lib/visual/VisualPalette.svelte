@@ -22,7 +22,8 @@
 	 * `<button draggable="true">` hace DOS cosas distintas según el gesto:
 	 * - `dragstart`: fija `dataTransfer` (`setData('text/plain', type.name)` —varios navegadores
 	 *   exigen `setData` para completar el gesto— y `effectAllowed = 'copy'`, porque esto CREA, no
-	 *   mueve nada existente) y avisa hacia ARRIBA con el tipo elegido. El dueño único de "hay un
+	 *   mueve nada existente), pone como imagen de arrastre una copia opaca de la baldosa
+	 *   (`$lib/list/drag-image.ts`) y avisa hacia ARRIBA con el tipo elegido. El dueño único de "hay un
 	 *   arrastre de paleta en vuelo, de qué tipo" es `VisualEditorScreen.svelte` (decisión 5: mismo
 	 *   criterio de "un solo escritor" que `selectedBlockId`, ver su cabecera) — este componente NO
 	 *   guarda ese estado, solo lo REPORTA por `onDragStart`/`onDragEnd`, para que el lienzo
@@ -63,6 +64,7 @@
 	 */
 	import { getVegaContext } from '$lib/app-context';
 	import Icon from '$lib/icons/Icon.svelte';
+	import { setCopyDragImage } from '$lib/list/drag-image';
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
 	import type { ResolvedBlockType } from '$lib/model/types';
 
@@ -114,6 +116,9 @@
 	const structuralGuard = $derived(blocks.anyDirty || blocks.anySaving || blocks.structuralBusy);
 
 	function handleDragStart(event: DragEvent, blockType: ResolvedBlockType): void {
+		// La baldosa es transparente: sin imagen propia, el navegador arrastraba también lo que
+		// tenía detrás (ver `drag-image.ts`).
+		setCopyDragImage(event, event.currentTarget as Element);
 		event.dataTransfer?.setData('text/plain', blockType.name);
 		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy';
 		onDragStart(blockType);

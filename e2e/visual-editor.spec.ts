@@ -998,6 +998,132 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
 });
 
 /**
+ * Imagen de arrastre (spec del 22 oct 2026, parte E; `$lib/list/drag-image.ts`). Fallo de 0.14.1:
+ * al arrastrar una baldosa de «Añadir sección» la imagen era la del navegador por defecto, con lo
+ * que había DETRÁS de la baldosa transparente. Playwright no captura la imagen nativa de arrastre,
+ * así que se intercepta `DataTransfer#setDragImage` y se mide el nodo que recibe: una copia (no el
+ * original), opaca, de la misma caja que el elemento y con el cursor en el punto donde se agarró.
+ */
+test.describe('imagen de arrastre: copia opaca y compacta del elemento arrastrado', () => {
+	interface DragImageRecord {
+		copy: boolean;
+		width: number;
+		height: number;
+		x: number;
+		y: number;
+		background: string;
+		text: string;
+	}
+
+	/** Anota cada `setDragImage` de la página (y lo deja pasar al navegador). */
+	async function recordDragImages(page: Page): Promise<void> {
+		await page.addInitScript(() => {
+			const original = DataTransfer.prototype.setDragImage;
+			const records: unknown[] = [];
+			(window as unknown as { __dragImages: unknown[] }).__dragImages = records;
+			DataTransfer.prototype.setDragImage = function (element: Element, x: number, y: number) {
+				const rect = element.getBoundingClientRect();
+				records.push({
+					copy: element.hasAttribute('data-vega-drag-image'),
+					width: rect.width,
+					height: rect.height,
+					x,
+					y,
+					background: getComputedStyle(element).backgroundColor,
+					text: element.textContent?.trim() ?? ''
+				});
+				return original.call(this, element, x, y);
+			};
+		});
+	}
+
+	/** Agarra `source` a (`dx`, `dy`) de su esquina, arrastra un poco, lee el último registro y
+	 *  suelta donde empezó (sin destino: no crea ni mueve nada). */
+	async function dragFrom(
+		page: Page,
+		source: ReturnType<Page['locator']>,
+		dx: number,
+		dy: number
+	): Promise<{ record: DragImageRecord; box: { width: number; height: number } }> {
+		const box = (await source.boundingBox())!;
+		await page.evaluate(() => {
+			(window as unknown as { __dragImages: unknown[] }).__dragImages.length = 0;
+		});
+		await page.mouse.move(box.x + dx, box.y + dy);
+		await page.mouse.down();
+		await page.mouse.move(box.x + dx + 24, box.y + dy + 6, { steps: 5 });
+		const record = await page.evaluate(() => {
+			const records = (window as unknown as { __dragImages: DragImageRecord[] }).__dragImages;
+			return records[records.length - 1];
+		});
+		await page.mouse.move(box.x + dx, box.y + dy, { steps: 3 });
+		await page.mouse.up();
+		return { record, box };
+	}
+
+	function expectCopyOf(
+		{ record, box }: { record: DragImageRecord; box: { width: number; height: number } },
+		dx: number,
+		dy: number
+	): void {
+		expect(record, 'setDragImage no se llamó').toBeTruthy();
+		expect(record.copy).toBe(true);
+		expect(Math.abs(record.width - box.width)).toBeLessThan(1);
+		expect(Math.abs(record.height - box.height)).toBeLessThan(1);
+		expect(Math.abs(record.x - dx)).toBeLessThan(1.5);
+		expect(Math.abs(record.y - dy)).toBeLessThan(1.5);
+		// Opaco: el color de fondo resuelto no tiene transparencia (las capas translúcidas del
+		// original van como degradados encima de ese color). El tema usa oklch, así que llega como
+		// `oklab(…)`; con alfa llevaría `/ a` o sería `rgba(…)`/`transparent`.
+		expect(record.background).not.toMatch(/transparent|rgba|\//);
+	}
+
+	test('paleta «Añadir sección», asa del lienzo y fila de las secciones del formulario', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await recordDragImages(page);
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+		await openStructure(page);
+
+		const tile = page.locator('.vega-palette-panel .vega-palette-item').first();
+		await tile.hover();
+		const fromTile = await dragFrom(page, tile, 12, 9);
+		expectCopyOf(fromTile, 12, 9);
+		expect(fromTile.record.text).toBe((await tile.textContent())?.trim());
+
+		const frame = page.frameLocator('iframe.vega-visual-frame');
+		await frame.locator('[data-vega-block-id="seccion_2"]').click();
+		const handle = page.locator('.vega-visual-overlay-handle');
+		await expect(handle).toBeEnabled();
+		expectCopyOf(await dragFrom(page, handle, 6, 7), 6, 7);
+		await expect(page.locator('.vega-visual-overlay-drop-zone')).toHaveCount(0);
+
+		await formLink(page).click();
+		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
+		const rowHandle = page.locator('.vega-block-handle').nth(1);
+		const header = page.locator('.vega-block-header').nth(1);
+		const handleBox = (await rowHandle.boundingBox())!;
+		const headerBox = (await header.boundingBox())!;
+		// La imagen es la cabecera de la fila (asa, tipo y título), agarrada por el asa. El módulo
+		// de la copia se pide al montar el formulario (`drag-image.ts`): si el primer arrastre llega
+		// antes que él, ese lleva la imagen por defecto y se repite.
+		await expect(async () => {
+			const fromRow = await dragFrom(page, rowHandle, 5, 8);
+			expectCopyOf(
+				{ record: fromRow.record, box: headerBox },
+				handleBox.x - headerBox.x + 5,
+				handleBox.y - headerBox.y + 8
+			);
+			expect(fromRow.record.text).toContain(SECCIONES[1].text);
+		}).toPass({ timeout: 5000 });
+		await expect(page.locator('.vega-block-title').nth(1)).toHaveText(SECCIONES[1].text);
+	});
+});
+
+/**
  * Estado de la página en la cabecera (lámina del audit p2, `VisualPublishControl.svelte`). Corre
  * sobre `pagina_1` («Inicio»), que `SHOWCASE_SEED` siembra en `draft` con `statusLabels`
  * (`Borrador`/`Publicada`). El control está rotulado «Marcar como publicada», distinto del

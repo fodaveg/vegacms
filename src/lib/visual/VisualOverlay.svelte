@@ -511,6 +511,12 @@
 		() => blocks.length,
 		(state) => (dragState = state)
 	);
+	/** Imagen de arrastre del asa (`$lib/list/drag-image.ts`): a demanda, llega al montar. */
+	let setDragImage: typeof import('$lib/list/drag-image').setCopyDragImage | undefined;
+	import('$lib/list/drag-image').then(
+		(module) => (setDragImage = module.setCopyDragImage),
+		() => {} // sin red: imagen por defecto del navegador
+	);
 
 	// ————— Puntos de inserción (ver cabecera) —————
 
@@ -903,7 +909,10 @@
 						disabled={structuralGuard || selectedBridgeIndex < 0}
 						draggable={!structuralGuard && selectedBridgeIndex >= 0}
 						aria-label={ctx.t('list.reorder.handleLabel', { label })}
-						ondragstart={(event) => dnd.handleDragStart(event, selectedBridgeIndex)}
+						ondragstart={(event) => {
+							setDragImage?.(event, event.currentTarget);
+							dnd.handleDragStart(event, selectedBridgeIndex);
+						}}
 						ondragend={dnd.handleDragEnd}
 						onkeydown={(event) => dnd.handleHandleKeydown(event, selectedBridgeIndex)}
 					>
