@@ -415,7 +415,7 @@ bridge installed and offers the ordinary preview, which still works.
 | `type`          | Payload                                                                        | When                                                    |
 | --------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------- |
 | `ready`         | `{ collection, id, blocks: [{ id, type, rect, unpublished? }], liveRefresh? }` | On init, after a live refresh, and in answer to `hello` |
-| `layout`        | `{ blocks: [{ id, type, rect, unpublished? }] }`                               | Geometry changed: scroll, resize, late-loading images   |
+| `layout`        | `{ blocks: [{ id, type, rect, unpublished? }], editRect? }`                    | Geometry changed: scroll, resize, late-loading images   |
 | `select`        | `{ blockId }`                                                                  | The author clicked inside that block                    |
 | `hover`         | `{ blockId }` (a block id, or `null`)                                          | Optional: the pointer moved onto another block (below)  |
 | `save-shortcut` | `{}`                                                                           | Optional: Cmd/Ctrl+S pressed inside the frame (below)   |
@@ -429,6 +429,10 @@ bridge installed and offers the ordinary preview, which still works.
 | `highlight` | `{ blockId }`         | Pointer is over this block in Vega's own outline list |
 | `scroll-to` | `{ blockId }`         | Bring this block into view                            |
 | `refresh`   | `{ url, postToken? }` | Re-render from this preview URL without reloading     |
+
+The v2 inline messages (`editField`, `finishField`, `input`, `commit`, `cancel`, the edit
+`select`) and the v2-only `editable` are described under "Inline plain text (negotiated v2)" and
+"Record fields, Markdown source ranges and the edit hint" below.
 
 `rect` is `{ top, left, width, height }` in CSS pixels, relative to the **frame's own
 viewport**. Vega applies the frame's offset and any canvas zoom itself; the bridge never
@@ -465,6 +469,8 @@ Names belong to the closest block, never paths, selectors or HTML. `VegaBlocks`
 cannot infer these annotations for a consumer's components. Vega resolves names
 through the manifest and permits only visible, editable, nonstructural `text` or
 `textarea` fields with update permission, whether sourced from data or record.
+Fields of the page's own record and ranges of `markdown` fields extend this, only
+after Vega's `editable` message (see the next section).
 
 **Entry.** One click on any part of a block, annotated text included, is the plain
 v1 `select { blockId }`: it selects the block and never starts typing. A double
@@ -556,6 +562,115 @@ The complete preview draft still travels encrypted through /token; only the acti
 plain-text field travels through this allowlisted bridge. Public pages and shared
 previews never emit the bridge. CSP and all existing preview authorisation remain.
 
+#### Record fields, Markdown source ranges and the edit hint (v2, announced by `editable`)
+
+Three additions to v2 inline editing, all additive and all switched on by one Vega message.
+Everything above stays as it is: names, shapes and sequencing of the existing messages do not
+change; new keys are only added.
+
+**Negotiation: a capability message, not a protocol version.** After it accepts a v2 `ready`
+(every one: a reload or a live refresh is a new document), Vega posts:
+
+```json
+{
+	"vega": "vega-visual-2",
+	"sessionId": "…",
+	"documentId": "…",
+	"type": "editable",
+	"hint": "Doble clic para editar",
+	"appearance": { "outline": "#e8562a" },
+	"record": ["titleEs", "descriptionEs"],
+	"blocks": { "<blockId>": ["heading"] },
+	"sources": { "<blockId>": ["bodyEs"] }
+}
+```
+
+- `record`: fields of the page's own record that may be edited in the page.
+- `blocks`: per block id, the plain-text (`text`/`textarea`) fields that may be edited.
+- `sources`: per block id, the `markdown` fields whose source ranges may be edited.
+- `hint`: the localised «Double-click to edit» (at most 120 characters), shown by the site.
+- `appearance.outline`: the colour for the hint's outline, same validation as `editField`'s.
+
+Vega computes the lists with the same rules it applies when an edit is requested (visible,
+editable, nonstructural fields with update permission, see below), so the site never offers a
+text that Vega would then refuse. They are a statement about this document only. Malformed
+entries degrade to "not editable", never to "everything".
+
+Why a message and not `vega-visual-3`: both repositories ship on their own schedule, and a new
+version would split every message between two envelopes for three optional features. With the
+message, each pairing behaves predictably:
+
+- **Older site, newer Vega**: the site ignores `editable` under the unknown-`type` rule and keeps
+  v2 exactly as before. Vega never receives a record-scope or source-range request.
+- **Newer site, older Vega**: `editable` never arrives, so the site offers what it offered before
+  (block leaf texts, no hint) and never sends a record-scope or source-range request. If one were
+  sent anyway, an older Vega rejects it (`select` with intent `edit` and no reported `blockId` is
+  malformed; a `markdown` field fails the plain-text check) and nothing is written.
+- **Both new**: everything below.
+
+A site must not act on `editable` under the v1 envelope, and it forgets the lists when a new
+`sessionId` negotiates (they come again after that session's `ready`).
+
+**Record fields (A).** A text painted from the page's own record, outside every block (title,
+description), is annotated `data-vega-record-field="<field>"`, naming the column that produced the
+visible text (the fallback column when the site shows one). Inside a block the attribute is
+ignored. The request and the edit carry `scope: "record"` and **no** `blockId`:
+
+- site → Vega: `select { scope: "record", field, intent: "edit" }`;
+- Vega → site: `editField { sessionId, documentId, editId, collection, id, scope: "record", field,
+widget, value, label?, appearance? }`;
+- `input`/`commit`/`cancel`/`finishField` carry that identity (with `scope`, without `blockId`).
+
+Vega edits the record draft, not a block: the same rules as block fields (only visible, editable,
+writable, nonstructural `text`/`textarea` fields; never the page's path field, which has its own
+redirect handling in the record form), the same takeover, cancel and save semantics, and the save
+writes the record with `expectedVersion` through the same validation as the record form. The
+inspector shows the page's text fields with the field being typed marked “● in the page”. A record
+field may contain markup (a typewriter animation): the bridge shows the plain value while it is
+typed and restores the original markup on cancel. The bridge dispatches bubbling DOM events on the
+edited element, `vega:inline-start` and `vega:inline-end` (`detail.cancelled`), so the site can stop
+and restore what it animates there. On a live refresh the bridge also replaces the inner HTML of
+every `data-vega-record-field` element outside the blocks root with the same element (same field,
+same order) of the refreshed document; nothing else outside the root changes.
+
+**Markdown source ranges (B).** Each block element rendered from a `markdown` field (paragraph,
+heading, list item, blockquote, code block) may be annotated with three attributes:
+
+- `data-vega-field="<field>"`, a field of the nearest block, as for plain text;
+- `data-vega-source-range="<start>-<end>"`: decimal UTF-16 offsets into the field's value exactly as
+  stored (`\r\n` counts as two units), half-open;
+- `data-vega-source-digest="v1:<length>:<hash>"`: the 32-bit FNV-1a of the WHOLE value the page was
+  rendered from, over its UTF-16 code units (each unit XORed whole), as 8 lowercase hex digits, with
+  the value's length.
+
+The ranges must come from the parser that rendered the elements: only it knows which slice
+produced which element. `@vega/astro` exports `markVegaMarkdownTokens`/`withVegaSource` (and the
+lower-level `vegaMarkdownRanges`/`vegaSourceDigest`) that compute them from the site's own block
+tokens; `marked` tokens work as they are. A double click on such an element (on any markup inside
+it) sends `select { blockId, field, intent: "edit", source: { start, end, digest } }`. Vega accepts
+it only for a `markdown` field listed in `sources`, and only when the digest of its CURRENT draft
+value equals `digest` and `end` is within it. Otherwise it answers nothing, tells the author with a
+visible notice that the page is out of date, and refreshes the canvas: a range is never applied to
+a text it was not computed from. When it accepts, `editField` carries `widget: "textarea"`, the
+range's source as `value`, and echoes `source`; the bridge shows that source as plain text
+(links, emphasis, `{.btn}` and so on as written) and edits it with textarea semantics. Every
+`input`/`commit` value replaces exactly `[start, end)` of the value the edit started from; the rest
+of the field does not change by a single code unit. Vega also refuses an input when the draft no
+longer equals what the previous input produced (another writer got in between) and ends the
+session. Cancel restores the whole field exactly as it was and the element's rendered markup.
+After the edit the canvas refresh renders the field again, with new ranges.
+
+**Edit hint (C).** Once `editable` arrived, every text it names becomes keyboard-focusable (as v2
+block texts already were) and carries `hint` as its `title`. While the pointer or the keyboard
+focus is on it, the site draws a thin outline (the bridge uses `1px dashed` in
+`appearance.outline`, or the documented default `#e8562a`) through CSSOM and restores it on leave;
+the text being typed shows the editing cue instead. A text not named in `editable` shows nothing.
+
+**Following the text.** While a field is typed, `layout` may carry `editRect`, the field's box in
+the same coordinates as block rects, so Vega's hint stays under the text when the page scrolls
+(necessary for a record field, which has no block whose rect it could follow). Optional; a
+malformed one is ignored.
+
 #### Hover (optional)
 
 While the pointer is over a cross-origin `<iframe>`, the embedding page receives no mouse events
@@ -623,6 +738,15 @@ The bridge locates blocks through DOM attributes the renderer emits:
 - `data-vega-blocks-root` on the element wrapping the whole sequence. This is what live
   refresh replaces, so it has to be a single element that contains every block and nothing
   the surrounding page depends on keeping.
+
+Optional, for inline editing (v2, see "Inline plain text" and "Record fields, Markdown source
+ranges and the edit hint"):
+
+- `data-vega-field="<field>"` on plain text inside a block.
+- `data-vega-record-field="<field>"` on text painted from the page's own record, outside every
+  block.
+- `data-vega-source-range="<start>-<end>"` and `data-vega-source-digest="v1:<length>:<hash>"`,
+  together with `data-vega-field`, on each block element rendered from a Markdown field.
 
 One more attribute is optional:
 
@@ -729,9 +853,10 @@ Three limits worth stating rather than discovering:
   instead. Vega treats that one code as "reload this yourself" rather than as a bridge that
   cannot do its job, so the author gets the reload immediately instead of waiting out the
   deadline, and the canvas never shows a bridge error for something it already recovered from.
-- The swap replaces the blocks root and nothing else. A site whose `<head>`, navigation, or
-  page-level markup depends on block content will show those parts stale until the next full
-  reload. That is the price of keeping scroll position, and it is why the root is required to
+- The swap replaces the blocks root and, when the site annotates them, the inner HTML of its
+  record fields (`data-vega-record-field`, matched by field and order), nothing else. A site whose
+  `<head>`, navigation, or page-level markup depends on content will show those parts stale until
+  the next full reload. That is the price of keeping scroll position, and it is why the root is required to
   contain "every block and nothing the surrounding page depends on keeping".
 
 ## Share links (optional)
