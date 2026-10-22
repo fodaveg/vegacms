@@ -239,6 +239,10 @@ async function startEditing(page: Page, block: string, name: string) {
 	return node;
 }
 
+/** The selection ring of `block` on the canvas (the overlay box Vega draws over the site). */
+const selectedRing = (page: Page, block: string) =>
+	page.locator(`.vega-visual-overlay-box[data-vega-block-id="${block}"]`);
+
 /** Opens the inspector with its own button («Editar bloque»): a click in the site only selects
  *  (David, 22 Oct 2026, «Clic no abre inspector»). Needs a selected block. */
 async function openInspector(page: Page): Promise<void> {
@@ -1189,7 +1193,9 @@ test.describe('links, button labels and early double clicks (QA of 22 Oct 2026)'
 			const frame = frameOf(page);
 			const paragraphs = frame.locator('[data-vega-block-id="seccion_2"] [data-vega-source-range]');
 			await expect(paragraphs.first()).toHaveAttribute('title', 'Doble clic para editar');
+			// One click selects; the card where the Markdown is rewritten opens with its button.
 			await paragraphs.first().click();
+			await openInspector(page);
 			await expect(inspector(page)).toHaveAttribute('data-block-id', 'seccion_2');
 			await inspectorControl(page, 'texto').fill(
 				'Escríbeme [aquí](/precios).\n\n[Request Access](/precios)'
@@ -1222,8 +1228,12 @@ test.describe('links, button labels and early double clicks (QA of 22 Oct 2026)'
 			const button = frameOf(page).locator('[data-vega-block-id="seccion_1"] a.cta');
 			const label = button.locator('[data-vega-field="subtitulo"]');
 			await expect(label).toHaveAttribute('title', 'Doble clic para editar');
+			// One click selects the block (ring), leaves the inspector closed and does not navigate.
 			await button.click();
-			await expect(inspector(page)).toHaveAttribute('data-block-id', 'seccion_1');
+			await expect(selectedRing(page, 'seccion_1')).toHaveClass(
+				/vega-visual-overlay-box--selected/
+			);
+			await expect(page.locator('.vega-visual-grid--inspector')).toHaveCount(0);
 			expect(frameUrl(page)).toMatch(/\/preview$/);
 			await button.dblclick();
 			await expect(label).toHaveAttribute('contenteditable', 'plaintext-only');
@@ -1291,8 +1301,10 @@ test.describe('v1 site compatibility', () => {
 		const frame = frameOf(page);
 		const block = frame.locator('[data-vega-block-id="seccion_2"]').first();
 		await expect(block).toBeVisible();
+		// On a v1 site a double click is two selections: the block is selected (ring), nothing opens.
 		await block.dblclick();
-		await expect(inspector(page)).toHaveAttribute('data-block-id', 'seccion_2');
+		await expect(selectedRing(page, 'seccion_2')).toHaveClass(/vega-visual-overlay-box--selected/);
+		await expect(page.locator('.vega-visual-grid--inspector')).toHaveCount(0);
 		// A confused v1 site asking for an edit under the v1 envelope is refused.
 		await block.evaluate((node, cms) => {
 			window.parent.postMessage(
