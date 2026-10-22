@@ -2283,5 +2283,13 @@ export const es = {
 	'editor.visual.inline.save': 'Guardar bloque',
 	'editor.visual.inline.saveError':
 		'No se pudo guardar el bloque. Revisa sus campos y vuelve a intentarlo.',
-	'editor.visual.inline.preview': 'Vista previa'
+	'editor.visual.inline.preview': 'Vista previa',
+	// Spec «edición en línea de todo el texto de la página» (22 oct 2026): el `title` que el sitio
+	// pone en cada texto editable (parte C), el aviso de un párrafo de Markdown pintado desde un
+	// texto que ya cambió (parte B) y la ficha de los campos de la propia página (parte A).
+	'editor.visual.inline.hint': 'Doble clic para editar',
+	'editor.visual.inline.stale':
+		'La página aún no muestra el último texto de ese campo. Se está actualizando: vuelve a hacer doble clic en un momento.',
+	'editor.visual.page.title': 'Campos de la página',
+	'editor.visual.page.rest': 'El resto de campos de la página se editan en el formulario.'
 };

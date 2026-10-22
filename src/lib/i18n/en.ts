@@ -2179,5 +2179,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.inline.save': 'Save block',
 	'editor.visual.inline.saveError':
 		'The block could not be saved. Review its fields and try again.',
-	'editor.visual.inline.preview': 'Preview'
+	'editor.visual.inline.preview': 'Preview',
+	'editor.visual.inline.hint': 'Double-click to edit',
+	'editor.visual.inline.stale':
+		'The page does not show the latest text of that field yet. It is updating: double-click again in a moment.',
+	'editor.visual.page.title': 'Page fields',
+	'editor.visual.page.rest': 'The page’s other fields are edited in the form.'
 };

@@ -65,6 +65,8 @@
 	import { settingsRoute } from '$lib/nav/routes';
 	import { fieldDisplayLabel } from '$lib/model/default-labels';
 	import { isPlainTextWidget, isTextWidget, textsModeField } from '$lib/visual/texts-mode';
+	import type { InlineSource } from '$lib/visual/inline-session';
+	import { sourceDigest } from '$lib/visual/source-digest';
 	import {
 		readBlockData,
 		resolveBlockDataFields,
@@ -559,8 +561,17 @@
 	let inlineField = $state<string | null>(null);
 	let inlineOriginal: FieldInputValue;
 	let inlineSource: 'data' | 'record' = 'record';
+	/**
+	 * Rango de un campo `markdown` que se escribe en la página (§"Markdown source ranges" del
+	 * contrato): el texto de antes y de después del trozo, fijados al empezar, y el valor que dejó
+	 * la última entrada. Cada entrada sustituye SOLO el trozo; si el campo ya no es `last` (lo cambió
+	 * otro escritor), se rechaza en vez de pegar el trozo en un sitio que ya no le corresponde.
+	 */
+	let inlineRange: { before: string; after: string; last: string } | null = null;
 
-	function inlineTarget(name: string) {
+	/** `ranged`: un rango de un campo `markdown`; sin él, solo `text`/`textarea`. Mismas reglas de
+	 *  permiso, visibilidad y estructura en los dos casos. */
+	function inlineTarget(name: string, ranged = false) {
 		if (
 			inert ||
 			!childType.permissions.update ||
@@ -576,32 +587,65 @@
 				? item.field
 				: null
 			: legacyFields.find((field) => field.name === name);
-		if (!field || field.hidden || field.schema.readonly || !isPlainTextWidget(field.widget))
+		if (
+			!field ||
+			field.hidden ||
+			field.schema.readonly ||
+			!(ranged ? field.widget === 'markdown' : isPlainTextWidget(field.widget))
+		)
 			return null;
 		return { field, source: item?.kind === 'data' ? ('data' as const) : ('record' as const) };
 	}
 
-	/** Inicia una edición autorizada sin crear otro dueño del borrador. */
+	function inlineValue(name: string, source: 'data' | 'record'): FieldInputValue {
+		return source === 'data' ? dataCurrent[name] : current[name];
+	}
+
+	/**
+	 * Inicia una edición autorizada sin crear otro dueño del borrador. Con `range`, el trozo de un
+	 * campo `markdown` que pintó un elemento: se edita como `textarea` y solo si la huella del
+	 * borrador ENTERO casa con la que mandó el sitio (`'stale'` si no: la página se pintó desde otro
+	 * texto y el rango podría caer en cualquier parte).
+	 */
 	export function beginInline(
-		name: string
-	): { widget: 'text' | 'textarea'; value: string; label: string } | null {
-		const target = inlineTarget(name);
+		name: string,
+		range?: InlineSource
+	): { widget: 'text' | 'textarea'; value: string; label: string } | 'stale' | null {
+		const target = inlineTarget(name, !!range);
 		if (!target || inlineField !== null) return null;
+		const original = inlineValue(name, target.source);
+		let value = String(original ?? '');
+		inlineRange = null;
+		if (range) {
+			if (sourceDigest(value) !== range.digest || range.end > value.length) return 'stale';
+			inlineRange = {
+				before: value.slice(0, range.start),
+				after: value.slice(range.end),
+				last: value
+			};
+			value = value.slice(range.start, range.end);
+		}
 		inlineField = name;
 		inlineSource = target.source;
-		inlineOriginal = target.source === 'data' ? dataCurrent[name] : current[name];
+		inlineOriginal = original;
 		return {
-			widget: target.field.widget as 'text' | 'textarea',
+			widget: range ? 'textarea' : (target.field.widget as 'text' | 'textarea'),
 			label: target.field.label,
-			value: String(inlineOriginal ?? '')
+			value
 		};
 	}
 
 	/** Revalida permisos y campo en cada input, también si cambiaron durante la sesión. */
 	export function updateInline(name: string, value: string): boolean {
-		if (inlineField !== name || !inlineTarget(name)) return false;
-		if (inlineSource === 'data') handleDataFieldChange(name, value);
-		else handleRecordFieldChange(name, value);
+		if (inlineField !== name || !inlineTarget(name, inlineRange !== null)) return false;
+		let next = value;
+		if (inlineRange) {
+			if (String(inlineValue(name, inlineSource) ?? '') !== inlineRange.last) return false;
+			next = inlineRange.before + value + inlineRange.after;
+			inlineRange.last = next;
+		}
+		if (inlineSource === 'data') handleDataFieldChange(name, next);
+		else handleRecordFieldChange(name, next);
 		return true;
 	}
 
@@ -613,6 +657,16 @@
 			else handleRecordFieldChange(inlineField, inlineOriginal);
 		}
 		inlineField = null;
+		inlineRange = null;
+	}
+
+	/** Lo que esta ficha deja editar en la página AHORA, con las reglas de `inlineTarget`: lo que
+	 *  anuncia `editable` (§contrato), para que el sitio no ofrezca nada que luego se negaría. */
+	export function inlineFields(): { text: string[]; source: string[] } {
+		return {
+			text: fieldOrder.filter((name) => inlineTarget(name)),
+			source: fieldOrder.filter((name) => inlineTarget(name, true))
+		};
 	}
 
 	function validateTypedForm(): FieldErrorsView {

@@ -17,7 +17,7 @@ import { createVisualSite } from './visual-site';
 
 const astroRoot = process.env.VEGA_ASTRO_ROOT;
 const SITE = 'https://inline-astro.example';
-const CMS = 'http://localhost:4173';
+const CMS = `http://localhost:${process.env.VEGA_E2E_PORT ?? 4173}`;
 const escape = (value: string) =>
 	value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
 
@@ -40,15 +40,58 @@ const SEED: Record<string, Record<string, string>> = {
 interface InlineSite {
 	/** Token requests so far (each one is a preview refresh). */
 	tokenRequests(): number;
+	/** The latest value of a block field the CMS sent (draft or saved). */
+	value(block: string, field: string): string | undefined;
+	/** Holds every token answer until the returned function is called: the page keeps showing what
+	 *  it showed, whatever the draft says meanwhile. */
+	holdTokens(): () => void;
 }
 
-/** Serves the built fixture from another origin, filled with the latest draft Vega sent. */
-async function installSite(page: Page): Promise<InlineSite> {
+/** Page record values of `pagina_1` in the showcase seed, painted outside the blocks root. */
+const RECORD_SEED: Record<string, string> = { title: 'Inicio', description: '' };
+
+/** Inline Markdown of the fixture's «site»: links and strong emphasis, HTML-escaped first. */
+const inlineMarkdown = (source: string) =>
+	escape(source)
+		.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+		.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2">$1</a>');
+
+/**
+ * Serves the built fixture from another origin, filled with the latest draft Vega sent. With
+ * `markdown`, `seccion_2.texto` is painted as Markdown paragraphs annotated with their source
+ * ranges by the real `@vega/astro/markdown-source` (the site's «parser» here splits paragraphs
+ * on blank lines, and the same tokens give the ranges, as a real site must do).
+ */
+async function installSite(page: Page, { markdown = false } = {}): Promise<InlineSite> {
 	const fixture = readFileSync(
 		join(astroRoot!, 'fixtures/basic/dist/inline-preview/index.html'),
 		'utf8'
-	);
+	).replaceAll('http://localhost:4173', CMS);
+	const source = markdown
+		? ((await import(join(astroRoot!, 'packages/astro/src/markdown-source.ts'))) as {
+				markVegaMarkdownTokens(field: string, value: string, tokens: object[]): number;
+				withVegaSource(html: string, token: object): string;
+			})
+		: null;
+	const renderMarkdown = (value: string, attributes: string) => {
+		const tokens = value
+			.split(/(\n{2,})/)
+			.filter((raw) => raw !== '')
+			.map((raw) => ({ type: /^\n+$/.test(raw) ? 'space' : 'paragraph', raw }));
+		source!.markVegaMarkdownTokens('texto', value, tokens);
+		return tokens
+			.filter((token) => token.type === 'paragraph')
+			.map((token) =>
+				source!.withVegaSource(
+					`<p class="body"${attributes}>${inlineMarkdown(token.raw)}</p>`,
+					token
+				)
+			)
+			.join('');
+	};
 	const values = structuredClone(SEED);
+	const record = { ...RECORD_SEED };
+	let held: Promise<void> | null = null;
 	let tokens = 0;
 	await page.route(`${SITE}/**`, async (route) => {
 		const request = route.request();
@@ -66,7 +109,10 @@ async function installSite(page: Page): Promise<InlineSite> {
 		const pathname = new URL(request.url()).pathname;
 		if (pathname.endsWith('/token')) {
 			tokens++;
+			if (held) await held;
 			const payload = request.postDataJSON();
+			for (const [name, value] of Object.entries(payload.draft?.record?.fields ?? {}))
+				if (name in record) record[name] = typeof value === 'string' ? value : '';
 			for (const block of payload.draft?.blocks ?? []) {
 				const target = values[block.id];
 				if (!target) continue;
@@ -97,18 +143,39 @@ async function installSite(page: Page): Promise<InlineSite> {
 			});
 			return;
 		}
+		const html = (
+			source
+				? fixture.replace(
+						/<p class="body" data-vega-field="texto"([^>]*)>__VEGA_INLINE__seccion_2__texto__<\/p>/,
+						(_match, attributes: string) => renderMarkdown(values.seccion_2.texto, attributes)
+					)
+				: fixture
+		)
+			.replace(/__VEGA_INLINE__(\w+?)__(\w+?)__/g, (_match, block, field) =>
+				escape(values[block]?.[field] ?? '')
+			)
+			.replace(/__VEGA_RECORD__(\w+?)__/g, (_match, field) => escape(record[field] ?? ''));
 		await route.fulfill({
 			contentType: 'text/html',
 			headers: { 'Content-Security-Policy': `frame-ancestors ${CMS}` },
-			body: fixture.replace(/__VEGA_INLINE__(\w+?)__(\w+?)__/g, (_match, block, field) =>
-				escape(values[block]?.[field] ?? '')
-			)
+			body: html
 		});
 	});
 	await page.addInitScript((url) => {
 		(window as unknown as { __VEGA_PREVIEW_API_URL__: string }).__VEGA_PREVIEW_API_URL__ = url;
 	}, `${SITE}/api/preview`);
-	return { tokenRequests: () => tokens };
+	return {
+		tokenRequests: () => tokens,
+		value: (block, field) => values[block]?.[field],
+		holdTokens() {
+			let release!: () => void;
+			held = new Promise((resolve) => (release = resolve));
+			return () => {
+				held = null;
+				release();
+			};
+		}
+	};
 }
 
 const frameOf = (page: Page) => page.frameLocator('.vega-visual-frame');
@@ -490,6 +557,158 @@ test.describe('actual Astro inline bridge', () => {
 		await expect(inspector(page)).toHaveAttribute('data-block-id', 'seccion_3');
 		await expect(page.locator('.vega-visual-dirty')).toBeVisible();
 		await expect(heading).toHaveText(`${SEED.seccion_1.heading}!`);
+	});
+});
+
+/** Turns `secciones.texto` (the «Texto» section body) into a Markdown field, the way an editor
+ *  would: in Settings, then back to the visual editor through the app (the memory backend lives
+ *  in the page, so a reload would forget the manifest). */
+async function openWithMarkdownBody(page: Page): Promise<InlineSite> {
+	const site = await installSite(page, { markdown: true });
+	await loginAsDemo(page, { seedShowcase: true });
+	await page.goto('/settings');
+	const manifestInput = page.locator('#manifest-editor-textarea');
+	await expect(manifestInput).toBeVisible();
+	const manifest = JSON.parse(await manifestInput.inputValue());
+	manifest.collections.secciones.fields.texto.widget = 'markdown';
+	await manifestInput.fill(JSON.stringify(manifest, null, 2));
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page.getByText('Manifiesto guardado.', { exact: true })).toBeVisible();
+	await page.locator('a[href="/c/paginas"]').first().click();
+	await page.locator('a[href="/c/paginas/pagina_1"]').first().click();
+	await page.getByRole('button', { name: 'Editor visual', exact: true }).click();
+	await expect(page).toHaveURL(/\/c\/paginas\/pagina_1\/visual$/);
+	return site;
+}
+
+test.describe('page fields, Markdown paragraphs and the edit hint (spec of 22 Oct 2026)', () => {
+	test.skip(!astroRoot, 'Requires VEGA_ASTRO_ROOT pointing to the reviewed @vega/astro checkout');
+
+	test('A: the page title outside the blocks is edited in place, mirrored in «Campos de la página» and saved to the record', async ({
+		page
+	}) => {
+		const site = await openEditor(page);
+		const frame = frameOf(page);
+		const title = frame.locator('[data-vega-record-field="title"]');
+		// C: Vega listed it as editable, so it carries the hint and a thin outline under the pointer.
+		await expect(title).toHaveAttribute('title', 'Doble clic para editar');
+		await expect(title).toHaveAttribute('tabindex', '0');
+		await title.hover();
+		await expect
+			.poll(() => title.evaluate((node) => getComputedStyle(node).outlineStyle))
+			.toBe('dashed');
+		// The chrome around the page (not from the record) shows nothing.
+		await expect(frame.locator('.snav')).not.toHaveAttribute('title');
+
+		await title.dblclick();
+		await expect(title).toHaveAttribute('contenteditable', 'plaintext-only');
+		await caretToEnd(title);
+		await page.keyboard.type(' de Vega');
+		const card = page.locator('.vega-page-fields');
+		await expect(card).toBeVisible();
+		const control = card.locator('[data-field="title"] :is(input, textarea)');
+		await expect(control).toHaveValue('Inicio de Vega');
+		await expect(card.locator('[data-field="title"]')).toContainText('en la página');
+		// The path of the page is never offered in this card.
+		await expect(card.locator('[data-field="path"]')).toHaveCount(0);
+		const hint = page.locator('.vega-visual-inline-hint');
+		await expect(hint).toContainText('Título');
+		const before = site.tokenRequests();
+		await page.keyboard.press('Enter');
+		await expect(title).not.toHaveAttribute('contenteditable');
+		await expect(title).toHaveText('Inicio de Vega');
+		// Applying refreshes the canvas once, with the record draft in the token.
+		await expect.poll(() => site.tokenRequests()).toBeGreaterThan(before);
+		await expect(card.locator('.vega-block-save-button')).toBeEnabled();
+		// Cmd/Ctrl+S with the focus left in the frame saves the page record too.
+		await page.keyboard.press('ControlOrMeta+s');
+		await expect(card.locator('.vega-block-save-button')).toBeDisabled();
+		await expect(page.locator('h1[aria-current="page"]')).toHaveText('Inicio de Vega');
+		await backToForm(page);
+		await expect(page.locator('#vega-field-title')).toHaveValue('Inicio de Vega');
+	});
+
+	test('A: Escape restores the page title and the card; Enter/F2 on the focused title opens it', async ({
+		page
+	}) => {
+		await openEditor(page);
+		const title = frameOf(page).locator('[data-vega-record-field="title"]');
+		await expect(title).toHaveAttribute('tabindex', '0');
+		await title.focus();
+		await page.keyboard.press('F2');
+		await expect(title).toHaveAttribute('contenteditable', 'plaintext-only');
+		await page.keyboard.type('Otra cosa');
+		const control = page.locator('.vega-page-fields [data-field="title"] :is(input, textarea)');
+		await expect(control).toHaveValue('InicioOtra cosa');
+		await page.keyboard.press('Escape');
+		await expect(title).not.toHaveAttribute('contenteditable');
+		await expect(title).toHaveText('Inicio');
+		await expect(control).toHaveValue('Inicio');
+		await expect(page.locator('.vega-page-fields .vega-block-save-button')).toBeDisabled();
+	});
+
+	test('B: a Markdown paragraph is edited as its own source; only that range of the field changes', async ({
+		page
+	}) => {
+		const site = await openWithMarkdownBody(page);
+		const frame = frameOf(page);
+		const paragraphs = frame.locator('[data-vega-block-id="seccion_2"] [data-vega-source-range]');
+		await expect(paragraphs).toHaveCount(1);
+		await expect(paragraphs.first()).toHaveAttribute('title', 'Doble clic para editar');
+		// The plain-text annotation is gone: the field is Markdown now, edited by ranges.
+		await paragraphs.first().dblclick();
+		await expect(paragraphs.first()).toHaveAttribute('contenteditable', 'plaintext-only');
+		await caretToEnd(paragraphs.first());
+		await page.keyboard.press('Enter');
+		await page.keyboard.press('Enter');
+		await page.keyboard.type('Segundo con [enlace](/precios).');
+		await page.keyboard.press('ControlOrMeta+Enter');
+		// The refreshed page renders two paragraphs, each with its own range.
+		await expect(paragraphs).toHaveCount(2);
+		await expect(paragraphs.nth(1).locator('a')).toHaveAttribute('href', '/precios');
+		const first = `${SEED.seccion_2.texto}\n\nSegundo con [enlace](/precios).`;
+		expect(site.value('seccion_2', 'texto')).toBe(first);
+		// The inspector shows the whole field, as the draft holds it.
+		await expect(inspectorControl(page, 'texto')).toHaveValue(first);
+
+		// The second paragraph shows its Markdown, link included, as plain text.
+		await paragraphs.nth(1).dblclick();
+		await expect(paragraphs.nth(1)).toHaveAttribute('contenteditable', 'plaintext-only');
+		await expect(paragraphs.nth(1)).toHaveText('Segundo con [enlace](/precios).');
+		await caretToEnd(paragraphs.nth(1));
+		await page.keyboard.type(' **Fin**');
+		await page.keyboard.press('ControlOrMeta+Enter');
+		await expect(paragraphs.nth(1).locator('strong')).toHaveText('Fin');
+		// Byte for byte: the first paragraph and the separator are untouched.
+		expect(site.value('seccion_2', 'texto')).toBe(`${first} **Fin**`);
+		await expect(paragraphs.first()).toHaveText(SEED.seccion_2.texto);
+	});
+
+	test('B: a range painted from a text that changed since is never applied; Vega says so and refreshes', async ({
+		page
+	}) => {
+		const site = await openWithMarkdownBody(page);
+		const frame = frameOf(page);
+		const paragraph = frame.locator('[data-vega-block-id="seccion_2"] [data-vega-source-range]');
+		await expect(paragraph).toHaveAttribute('title', 'Doble clic para editar');
+		await paragraph.click();
+		await expect(inspector(page)).toHaveAttribute('data-block-id', 'seccion_2');
+		// The page keeps showing the old text: every refresh is held at the site.
+		const release = site.holdTokens();
+		// The inspector's Markdown field is its raw source (a textarea): change it there.
+		await inspectorControl(page, 'texto').fill(`${SEED.seccion_2.texto} Cambiado en la ficha.`);
+		await paragraph.dblclick();
+		await expect(page.locator('.vega-visual-inline-state[role="alert"]')).toContainText(
+			'La página aún no muestra el último texto'
+		);
+		await page.waitForTimeout(400);
+		await expect(paragraph).not.toHaveAttribute('contenteditable');
+		release();
+		// Once the page shows the draft again, the paragraph opens normally.
+		await expect(paragraph).toContainText('Cambiado en la ficha.');
+		await paragraph.dblclick();
+		await expect(paragraph).toHaveAttribute('contenteditable', 'plaintext-only');
+		await page.keyboard.press('Escape');
 	});
 });
 

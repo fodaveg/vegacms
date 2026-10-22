@@ -132,7 +132,7 @@
 	import type { BlocksState } from '$lib/form/blocks-state.svelte';
 	import { resolveFocusTarget } from '$lib/form/focus-target';
 	import { focusables } from './a11y-audit';
-	import type { InlineEditor } from './inline-session';
+	import type { InlineEditor, InlineSource, InlineTargets } from './inline-session';
 	import Icon from '$lib/icons/Icon.svelte';
 
 	interface Props {
@@ -236,8 +236,19 @@
 		editorRefs[selectedId]?.discard();
 	}
 
-	export function beginInline(blockId: string, field: string) {
-		return editorRefs[blockId]?.beginInline(field) ?? null;
+	export function beginInline(blockId: string, field: string, source?: InlineSource) {
+		return editorRefs[blockId]?.beginInline(field, source) ?? null;
+	}
+	/** Por bloque, lo que su ficha deja editar en la página (`BlockEditor#inlineFields`). */
+	export function inlineTargets(): Pick<InlineTargets, 'blocks' | 'sources'> {
+		const targets: Pick<InlineTargets, 'blocks' | 'sources'> = { blocks: {}, sources: {} };
+		for (const [id, editor] of Object.entries(editorRefs)) {
+			const fields = editor?.inlineFields();
+			if (!fields) continue;
+			targets.blocks[id] = fields.text;
+			targets.sources[id] = fields.source;
+		}
+		return targets;
 	}
 	export function updateInline(blockId: string, field: string, value: string): boolean {
 		return editorRefs[blockId]?.updateInline(field, value) ?? false;

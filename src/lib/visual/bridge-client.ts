@@ -3,10 +3,13 @@ import {
 	isInlineField,
 	matchesInline,
 	parseInlineRect,
+	parseInlineSource,
 	type InlineAppearanceMessage,
 	type InlineIdentity,
 	type InlineRect,
-	type InlineRequest
+	type InlineRequest,
+	type InlineSource,
+	type InlineTargets
 } from './inline-session';
 /**
  * Cliente del puente de EDICIÓN VISUAL: la mitad que vive en Vega del protocolo
@@ -133,7 +136,8 @@ type SiteMessage =
 			 *  basura nunca invalida el `ready` entero, solo apaga esta capacidad concreta. */
 			liveRefresh: boolean;
 	  }
-	| { type: 'layout'; blocks: VisualBlock[]; skipped: number }
+	/** `editRect`: caja del campo que se escribe, si el sitio la manda (ver `onInlineRect`). */
+	| { type: 'layout'; blocks: VisualBlock[]; skipped: number; editRect?: InlineRect }
 	| { type: 'select'; blockId: string }
 	/** El puntero entró en otro bloque del lienzo, o salió de todos (`null`). Ver `onHover`. */
 	| { type: 'hover'; blockId: string | null }
@@ -255,7 +259,11 @@ export function parseSiteMessage(raw: unknown): ParsedSiteMessage {
 		case 'layout': {
 			const parsed = parseBlocks(record.blocks);
 			if (!parsed) return { status: 'malformed' };
-			return { status: 'ok', message: { type: 'layout', ...parsed } };
+			const editRect = parseInlineRect(record.editRect);
+			return {
+				status: 'ok',
+				message: { type: 'layout', ...parsed, ...(editRect ? { editRect } : {}) }
+			};
 		}
 		case 'select': {
 			const blockId = nonEmptyString(record.blockId);
@@ -397,12 +405,23 @@ interface VisualBridgeClientOptions {
 	 *  módulo: un segundo dueño del bloque seleccionado es la vía a que las dos mitades enseñen
 	 *  cosas distintas. */
 	onSelect?: (blockId: string) => void;
-	/** Solo el formulario decide si este campo puede editarse. */
-	onInlineBegin?: (blockId: string, field: string) => InlineRequest | null;
-	onInlineInput?: (blockId: string, field: string, value: string) => boolean;
-	/** Caja del campo que se escribe (`input.rect`, opcional en el sitio): dónde va la pista. */
-	onInlineRect?: (blockId: string, rect: InlineRect) => void;
-	onInlineEnd?: (blockId: string, cancel: boolean) => void;
+	/** Solo el formulario decide si este campo puede editarse. `blockId` es `null` en un campo del
+	 *  registro de la página y `source` el rango de un campo `markdown` (§contrato). Puede
+	 *  contestar con una promesa (la ficha de la página se carga a demanda): `editField` sale
+	 *  cuando resuelve, si nada invalidó la petición entretanto. */
+	onInlineBegin?: (
+		blockId: string | null,
+		field: string,
+		source: InlineSource | null
+	) => InlineRequest | null | Promise<InlineRequest | null>;
+	onInlineInput?: (blockId: string | null, field: string, value: string) => boolean;
+	/** Caja del campo que se escribe (`input.rect` o `layout.editRect`, opcionales en el sitio):
+	 *  dónde va la pista. */
+	onInlineRect?: (blockId: string | null, rect: InlineRect) => void;
+	onInlineEnd?: (blockId: string | null, cancel: boolean) => void;
+	/** Qué se puede editar en ESTE documento y la pista (§"editable" del contrato). Se pregunta
+	 *  tras cada `ready` v2 aceptado (y en `announceTargets()`); `null` no anuncia nada. */
+	inlineTargets?: () => InlineTargets | null | Promise<InlineTargets | null>;
 	onInlineSave?: () => void;
 	/**
 	 * Cmd/Ctrl+S con el foco DENTRO del marco (§"Save shortcut" del contrato, QA de fodaveg del 21
@@ -453,6 +472,8 @@ export interface VisualBridgeClient {
 	finishInline(): void;
 	/** Pide el último texto antes de guardar desde la barra; true si espera ese acuse. */
 	saveInline(): boolean;
+	/** Vuelve a mandar `editable` (p. ej. cuando acaban de cargar las fichas de los bloques). */
+	announceTargets(): void;
 	/** Desmontaje: cancela el temporizador pendiente y deja de aceptar mensajes. */
 	stop(): void;
 	handleMessage(event: MessageEventLike): MessageVerdict;
@@ -509,8 +530,12 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 	let inline: { identity: InlineIdentity; sequence: number } | null = null;
 	let inlineTimer: ReturnType<typeof setTimeout> | null = null;
 	let saveAfterCommit = false;
+	/** Cada petición de edición (y cada final) lo sube: un `onInlineBegin` asíncrono que resuelve
+	 *  tarde solo abre la edición si sigue siendo la última petición. */
+	let beginTicket = 0;
 
 	function endInline(cancel: boolean, notify = true): void {
+		beginTicket++;
 		if (inlineTimer) clearTimeout(inlineTimer);
 		inlineTimer = null;
 		if (!inline) return;
@@ -518,7 +543,21 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 		inline = null;
 		saveAfterCommit = false;
 		if (notify) post({ type: 'finishField', ...current.identity, cancel });
-		opts.onInlineEnd?.(current.identity.blockId, cancel);
+		opts.onInlineEnd?.(current.identity.blockId ?? null, cancel);
+	}
+
+	/** `editable` para el documento actual (§contrato). Si la respuesta llega tarde (promesa), solo
+	 *  sale si el documento sigue siendo el mismo y la sesión sigue en v2. */
+	function announceTargets(): void {
+		if (protocol !== INLINE_PROTOCOL || state.status !== 'connected') return;
+		const requested = documentId;
+		const send = (targets: InlineTargets | null) => {
+			if (targets && protocol === INLINE_PROTOCOL && documentId === requested)
+				post({ type: 'editable', ...targets });
+		};
+		const targets = opts.inlineTargets?.() ?? null;
+		if (targets instanceof Promise) void targets.then(send, () => {});
+		else send(targets);
 	}
 
 	function hello(): void {
@@ -628,6 +667,7 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 		finishInline() {
 			endInline(false);
 		},
+		announceTargets,
 		saveInline() {
 			if (!inline) return false;
 			saveAfterCommit = true;
@@ -691,36 +731,61 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 				if (raw.type === 'ready' && refreshId !== null && raw.refreshId !== refreshId)
 					return 'out-of-order';
 				if (raw.type === 'select' && raw.intent === 'edit') {
+					// Un campo del registro (`scope: 'record'`) no nombra bloque ni rango; uno de
+					// bloque nombra un bloque reportado y, si es un rango de `markdown`, su `source`.
+					const scoped = raw.scope === 'record';
+					const source = raw.source === undefined ? null : parseInlineSource(raw.source);
 					if (
 						state.status !== 'connected' ||
 						!isInlineField(raw.field) ||
-						typeof raw.blockId !== 'string' ||
-						!state.blocks.some((block) => block.id === raw.blockId)
+						(scoped
+							? raw.blockId !== undefined || raw.source !== undefined
+							: typeof raw.blockId !== 'string' ||
+								!state.blocks.some((block) => block.id === raw.blockId)) ||
+						(raw.source !== undefined && !source)
 					)
 						return 'malformed';
 					endInline(false);
-					const value = opts.onInlineBegin?.(raw.blockId, raw.field);
-					if (!value || !documentId) return 'out-of-order';
-					clearRefreshTimer();
-					refreshId = null;
-					const identity = {
-						sessionId,
-						documentId,
-						editId: crypto.randomUUID(),
-						...opts.record,
-						blockId: raw.blockId,
-						field: raw.field
+					const ticket = ++beginTicket;
+					const requested = documentId;
+					const blockId = scoped ? null : (raw.blockId as string);
+					const field = raw.field;
+					const begin = (value: InlineRequest | null): boolean => {
+						if (!value) return false;
+						if (!documentId || ticket !== beginTicket || documentId !== requested) {
+							// La ficha ya abrió la edición, pero la petición caducó mientras se cargaba:
+							// se le devuelve tal cual (cancelar restaura el borrador exacto).
+							opts.onInlineEnd?.(blockId, true);
+							return false;
+						}
+						clearRefreshTimer();
+						refreshId = null;
+						const identity: InlineIdentity = {
+							sessionId,
+							documentId,
+							editId: crypto.randomUUID(),
+							...opts.record,
+							...(blockId === null ? { scope: 'record' as const } : { blockId }),
+							field
+						};
+						inline = { identity, sequence: -1 };
+						const appearance = opts.inlineAppearance?.() ?? null;
+						post({
+							type: 'editField',
+							...identity,
+							...value,
+							...(source ? { source } : {}),
+							...(appearance ? { appearance } : {})
+						});
+						inlineTimer = setTimeout(() => endInline(false), 2000);
+						return true;
 					};
-					inline = { identity, sequence: -1 };
-					const appearance = opts.inlineAppearance?.() ?? null;
-					post({
-						type: 'editField',
-						...identity,
-						...value,
-						...(appearance ? { appearance } : {})
-					});
-					inlineTimer = setTimeout(() => endInline(false), 2000);
-					return 'accepted';
+					const value = opts.onInlineBegin?.(blockId, field, source) ?? null;
+					if (value instanceof Promise) {
+						void value.then(begin, () => {});
+						return 'accepted';
+					}
+					return begin(value) ? 'accepted' : 'out-of-order';
 				}
 				if (['input', 'commit', 'cancel'].includes(String(raw.type))) {
 					if (
@@ -730,9 +795,10 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 						(raw.sequence as number) <= inline.sequence
 					)
 						return 'out-of-order';
+					const editedBlock = inline.identity.blockId;
 					if (
 						state.status !== 'connected' ||
-						!state.blocks.some((block) => block.id === inline?.identity.blockId)
+						(editedBlock !== undefined && !state.blocks.some((block) => block.id === editedBlock))
 					) {
 						endInline(false);
 						return 'out-of-order';
@@ -749,16 +815,12 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 					if (raw.type === 'input') {
 						// También el acuse (secuencia 0): la pista se coloca en cuanto el campo se abre.
 						const rect = parseInlineRect(raw.rect);
-						if (rect) opts.onInlineRect?.(inline.identity.blockId, rect);
+						if (rect) opts.onInlineRect?.(editedBlock ?? null, rect);
 					}
 					if (
 						raw.type !== 'cancel' &&
 						raw.sequence !== 0 &&
-						!opts.onInlineInput?.(
-							inline.identity.blockId,
-							inline.identity.field,
-							raw.value as string
-						)
+						!opts.onInlineInput?.(editedBlock ?? null, inline.identity.field, raw.value as string)
 					) {
 						endInline(false);
 						return 'out-of-order';
@@ -850,6 +912,8 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 					// Documento nuevo, resalte viejo fuera (ver `onHover`). DESPUÉS de `setState`: quien
 					// escucha ya ve los bloques nuevos cuando le llega el `null`.
 					opts.onHover?.(null);
+					// Y qué se puede editar en ESTE documento (§"editable" del contrato; solo v2).
+					announceTargets();
 					return 'accepted';
 				}
 				case 'layout':
@@ -861,6 +925,9 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 					// documento VIEJO, no el aterrizaje del cambio, y contarlo como tal apagaría el
 					// aviso de fallo delante de un canvas que en realidad se quedó atascado.
 					setState({ ...state, blocks: message.blocks, skippedBlocks: message.skipped });
+					// La caja del campo que se escribe, con la página ya desplazada: la pista la sigue.
+					if (inline && message.editRect)
+						opts.onInlineRect?.(inline.identity.blockId ?? null, message.editRect);
 					return 'accepted';
 				case 'select':
 					if (state.status !== 'connected') return 'out-of-order';

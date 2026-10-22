@@ -10,7 +10,9 @@
  */
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 4173;
+/** `VEGA_E2E_PORT` deja correr una tanda dirigida en otro puerto cuando el 4173 lo usa otra
+ *  sesión o worktree de la misma máquina; sin ella, el de siempre. */
+const PORT = Number(process.env.VEGA_E2E_PORT ?? 4173);
 const BASE_URL = `http://localhost:${PORT}`;
 
 /**

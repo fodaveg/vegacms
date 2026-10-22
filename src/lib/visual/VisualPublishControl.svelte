@@ -103,6 +103,9 @@
 		 *  acciones discretas; la etiqueta «Página ·» queda para el lector de pantalla y la nota de
 		 *  alcance se dice en el título de la píldora. */
 		bar?: boolean;
+		/** El servidor confirmó un cambio de estado o de programación: el editor visual renueva con
+		 *  él el registro de su ficha de la página, para que ninguno guarde contra una versión vieja. */
+		onConfirmed?: (record: VegaRecord) => void;
 	}
 
 	let {
@@ -116,7 +119,8 @@
 		onChange,
 		compact = false,
 		disabled = false,
-		bar = false
+		bar = false,
+		onConfirmed
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -233,6 +237,7 @@
 				{ expectedVersion: recordVersion(confirmed) }
 			);
 			confirmed = saved;
+			onConfirmed?.(saved);
 			phase = 'idle';
 			const when = formatScheduleMoment(Date.parse(iso), ctx.locale, ctx.t);
 			ctx.feedback.toast(ctx.t('editor.schedule.savedNote', { when }), { kind: 'success' });
@@ -435,6 +440,7 @@
 				return;
 			}
 			confirmed = saved;
+			onConfirmed?.(saved);
 			phase = 'idle';
 			if (operation === 'removeSchedule') {
 				await tick();

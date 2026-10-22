@@ -322,9 +322,15 @@
 	import Icon from '$lib/icons/Icon.svelte';
 	import VisualOverlay from './VisualOverlay.svelte';
 	import VisualInspector from './VisualInspector.svelte';
+	// Solo para pasárselo a `VisualPageFields` (ver su cabecera): ya llega por `VisualInspector`.
+	import BlockEditor from '$lib/form/BlockEditor.svelte';
 	import VisualColumnResizer from './VisualColumnResizer.svelte';
-	import VisualPublishControl from './VisualPublishControl.svelte';
-	import type { InlineRect, InlineRequest } from './inline-session';
+	// El estado de la página y su revisión se descargan en paralelo al montar, no con la pantalla:
+	// el presupuesto de la pantalla más cara (82 KB) no daba para la edición en línea de los campos
+	// de la página (spec del 22 oct 2026) con este componente dentro. Se pide en la inicialización,
+	// así que llega a la vez que el token del lienzo, mucho antes de que se pueda usar.
+	const publishControl = import('./VisualPublishControl.svelte');
+	import type { InlineEditor, InlineRect, InlineRequest, InlineTargets } from './inline-session';
 	import { inlineAppearanceMessage } from './inline-appearance';
 	import {
 		INSPECTOR_DEFAULT_WIDTH,
@@ -408,7 +414,7 @@
 		ctx,
 		type: untrack(() => type),
 		getRecordId: () => record.id,
-		getRecord: () => record,
+		getRecord: () => pageRecord,
 		// Los bloques EN PANTALLA, con las ediciones sin guardar de cada ficha (`draftOverrides`):
 		// la revisión mira lo que se ve, guardado o no. `null` (no se sabe) mientras la lista no
 		// tiene tipo hijo, no ha cargado o su carga falló: ahí `currentDraftRecords()` da `[]`, y
@@ -471,7 +477,7 @@
 	beforeNavigate((navigation) => {
 		reviewFocusArmed = reviewFocusPending;
 		reviewFocusPending = null;
-		if (!blocks.anyDirty) return;
+		if (!anyDirty) return;
 		guardUnsavedLeave(navigation, () => window.confirm(ctx.t('editor.leaveConfirm')));
 	});
 
@@ -614,7 +620,8 @@
 	 *  coloca con el desplazamiento entre las dos sobre el `rect` vigente del bloque, así sigue al
 	 *  texto cuando la página se desplaza sin que el sitio tenga que volver a medir. */
 	let inlineEdit = $state<{
-		blockId: string;
+		/** `null`: un campo del registro de la página (ver «Campos de la página» más abajo). */
+		blockId: string | null;
 		field: string;
 		label: string;
 		widget: 'text' | 'textarea';
@@ -622,12 +629,96 @@
 		anchor: InlineRect | null;
 	} | null>(null);
 	const inlineBlockId = $derived(inlineEdit?.blockId ?? null);
+	/** Párrafo de Markdown pintado desde un texto que ya cambió (`'stale'`): se dice en la barra y se
+	 *  refresca el lienzo; el aviso se va solo. */
+	let inlineNotice = $state<string | null>(null);
+	let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+	function staleInline(): null {
+		inlineNotice = ctx.t('editor.visual.inline.stale');
+		clearTimeout(noticeTimer);
+		noticeTimer = setTimeout(() => (inlineNotice = null), 8000);
+		scheduleCanvasRefresh({ draftEdit: true });
+		return null;
+	}
+	/** Abre la edición que el puente autorizó (bloque o página) y para el refresco del lienzo. */
+	function startInline(blockId: string | null, field: string, target: InlineRequest) {
+		inlineNotice = null;
+		inlineEdit = {
+			blockId,
+			field,
+			label: target.label ?? field,
+			widget: target.widget,
+			rect: null,
+			anchor: null
+		};
+		preview.pauseInline();
+		previewUpdating = false;
+		return target;
+	}
+
+	// ————— Campos de la página (spec del 22 oct, parte A) —————
+	// `VisualPageFields.svelte` se descarga con el primer `ready` v2 (`inlineTargets`), nunca con la
+	// pantalla, y desde entonces queda montada (oculta salvo `pageOpen`) para no perder su borrador.
+	// `pageRecord` es el registro que conoce la pantalla: lo renuevan el guardado de esa ficha y el de
+	// `VisualPublishControl`, para que ninguno de los dos guarde contra una versión vieja.
+	let pageRequest = $state.raw<Promise<typeof import('./VisualPageFields.svelte')> | null>(null);
+	let pageRef = $state<
+		| {
+				beginInline: InlineEditor['beginInline'];
+				updateInline: InlineEditor['updateInline'];
+				finishInline: InlineEditor['finishInline'];
+				inlineFields: () => string[];
+				save: InlineEditor['save'];
+				revealErrors: () => Promise<void>;
+		  }
+		| undefined
+	>(undefined);
+	let pageOpen = $state(false);
+	let pageDirty = $state(false);
+	let pageRecord = $state.raw(untrack(() => record));
+	/** Borrador del registro (forma física) para el token de vista previa; `null` sin ficha. */
+	let pageFields: Record<string, unknown> | null = null;
+	let pageSnapshot: string | null = null;
+	const anyDirty = $derived(blocks.anyDirty || pageDirty);
+	async function pageEditor() {
+		pageRequest ??= import('./VisualPageFields.svelte');
+		await pageRequest;
+		await tick();
+		return pageRef;
+	}
+	async function beginPageInline(field: string): Promise<InlineRequest | null> {
+		const target = (await pageEditor())?.beginInline(field);
+		if (!target || target === 'stale') return null;
+		pageOpen = true;
+		inspectorVisible = true;
+		selectedBlockId = null;
+		return startInline(null, field, target);
+	}
+	/** `editable` (§contrato): lo que dejan editar las fichas, con la pista en el idioma de Vega. */
+	async function inlineTargets(): Promise<InlineTargets> {
+		const page = await pageEditor();
+		const outline = inlineAppearanceMessage(screenEl, zoomFactor).outline;
+		return {
+			hint: ctx.t('editor.visual.inline.hint'),
+			...(outline ? { appearance: { outline } } : {}),
+			record: page?.inlineFields() ?? [],
+			blocks: {},
+			sources: {},
+			...inspectorRef?.inlineTargets()
+		};
+	}
+	$effect(() => {
+		// Las fichas de los bloques pueden montar después del primer `ready`: se vuelve a anunciar.
+		if (blocks.status.kind === 'ready') untrack(() => bridgeClient?.announceTargets());
+	});
+
 	let screenEl = $state<HTMLDivElement | undefined>(undefined);
 	let saveErrorBlockId = $state<string | null>(null);
 	let previewOpener = $state<HTMLButtonElement | undefined>(undefined);
 	function saveSelectedBlock(): void {
 		if (bridgeClient?.saveInline()) return;
-		inspectorRef?.saveSelected();
+		if (pageOpen) void pageRef?.save();
+		else inspectorRef?.saveSelected();
 	}
 	/** «Reintentar» del error de guardado de la barra: el MISMO guardado de la ficha que falló. */
 	function retrySave(): void {
@@ -709,9 +800,14 @@
 				revealBlockErrors: (id: string) => Promise<void>;
 				saveBlock: (id: string) => void;
 				focusBlock: (id: string) => void;
-				beginInline: (blockId: string, field: string) => InlineRequest | null;
+				beginInline: (
+					blockId: string,
+					field: string,
+					source?: Parameters<InlineEditor['beginInline']>[1]
+				) => ReturnType<InlineEditor['beginInline']>;
 				updateInline: (blockId: string, field: string, value: string) => boolean;
 				finishInline: (blockId: string, cancel?: boolean) => void;
+				inlineTargets: () => Pick<InlineTargets, 'blocks' | 'sources'>;
 		  }
 		| undefined
 	>(undefined);
@@ -740,7 +836,7 @@
 		getDraft: () =>
 			blocks.status.kind === 'ready'
 				? {
-						record: { id: record.id, fields: { ...record.values } },
+						record: { id: record.id, fields: { ...pageRecord.values, ...pageFields } },
 						blocks: blocks.currentDraftRecords()
 					}
 				: undefined,
@@ -821,6 +917,7 @@
 	 */
 	function handleBlockSelect(blockId: string): void {
 		bridgeClient?.finishInline();
+		pageOpen = false;
 		selectedBlockId = blockId;
 		inspectorVisible = true;
 		bridgeClient?.highlight(blockId);
@@ -911,26 +1008,20 @@
 				}
 			},
 			onSelect: handleBlockSelect,
-			onInlineBegin: (blockId, field) => {
-				const target = inspectorRef?.beginInline(blockId, field);
+			onInlineBegin: (blockId, field, source) => {
+				if (blockId === null) return beginPageInline(field);
+				const target = inspectorRef?.beginInline(blockId, field, source ?? undefined);
+				if (target === 'stale') return staleInline();
 				if (!target) return null;
 				selectedBlockId = blockId;
-				inlineEdit = {
-					blockId,
-					field,
-					label: target.label ?? field,
-					widget: target.widget,
-					rect: null,
-					anchor: null
-				};
-				preview.pauseInline();
-				previewUpdating = false;
-				return target;
+				return startInline(blockId, field, target);
 			},
 			onInlineInput: (blockId, field, value) =>
-				inspectorRef?.updateInline(blockId, field, value) ?? false,
+				(blockId === null
+					? pageRef?.updateInline(field, value)
+					: inspectorRef?.updateInline(blockId, field, value)) ?? false,
 			onInlineRect: (blockId, rect) => {
-				if (inlineEdit?.blockId !== blockId) return;
+				if (!inlineEdit || inlineEdit.blockId !== blockId) return;
 				const block =
 					bridgeState.status === 'connected'
 						? bridgeState.blocks.find((item) => item.id === blockId)
@@ -938,8 +1029,10 @@
 				inlineEdit = { ...inlineEdit, rect, anchor: block ? { ...block.rect } : null };
 			},
 			inlineAppearance: () => inlineAppearanceMessage(screenEl, zoomFactor),
+			inlineTargets,
 			onInlineEnd: (blockId, cancel) => {
-				inspectorRef?.finishInline(blockId, cancel);
+				if (blockId === null) pageRef?.finishInline(cancel);
+				else inspectorRef?.finishInline(blockId, cancel);
 				inlineEdit = null;
 				preview.resumeInline();
 			},
@@ -1032,7 +1125,7 @@
 	/** Cierre o recarga de pestaña: `beforeNavigate` no los ve (no son navegación del router), así
 	 *  que hace falta este segundo escuchador — mismo par que `RecordForm.svelte`. */
 	function handleBeforeUnload(event: BeforeUnloadEvent): void {
-		if (!blocks.anyDirty) return;
+		if (!anyDirty) return;
 		event.preventDefault();
 		event.returnValue = '';
 	}
@@ -1174,9 +1267,16 @@
 	async function saveFromShortcut(): Promise<void> {
 		const inspector = inspectorRef;
 		if (!inspector) return;
+		// Los campos de la página primero (son los de arriba), luego los bloques.
+		const page = pageDirty && (await pageRef?.save({ focus: false }));
 		const rejected = await inspector.saveAll();
 		const first = rejected[0];
-		if (first === undefined) return;
+		if (first === undefined) {
+			if (page !== 'rejected') return;
+			pageOpen = inspectorVisible = true;
+			await tick();
+			return pageRef?.revealErrors();
+		}
 		saveErrorBlockId = first;
 		if (first !== selectedBlockId) {
 			handleBlockSelect(first);
@@ -1269,7 +1369,7 @@
 		if (titleField === null) return ctx.t('list.untitled');
 		const field = type.fields.find((f) => f.name === titleField);
 		if (!field) return ctx.t('list.untitled');
-		const descriptor = describeCell(field, record.values[titleField] ?? null, ctx.locale);
+		const descriptor = describeCell(field, pageRecord.values[titleField] ?? null, ctx.locale);
 		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
 	});
 
@@ -1320,9 +1420,13 @@
 		if (!inlineEdit) return null;
 		const edit = inlineEdit;
 		const block = overlayBlocks.find((item) => item.id === edit.blockId);
-		if (!block) return null;
-		const rect =
-			edit.rect && edit.anchor
+		// Un campo de la página no tiene bloque que seguir: va con su propia caja (`input.rect` y
+		// `layout.editRect`), y sin ella no se pinta.
+		const rect = !block
+			? edit.blockId === null
+				? edit.rect
+				: null
+			: edit.rect && edit.anchor
 				? {
 						top: block.rect.top + edit.rect.top - edit.anchor.top,
 						left: block.rect.left + edit.rect.left - edit.anchor.left,
@@ -1330,7 +1434,7 @@
 						height: edit.rect.height
 					}
 				: { top: block.rect.top, left: block.rect.left, width: block.rect.width, height: 0 };
-		return { label: edit.label, widget: edit.widget, rect };
+		return rect && { label: edit.label, widget: edit.widget, rect };
 	});
 </script>
 
@@ -1379,17 +1483,20 @@
 			<h1 title={docName} aria-current="page">{docName}</h1>
 		</nav>
 		<div class="vega-visual-statusgrp">
-			<VisualPublishControl
-				bind:this={publishControlRef}
-				{type}
-				{record}
-				name={docName}
-				bar
-				pendingBlocks={pendingBlocks.map((block) => blocks.blockTitle(block))}
-				{review}
-				onReviewGo={handleReviewGo}
-				onReviewDescribe={handleReviewDescribe}
-			/>
+			{#await publishControl then publish}
+				<publish.default
+					bind:this={publishControlRef}
+					{type}
+					record={pageRecord}
+					onConfirmed={(saved: VegaRecord) => (pageRecord = saved)}
+					name={docName}
+					bar
+					pendingBlocks={pendingBlocks.map((block) => blocks.blockTitle(block))}
+					{review}
+					onReviewGo={handleReviewGo}
+					onReviewDescribe={handleReviewDescribe}
+				/>
+			{/await}
 		</div>
 
 		<!-- Estado de GUARDADO (lámina, `.savestate`): punto + texto, y el error DENTRO de la barra con
@@ -1683,10 +1790,12 @@
 						>
 					{/if}
 					<div class="vega-visual-status vega-visual-meta" aria-live="polite">
-						{#if inlineBlockId !== null}
+						{#if inlineEdit !== null}
 							<span class="vega-visual-inline-state" role="status"
 								>{ctx.t('editor.visual.inline.typing')}</span
 							>
+						{:else if inlineNotice !== null}
+							<span class="vega-visual-inline-state" role="alert">{inlineNotice}</span>
 						{:else if previewError !== null}
 							<span class="vega-visual-status-text vega-visual-status-text--error" role="alert">
 								{ctx.t('editor.visual.previewRefreshError', { message: previewError })}
@@ -1698,11 +1807,11 @@
 							>
 								{ctx.t('common.retry')}
 							</button>
-						{:else if blocks.anyDirty && (previewUpdating || !frameLoaded)}
+						{:else if anyDirty && (previewUpdating || !frameLoaded)}
 							<span class="vega-visual-status-text">{ctx.t('editor.visual.previewUpdating')}</span>
-						{:else if blocks.anyDirty && previewDraftAccepted}
+						{:else if anyDirty && previewDraftAccepted}
 							<span class="vega-visual-status-text">{ctx.t('editor.visual.previewDraft')}</span>
-						{:else if blocks.anyDirty}
+						{:else if anyDirty}
 							<span class="vega-visual-status-text">{ctx.t('editor.visual.previewSavedOnly')}</span>
 						{:else if bridgeState.status === 'connected'}
 							<span class="vega-visual-status-text"
@@ -1852,24 +1961,71 @@
 			class="vega-visual-inspector-shell"
 			class:vega-visual-inspector-shell--hidden={canvasActive && !inspectorVisible}
 		>
-			<VisualInspector
-				onSaveError={(blockId, failed) => {
-					if (failed) saveErrorBlockId = blockId;
-					else if (saveErrorBlockId === blockId) saveErrorBlockId = null;
-				}}
-				bind:this={inspectorRef}
-				{blocks}
-				selectedId={selectedBlockId}
-				mode={canvasActive ? 'inspector' : 'texts'}
-				onBlockSaved={handleContentSaved}
-				onBack={() => ctx.nav.toRecord(type.name, record.id)}
-				onSelectBlock={openPendingBlock}
-				onInlineTakeover={() => bridgeClient?.finishInline()}
-				interceptSave={(blockId) =>
-					inlineBlockId === blockId && (bridgeClient?.saveInline() ?? false)}
-				onClose={() => void closeInspector()}
-				fullFormHref={recordRoute(type.name, record.id)}
-			/>
+			<!-- Campos de la página (ver `pageRequest`): ocupa la celda del inspector solo con `pageOpen`;
+			     oculta, sigue montada con su borrador. -->
+			{#if pageRequest}
+				<div
+					class="vega-visual-inspector-shell"
+					class:vega-visual-inspector-shell--hidden={!pageOpen || !canvasActive}
+				>
+					{#await pageRequest then page}
+						<page.default
+							bind:this={pageRef}
+							{ctx}
+							Editor={BlockEditor}
+							{Icon}
+							{type}
+							record={pageRecord}
+							name={docName}
+							fullFormHref={recordRoute(type.name, record.id)}
+							onClose={() => {
+								pageOpen = false;
+								bridgeClient?.finishInline();
+							}}
+							onSaved={(saved) => {
+								pageRecord = saved;
+								handleContentSaved();
+							}}
+							onDirtyChange={(dirty) => (pageDirty = dirty)}
+							onDraftChange={(draft) => {
+								const snapshot = JSON.stringify(draft.fields);
+								if (pageSnapshot !== null && snapshot !== pageSnapshot) {
+									previewUpdating = true;
+									scheduleCanvasRefresh({ draftEdit: true });
+								}
+								pageSnapshot = snapshot;
+								pageFields = draft.fields;
+							}}
+							onInlineTakeover={() => bridgeClient?.finishInline()}
+							interceptSave={() =>
+								inlineEdit?.blockId === null && (bridgeClient?.saveInline() ?? false)}
+						/>
+					{/await}
+				</div>
+			{/if}
+			<div
+				class="vega-visual-inspector-shell"
+				class:vega-visual-inspector-shell--hidden={pageOpen && canvasActive}
+			>
+				<VisualInspector
+					onSaveError={(blockId, failed) => {
+						if (failed) saveErrorBlockId = blockId;
+						else if (saveErrorBlockId === blockId) saveErrorBlockId = null;
+					}}
+					bind:this={inspectorRef}
+					{blocks}
+					selectedId={selectedBlockId}
+					mode={canvasActive ? 'inspector' : 'texts'}
+					onBlockSaved={handleContentSaved}
+					onBack={() => ctx.nav.toRecord(type.name, record.id)}
+					onSelectBlock={openPendingBlock}
+					onInlineTakeover={() => bridgeClient?.finishInline()}
+					interceptSave={(blockId) =>
+						inlineBlockId === blockId && (bridgeClient?.saveInline() ?? false)}
+					onClose={() => void closeInspector()}
+					fullFormHref={recordRoute(type.name, record.id)}
+				/>
+			</div>
 		</div>
 	</div>
 
