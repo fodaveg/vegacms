@@ -583,6 +583,9 @@ test.describe('editores de texto largo: richtext TipTap y Markdown asistido (F5-
 	test('markdown: cambia entre Escribir/Dividido/Vista sin alterar el contenido', async ({
 		page
 	}) => {
+		// A 1440 px cada columna de «Dividido» deja 40 caracteres; a 1280 px, 31, y ya no se ofrece
+		// (ver el test siguiente y `markdown-split.ts`).
+		await page.setViewportSize({ width: 1440, height: 900 });
 		await loginAndSettle(page);
 		await page.goto('/c/posts/post_1');
 
@@ -601,6 +604,70 @@ test.describe('editores de texto largo: richtext TipTap y Markdown asistido (F5-
 
 		await summaryField.getByRole('button', { name: 'Dividido' }).click();
 		await expect(source).toBeVisible();
+		await expect(preview).toBeVisible();
+		await expect(source).toHaveValue(original);
+	});
+
+	test('markdown: «Dividido» solo se ofrece si cada columna deja 32 caracteres; si no, cae a «Escribir»', async ({
+		page
+	}, testInfo) => {
+		// Spec del 22 oct 2026, parte C: en la ficha estrecha las columnas quedaban de una o dos
+		// palabras por línea. La regla se mide con la fuente del editor (`markdown-split.ts`).
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await loginAndSettle(page);
+		await page.goto('/c/posts/post_1');
+
+		const summaryField = page.locator('[data-field="summary"]');
+		const source = summaryField.getByRole('textbox', { name: 'Summary' });
+		const preview = summaryField.getByRole('region', { name: 'Vista previa de Markdown' });
+		const split = summaryField.getByRole('button', { name: 'Dividido' });
+		const write = summaryField.getByRole('button', { name: 'Escribir' });
+		/** Caracteres que caben en la columna más estrecha, con la fuente del `<textarea>`. */
+		const charsPerColumn = () =>
+			summaryField.locator('.vega-markdown-body').evaluate((body) => {
+				const textarea = body.querySelector('textarea')!;
+				const probe = document.createElement('span');
+				const font = getComputedStyle(textarea);
+				probe.style.cssText = `position:absolute;visibility:hidden;font-family:${font.fontFamily};font-size:${font.fontSize}`;
+				probe.textContent = '0'.repeat(100);
+				body.append(probe);
+				const char = probe.getBoundingClientRect().width / 100;
+				probe.remove();
+				const inset = (el: Element) => {
+					const s = getComputedStyle(el);
+					return (
+						parseFloat(s.paddingLeft) + parseFloat(s.paddingRight) + parseFloat(s.borderLeftWidth)
+					);
+				};
+				const previewContent = body.querySelector('.vega-markdown-preview-content')!;
+				const column = body.getBoundingClientRect().width / 2;
+				const widest = Math.max(
+					inset(textarea),
+					inset(previewContent) + inset(previewContent.parentElement!)
+				);
+				return (column - widest) / char;
+			});
+
+		await split.click();
+		await expect(split).toHaveAttribute('aria-pressed', 'true');
+		await expect(preview).toBeVisible();
+		expect(await charsPerColumn()).toBeGreaterThanOrEqual(32);
+		await summaryField.screenshot({ path: testInfo.outputPath('markdown-dividido-1440.png') });
+
+		// Más estrecho: «Dividido» deja de ofrecerse y lo elegido se ve como «Escribir», mismo texto.
+		const original = await source.inputValue();
+		await page.setViewportSize({ width: 820, height: 900 });
+		await expect(split).toHaveCount(0);
+		expect(await charsPerColumn()).toBeLessThan(32);
+		await expect(write).toHaveAttribute('aria-pressed', 'true');
+		await expect(summaryField.getByRole('button', { name: 'Vista', exact: true })).toBeVisible();
+		await expect(preview).toBeHidden();
+		await expect(source).toHaveValue(original);
+		await summaryField.screenshot({ path: testInfo.outputPath('markdown-dividido-820.png') });
+
+		// La preferencia se conserva: al volver a ensanchar, vuelve a dividirse.
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await expect(split).toHaveAttribute('aria-pressed', 'true');
 		await expect(preview).toBeVisible();
 		await expect(source).toHaveValue(original);
 	});

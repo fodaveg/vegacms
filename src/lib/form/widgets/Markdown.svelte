@@ -12,6 +12,15 @@
 	 * user is editing. Typing is byte-preserving; only an explicit toolbar command changes syntax.
 	 * It remains a controlled `WidgetProps` implementation: every real change goes through
 	 * `onChange`, and external value changes are reconciled without replacing the textarea cursor.
+	 *
+	 * Split is offered only while each column keeps `SPLIT_MIN_CHARS` characters of the editor's
+	 * font (`markdown-split.ts`: a `ch` probe, measured on mount before the first paint and again
+	 * whenever the body resizes). When it stops fitting, a chosen Split shows as Write: same
+	 * textarea, same text, and the stored preference comes back once the field is wide enough again.
+	 *
+	 * The toolbar commands and the unsafe-content check (`markdown-commands.ts`) arrive with the lazy
+	 * TipTap chunk: until then the toolbar and the textarea are disabled, so nothing can call them,
+	 * and the record editors keep them out of their static bundle.
 	 */
 	import { onMount, tick, untrack } from 'svelte';
 	import type { Editor, JSONContent } from '@tiptap/core';
@@ -20,13 +29,9 @@
 	import { fieldIds } from '../field-ids';
 	import { getFieldScope } from '../field-scope';
 	import { getVegaContext } from '$lib/app-context';
-	import {
-		applyMarkdownCommand,
-		countMarkdownWords,
-		findUnsafeMarkdown,
-		type MarkdownCommand,
-		type MarkdownCommandPlaceholders
-	} from './markdown-commands';
+	import type { MarkdownCommand, MarkdownCommandPlaceholders } from './markdown-commands';
+	import { countMarkdownWords } from './markdown-words';
+	import { observeSplit } from './markdown-split';
 
 	type EditorMode = 'write' | 'split' | 'preview';
 
@@ -92,7 +97,15 @@
 	 *  enlace es su clase, no texto). Llega con el chunk perezoso de TipTap; solo pinta, nunca
 	 *  toca el valor del campo. */
 	let toPreviewDoc: (markdown: string) => JSONContent = () => ({ type: 'doc', content: [] });
+	/** Comandos de la barra y detección de HTML no permitido (`markdown-commands.ts`): llegan con
+	 *  el chunk perezoso de TipTap, ANTES de `markdownManager`, que es lo que habilita la barra y el
+	 *  `<textarea>`; hasta entonces no hay nada que pueda llamarlos. */
+	let commands: typeof import('./markdown-commands') | null = null;
 	let mode = $state<EditorMode>('split');
+	/** «Dividido» cabe (`markdown-split.ts`). `mode` es la preferencia elegida; `shownMode`, la que
+	 *  se pinta. */
+	let splitFits = $state(true);
+	const shownMode = $derived(mode === 'split' && !splitFits ? 'write' : mode);
 	let lastEmitted = untrack(() => (typeof value === 'string' ? value : ''));
 	const wordCount = $derived(countMarkdownWords(draft));
 	const wordCountLabel = $derived(
@@ -119,10 +132,21 @@
 		const validStoredMode = VALID_MODES.find((candidate) => candidate === storedMode);
 		mode = validStoredMode ?? (window.matchMedia('(max-width: 720px)').matches ? 'write' : 'split');
 
+		// Antes del primer pintado: un «Dividido» que no cabe nunca llega a verse en dos columnas.
+		const stopSplit = observeSplit(textarea, (fits) => (splitFits = fits));
+
 		(async () => {
-			const [{ Editor: EditorCtor }, { createMarkdownExtensions, parsePreviewMarkdown }] =
-				await Promise.all([import('@tiptap/core'), import('$lib/richtext/markdown')]);
+			const [
+				{ Editor: EditorCtor },
+				{ createMarkdownExtensions, parsePreviewMarkdown },
+				loadedCommands
+			] = await Promise.all([
+				import('@tiptap/core'),
+				import('$lib/richtext/markdown'),
+				import('./markdown-commands')
+			]);
 			if (disposed) return;
+			commands = loadedCommands;
 			const editor = new EditorCtor({
 				element: previewContainer,
 				extensions: createMarkdownExtensions(),
@@ -139,7 +163,7 @@
 			editor.commands.setContent(toPreviewDoc(draft), { emitUpdate: false });
 			previewEditor = editor;
 			markdownManager = manager;
-			unsafeFragment = findUnsafeMarkdown(draft, markdownManager);
+			unsafeFragment = commands.findUnsafeMarkdown(draft, markdownManager);
 			if (!unsafeUriError && draft !== lastEmitted) {
 				lastEmitted = draft;
 				onChange(draft);
@@ -148,6 +172,7 @@
 
 		return () => {
 			disposed = true;
+			stopSplit();
 			previewEditor?.destroy();
 			previewEditor = null;
 			markdownManager = null;
@@ -162,7 +187,8 @@
 		lastEmitted = incoming;
 		draft = incoming;
 		externalValue = incoming;
-		unsafeFragment = markdownManager ? findUnsafeMarkdown(incoming, markdownManager) : null;
+		unsafeFragment =
+			commands && markdownManager ? commands.findUnsafeMarkdown(incoming, markdownManager) : null;
 	});
 
 	// Live proof: update the existing read-only editor, never recreate it and never emit changes.
@@ -187,8 +213,8 @@
 
 	function emit(next: string): void {
 		draft = next;
-		if (!markdownManager) return;
-		unsafeFragment = findUnsafeMarkdown(next, markdownManager);
+		if (!commands || !markdownManager) return;
+		unsafeFragment = commands.findUnsafeMarkdown(next, markdownManager);
 		if (next === lastEmitted) return;
 		lastEmitted = next;
 		onChange(next);
@@ -208,8 +234,8 @@
 	}
 
 	function applyCommand(command: MarkdownCommand): void {
-		if (inert || !textarea) return;
-		const result = applyMarkdownCommand(
+		if (inert || !textarea || !commands) return;
+		const result = commands.applyMarkdownCommand(
 			draft,
 			textarea.selectionStart,
 			textarea.selectionEnd,
@@ -235,7 +261,7 @@
 
 <div
 	class="vega-markdown-workbench"
-	data-mode={mode}
+	data-mode={shownMode}
 	data-invalid={error || blocking ? 'true' : undefined}
 >
 	<div class="vega-markdown-bar">
@@ -259,9 +285,15 @@
 
 		<div class="vega-markdown-modes" role="group" aria-label={ctx.t('form.markdown.modeLabel')}>
 			{#each VALID_MODES as candidate (candidate)}
-				<button type="button" aria-pressed={mode === candidate} onclick={() => setMode(candidate)}>
-					{ctx.t(`form.markdown.mode.${candidate}`)}
-				</button>
+				{#if candidate !== 'split' || splitFits}
+					<button
+						type="button"
+						aria-pressed={shownMode === candidate}
+						onclick={() => setMode(candidate)}
+					>
+						{ctx.t(`form.markdown.mode.${candidate}`)}
+					</button>
+				{/if}
 			{/each}
 		</div>
 	</div>
@@ -650,7 +682,9 @@
 
 		.vega-markdown-modes {
 			display: grid;
-			grid-template-columns: repeat(3, minmax(0, 1fr));
+			/* Dos o tres modos (sin «Dividido» si no cabe, `markdown-split.ts`): se reparten el ancho. */
+			grid-auto-columns: minmax(0, 1fr);
+			grid-auto-flow: column;
 			margin-left: 0;
 			width: 100%;
 		}
