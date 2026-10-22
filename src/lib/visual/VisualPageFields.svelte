@@ -55,12 +55,19 @@
 		onClose: () => void;
 		onSaved: (saved: VegaRecord) => void;
 		onDirtyChange: (dirty: boolean) => void;
+		/** Solo los campos que pinta la ficha (`pageTextFields`): nunca estado ni «Publicar el». */
 		onDraftChange: (draft: PreviewDraftRecord) => void;
 		/** El autor escribe en la ficha el campo que se edita en la página: la pantalla cierra la
 		 *  sesión del puente sin cancelar (ver `BlockEditor#onInlineTakeover`). */
 		onInlineTakeover: () => void;
 		/** Guardar con una edición en línea abierta: `true` si la pantalla se encarga. */
 		interceptSave: () => boolean;
+		/** `pageStructuralFields` / `pageTextFields` (`page-fields.ts`), calculados por la pantalla. */
+		structuralFields: string[];
+		textFields: string[];
+		/** Guardando, y si el último guardado falló: la barra de la pantalla los enseña. */
+		onBusyChange: (busy: boolean) => void;
+		onSaveError: (failed: boolean) => void;
 	}
 
 	let {
@@ -76,22 +83,28 @@
 		onDirtyChange,
 		onDraftChange,
 		onInlineTakeover,
-		interceptSave
+		interceptSave,
+		structuralFields,
+		textFields,
+		onBusyChange,
+		onSaveError
 	}: Props = $props();
 
 	let editor = $state<InlineEditor | undefined>(undefined);
 	let saveFailed = $state(false);
 
-	const structuralFields = $derived(
-		[
-			type.page?.pathField,
-			...Object.values(type.page?.localizedPath?.fields ?? {}),
-			type.slugField,
-			type.statusField,
-			type.publishAtField
-		].filter((field): field is string => typeof field === 'string')
-	);
 	const locked = $derived(!type.permissions.update || !!type.readonly);
+
+	/** El borrador completo de `BlockEditor` lleva TODOS los campos del registro tal y como los
+	 *  abrió (estado y fecha incluidos): al token solo van los que pinta esta ficha. */
+	function ownDraft(draft: PreviewDraftRecord): PreviewDraftRecord {
+		return {
+			...draft,
+			fields: Object.fromEntries(
+				textFields.filter((field) => field in draft.fields).map((f) => [f, draft.fields[f]])
+			)
+		};
+	}
 
 	export function beginInline(field: string, source?: InlineSource) {
 		return editor?.beginInline(field, source) ?? null;
@@ -101,9 +114,6 @@
 	}
 	export function finishInline(cancel = false): void {
 		editor?.finishInline(cancel);
-	}
-	export function inlineFields(): string[] {
-		return editor?.inlineFields().text ?? [];
 	}
 	export function save(options: { focus?: boolean } = {}) {
 		return editor?.save(options) ?? Promise.resolve('idle' as const);
@@ -171,8 +181,12 @@
 		onSubmit={(input, opts) => ctx.port.update(type.name, record.id, input, opts)}
 		{onSaved}
 		{onDirtyChange}
-		{onDraftChange}
-		onSaveError={(failed) => (saveFailed = failed)}
+		onDraftChange={(draft) => onDraftChange(ownDraft(draft))}
+		{onBusyChange}
+		onSaveError={(failed) => {
+			saveFailed = failed;
+			onSaveError(failed);
+		}}
 		textsOnly
 		{locked}
 		contextualHeader={footer}

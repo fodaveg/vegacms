@@ -567,7 +567,7 @@
 	 * la última entrada. Cada entrada sustituye SOLO el trozo; si el campo ya no es `last` (lo cambió
 	 * otro escritor), se rechaza en vez de pegar el trozo en un sitio que ya no le corresponde.
 	 */
-	let inlineRange: { before: string; after: string; last: string } | null = null;
+	let inlineRange: { before: string; slice: string; after: string; last: string } | null = null;
 
 	/** `ranged`: un rango de un campo `markdown`; sin él, solo `text`/`textarea`. Mismas reglas de
 	 *  permiso, visibilidad y estructura en los dos casos. */
@@ -620,6 +620,7 @@
 			if (sourceDigest(value) !== range.digest || range.end > value.length) return 'stale';
 			inlineRange = {
 				before: value.slice(0, range.start),
+				slice: value.slice(range.start, range.end),
 				after: value.slice(range.end),
 				last: value
 			};
@@ -638,12 +639,18 @@
 	/** Revalida permisos y campo en cada input, también si cambiaron durante la sesión. */
 	export function updateInline(name: string, value: string): boolean {
 		if (inlineField !== name || !inlineTarget(name, inlineRange !== null)) return false;
-		let next = value;
+		// El sitio manda el texto con saltos `\n`: si es el de partida (sus `\r\n` normalizados), se
+		// deja el de partida tal cual y aplicar sin tocar nada no ensucia la ficha.
+		const same = (text: string) => value === text.replace(/\r\n?/g, '\n');
+		let next: FieldInputValue = value;
 		if (inlineRange) {
 			if (String(inlineValue(name, inlineSource) ?? '') !== inlineRange.last) return false;
-			next = inlineRange.before + value + inlineRange.after;
+			next =
+				inlineRange.before +
+				(same(inlineRange.slice) ? inlineRange.slice : value) +
+				inlineRange.after;
 			inlineRange.last = next;
-		}
+		} else if (same(String(inlineOriginal ?? ''))) next = inlineOriginal;
 		if (inlineSource === 'data') handleDataFieldChange(name, next);
 		else handleRecordFieldChange(name, next);
 		return true;
@@ -658,15 +665,6 @@
 		}
 		inlineField = null;
 		inlineRange = null;
-	}
-
-	/** Lo que esta ficha deja editar en la página AHORA, con las reglas de `inlineTarget`: lo que
-	 *  anuncia `editable` (§contrato), para que el sitio no ofrezca nada que luego se negaría. */
-	export function inlineFields(): { text: string[]; source: string[] } {
-		return {
-			text: fieldOrder.filter((name) => inlineTarget(name)),
-			source: fieldOrder.filter((name) => inlineTarget(name, true))
-		};
 	}
 
 	function validateTypedForm(): FieldErrorsView {

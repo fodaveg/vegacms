@@ -10,9 +10,6 @@ export interface InlineEditor {
 	beginInline(field: string, source?: InlineSource): InlineRequest | 'stale' | null;
 	updateInline(field: string, value: string): boolean;
 	finishInline(cancel?: boolean): void;
-	/** Campos que esta ficha deja editar en la página ahora mismo, con las MISMAS reglas que
-	 *  `beginInline`: de texto plano y `markdown` por rangos. Es lo que anuncia `editable`. */
-	inlineFields(): { text: string[]; source: string[] };
 }
 
 export const INLINE_PROTOCOL = 'vega-visual-2';

@@ -102,7 +102,7 @@ describe('record fields (A)', () => {
 		expect(h.receive({ type: 'select', scope: 'record', field: 'titleEs', intent: 'edit' })).toBe(
 			'accepted'
 		);
-		expect(h.begin).toHaveBeenCalledWith(null, 'titleEs', null);
+		expect(h.begin).toHaveBeenCalledWith(null, 'titleEs', null, expect.any(Function));
 		const edit = h.posted.at(-1)!;
 		expect(edit).toMatchObject({
 			type: 'editField',
@@ -161,6 +161,33 @@ describe('record fields (A)', () => {
 		).toBe('accepted');
 		await Promise.resolve();
 		expect(h.posted.at(-1)).toMatchObject({ type: 'editField', scope: 'record', value: 'Hola' });
+		h.client.stop();
+	});
+
+	test('isCurrent tells a slow owner that a later edit took over (review, 22 Oct: race with a block edit)', async () => {
+		let resolve!: (value: { widget: 'text'; value: string }) => void;
+		const checks: (() => boolean)[] = [];
+		const h = setup({
+			onInlineBegin: (blockId, _field, _source, isCurrent) => {
+				checks.push(isCurrent);
+				return blockId === null
+					? new Promise((done) => (resolve = done))
+					: { widget: 'text' as const, value: 'Bloque' };
+			}
+		});
+		h.receive(h.ready);
+		h.receive({ type: 'select', scope: 'record', field: 'titleEs', intent: 'edit' });
+		expect(checks[0]!()).toBe(true);
+		// The author opens a block text while the page card is still loading.
+		h.receive({ type: 'select', blockId: 'b', field: 'heading', intent: 'edit' });
+		expect(h.posted.at(-1)).toMatchObject({ type: 'editField', blockId: 'b' });
+		expect(checks[0]!()).toBe(false);
+		expect(checks[1]!()).toBe(true);
+		resolve({ widget: 'text', value: 'T' });
+		await Promise.resolve();
+		await Promise.resolve();
+		// The block edit is still the open one: no record editField after it.
+		expect(h.posted.filter((message) => message.type === 'editField')).toHaveLength(1);
 		h.client.stop();
 	});
 

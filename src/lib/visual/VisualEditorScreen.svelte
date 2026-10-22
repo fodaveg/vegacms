@@ -330,9 +330,14 @@
 	// el presupuesto de la pantalla más cara (82 KB) no daba para la edición en línea de los campos
 	// de la página (spec del 22 oct 2026) con este componente dentro. Se pide en la inicialización,
 	// así que llega a la vez que el token del lienzo, mucho antes de que se pueda usar.
+	// Si la descarga falla, la barra lo dice y ofrece recargar: un `import()` que falló por red no se
+	// reintenta con la misma URL (Chromium y WebKit guardan el fallo; medido el 22 oct 2026), y tras
+	// un despliegue esa URL ya no existe. La guarda `beforeunload` pregunta si hay cambios sin guardar.
 	const publishControl = import('./VisualPublishControl.svelte');
+	let publishRetryEl = $state<HTMLButtonElement | undefined>(undefined);
 	import type { InlineEditor, InlineRect, InlineRequest, InlineTargets } from './inline-session';
 	import { inlineAppearanceMessage } from './inline-appearance';
+	import { pageInlineFields, pageStructuralFields, pageTextFields } from './page-fields';
 	import {
 		INSPECTOR_DEFAULT_WIDTH,
 		INSPECTOR_MAX_WIDTH,
@@ -466,7 +471,9 @@
 		await tick();
 		const active = document.activeElement;
 		if (active === null || active === document.body || !active.isConnected) {
-			publishControlRef?.focus();
+			// Sin el control de estado (su descarga falló) el foco va a su «Reintentar».
+			if (publishControlRef?.focus) publishControlRef.focus();
+			else publishRetryEl?.focus();
 		}
 	}
 
@@ -634,12 +641,16 @@
 	 *  refresca el lienzo; el aviso se va solo. */
 	let inlineNotice = $state<string | null>(null);
 	let noticeTimer: ReturnType<typeof setTimeout> | undefined;
-	function staleInline(): null {
-		inlineNotice = ctx.t('editor.visual.inline.stale');
+	/** Aviso de la barra que se va solo (rango desfasado, ficha de la página sin cargar). */
+	function notify(message: string): null {
+		inlineNotice = message;
 		clearTimeout(noticeTimer);
 		noticeTimer = setTimeout(() => (inlineNotice = null), 8000);
-		scheduleCanvasRefresh({ draftEdit: true });
 		return null;
+	}
+	function staleInline(): null {
+		scheduleCanvasRefresh({ draftEdit: true });
+		return notify(ctx.t('editor.visual.inline.stale'));
 	}
 	/** Abre la edición que el puente autorizó (bloque o página) y para el refresco del lienzo. */
 	function startInline(blockId: string | null, field: string, target: InlineRequest) {
@@ -658,17 +669,21 @@
 	}
 
 	// ————— Campos de la página (spec del 22 oct, parte A) —————
-	// `VisualPageFields.svelte` se descarga con el primer `ready` v2 (`inlineTargets`), nunca con la
-	// pantalla, y desde entonces queda montada (oculta salvo `pageOpen`) para no perder su borrador.
-	// `pageRecord` es el registro que conoce la pantalla: lo renuevan el guardado de esa ficha y el de
-	// `VisualPublishControl`, para que ninguno de los dos guarde contra una versión vieja.
+	// `VisualPageFields.svelte` se descarga la primera vez que el autor edita un campo de la página
+	// en el lienzo, nunca con la pantalla, y desde entonces queda montada (oculta salvo `pageOpen`)
+	// para no perder su borrador. Lo que se anuncia en `editable` sale de `page-fields.ts`, sin
+	// esperarla: un fallo de esa descarga no apaga lo de los bloques. `pageRecord` es el registro
+	// que conoce la pantalla: lo renuevan el guardado de esa ficha y el de `VisualPublishControl`,
+	// para que ninguno de los dos guarde contra una versión vieja.
+	/** Id de la página en la lista de pendientes y en el error de la barra (un id de PocketBase
+	 *  nunca lleva `#`). */
+	const PAGE_ENTRY = '#page';
 	let pageRequest = $state.raw<Promise<typeof import('./VisualPageFields.svelte')> | null>(null);
 	let pageRef = $state<
 		| {
 				beginInline: InlineEditor['beginInline'];
 				updateInline: InlineEditor['updateInline'];
 				finishInline: InlineEditor['finishInline'];
-				inlineFields: () => string[];
 				save: InlineEditor['save'];
 				revealErrors: () => Promise<void>;
 		  }
@@ -676,33 +691,46 @@
 	>(undefined);
 	let pageOpen = $state(false);
 	let pageDirty = $state(false);
+	let pageSaving = $state(false);
 	let pageRecord = $state.raw(untrack(() => record));
-	/** Borrador del registro (forma física) para el token de vista previa; `null` sin ficha. */
+	/** Borrador de los campos que pinta la ficha, para el token de vista previa; `null` sin ficha. */
 	let pageFields: Record<string, unknown> | null = null;
 	let pageSnapshot: string | null = null;
 	const anyDirty = $derived(blocks.anyDirty || pageDirty);
+	/** La ficha montada, o `undefined` si su descarga falló (se podrá reintentar: `pageRequest`
+	 *  vuelve a `null` para que el próximo doble clic la pida de nuevo). */
 	async function pageEditor() {
-		pageRequest ??= import('./VisualPageFields.svelte');
-		await pageRequest;
+		try {
+			await (pageRequest ??= import('./VisualPageFields.svelte'));
+		} catch {
+			pageRequest = null;
+			return undefined;
+		}
 		await tick();
 		return pageRef;
 	}
-	async function beginPageInline(field: string): Promise<InlineRequest | null> {
-		const target = (await pageEditor())?.beginInline(field);
+	async function beginPageInline(
+		field: string,
+		isCurrent: () => boolean
+	): Promise<InlineRequest | null> {
+		const page = await pageEditor();
+		// Sin ficha no hay dónde escribir: se dice, en vez de un doble clic que no hace nada.
+		if (!page) return notify(ctx.t('editor.visual.page.loadError'));
+		// Otra edición empezó mientras se descargaba la ficha: esta ya no es la que pidió el autor.
+		if (!isCurrent()) return null;
+		const target = page.beginInline(field);
 		if (!target || target === 'stale') return null;
-		pageOpen = true;
-		inspectorVisible = true;
+		pageOpen = inspectorVisible = true;
 		selectedBlockId = null;
 		return startInline(null, field, target);
 	}
 	/** `editable` (§contrato): lo que dejan editar las fichas, con la pista en el idioma de Vega. */
-	async function inlineTargets(): Promise<InlineTargets> {
-		const page = await pageEditor();
+	function inlineTargets(): InlineTargets {
 		const outline = inlineAppearanceMessage(screenEl, zoomFactor).outline;
 		return {
 			hint: ctx.t('editor.visual.inline.hint'),
 			...(outline ? { appearance: { outline } } : {}),
-			record: page?.inlineFields() ?? [],
+			record: pageInlineFields(type),
 			blocks: {},
 			sources: {},
 			...inspectorRef?.inlineTargets()
@@ -724,12 +752,17 @@
 	/** «Reintentar» del error de guardado de la barra: el MISMO guardado de la ficha que falló. */
 	function retrySave(): void {
 		if (saveErrorBlockId === null) return;
+		if (saveErrorBlockId === PAGE_ENTRY) {
+			if (!(inlineEdit?.blockId === null && bridgeClient?.saveInline())) void pageRef?.save();
+			return;
+		}
 		if (saveErrorBlockId === inlineBlockId && bridgeClient?.saveInline()) return;
 		inspectorRef?.saveBlock(saveErrorBlockId);
 	}
 	/** El bloque que no se pudo guardar, por su título (`blockTitle`, la misma fuente que el árbol,
 	 *  la franja y el inspector: con dos secciones «Texto» el tipo no dice cuál es). */
 	const saveErrorLabel = $derived.by(() => {
+		if (saveErrorBlockId === PAGE_ENTRY) return ctx.t('editor.visual.page.title');
 		const failed = blocks.records.find((item) => item.id === saveErrorBlockId);
 		return failed ? blocks.blockTitle(failed) : '';
 	});
@@ -1009,11 +1042,13 @@
 				}
 			},
 			onSelect: handleBlockSelect,
-			onInlineBegin: (blockId, field, source) => {
-				if (blockId === null) return beginPageInline(field);
+			onInlineBegin: (blockId, field, source, isCurrent) => {
+				if (blockId === null) return beginPageInline(field, isCurrent);
 				const target = inspectorRef?.beginInline(blockId, field, source ?? undefined);
 				if (target === 'stale') return staleInline();
 				if (!target) return null;
+				// La ficha del bloque, no la de la página: «Guardar» y ⌘S guardan lo que se escribe.
+				pageOpen = false;
 				selectedBlockId = blockId;
 				return startInline(blockId, field, target);
 			},
@@ -1034,6 +1069,8 @@
 			onInlineEnd: (blockId, cancel) => {
 				if (blockId === null) pageRef?.finishInline(cancel);
 				else inspectorRef?.finishInline(blockId, cancel);
+				// Solo la edición que acaba: un comienzo que caducó no cierra la que está abierta.
+				if (inlineEdit?.blockId !== blockId) return;
 				inlineEdit = null;
 				preview.resumeInline();
 			},
@@ -1266,7 +1303,7 @@
 	 * con ella limpia y otra sección con cambios no hacía nada ni lo decía (ronda 3 del QA de
 	 * fodaveg; decisión técnica del coordinador). Un bloque que no se puede guardar no escribe nada:
 	 * la barra lo nombra («No se pudo guardar «…»») y la pantalla lo abre con el foco en su primer
-	 * campo con error. El estado limpio solo sale sin pendientes (`pendingBlocks`).
+	 * campo con error. El estado limpio solo sale sin pendientes (`pending`).
 	 */
 	async function saveFromShortcut(): Promise<void> {
 		const inspector = inspectorRef;
@@ -1377,8 +1414,32 @@
 		return resolveTitleCellText(descriptor, ctx.t('list.untitled'));
 	});
 
-	/** La MISMA fuente dirty del guard estructural, también para bloques no seleccionados. */
-	const pendingBlocks = $derived(blocks.records.filter((block) => blocks.isDirty(block.id)));
+	/** La MISMA fuente dirty del guard estructural, también para bloques no seleccionados; los
+	 *  campos de la página, primero, como una entrada más (barra, confirmación de publicar). */
+	const pending = $derived([
+		...(pageDirty ? [{ id: PAGE_ENTRY, title: ctx.t('editor.visual.page.title') }] : []),
+		...blocks.records
+			.filter((block) => blocks.isDirty(block.id))
+			.map((block) => ({ id: block.id, title: blocks.blockTitle(block) }))
+	]);
+	/** «N bloques sin guardar», con la página delante si también tiene cambios. */
+	const pendingLabel = $derived.by(() => {
+		const count = pending.length - (pageDirty ? 1 : 0);
+		const text = ctx.t(count === 1 ? 'editor.visual.pending.one' : 'editor.visual.pending.many', {
+			count
+		});
+		if (!pageDirty) return text;
+		return count
+			? ctx.t('editor.visual.pending.withPage', { blocks: text })
+			: ctx.t('editor.visual.pending.page');
+	});
+	/** Guardando un bloque, la estructura o los campos de la página. */
+	const busy = $derived(blocks.anySaving || blocks.structuralBusy || pageSaving);
+	/** Abre lo pendiente desde la barra: la ficha de la página o la del bloque. */
+	function openPending(id: string): void {
+		if (id === PAGE_ENTRY) pageOpen = inspectorVisible = true;
+		else void openPendingBlock(id);
+	}
 
 	/** HH:MM localizado (mismo criterio de locale que `RecordForm.svelte#savedAtText`), o `null`
 	 *  sin hora conocida todavía (ver `savedAt`). */
@@ -1487,7 +1548,10 @@
 			<h1 title={docName} aria-current="page">{docName}</h1>
 		</nav>
 		<div class="vega-visual-statusgrp">
-			{#await publishControl then publish}
+			{#await publishControl}
+				<!-- Hueco del estado mientras se descarga: la barra no salta al llegar. -->
+				<span class="vega-visual-publish-slot" aria-hidden="true"></span>
+			{:then publish}
 				<publish.default
 					bind:this={publishControlRef}
 					{type}
@@ -1495,11 +1559,20 @@
 					onConfirmed={(saved: VegaRecord) => (pageRecord = saved)}
 					name={docName}
 					bar
-					pendingBlocks={pendingBlocks.map((block) => blocks.blockTitle(block))}
+					pendingBlocks={pending.map((entry) => entry.title)}
 					{review}
 					onReviewGo={handleReviewGo}
 					onReviewDescribe={handleReviewDescribe}
 				/>
+			{:catch}
+				<!-- Sin el estado no se puede publicar: se dice y se puede volver a pedir. -->
+				<button
+					type="button"
+					class="vega-visual-retry"
+					bind:this={publishRetryEl}
+					onclick={() => location.reload()}
+					><Icon id="update" size={14} />{ctx.t('editor.visual.status.loadError')}</button
+				>
 			{/await}
 		</div>
 
@@ -1508,39 +1581,27 @@
 		     deja ningún borrador sin camino de vuelta (audit del 19 oct). Con un error de guardado Y
 		     bloques pendientes, el error es el RESUMEN de ese mismo desplegable: la lista no se pierde
 		     (la paleta manda a «abrir los bloques pendientes en el aviso»). -->
-		{#if pendingBlocks.length > 0}
+		{#if pending.length > 0}
 			<!-- Con bloques pendientes la lista sigue a mano hasta que el guardado se CONFIRMA (audit
 			     del 19 oct); mientras uno está en vuelo, el resumen dice «Guardando…». -->
 			<details class="vega-visual-pending">
 				<summary
 					class="vega-visual-savestate"
 					class:vega-visual-savestate--err={saveErrorBlockId !== null}
-					class:vega-visual-savestate--dirty={saveErrorBlockId === null &&
-						!(blocks.anySaving || blocks.structuralBusy)}
-					class:vega-visual-savestate--saving={saveErrorBlockId === null &&
-						(blocks.anySaving || blocks.structuralBusy)}
+					class:vega-visual-savestate--dirty={saveErrorBlockId === null && !busy}
+					class:vega-visual-savestate--saving={saveErrorBlockId === null && busy}
 					title={saveErrorBlockId
 						? ctx.t('editor.visual.bar.saveError', { label: saveErrorLabel })
-						: ctx.t(
-								pendingBlocks.length === 1
-									? 'editor.visual.pending.one'
-									: 'editor.visual.pending.many',
-								{ count: pendingBlocks.length }
-							)}
+						: pendingLabel}
 				>
 					<i aria-hidden="true"></i>
 					{#if saveErrorBlockId}<span class="vega-visual-savestate-text" role="alert"
 							>{ctx.t('editor.visual.bar.saveError', { label: saveErrorLabel })}</span
-						>{:else if blocks.anySaving || blocks.structuralBusy}<span
+						>{:else if busy}<span
 							class="vega-visual-saved-at--saving vega-visual-savestate-text"
 							role="status">{ctx.t('editor.saving')}</span
 						>{:else}<span class="vega-visual-dirty vega-visual-savestate-text" role="status"
-							>{ctx.t(
-								pendingBlocks.length === 1
-									? 'editor.visual.pending.one'
-									: 'editor.visual.pending.many',
-								{ count: pendingBlocks.length }
-							)}</span
+							>{pendingLabel}</span
 						>{/if}
 					<span class="vega-visually-hidden vega-visual-pending-expand"
 						>{ctx.t('editor.visual.pending.view')}</span
@@ -1552,14 +1613,16 @@
 				<div class="vega-visual-pending-pop">
 					<p>{ctx.t('editor.visual.pending.body')}</p>
 					<ul class="vega-visual-pending-list">
-						{#each pendingBlocks as block (block.id)}
+						{#each pending as entry (entry.id)}
 							<li>
 								<button
 									type="button"
 									class="vega-visual-pending-block"
-									onclick={() => void openPendingBlock(block.id)}
+									onclick={() => openPending(entry.id)}
 								>
-									{ctx.t('editor.visual.pending.open', { label: blocks.blockTitle(block) })}
+									{entry.id === PAGE_ENTRY
+										? ctx.t('editor.visual.pending.openPage')
+										: ctx.t('editor.visual.pending.open', { label: entry.title })}
 								</button>
 							</li>
 						{/each}
@@ -1583,7 +1646,7 @@
 			<button type="button" class="vega-visual-retry" onclick={retrySave}
 				><Icon id="update" size={14} />{ctx.t('common.retry')}</button
 			>
-		{:else if blocks.anySaving || blocks.structuralBusy}
+		{:else if busy}
 			<span
 				class="vega-visual-savestate vega-visual-savestate--saving vega-visual-saved-at--saving"
 				title={ctx.t('editor.saving')}
@@ -2005,6 +2068,13 @@
 							onInlineTakeover={() => bridgeClient?.finishInline()}
 							interceptSave={() =>
 								inlineEdit?.blockId === null && (bridgeClient?.saveInline() ?? false)}
+							structuralFields={pageStructuralFields(type)}
+							textFields={pageTextFields(type)}
+							onBusyChange={(saving) => (pageSaving = saving)}
+							onSaveError={(failed) => {
+								if (failed) saveErrorBlockId = PAGE_ENTRY;
+								else if (saveErrorBlockId === PAGE_ENTRY) saveErrorBlockId = null;
+							}}
 						/>
 					{/await}
 				</div>
@@ -2330,6 +2400,12 @@
 		border: 1px solid var(--line);
 		border-radius: var(--r-pill);
 		background: var(--surface);
+	}
+
+	/* Lo que ocupa el estado de la página (etiqueta + acción, a 30 px) mientras se descarga. */
+	.vega-visual-publish-slot {
+		width: 9rem;
+		height: 30px;
 	}
 
 	/* Estado de guardado (lámina `.savestate`): punto de color + texto en mono. */
