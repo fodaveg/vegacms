@@ -781,7 +781,10 @@ export function themeToCss(theme) {
 			decls.push(`--${key}: ${value};`);
 		}
 		decls.push(
-			`--v-stage: color-mix(in oklab, var(--ink) ${STAGE_INK_PCT[mode]}%, var(--bg));`,
+			// Resuelto aquí, no `color-mix(var(--ink), var(--bg))`: en los temas tintados los dos ya
+			// son mezclas con `--tint`, y un color-mix con LOS DOS operandos color-mix tumba WebKit 626
+			// (tests/themes/nested-color-mix.test.ts). Es el mismo hex que mide el gate de contraste.
+			`--v-stage: ${resolveStage(theme, mode)};`,
 			`--v-ol-inline: ${inline.line};`,
 			`--v-ol-inline-text: ${inline.text};`,
 			`--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) ${INLINE_SOFT_PCT[mode]}%, var(--paper));`,
