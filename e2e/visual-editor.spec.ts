@@ -1109,12 +1109,24 @@ test.describe('imagen de arrastre: copia opaca y compacta del elemento arrastrad
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
 		const rowHandle = page.locator('.vega-block-handle').nth(1);
 		const header = page.locator('.vega-block-header').nth(1);
-		const handleBox = (await rowHandle.boundingBox())!;
-		const headerBox = (await header.boundingBox())!;
+		// Al salir del editor visual la barra lateral de la app se despliega con transición (0,2 s,
+		// de 26 a 248 px a 1440): la cabecera pasa de 995 a 773 px. Se mide cuando ha terminado
+		// (las animaciones infinitas no cuentan, mismo criterio que `barLayout`); medirla en mitad
+		// del gesto dio 222 px de diferencia con la imagen en el gate del 22 oct 2026.
+		await expect(page.locator('#vega-sidebar')).not.toHaveClass(/vega-sidebar-collapsed/);
+		await page.waitForFunction(() =>
+			document
+				.getAnimations()
+				.every(
+					(a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity
+				)
+		);
 		// La imagen es la cabecera de la fila (asa, tipo y título), agarrada por el asa. El módulo
 		// de la copia se pide al montar el formulario (`drag-image.ts`): si el primer arrastre llega
 		// antes que él, ese lleva la imagen por defecto y se repite.
 		await expect(async () => {
+			const handleBox = (await rowHandle.boundingBox())!;
+			const headerBox = (await header.boundingBox())!;
 			const fromRow = await dragFrom(page, rowHandle, 5, 8);
 			expectCopyOf(
 				{ record: fromRow.record, box: headerBox },
