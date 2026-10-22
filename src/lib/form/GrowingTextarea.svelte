@@ -85,15 +85,26 @@
 	onMount(() => {
 		fit();
 		if (nativeSizing || !el || typeof ResizeObserver === 'undefined') return;
-		// Solo el ANCHO cambia las líneas de ajuste; reaccionar al alto sería un bucle con `fit`.
+		// Solo el ANCHO cambia las líneas de ajuste; reaccionar al alto sería un bucle con `fit`. Y
+		// `fit` cambia el alto del propio elemento observado: dentro del callback eso es un bucle de
+		// `ResizeObserver` («loop completed with undelivered notifications» en WebKit, QA del 22 oct
+		// 2026, al hacerse visible una ficha oculta), así que se ajusta en el fotograma siguiente.
 		let lastWidth = el.clientWidth;
+		let frame: number | null = null;
 		const observer = new ResizeObserver(() => {
-			if (!el || el.clientWidth === lastWidth) return;
-			lastWidth = el.clientWidth;
-			fit();
+			if (!el || el.clientWidth === lastWidth || frame !== null) return;
+			frame = requestAnimationFrame(() => {
+				frame = null;
+				if (!el) return;
+				lastWidth = el.clientWidth;
+				fit();
+			});
 		});
 		observer.observe(el);
-		return () => observer.disconnect();
+		return () => {
+			observer.disconnect();
+			if (frame !== null) cancelAnimationFrame(frame);
+		};
 	});
 </script>
 

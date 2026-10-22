@@ -152,4 +152,43 @@ describe('GrowingTextarea.svelte', () => {
 		type(area, 'un título que ocupa varias líneas');
 		expect(area.style.height).toBe('62px');
 	});
+
+	test('un cambio de ancho reajusta el alto en el fotograma siguiente, nunca dentro del aviso del ResizeObserver', () => {
+		// QA del 22 oct 2026: `fit` dentro del callback cambia el alto del propio elemento observado
+		// («ResizeObserver loop completed with undelivered notifications» en WebKit).
+		let notify: () => void = () => {};
+		vi.stubGlobal(
+			'ResizeObserver',
+			class {
+				constructor(callback: () => void) {
+					notify = callback;
+				}
+				observe() {}
+				disconnect() {}
+			}
+		);
+		const frames: FrameRequestCallback[] = [];
+		vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
+			frames.push(callback)
+		);
+		vi.stubGlobal('cancelAnimationFrame', () => {});
+		try {
+			const area = setup({ value: 'un título que ocupa varias líneas' });
+			let width = 300;
+			vi.spyOn(area, 'clientWidth', 'get').mockImplementation(() => width);
+			vi.spyOn(area, 'scrollHeight', 'get').mockReturnValue(90);
+			vi.spyOn(area, 'offsetHeight', 'get').mockReturnValue(30);
+			vi.spyOn(area, 'clientHeight', 'get').mockReturnValue(28);
+			const before = area.style.height;
+			width = 120; // la ficha se hace visible o se estrecha
+			notify();
+			notify(); // dos avisos en el mismo fotograma: un solo ajuste
+			expect(area.style.height).toBe(before);
+			expect(frames).toHaveLength(1);
+			frames.shift()!(0);
+			expect(area.style.height).toBe('92px');
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
 });

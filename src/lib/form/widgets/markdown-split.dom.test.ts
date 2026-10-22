@@ -32,7 +32,7 @@ afterEach(() => {
 });
 
 describe('observeSplit', () => {
-	test('mide en el acto y en cada aviso del ResizeObserver; al parar deja de observar y retira la sonda', () => {
+	test('mide en el acto y, tras cada aviso del ResizeObserver, en el fotograma siguiente (nunca dentro del aviso); al parar deja de observar y retira la sonda', () => {
 		let notify: () => void = () => {};
 		const disconnect = vi.fn();
 		vi.stubGlobal(
@@ -45,6 +45,15 @@ describe('observeSplit', () => {
 				disconnect = disconnect;
 			}
 		);
+		// QA del 22 oct 2026: cambiar de modo dentro del aviso cambia el alto del cuerpo observado
+		// («ResizeObserver loop completed with undelivered notifications» en WebKit).
+		const frames: FrameRequestCallback[] = [];
+		vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
+			frames.push(callback)
+		);
+		const cancel = vi.fn();
+		vi.stubGlobal('cancelAnimationFrame', cancel);
+		const flush = () => frames.splice(0).forEach((callback) => callback(0));
 		const { body, textarea } = workbench();
 		let bodyWidth = 900;
 		stubLayout(body, () => bodyWidth);
@@ -60,11 +69,18 @@ describe('observeSplit', () => {
 
 		bodyWidth = 600; // (600 / 2) − (44,8 + 1) < 268,8
 		notify();
+		notify(); // dos avisos en el mismo fotograma: una sola medida
+		expect(seen).toEqual([true]);
+		expect(frames).toHaveLength(1);
+		flush();
 		bodyWidth = 640;
 		notify();
+		flush();
 		expect(seen).toEqual([true, false, true]);
 
+		notify(); // un aviso pendiente al parar se cancela
 		stop();
+		expect(cancel).toHaveBeenCalled();
 		expect(disconnect).toHaveBeenCalled();
 		expect(probe.isConnected).toBe(false);
 	});

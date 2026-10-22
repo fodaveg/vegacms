@@ -55,6 +55,12 @@ function insetOf(element: Element | null): number {
  * cuerpo (que se pinta en los tres modos). La vista es `.vega-markdown-preview-content`; su padre,
  * `.vega-markdown-preview`, lleva el borde. Devuelve la función que deja de observar y retira la
  * sonda. Sin `ResizeObserver` mide una vez; sin cuerpo no hace nada.
+ *
+ * El aviso del `ResizeObserver` NO mide ni avisa en el acto: lo deja para el siguiente
+ * `requestAnimationFrame` (uno por fotograma). Cambiar de modo cambia el alto del propio cuerpo
+ * observado (la vista aparece o desaparece); hacerlo dentro de su callback es un bucle de
+ * `ResizeObserver`, y WebKit lo dice con «ResizeObserver loop completed with undelivered
+ * notifications» (QA del 22 oct 2026, al abrir la ficha de un bloque antes oculta).
  */
 export function observeSplit(textarea: HTMLElement, onChange: (fits: boolean) => void): () => void {
 	const body = textarea.closest('.vega-markdown-body');
@@ -82,10 +88,21 @@ export function observeSplit(textarea: HTMLElement, onChange: (fits: boolean) =>
 		);
 	};
 	measure();
-	const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+	let frame: number | null = null;
+	const observer =
+		typeof ResizeObserver === 'undefined'
+			? null
+			: new ResizeObserver(() => {
+					if (frame !== null) return;
+					frame = requestAnimationFrame(() => {
+						frame = null;
+						measure();
+					});
+				});
 	observer?.observe(body);
 	return () => {
 		observer?.disconnect();
+		if (frame !== null) cancelAnimationFrame(frame);
 		probe.remove();
 	};
 }
