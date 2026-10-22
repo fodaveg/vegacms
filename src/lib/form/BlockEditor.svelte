@@ -66,7 +66,7 @@
 	import { fieldDisplayLabel } from '$lib/model/default-labels';
 	import { isPlainTextWidget, isTextWidget, textsModeField } from '$lib/visual/texts-mode';
 	import type { InlineSource } from '$lib/visual/inline-session';
-	import { sourceDigest } from '$lib/visual/source-digest';
+	import { sourceDigest, withLineEndings } from '$lib/visual/source-digest';
 	import {
 		readBlockData,
 		resolveBlockDataFields,
@@ -641,16 +641,21 @@
 		if (inlineField !== name || !inlineTarget(name, inlineRange !== null)) return false;
 		// El sitio manda el texto con saltos `\n`: si es el de partida (sus `\r\n` normalizados), se
 		// deja el de partida tal cual y aplicar sin tocar nada no ensucia la ficha.
+		// Si no, vuelve con el fin de línea del campo (`withLineEndings`).
 		const same = (text: string) => value === text.replace(/\r\n?/g, '\n');
-		let next: FieldInputValue = value;
+		let next: FieldInputValue;
 		if (inlineRange) {
 			if (String(inlineValue(name, inlineSource) ?? '') !== inlineRange.last) return false;
+			const { before, slice, after } = inlineRange;
 			next =
-				inlineRange.before +
-				(same(inlineRange.slice) ? inlineRange.slice : value) +
-				inlineRange.after;
+				before +
+				(same(slice) ? slice : withLineEndings(value, slice, before + slice + after)) +
+				after;
 			inlineRange.last = next;
-		} else if (same(String(inlineOriginal ?? ''))) next = inlineOriginal;
+		} else {
+			const original = String(inlineOriginal ?? '');
+			next = same(original) ? inlineOriginal : withLineEndings(value, original, original);
+		}
 		if (inlineSource === 'data') handleDataFieldChange(name, next);
 		else handleRecordFieldChange(name, next);
 		return true;
