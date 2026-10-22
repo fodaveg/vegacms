@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { createVisualBridgeClient } from './bridge-client';
 import { parseInlineSource, sourceDigest, type InlineTargets } from './inline-session';
+import { withLineEndings } from './source-digest';
 
 /**
  * Mensajería de la spec «edición en línea de todo el texto de la página» (22 oct 2026):
@@ -250,6 +251,22 @@ describe('Markdown source ranges (B)', () => {
 		).toBe('out-of-order');
 		expect(h.posted.some((message) => message.type === 'editField')).toBe(false);
 		h.client.stop();
+	});
+
+	test('withLineEndings: typed text takes the line endings of its range, or of its field', () => {
+		// CRLF range: back with CRLF (QA of 22 Oct: «Izquierda uno\r\nsegunda línea.» came back LF).
+		expect(
+			withLineEndings('uno\nsegunda. X', 'uno\r\nsegunda.', 'uno\r\nsegunda.\r\n\r\nfin')
+		).toBe('uno\r\nsegunda. X');
+		// LF range and field: unchanged.
+		expect(withLineEndings('a\nb X', 'a\nb', 'a\nb\n\nc')).toBe('a\nb X');
+		// A range without breaks follows its field: all CRLF → CRLF, all LF → LF, mixed → LF.
+		expect(withLineEndings('a\nb', 'a', 'a\r\n\r\nc\r\n')).toBe('a\r\nb');
+		expect(withLineEndings('a\nb', 'a', 'a\n\nc')).toBe('a\nb');
+		expect(withLineEndings('a\nb', 'a', 'a\r\n\nc')).toBe('a\nb');
+		// A mixed range stays as the site sent it; text without breaks is untouched.
+		expect(withLineEndings('a\nb\nc', 'a\r\nb\nc', 'a\r\nb\nc')).toBe('a\nb\nc');
+		expect(withLineEndings('sin saltos', 'x\r\ny', 'x\r\ny')).toBe('sin saltos');
 	});
 
 	test('parseInlineSource and sourceDigest follow the contract format', () => {

@@ -391,6 +391,31 @@ describe('fields of the page record (A)', () => {
 });
 
 describe('review of 22 Oct 2026', () => {
+	test('text applied to a CRLF Markdown field comes back with CRLF; every other byte is untouched', async () => {
+		const h = await setup('block');
+		try {
+			// A two-line range of the all-CRLF fixture, and a range without line breaks.
+			const list = range('- uno\r\n- dos');
+			h.editor.beginInline('body', list);
+			h.editor.updateInline('body', '- uno\n- dos X');
+			h.editor.finishInline();
+			const expected = BODY.slice(0, list.start) + '- uno\r\n- dos X' + BODY.slice(list.end);
+			await tick();
+			expect(h.lastDraft().body).toBe(expected);
+			// A paragraph without line breaks follows its field, which is all CRLF.
+			const start = expected.indexOf('Fin.');
+			h.editor.beginInline('body', { start, end: start + 4, digest: sourceDigest(expected) });
+			h.editor.updateInline('body', 'Fin.\nY');
+			h.editor.finishInline();
+			await tick();
+			expect(h.lastDraft().body).toBe(
+				expected.slice(0, start) + 'Fin.\r\nY' + expected.slice(start + 4)
+			);
+		} finally {
+			await h.close();
+		}
+	});
+
 	test('applying a Markdown range without changes keeps its CRLF and leaves the card clean', async () => {
 		const h = await setup('block');
 		try {
