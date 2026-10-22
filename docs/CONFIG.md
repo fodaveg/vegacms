@@ -960,6 +960,11 @@ carpeta muestra antes su recuento; sus archivos se conservan en Sin carpeta. Los
 y de relación a medios comparten el filtro durante la página. Detalle de esquema, permisos y
 actualización en [Carpetas planas de la biblioteca](POCKETBASE-INTEGRATION.md#carpetas-planas-de-la-biblioteca).
 
+Cambiar el filtro de carpeta conserva el destino de las subidas pendientes. Si la carpeta original
+ya no existe, el lote ofrece una acción explícita para reintentar o reanudar en la carpeta actual
+o en Sin carpeta, conservando los archivos originales. Un fallo de red al consultar la carpeta no
+activa esa recuperación. Buscar en todos los medios amplía la carpeta sin borrar el término buscado.
+
 El escaparate de QA (`SHOWCASE_SEED`) incluye el esquema actual con Fotografía, Documentos y archivos
 sin carpeta. `DEMO_SEED_WITH_MEDIA` queda como fixture explícita de biblioteca anterior, sin carpetas:
 `e2e/media-folders.spec.ts` comprueba su actualización antes de crear/subir/mover/renombrar/borrar.

@@ -935,3 +935,93 @@ describe('Relation.svelte: orden, filtro de bloque y miniatura', () => {
 		expect(mounted.target.querySelector('img.vega-relation-thumb')).toBeNull();
 	});
 });
+
+test('dos selectores de medios comparten carpeta y recargan candidatos sin conservar resultados antiguos', async () => {
+	const { mediaPickerState } = await import('$lib/media/media-picker-state.svelte');
+	mediaPickerState.folder = null;
+	const media = resolvedType('vega_media', 'title', [
+		...MEDIA_TYPE.schema.fields,
+		{
+			name: 'folder',
+			type: 'relation',
+			target: 'vega_media_folders',
+			multiple: false,
+			cascadeDelete: false
+		} as unknown as ResolvedContentType['schema']['fields'][number]
+	]);
+	const folders = resolvedType('vega_media_folders', 'name', [
+		{ name: 'name', type: 'text', required: true, unique: true, maxLength: 80 },
+		{ name: 'created', type: 'date', readonly: true }
+	] as unknown as ResolvedContentType['schema']['fields']);
+	const folderRecords = [
+		record('f1', 'vega_media_folders', { name: 'Uno' }),
+		record('f2', 'vega_media_folders', { name: 'Dos' })
+	];
+	const delayed: Array<(result: Page<VegaRecord>) => void> = [];
+	const list = vi.fn(async (type: string, query: Query = {}) => {
+		if (type === 'vega_media_folders') return page(folderRecords);
+		const folder = query.filter?.kind === 'cond' ? query.filter.value : null;
+		if (folder === 'f1') return new Promise<Page<VegaRecord>>((resolve) => delayed.push(resolve));
+		return page([mediaRecord(MEDIA_ID_A, folder === 'f2' ? 'dos.jpg' : 'todos.jpg')]);
+	}) as unknown as BackendPort['list'];
+	const first = mountRelation({
+		field: relationField('vega_media', { name: 'cover' }),
+		value: MEDIA_ID_A,
+		types: [media, folders],
+		list
+	});
+	const second = mountRelation({
+		field: relationField('vega_media', { name: 'socialImage' }),
+		value: MEDIA_ID_B,
+		types: [media, folders],
+		list
+	});
+	try {
+		await vi.waitFor(() => {
+			expect(candidateButtons(first.target)[0]?.textContent).toContain('todos.jpg');
+			expect(candidateButtons(second.target)[0]?.textContent).toContain('todos.jpg');
+			expect(first.target.querySelector('select option[value="f1"]')).not.toBeNull();
+		});
+		const select = first.target.querySelector('select')!;
+		select.value = 'f1';
+		select.dispatchEvent(new Event('change', { bubbles: true }));
+		await vi.waitFor(() => expect(delayed).toHaveLength(2));
+		expect(candidateButtons(first.target)).toHaveLength(0);
+		expect(candidateButtons(second.target)).toHaveLength(0);
+		expect(second.target.querySelector('select')!.value).toBe('f1');
+		for (const resolve of delayed) resolve(page([mediaRecord(MEDIA_ID_B, 'uno.jpg')]));
+		await vi.waitFor(() => {
+			expect(candidateButtons(first.target)[0]?.textContent).toContain('uno.jpg');
+			expect(candidateButtons(second.target)[0]?.textContent).toContain('uno.jpg');
+		});
+		const other = second.target.querySelector('select')!;
+		other.value = 'f2';
+		other.dispatchEvent(new Event('change', { bubbles: true }));
+		await vi.waitFor(() => {
+			expect(candidateButtons(first.target)[0]?.textContent).toContain('dos.jpg');
+			expect(candidateButtons(second.target)[0]?.textContent).toContain('dos.jpg');
+		});
+		expect(first.target.querySelector('select')!.value).toBe('f2');
+		expect(first.target.querySelectorAll('.vega-relation-chip')).toHaveLength(1);
+		expect(second.target.querySelectorAll('.vega-relation-chip')).toHaveLength(1);
+		expect(first.onChange).not.toHaveBeenCalled();
+		expect(second.onChange).not.toHaveBeenCalled();
+		expect(
+			vi
+				.mocked(list)
+				.mock.calls.filter(
+					([type, query]) =>
+						type === 'vega_media' &&
+						query?.filter?.kind === 'cond' &&
+						query.filter.field === 'folder'
+				)
+				.every(([, query]) => query?.page === 1)
+		).toBe(true);
+	} finally {
+		await unmount(first.instance);
+		await unmount(second.instance);
+		first.target.remove();
+		second.target.remove();
+		mediaPickerState.folder = null;
+	}
+});

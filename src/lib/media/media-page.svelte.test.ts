@@ -280,3 +280,75 @@ test('una carpeta borrada remotamente vuelve a Todos una sola vez al refrescar v
 	await vi.waitFor(() => expect(goto).toHaveBeenCalledExactlyOnceWith('/media'));
 	expect(ctx.feedback.toast).toHaveBeenCalledTimes(1);
 });
+
+function readyFolderTypes(): ContentType[] {
+	const media = mediaType(['image/png']);
+	media.fields.push({
+		name: 'folder',
+		type: 'relation',
+		target: 'vega_media_folders',
+		multiple: false,
+		cascadeDelete: false
+	} as unknown as (typeof media.fields)[number]);
+	return [
+		media,
+		{
+			name: 'vega_media_folders',
+			fields: [
+				{ name: 'name', type: 'text', required: true, unique: true, maxLength: 80 },
+				{ name: 'created', type: 'date', readonly: true }
+			]
+		} as unknown as ContentType
+	];
+}
+const folderPage = () =>
+	listedPage([{ id: 'f1', type: 'vega_media_folders', values: { name: 'Viajes' } }]);
+
+test.each([
+	['none', 'media.folders.emptyUnfiled'],
+	['f1', 'media.folders.emptyFolder']
+])('vacío específico de carpeta %s conserva opción de subir', async (folder, key) => {
+	search.value = `?folder=${folder}`;
+	const { target } = mountPage(
+		async (type) => (type === 'vega_media_folders' ? folderPage() : listedPage([])),
+		readyFolderTypes()
+	);
+	await vi.waitFor(() =>
+		expect(target.querySelector('[data-media-grid-state="empty-folder"]')?.textContent).toContain(
+			key
+		)
+	);
+	expect(target.querySelector('[data-media-grid-state="empty-folder"] button')).not.toBeNull();
+	expect(target.querySelector('[data-media-grid-state="empty-filter"]')).toBeNull();
+});
+
+test('búsqueda sin resultados en carpeta ofrece Todos conservando el término', async () => {
+	vi.useFakeTimers();
+	search.value = '?folder=f1';
+	const list = vi.fn<ListFn>(async (type) =>
+		type === 'vega_media_folders' ? folderPage() : listedPage([])
+	);
+	const { target } = mountPage(list, readyFolderTypes());
+	try {
+		await settle();
+		const input = target.querySelector<HTMLInputElement>('.vega-media-search input')!;
+		input.value = 'montaña';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await vi.advanceTimersByTimeAsync(MEDIA_SEARCH_DEBOUNCE_MS + 1);
+		await settle();
+		const action = target.querySelector<HTMLButtonElement>(
+			'[data-media-grid-state="empty-filter"] button'
+		)!;
+		expect(action.textContent).toContain('media.folders.searchAll');
+		expect(list).toHaveBeenLastCalledWith(
+			'vega_media',
+			buildMediaListQuery(1, { search: 'montaña', folder: 'f1' })
+		);
+		action.click();
+		await settle();
+		expect(input.value).toBe('montaña');
+		expect(goto).toHaveBeenCalledWith('/media');
+	} finally {
+		vi.useRealTimers();
+	}
+});

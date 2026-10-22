@@ -71,6 +71,8 @@ interface MediaUploadItem {
 	 *  haber llegado a crearse). */
 	id: string;
 	name: string;
+	/** Destino propio: un cambio de carpeta de la vista no retargetea bytes pendientes. */
+	folder: string | null;
 	status: MediaUploadItemStatus;
 	shrink?: MediaUploadShrink;
 }
@@ -88,6 +90,11 @@ interface MediaUploadOptions {
 	/** «Subir el original»: no se reduce nada y se valida el fichero tal cual (comportamiento de
 	 *  siempre). Por defecto `false`. */
 	keepOriginal?: boolean;
+	folder?: string | null;
+}
+
+/** Solo una elección explícita cambia el destino de los ítems que se vuelven a intentar. */
+interface MediaUploadRetryOptions {
 	folder?: string | null;
 }
 
@@ -114,22 +121,26 @@ interface MediaUploadState {
 	): Promise<void>;
 	/** Reanuda el ÚLTIMO lote parado (sesión caducada): `files` va ALINEADO por índice con `items`.
 	 *  Solo se suben los `pending`; los `done`, `error` y `rejected` se quedan en su sitio, y el
-	 *  resumen cuenta el lote ENTERO (lo ya subido/fallado más lo de esta vuelta). No-op si no hay
+	 *  resumen cuenta el lote ENTERO (lo ya subido/fallado más lo de esta vuelta). Una carpeta explícita
+	 *  solo cambia los pendientes; sin ella cada ítem conserva su destino. No-op si no hay
 	 *  ningún `pending` o `files` no cubre la lista. */
 	resume(
 		ctx: VegaAppContext,
 		files: File[],
 		onUploaded: () => void,
-		onSummary: (summary: MediaUploadSummary) => void
+		onSummary: (summary: MediaUploadSummary) => void,
+		options?: MediaUploadRetryOptions
 	): Promise<void>;
 	/** Reintenta un error del backend en su posición, sin reemplazar los demás ítems del lote.
-	 *  `file` es el original alineado con `items[index]`; el resumen cubre solo este intento. */
+	 *  `file` es el original alineado con `items[index]`; el resumen cubre solo este intento.
+	 *  Sin elección explícita se conserva el destino de ese ítem, incluso si cambió la vista. */
 	retry(
 		ctx: VegaAppContext,
 		index: number,
 		file: File,
 		onUploaded: () => void,
-		onSummary: (summary: MediaUploadSummary) => void
+		onSummary: (summary: MediaUploadSummary) => void,
+		options?: MediaUploadRetryOptions
 	): Promise<void>;
 	/** Limpia la lista de ficheros del último lote (p.ej. tras leer el resumen) — no cancela nada
 	 *  en vuelo, solo la vista; llamarla mientras `running` es `true` no tiene efecto útil. */
@@ -148,7 +159,6 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 	let running = $state(false);
 	// Casilla y esquema del ÚLTIMO lote: `resume()` los hereda (no reduce lo que se pidió intacto).
 	let keepOriginal = false;
-	let batchFolder: string | null = null;
 	let lastSchema: MediaFileFieldSchema | null = null;
 
 	function canShrink(file: File): boolean {
@@ -173,7 +183,7 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 	): Promise<void> {
 		if (files.length === 0) return;
 		keepOriginal = options.keepOriginal === true;
-		batchFolder = options.folder ?? null;
+		const folder = options.folder ?? null;
 		lastSchema = schema;
 
 		// Pre-validación (D-P6.3): calculada UNA vez por fichero, antes de tocar el puerto para
@@ -185,6 +195,7 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 			return {
 				id: `${index}_${crypto.randomUUID()}`,
 				name: file.name,
+				folder,
 				status: reason === null ? { kind: 'pending' } : { kind: 'rejected', reason }
 			};
 		});
@@ -196,17 +207,23 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 		ctx: VegaAppContext,
 		files: File[],
 		onUploaded: () => void,
-		onSummary: (summary: MediaUploadSummary) => void
+		onSummary: (summary: MediaUploadSummary) => void,
+		options: MediaUploadRetryOptions = {}
 	): Promise<void> {
-		// Foto de la lista actual: `run` lee de ella qué estaba `pending` al reanudar.
-		const batch = items.slice();
 		if (
+			running ||
 			lastSchema === null ||
-			files.length < batch.length ||
-			!batch.some((item) => item.status.kind === 'pending')
-		) {
+			files.length < items.length ||
+			!items.some((item) => item.status.kind === 'pending')
+		)
 			return;
-		}
+		// Solo los pendientes adoptan la elección explícita; los éxitos y errores ajenos siguen intactos.
+		const batch = items.map((item) =>
+			item.status.kind === 'pending' && 'folder' in options
+				? { ...item, folder: options.folder ?? null }
+				: item
+		);
+		items = batch;
 		await run(ctx, lastSchema, batch, files, onUploaded, onSummary);
 	}
 
@@ -215,12 +232,17 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 		index: number,
 		file: File,
 		onUploaded: () => void,
-		onSummary: (summary: MediaUploadSummary) => void
+		onSummary: (summary: MediaUploadSummary) => void,
+		options: MediaUploadRetryOptions = {}
 	): Promise<void> {
 		const item = items[index];
 		if (running || lastSchema === null || item?.status.kind !== 'error') return;
-		const pending: MediaUploadItem = { ...item, status: { kind: 'pending' } };
-		setStatus(item.id, pending.status);
+		const pending: MediaUploadItem = {
+			...item,
+			folder: 'folder' in options ? (options.folder ?? null) : item.folder,
+			status: { kind: 'pending' }
+		};
+		items = items.map((current) => (current.id === item.id ? pending : current));
 		await run(ctx, lastSchema, [pending], [file], onUploaded, onSummary);
 	}
 
@@ -258,7 +280,7 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 				// copia a Medios desde un campo `file`).
 				const result = await uploadMediaFile(ctx.port, schema, files[i], {
 					shrink: keepOriginal ? null : shrink,
-					folder: batchFolder
+					folder: item.folder
 				});
 				if (result.shrink) setShrink(item.id, result.shrink);
 				if (result.kind === 'rejected') {

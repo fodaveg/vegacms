@@ -8,6 +8,14 @@
  * una clave que falta en un idioma y no en el otro es un bug de este fichero, no de `t()`.
  */
 export const es = {
+	'media.upload.retryCurrentFolder': 'Reintentar en la carpeta actual',
+	'media.upload.retryUnfiled': 'Reintentar sin carpeta',
+	'media.upload.resumeCurrentFolder': 'Reanudar pendientes en la carpeta actual',
+	'media.upload.resumeUnfiled': 'Reanudar pendientes sin carpeta',
+	'media.folders.emptyUnfiled':
+		'No hay archivos sin carpeta. Los demás archivos están organizados en carpetas.',
+	'media.folders.emptyFolder': 'Esta carpeta está vacía. Puedes subir archivos aquí.',
+	'media.folders.searchAll': 'Buscar en todos los medios',
 	// Registro de actividad del servidor.
 	'activity.title': 'Actividad',
 	'activity.gate': 'El registro de actividad solo está disponible para superusuarios.',

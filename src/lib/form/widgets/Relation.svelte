@@ -34,7 +34,7 @@
 	 * - **`maxSelect` (múltiple)**: al alcanzarlo, los candidatos NO seleccionados se deshabilitan
 	 *   (`toggleRelationSelection`, afordancia UX — la validación dura ya la hace F5-c/backend).
 	 */
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	type CreateDialogComponent = typeof import('../RelationCreateDialog.svelte').default;
 	let CreateDialog = $state.raw<CreateDialogComponent | null>(null);
 	let createLoading = $state(false);
@@ -119,6 +119,11 @@
 	const titleField = $derived(target?.titleField ?? null);
 	// Relación de bloque (ver cabecera): filtro del selector y miniatura. Ambos ausentes fuera de ella.
 	const baseFilter = $derived(field.relationPicker?.filter ?? null);
+	const mediaFolderFilter = $derived(
+		isMediaTarget && mediaFoldersState(ctx.model.types.map((type) => type.schema)) === 'ready'
+			? mediaPickerState.folder
+			: null
+	);
 	const thumbSchema = $derived.by(() => {
 		const name = field.relationPicker?.thumbField;
 		if (!name || isMediaTarget || !target) return null;
@@ -289,10 +294,7 @@
 		}
 		try {
 			const query = buildDegradedListQuery(page, baseFilter);
-			const folder =
-				mediaMode && mediaFoldersState(ctx.model.types.map((type) => type.schema)) === 'ready'
-					? mediaPickerState.folder
-					: null;
+			const folder = mediaFolderFilter;
 			if (folder) {
 				const condition = {
 					kind: 'cond' as const,
@@ -334,13 +336,17 @@
 		}
 	}
 
-	// Carga inicial del listado degradado (única vía para ver candidatos: no hay buscador). Se
-	// dispara una sola vez por destino (`degradedLoadedFor`), no en cada recálculo del `$effect`.
+	// Todos los selectores montados observan el mismo filtro. La clave también cambia si el
+	// padre ajusta su filtro base; un resultado de la carpeta anterior nunca se presenta como nuevo.
 	$effect(() => {
-		if (degraded && target && degradedLoadedFor !== target.name) {
-			degradedLoadedFor = target.name;
+		if (!degraded || !target) return;
+		const key = JSON.stringify([target.name, baseFilter, mediaFolderFilter]);
+		if (degradedLoadedFor === key) return;
+		degradedLoadedFor = key;
+		untrack(() => {
+			if (isMediaTarget) degradedItems = [];
 			void loadDegradedPage(1);
-		}
+		});
 	});
 
 	/** Resuelve los títulos de `ids` con un `list` filtrado por ids por cada lote (`chunkIds`). Los
@@ -590,7 +596,6 @@
 				includeAll
 				onChange={(value) => {
 					mediaPickerState.folder = value;
-					void loadDegradedPage(1);
 				}}
 				disabled={inert}
 			/>{/if}

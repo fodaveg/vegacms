@@ -373,3 +373,93 @@ describe('createMediaUploadState — reducir al subir', () => {
 		expect(events).toEqual(['shrink:a.jpg', 'create:a.jpg', 'shrink:b.jpg', 'create:b.jpg']);
 	});
 });
+
+describe('destino de cada subida y recuperación explícita', () => {
+	test('retry ordinario conserva carpeta y bytes; recuperación cambia solo el ítem fallido', async () => {
+		const create = vi
+			.fn()
+			.mockRejectedValueOnce(
+				VegaError.validation({
+					folder: { code: 'validation_missing_rel_records', message: 'missing' }
+				})
+			)
+			.mockResolvedValueOnce({})
+			.mockRejectedValueOnce(VegaError.network())
+			.mockResolvedValue({});
+		const { ctx } = fakeCtx(create);
+		const state = createMediaUploadState();
+		const original = files(2);
+		await state.start(
+			ctx,
+			schema,
+			original,
+			() => {},
+			() => {},
+			{ folder: 'original', keepOriginal: true }
+		);
+		const ids = state.items.map((item) => item.id);
+		await state.retry(
+			ctx,
+			0,
+			original[0],
+			() => {},
+			() => {}
+		);
+		expect(create.mock.calls[2][1]).toMatchObject({ file: original[0], folder: 'original' });
+		await state.retry(
+			ctx,
+			0,
+			original[0],
+			() => {},
+			() => {},
+			{ folder: null }
+		);
+		expect(create.mock.calls[3][1]).toEqual({ file: original[0] });
+		expect((create.mock.calls[3][1] as { file: File }).file).toBe(original[0]);
+		expect(state.items.map((item) => item.folder)).toEqual([null, 'original']);
+		expect(state.items.map((item) => item.id)).toEqual(ids);
+		expect(state.items.map((item) => item.status.kind)).toEqual(['done', 'done']);
+	});
+	test('resume ordinario conserva destino; recuperación explícita retoma mismos pendientes y archivos', async () => {
+		const create = vi
+			.fn()
+			.mockResolvedValueOnce({})
+			.mockRejectedValueOnce(VegaError.authExpired())
+			.mockRejectedValueOnce(VegaError.authExpired())
+			.mockResolvedValue({});
+		const { ctx } = fakeCtx(create);
+		const state = createMediaUploadState();
+		const original = files(3);
+		await state.start(
+			ctx,
+			schema,
+			original,
+			() => {},
+			() => {},
+			{ folder: 'deleted', keepOriginal: true }
+		);
+		const ids = state.items.map((item) => item.id);
+		await state.resume(
+			ctx,
+			original,
+			() => {},
+			() => {}
+		);
+		expect(create.mock.calls[2][1]).toMatchObject({ file: original[1], folder: 'deleted' });
+		await state.resume(
+			ctx,
+			original,
+			() => {},
+			() => {},
+			{ folder: 'valid' }
+		);
+		expect(create.mock.calls.slice(3).map((call) => call[1])).toEqual([
+			{ file: original[1], folder: 'valid' },
+			{ file: original[2], folder: 'valid' }
+		]);
+		expect((create.mock.calls[3][1] as { file: File }).file).toBe(original[1]);
+		expect(state.items.map((item) => item.id)).toEqual(ids);
+		expect(state.items.map((item) => item.folder)).toEqual(['deleted', 'valid', 'valid']);
+		expect(state.items.map((item) => item.status.kind)).toEqual(['done', 'done', 'done']);
+	});
+});

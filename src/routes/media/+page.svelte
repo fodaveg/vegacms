@@ -748,6 +748,20 @@
 								{ctx.t('common.retry')}
 							</button>
 						</div>
+					{:else if mediaReadyPage?.totalItems === 0 && activeFolder !== null && appliedSearch.trim() === ''}
+						<div class="vega-media-empty" data-media-grid-state="empty-folder">
+							<p>
+								{ctx.t(
+									activeFolder === 'none'
+										? 'media.folders.emptyUnfiled'
+										: 'media.folders.emptyFolder'
+								)}
+							</p>
+							{#if mediaPermissions.create}<button
+									type="button"
+									onclick={() => uploadRef?.openFilePicker()}>{ctx.t('media.upload.button')}</button
+								>{/if}
+						</div>
 					{:else if mediaIsEmpty}
 						<div class="vega-media-empty" data-media-grid-state="empty">
 							<h2>{ctx.t('media.empty.title')}</h2>
@@ -776,8 +790,12 @@
 											? ctx.t('media.search.empty')
 											: ctx.t('media.filter.empty')}
 									</p>
-									<button type="button" onclick={clearFilters}>{ctx.t('media.filter.clear')}</button
-									>
+									{#if activeFolder !== null && appliedSearch.trim()}<button
+											type="button"
+											onclick={() => selectFolder(null)}>{ctx.t('media.folders.searchAll')}</button
+										>{:else}<button type="button" onclick={clearFilters}
+											>{ctx.t('media.filter.clear')}</button
+										>{/if}
 								</div>
 							{/if}
 							{#if mediaReadyPage && mediaReadyPage.totalPages > 1}

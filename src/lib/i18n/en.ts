@@ -3,6 +3,13 @@
  * doc there for the scope rule (chrome only, never content, never `ModelWarning.message`).
  */
 export const en: Record<keyof typeof import('./es').es, string> = {
+	'media.upload.retryCurrentFolder': 'Retry in the current folder',
+	'media.upload.retryUnfiled': 'Retry unfiled',
+	'media.upload.resumeCurrentFolder': 'Resume pending uploads in the current folder',
+	'media.upload.resumeUnfiled': 'Resume pending uploads unfiled',
+	'media.folders.emptyUnfiled': 'There are no unfiled files. Other files are organized in folders.',
+	'media.folders.emptyFolder': 'This folder is empty. You can upload files here.',
+	'media.folders.searchAll': 'Search all media',
 	// Server activity log.
 	'activity.title': 'Activity',
 	'activity.gate': 'The activity log is only available to superusers.',

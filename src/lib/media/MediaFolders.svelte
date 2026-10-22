@@ -269,6 +269,10 @@
 		cursor: pointer;
 	}
 	nav {
+		max-block-size: min(60dvh, 32rem);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		scrollbar-gutter: stable;
 		display: flex;
 		flex-direction: column;
 		gap: 4px;

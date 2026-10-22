@@ -47,6 +47,9 @@
 	 * toast "`N` subidos, `M` fallidos" — nunca infla ni oculta un fallo.
 	 */
 	import { getVegaContext } from '$lib/app-context';
+	import { untrack } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
+	import { VegaError } from '$lib/backend/errors';
 	import Icon from '$lib/icons/Icon.svelte';
 	import {
 		classifyMediaAssetType,
@@ -75,6 +78,34 @@
 
 	const ctx = getVegaContext();
 	const uploadState = createMediaUploadState();
+	const missingDestinations = new SvelteSet<string>();
+	const checkingDestinations = new SvelteSet<string>();
+	/** Un filtro distinto no basta para cambiar bytes pendientes: antes se confirma el 404. */
+	async function checkOriginalFolder(id: string) {
+		if (checkingDestinations.has(id) || typeof ctx.port.get !== 'function') return;
+		checkingDestinations.add(id);
+		try {
+			await ctx.port.get('vega_media_folders', id);
+		} catch (cause) {
+			if (cause instanceof VegaError && cause.kind === 'not-found') missingDestinations.add(id);
+		} finally {
+			checkingDestinations.delete(id);
+		}
+	}
+	$effect(() => {
+		if (uploadState.running) return;
+		const originals = uploadState.items
+			.filter(
+				(item) =>
+					(item.status.kind === 'pending' || item.status.kind === 'error') &&
+					item.folder &&
+					item.folder !== folder
+			)
+			.map((item) => item.folder!);
+		untrack(() => {
+			for (const id of new Set(originals)) void checkOriginalFolder(id);
+		});
+	});
 
 	let dragging = $state(false);
 	// «Subir el original»: por lote, desmarcada al montar, nunca persistida.
@@ -143,6 +174,7 @@
 
 	function handleFiles(files: File[]): void {
 		if (uploadState.running || files.length === 0) return;
+		missingDestinations.clear();
 		batchFiles = files;
 		void uploadState.start(ctx, schema, files, onUploaded, reportSummary, { keepOriginal, folder });
 	}
@@ -156,18 +188,31 @@
 
 	/** "Reintentar" de un fichero que falló CONTRA EL BACKEND: reintenta ese mismo ítem
 	 *  conservando el resto del lote y la alineación con `batchFiles`. */
-	function handleRetry(index: number): void {
+	function handleRetry(index: number, recoverDestination = false): void {
 		const file = batchFiles[index];
 		if (!file) return;
-		void uploadState.retry(ctx, index, file, onUploaded, reportSummary);
+		void uploadState.retry(
+			ctx,
+			index,
+			file,
+			onUploaded,
+			reportSummary,
+			recoverDestination ? { folder } : {}
+		);
 	}
 
 	/** "Reintentar" de un fichero `pending` con el lote parado (sesión caducada, ver cabecera):
 	 *  reanuda TODOS los pendientes del MISMO lote — los ya `done`, `error` o `rejected` se quedan en
 	 *  la lista y solo se relanzan los `pending`. */
-	function handleResume(): void {
+	function handleResume(recoverDestination = false): void {
 		if (uploadState.running) return;
-		void uploadState.resume(ctx, batchFiles, onUploaded, reportSummary);
+		void uploadState.resume(
+			ctx,
+			batchFiles,
+			onUploaded,
+			reportSummary,
+			recoverDestination ? { folder } : {}
+		);
 	}
 
 	function handleDragOver(event: DragEvent): void {
@@ -314,6 +359,15 @@
 									>
 										{ctx.t('media.upload.retry')}
 									</button>
+									{#if item.folder !== folder && item.folder && missingDestinations.has(item.folder)}<button
+											type="button"
+											class="vega-media-upload-retry"
+											aria-label={`${ctx.t(folder ? 'media.upload.retryCurrentFolder' : 'media.upload.retryUnfiled')}: ${item.name}`}
+											onclick={() => handleRetry(index, true)}
+											>{ctx.t(
+												folder ? 'media.upload.retryCurrentFolder' : 'media.upload.retryUnfiled'
+											)}</button
+										>{/if}
 								{/if}
 							</span>
 						{:else}
@@ -330,9 +384,21 @@
 								<!-- `pending` con el lote parado = la sesión caducó antes de intentarlo: se
 								     reintenta tras reentrar (ver cabecera de `media-upload-state.svelte.ts`). -->
 								·
-								<button type="button" class="vega-media-upload-retry" onclick={handleResume}>
+								<button
+									type="button"
+									class="vega-media-upload-retry"
+									onclick={() => handleResume()}
+								>
 									{ctx.t('media.upload.retry')}
 								</button>
+								{#if item.folder !== folder && item.folder && missingDestinations.has(item.folder)}<button
+										type="button"
+										class="vega-media-upload-retry"
+										onclick={() => handleResume(true)}
+										>{ctx.t(
+											folder ? 'media.upload.resumeCurrentFolder' : 'media.upload.resumeUnfiled'
+										)}</button
+									>{/if}
 							{/if}
 						{/if}
 					</span>
@@ -594,7 +660,11 @@
 	}
 
 	.vega-media-upload-retry {
-		padding: 0;
+		min-width: 44px;
+		min-height: 44px;
+		max-width: 100%;
+		padding: 8px;
+		white-space: normal;
 		border: 0;
 		background: none;
 		color: var(--danger);
