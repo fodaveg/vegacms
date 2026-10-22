@@ -799,11 +799,13 @@ test('UX12: árbol, inspector y overlay miden los 21 temas en ambos modos y dens
 	// a la vista); si una preferencia guardada la plegó, se abre como haría una persona.
 	if ((await structure.getAttribute('aria-expanded')) !== 'true') await structure.click();
 	await expect(structure).toHaveAttribute('aria-expanded', 'true');
-	// El lienzo abre el inspector y el árbol refleja esa selección sin cambiarla.
+	// Un clic en el lienzo selecciona (el árbol lo refleja sin cambiarlo) y el inspector se abre con
+	// su botón «Editar bloque»: con él cerrado, un clic en el sitio no lo abre (David, 22 oct 2026).
 	await page
 		.frameLocator('iframe.vega-visual-frame')
 		.locator('[data-vega-block-id=seccion_1]')
 		.click();
+	await page.getByRole('button', { name: 'Editar bloque', exact: true }).click();
 	await expect(
 		page.locator('.vega-inspector-body:not([hidden]) .vega-widget-text').first()
 	).toBeVisible();
