@@ -511,14 +511,18 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await expect(box).toHaveClass(/vega-visual-overlay-box--selected/);
 
 		// Posición resuelta del `::before` (el trazo) respecto a la caja del bloque: negativa en los
-		// cuatro lados = fuera. Antes era `inset: 4px`, positiva: encima del contenido.
-		const ring = await box.evaluate((el) => {
-			const style = getComputedStyle(el, '::before');
-			return ['top', 'right', 'bottom', 'left'].map((side) =>
-				parseFloat(style.getPropertyValue(side))
-			);
-		});
-		for (const offset of ring) expect(offset).toBeLessThan(0);
+		// cuatro lados = fuera. Antes era `inset: 4px`, positiva: encima del contenido. Se lee ya
+		// asentado: al entrar, la barra lateral de la app se pliega con transición y, con escritorio
+		// al ancho del lienzo (spec del 22 oct 2026, F), el iframe se ensancha con ella; durante ese
+		// gesto el ancho del overlay y el `rect` del puente llegan en fotogramas distintos.
+		const ring = () =>
+			box.evaluate((el) => {
+				const style = getComputedStyle(el, '::before');
+				return ['top', 'right', 'bottom', 'left'].map((side) =>
+					parseFloat(style.getPropertyValue(side))
+				);
+			});
+		await expect.poll(async () => (await ring()).every((offset) => offset < 0)).toBe(true);
 	});
 
 	// QA de fodaveg (21 oct 2026): la etiqueta y la barra del seleccionado iban ENCIMA del bloque y

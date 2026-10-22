@@ -569,6 +569,9 @@ test.describe('editores de texto largo: richtext TipTap y Markdown asistido (F5-
 	test('markdown (summary): muestra el crudo byte-exacto y su prueba segura en vivo', async ({
 		page
 	}) => {
+		// Crudo y prueba a la vez = «Dividido», que se ofrece desde 32 caracteres por columna (a
+		// 1440 px hay 40; a 1280, 31: ver `markdown-split.ts`).
+		await page.setViewportSize({ width: 1440, height: 900 });
 		await loginAndSettle(page);
 		await page.goto('/c/posts/post_1');
 
@@ -713,6 +716,9 @@ test.describe('editores de texto largo: richtext TipTap y Markdown asistido (F5-
 	test('crear un post: escribir en richtext (con negrita) y markdown, guardar, y que persista', async ({
 		page
 	}) => {
+		// La prueba en vivo del Markdown se mira en «Dividido», que a 1280 px ya no se ofrece
+		// (31 caracteres por columna, `markdown-split.ts`).
+		await page.setViewportSize({ width: 1440, height: 900 });
 		await loginAndSettle(page);
 		await page.goto('/c/posts/new');
 		await page
