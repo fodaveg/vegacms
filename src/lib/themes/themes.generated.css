@@ -158,7 +158,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #e1d6cf;
 	--v-ol-inline: #7c3aed;
 	--v-ol-inline-text: #6d28d9;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -184,7 +184,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #2a1e1a;
 	--v-ol-inline: #b18cff;
 	--v-ol-inline-text: #b18cff;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -216,7 +216,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #dfd5ce;
 	--v-ol-inline: #7c3aed;
 	--v-ol-inline-text: #6d28d9;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -242,7 +242,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #271c19;
 	--v-ol-inline: #b18cff;
 	--v-ol-inline-text: #b18cff;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -276,7 +276,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #d5d3d0;
 	--v-ol-inline: #7c3aed;
 	--v-ol-inline-text: #6d28d9;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -302,7 +302,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #18181b;
 	--v-ol-inline: #b18cff;
 	--v-ol-inline-text: #b18cff;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -334,7 +334,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #dfd8cf;
 	--v-ol-inline: #7c3aed;
 	--v-ol-inline-text: #6d28d9;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -360,7 +360,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #27211a;
 	--v-ol-inline: #b18cff;
 	--v-ol-inline-text: #b18cff;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -414,7 +414,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #d5ced4;
 	--v-ol-inline: #7c3aed;
 	--v-ol-inline-text: #6d28d9;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -440,7 +440,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #241b2d;
 	--v-ol-inline: #b18cff;
 	--v-ol-inline-text: #b18cff;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -495,7 +495,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: #605a57;
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #cfc8d5;
 	--v-ol-inline: #7c3aed;
 	--v-ol-inline-text: #692cce;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -521,7 +521,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #120e18;
 	--v-ol-inline: #b18cff;
 	--v-ol-inline-text: #b18cff;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -553,7 +553,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #dfd3d1;
 	--v-ol-inline: #7c3aed;
 	--v-ol-inline-text: #6d28d9;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -579,7 +579,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #26191d;
 	--v-ol-inline: #b18cff;
 	--v-ol-inline-text: #b18cff;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -611,7 +611,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #d8d9da;
 	--v-ol-inline: #e8562a;
 	--v-ol-inline-text: #a13f21;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -637,7 +637,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #1c222c;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -676,7 +676,7 @@
 	--ink: #14171c;
 	--ink-2: #5b6472;
 	--ink-3: #8a93a1;
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #e4e5e8;
 	--v-ol-inline: #e8562a;
 	--v-ol-inline-text: #b43d18;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -703,7 +703,7 @@
 	--ink: #eceef2;
 	--ink-2: #9aa3b1;
 	--ink-3: #687180;
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #111317;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -735,7 +735,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #d4d6d3;
 	--v-ol-inline: #e8562a;
 	--v-ol-inline-text: #9e3f20;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -761,7 +761,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #151d20;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -793,7 +793,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #d8d9d9;
 	--v-ol-inline: #e8562a;
 	--v-ol-inline-text: #a13f20;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -819,7 +819,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #1b2229;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -851,7 +851,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #dadbd1;
 	--v-ol-inline: #e8562a;
 	--v-ol-inline-text: #a2401e;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -877,7 +877,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #1f251d;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -909,7 +909,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #d6d9d2;
 	--v-ol-inline: #e8562a;
 	--v-ol-inline-text: #a13f1f;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -935,7 +935,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #18211e;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -967,7 +967,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #d9d8d2;
 	--v-ol-inline: #e8562a;
 	--v-ol-inline-text: #a13f1f;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -993,7 +993,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #1d211f;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -1025,7 +1025,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #dad7d8;
 	--v-ol-inline: #e8562a;
 	--v-ol-inline-text: #a13f21;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -1051,7 +1051,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #1f1e28;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -1083,7 +1083,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #d9d3d5;
 	--v-ol-inline: #e8562a;
 	--v-ol-inline-text: #9b3e22;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -1109,7 +1109,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #1e1823;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -1141,7 +1141,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #d5d3d0;
 	--v-ol-inline: #e8562a;
 	--v-ol-inline-text: #9b3e20;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -1167,7 +1167,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #18181b;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -1215,7 +1215,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #d6d6d4;
 	--v-ol-inline: #e8562a;
 	--v-ol-inline-text: #9e3f20;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -1241,7 +1241,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #191e21;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -1290,7 +1290,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #d0cfd1;
 	--v-ol-inline: #e0552b;
 	--v-ol-inline-text: #953e22;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -1316,7 +1316,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #1e1f28;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -1348,7 +1348,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #d7d5d3;
 	--v-ol-inline: #e8562a;
 	--v-ol-inline-text: #9e3e20;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -1374,7 +1374,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #1a1c20;
 	--v-ol-inline: #ff7a4d;
 	--v-ol-inline-text: #ff7a4d;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
@@ -1406,7 +1406,7 @@
 	--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
 	--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
 	--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
-	--v-stage: color-mix(in oklab, var(--ink) 6%, var(--bg));
+	--v-stage: #dfd3cd;
 	--v-ol-inline: #7c3aed;
 	--v-ol-inline-text: #6d28d9;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
@@ -1432,7 +1432,7 @@
 	--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
 	--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
 	--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
-	--v-stage: color-mix(in oklab, var(--ink) 3%, var(--bg));
+	--v-stage: #261916;
 	--v-ol-inline: #b18cff;
 	--v-ol-inline-text: #b18cff;
 	--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
