@@ -11,8 +11,8 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { CDPSession, FrameLocator, Page } from '@playwright/test';
-import { expect, loginAsDemo, test } from './fixtures';
+import { webkit, type CDPSession, type FrameLocator, type Page } from '@playwright/test';
+import { expect, loginAsDemo, preparePage, test } from './fixtures';
 import { createVisualSite } from './visual-site';
 
 const astroRoot = process.env.VEGA_ASTRO_ROOT;
@@ -708,6 +708,273 @@ test.describe('page fields, Markdown paragraphs and the edit hint (spec of 22 Oc
 		await expect(paragraph).toContainText('Cambiado en la ficha.');
 		await paragraph.dblclick();
 		await expect(paragraph).toHaveAttribute('contenteditable', 'plaintext-only');
+		await page.keyboard.press('Escape');
+	});
+});
+
+/** [label, initial value, caret offset, actions, expected value]. An action is `Enter`, `paste:<text>`
+ *  or text typed with the keyboard. */
+const LINE_BREAK_CASES: [string, string, number, string[], string][] = [
+	['Enter at the start', 'abc', 0, ['Enter'], '\nabc'],
+	['Enter at the start, then X', 'abc', 0, ['Enter', 'X'], '\nXabc'],
+	['Enter at the start of a middle line', 'ab\ncd\nef', 3, ['Enter'], 'ab\n\ncd\nef'],
+	['Enter in the middle of a line', 'abcdef', 3, ['Enter'], 'abc\ndef'],
+	['Enter at the end', 'abc', 3, ['Enter'], 'abc\n'],
+	['two Enters and X at the end', 'abc', 3, ['Enter', 'Enter', 'X'], 'abc\n\nX'],
+	['multi-line paste', 'abc', 1, ['paste:x\r\ny\n'], 'ax\ny\nbc'],
+	['empty field: Enter and X', '', 0, ['Enter', 'X'], '\nX']
+];
+
+for (const browserName of ['chromium', 'webkit'] as const) {
+	test.describe(`line breaks typed in the page, ${browserName} (review of 22 Oct 2026)`, () => {
+		test.skip(!astroRoot, 'Requires VEGA_ASTRO_ROOT pointing to the reviewed @vega/astro checkout');
+
+		test('the value the draft gets is exactly what the field shows', async ({
+			page: chromiumPage
+		}, testInfo) => {
+			// The project only runs Chromium (and `browserName` cannot be set per describe): WebKit is
+			// launched here, with the project's own base URL and locale.
+			const engine = browserName === 'webkit' ? await webkit.launch() : null;
+			const page = engine
+				? await engine.newPage({ baseURL: testInfo.project.use.baseURL, locale: 'es-ES' })
+				: chromiumPage;
+			try {
+				if (engine) await preparePage(page);
+				await lineBreakCases(page);
+			} finally {
+				await engine?.close();
+			}
+		});
+	});
+}
+
+async function lineBreakCases(page: Page): Promise<void> {
+	{
+		{
+			const site = await openEditor(page);
+			const node = field(frameOf(page), 'seccion_2', 'texto');
+			await node.click();
+			const control = inspectorControl(page, 'texto');
+			for (const [label, initial, caret, actions, expected] of LINE_BREAK_CASES) {
+				await test.step(label, async () => {
+					await control.fill(initial);
+					// The page shows the draft before the edit starts (no refresh can land mid-edit).
+					await expect.poll(() => node.evaluate((el) => el.textContent)).toBe(initial);
+					await node.focus();
+					await page.keyboard.press('F2');
+					await expect(node).toHaveAttribute('contenteditable', 'plaintext-only');
+					await node.evaluate((el, offset) => {
+						const range = el.ownerDocument.createRange();
+						range.setStart(el.firstChild ?? el, offset);
+						range.collapse(true);
+						el.ownerDocument.getSelection()!.removeAllRanges();
+						el.ownerDocument.getSelection()!.addRange(range);
+					}, caret);
+					for (const action of actions) {
+						if (action === 'Enter') await page.keyboard.press('Enter');
+						else if (action.startsWith('paste:'))
+							await node.evaluate((el, text) => {
+								const data = new DataTransfer();
+								data.setData('text/plain', text);
+								el.dispatchEvent(
+									new ClipboardEvent('paste', {
+										clipboardData: data,
+										bubbles: true,
+										cancelable: true
+									})
+								);
+							}, action.slice('paste:'.length));
+						else await page.keyboard.type(action);
+					}
+					await expect(control).toHaveValue(expected);
+					// What the field shows: one text node with exactly that, no <div> lines.
+					expect(
+						await node.evaluate((el) => ({
+							text: el.textContent,
+							blocks: el.querySelectorAll('div, p').length
+						}))
+					).toEqual({ text: expected, blocks: 0 });
+					await page.keyboard.press('Escape');
+					await expect(control).toHaveValue(initial);
+				});
+			}
+			// Applied, the refreshed page renders the same value.
+			await control.fill('uno');
+			await expect.poll(() => node.evaluate((el) => el.textContent)).toBe('uno');
+			await node.focus();
+			await page.keyboard.press('F2');
+			await expect(node).toHaveAttribute('contenteditable', 'plaintext-only');
+			await page.keyboard.press('Enter');
+			await page.keyboard.press('Enter');
+			await page.keyboard.type('dos');
+			const before = site.tokenRequests();
+			await page.keyboard.press('ControlOrMeta+Enter');
+			await expect(control).toHaveValue('uno\n\ndos');
+			await expect.poll(() => site.tokenRequests()).toBeGreaterThan(before);
+			await expect.poll(() => site.value('seccion_2', 'texto')).toBe('uno\n\ndos');
+			await expect.poll(() => node.evaluate((el) => el.textContent)).toBe('uno\n\ndos');
+		}
+	}
+}
+
+/** Fails the first `count` downloads of the app chunk whose source contains `marker`. */
+async function failChunk(page: Page, marker: string, count = 1): Promise<() => number> {
+	let failed = 0;
+	await page.route(/\/_app\/immutable\/(nodes|chunks)\/.*\.js$/, async (route) => {
+		const response = await route.fetch();
+		const body = await response.text();
+		if (body.includes(marker) && failed < count) {
+			failed++;
+			await route.abort('failed');
+			return;
+		}
+		await route.fulfill({ response, body });
+	});
+	return () => failed;
+}
+
+test.describe('page fields in the bar and on failures (review of 22 Oct 2026)', () => {
+	test.skip(!astroRoot, 'Requires VEGA_ASTRO_ROOT pointing to the reviewed @vega/astro checkout');
+
+	test('unsaved page fields are pending in the bar, in the publish confirmation, and their save error offers Retry', async ({
+		page
+	}) => {
+		await openEditor(page);
+		const title = frameOf(page).locator('[data-vega-record-field="title"]');
+		await expect(title).toHaveAttribute('tabindex', '0');
+		await title.dblclick();
+		await expect(title).toHaveAttribute('contenteditable', 'plaintext-only');
+		await caretToEnd(title);
+		await page.keyboard.type(' nueva');
+		await page.keyboard.press('Enter');
+		await expect(page.locator('.vega-visual-dirty')).toHaveText('Campos de la página sin guardar');
+		// The pending list opens the page card.
+		await page.locator('.vega-visual-pending summary').click();
+		await page.getByRole('button', { name: 'Abrir los campos de la página' }).click();
+		await expect(page.locator('.vega-page-fields')).toBeVisible();
+		// Publishing asks first, naming the page fields.
+		const group = page.getByRole('group', { name: 'Estado de la página' });
+		await group.getByRole('button', { name: 'Marcar como publicada', exact: true }).click();
+		const confirm = page.getByRole('alertdialog', { name: 'Antes de publicar', exact: true });
+		await expect(confirm).toBeVisible();
+		await expect(confirm).toContainText('«Campos de la página»');
+		await page.keyboard.press('Escape');
+		await expect(confirm).toHaveCount(0);
+		// A save that fails (someone else saved the page meanwhile) is said in the bar, with Retry.
+		await page.evaluate(() => {
+			(
+				window as unknown as { __VEGA_CONCURRENT_WRITE__?: { data: Record<string, unknown> } }
+			).__VEGA_CONCURRENT_WRITE__ = { data: { title: 'Otra persona' } };
+		});
+		await page.locator('.vega-page-fields .vega-block-save-button').click();
+		const error = page.locator('.vega-visual-savestate--err');
+		await expect(error).toContainText('No se pudo guardar «Campos de la página»');
+		const retry = page.locator('.vega-visual-retry', { hasText: 'Reintentar' });
+		await expect(retry).toBeVisible();
+		// The card says why (conflict) and resolving it there clears the bar.
+		await page
+			.locator('.vega-page-fields')
+			.getByRole('button', { name: 'Guardar igualmente' })
+			.click();
+		await expect(error).toHaveCount(0);
+		await expect(page.locator('.vega-visual-dirty')).toHaveCount(0);
+	});
+
+	test('a block text opened with F2 while the page card is visible takes the card and the save', async ({
+		page
+	}) => {
+		await openEditor(page);
+		const title = frameOf(page).locator('[data-vega-record-field="title"]');
+		await expect(title).toHaveAttribute('tabindex', '0');
+		await title.dblclick();
+		await page.keyboard.press('Escape');
+		await expect(page.locator('.vega-page-fields')).toBeVisible();
+		const heading = field(frameOf(page), 'seccion_2', 'heading');
+		await heading.focus();
+		await page.keyboard.press('F2');
+		await expect(heading).toHaveAttribute('contenteditable', 'plaintext-only');
+		await expect(page.locator('.vega-page-fields')).toBeHidden();
+		await expect(inspector(page)).toHaveAttribute('data-block-id', 'seccion_2');
+		await caretToEnd(heading);
+		await page.keyboard.type(' (F2)');
+		await page.keyboard.press('ControlOrMeta+s');
+		await expect(page.locator('.vega-visual-dirty')).toHaveCount(0);
+		await expect(inspectorControl(page, 'heading')).toHaveValue(
+			'Tu contenido, en tu servidor (F2)'
+		);
+	});
+
+	test('while the status control downloads, its place in the bar is kept', async ({ page }) => {
+		let release!: () => void;
+		const held = new Promise<void>((resolve) => (release = resolve));
+		await page.route(/\/_app\/immutable\/chunks\/.*\.js$/, async (route) => {
+			const response = await route.fetch();
+			const body = await response.text();
+			if (body.includes('vega-visual-publish--bar')) await held;
+			await route.fulfill({ response, body });
+		});
+		await openEditor(page);
+		const slot = page.locator('.vega-visual-publish-slot');
+		await expect(slot).toHaveCount(1);
+		expect((await slot.boundingBox())?.height).toBe(30);
+		release();
+		await expect(slot).toHaveCount(0);
+		await expect(
+			page
+				.getByRole('group', { name: 'Estado de la página' })
+				.getByRole('button', { name: 'Marcar como publicada', exact: true })
+		).toBeVisible();
+	});
+
+	test('if the status control cannot be downloaded, the bar says so and Reload brings it', async ({
+		page
+	}) => {
+		const failed = await failChunk(page, 'vega-visual-publish--bar');
+		await openEditor(page);
+		const retry = page.getByRole('button', { name: 'No se pudo cargar el estado. Recargar' });
+		await expect(retry).toBeVisible();
+		expect(failed()).toBe(1);
+		// The space it takes while loading is reserved; here the error took it.
+		await expect(page.locator('.vega-visual-publish-slot')).toHaveCount(0);
+		// The same URL would fail again from the browser's module map: reloading fetches it anew.
+		await retry.click();
+		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1\/visual$/);
+		await expect(
+			page
+				.getByRole('group', { name: 'Estado de la página' })
+				.getByRole('button', { name: 'Marcar como publicada', exact: true })
+		).toBeVisible();
+	});
+
+	test('if the page card cannot be downloaded, blocks stay editable and a double click on the title says why', async ({
+		page
+	}) => {
+		const failed = await failChunk(page, 'vega-page-fields');
+		await openEditor(page);
+		// `editable` did not wait for the card: block texts and the title carry the hint.
+		await expect(field(frameOf(page), 'seccion_2', 'heading')).toHaveAttribute(
+			'title',
+			'Doble clic para editar'
+		);
+		const title = frameOf(page).locator('[data-vega-record-field="title"]');
+		await expect(title).toHaveAttribute('title', 'Doble clic para editar');
+		await title.dblclick();
+		await expect(page.locator('.vega-visual-inline-state[role="alert"]')).toContainText(
+			'No se pudo cargar la ficha de los campos de la página'
+		);
+		await expect(title).not.toHaveAttribute('contenteditable');
+		expect(failed()).toBe(1);
+		// The blocks were not switched off with it.
+		const heading = field(frameOf(page), 'seccion_2', 'heading');
+		await heading.dblclick();
+		await expect(heading).toHaveAttribute('contenteditable', 'plaintext-only');
+		await page.keyboard.press('Escape');
+		// After reloading (as the notice says), the card downloads and the title edits.
+		await page.reload();
+		await expect(title).toHaveAttribute('tabindex', '0');
+		await title.dblclick();
+		await expect(title).toHaveAttribute('contenteditable', 'plaintext-only');
+		await expect(page.locator('.vega-page-fields')).toBeVisible();
 		await page.keyboard.press('Escape');
 	});
 });

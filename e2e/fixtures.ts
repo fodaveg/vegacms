@@ -47,37 +47,45 @@ export const DEMO_SESSION_MARKER_KEY = 'vega.demoSession.v1';
 
 const INDEX_HTML_PATH = fileURLToPath(new URL('../build/index.html', import.meta.url));
 
+/**
+ * Lo que la fixture `page` hace con cada página: el adaptador `memory` y el fallback SPA. Exportado
+ * para las páginas que un test abre por su cuenta en otro motor (WebKit en
+ * `visual-inline-astro.spec.ts`, que el proyecto no tiene).
+ */
+export async function preparePage(page: import('@playwright/test').Page): Promise<void> {
+	await page.addInitScript(() => {
+		(window as unknown as { __VEGA_ADAPTER__?: string }).__VEGA_ADAPTER__ = 'memory';
+	});
+
+	// Ver cabecera: emula el fallback SPA de un host real para que una navegación de
+	// documento a una ruta aún no implementada (Fase 3) no abandone la app.
+	await page.route('**/*', async (route) => {
+		const request = route.request();
+		if (request.resourceType() !== 'document') {
+			await route.continue();
+			return;
+		}
+		const url = new URL(request.url());
+		if (url.pathname === '/' || url.pathname === '/login') {
+			await route.continue();
+			return;
+		}
+		const response = await route.fetch();
+		if (response.status() !== 404) {
+			await route.fulfill({ response });
+			return;
+		}
+		await route.fulfill({
+			status: 200,
+			contentType: 'text/html',
+			body: readFileSync(INDEX_HTML_PATH, 'utf-8')
+		});
+	});
+}
+
 export const test = base.extend({
 	page: async ({ page }, use) => {
-		await page.addInitScript(() => {
-			(window as unknown as { __VEGA_ADAPTER__?: string }).__VEGA_ADAPTER__ = 'memory';
-		});
-
-		// Ver cabecera: emula el fallback SPA de un host real para que una navegación de
-		// documento a una ruta aún no implementada (Fase 3) no abandone la app.
-		await page.route('**/*', async (route) => {
-			const request = route.request();
-			if (request.resourceType() !== 'document') {
-				await route.continue();
-				return;
-			}
-			const url = new URL(request.url());
-			if (url.pathname === '/' || url.pathname === '/login') {
-				await route.continue();
-				return;
-			}
-			const response = await route.fetch();
-			if (response.status() !== 404) {
-				await route.fulfill({ response });
-				return;
-			}
-			await route.fulfill({
-				status: 200,
-				contentType: 'text/html',
-				body: readFileSync(INDEX_HTML_PATH, 'utf-8')
-			});
-		});
-
+		await preparePage(page);
 		await use(page);
 	}
 });

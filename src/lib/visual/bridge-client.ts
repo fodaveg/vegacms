@@ -412,7 +412,10 @@ interface VisualBridgeClientOptions {
 	onInlineBegin?: (
 		blockId: string | null,
 		field: string,
-		source: InlineSource | null
+		source: InlineSource | null,
+		/** Si ESTA petición sigue siendo la vigente: quien contesta con una promesa lo mira antes
+		 *  de abrir nada, porque otra edición pudo empezar mientras esperaba. */
+		isCurrent: () => boolean
 	) => InlineRequest | null | Promise<InlineRequest | null>;
 	onInlineInput?: (blockId: string | null, field: string, value: string) => boolean;
 	/** Caja del campo que se escribe (`input.rect` o `layout.editRect`, opcionales en el sitio):
@@ -780,7 +783,13 @@ export function createVisualBridgeClient(opts: VisualBridgeClientOptions): Visua
 						inlineTimer = setTimeout(() => endInline(false), 2000);
 						return true;
 					};
-					const value = opts.onInlineBegin?.(blockId, field, source) ?? null;
+					const value =
+						opts.onInlineBegin?.(
+							blockId,
+							field,
+							source,
+							() => ticket === beginTicket && documentId === requested
+						) ?? null;
 					if (value instanceof Promise) {
 						void value.then(begin, () => {});
 						return 'accepted';

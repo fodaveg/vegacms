@@ -2291,5 +2291,12 @@ export const es = {
 	'editor.visual.inline.stale':
 		'La página aún no muestra el último texto de ese campo. Se está actualizando: vuelve a hacer doble clic en un momento.',
 	'editor.visual.page.title': 'Campos de la página',
-	'editor.visual.page.rest': 'El resto de campos de la página se editan en el formulario.'
+	'editor.visual.page.rest': 'El resto de campos de la página se editan en el formulario.',
+	'editor.visual.page.loadError':
+		'No se pudo cargar la ficha de los campos de la página. Recarga la página para reintentarlo.',
+	'editor.visual.status.loadError': 'No se pudo cargar el estado. Recargar',
+	// Los campos de la página como una entrada más de lo pendiente en la barra.
+	'editor.visual.pending.page': 'Campos de la página sin guardar',
+	'editor.visual.pending.withPage': 'Página y {blocks}',
+	'editor.visual.pending.openPage': 'Abrir los campos de la página'
 };

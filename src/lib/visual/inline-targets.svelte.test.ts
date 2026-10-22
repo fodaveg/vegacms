@@ -6,6 +6,10 @@ import { resolveContentModel } from '$lib/model/resolve';
 import { recordVersion, type ContentType, type VegaRecord } from '$lib/backend';
 import { t } from '$lib/i18n';
 import { sourceDigest } from './inline-session';
+import { pageInlineFields, pageStructuralFields, pageTextFields } from './page-fields';
+import { inlineFieldsOf } from './inline-fields';
+import VisualPageFields from './VisualPageFields.svelte';
+import Icon from '$lib/icons/Icon.svelte';
 
 /**
  * Spec «edición en línea de todo el texto de la página» (22 oct 2026), lado del dueño del
@@ -61,7 +65,10 @@ function models(update = true) {
 			schemaVersion: 1,
 			collections: {
 				sections: { fields: { body: { widget: 'markdown' } } },
-				pages: { fields: { description: { widget: 'textarea' } } }
+				pages: {
+					page: { pathField: 'path' },
+					fields: { description: { widget: 'textarea' } }
+				}
 			},
 			blockTypes: {
 				text: {
@@ -171,6 +178,38 @@ async function setup(
 	};
 }
 
+/** Every column and data key of both fixtures: what `accepted` tries. */
+const CANDIDATES = [
+	'type',
+	'heading',
+	'body',
+	'aside',
+	'data',
+	'title',
+	'description',
+	'path',
+	'slug',
+	'secret'
+];
+
+/** The fields `beginInline` actually opens, plain and by range, each closed again with cancel. */
+function accepted(h: Awaited<ReturnType<typeof setup>>, names: readonly string[]) {
+	const draft = h.lastDraft() as Record<string, unknown> & { data?: Record<string, unknown> };
+	const opens = (name: string, ranged: boolean) => {
+		const value = String(draft[name] ?? draft.data?.[name] ?? '');
+		const result = ranged
+			? h.editor.beginInline(name, { start: 0, end: 0, digest: sourceDigest(value) })
+			: h.editor.beginInline(name);
+		if (!result || result === 'stale') return false;
+		h.editor.finishInline(true);
+		return true;
+	};
+	return {
+		text: names.filter((name) => opens(name, false)),
+		source: names.filter((name) => opens(name, true))
+	};
+}
+
 describe('Markdown source ranges (B)', () => {
 	test('replacing a range leaves every other code unit of the field identical', async () => {
 		const h = await setup('block');
@@ -272,19 +311,19 @@ describe('Markdown source ranges (B)', () => {
 		}
 	});
 
-	test('inlineFields lists plain fields and markdown fields apart, and nothing without permission', async () => {
-		const h = await setup('block');
-		try {
-			expect(h.editor.inlineFields()).toEqual({ text: ['heading'], source: ['body', 'aside'] });
-		} finally {
-			await h.close();
-		}
-		const locked = await setup('block', { update: false });
-		try {
-			expect(locked.editor.inlineFields()).toEqual({ text: [], source: [] });
-			expect(locked.editor.beginInline('body', range('- uno'))).toBeNull();
-		} finally {
-			await locked.close();
+	test('inlineFieldsOf (what `editable` announces) lists exactly what beginInline accepts, plain and markdown apart', async () => {
+		for (const update of [true, false]) {
+			const { sectionsType, blockType } = models(update);
+			const h = await setup('block', { update });
+			try {
+				const announced = inlineFieldsOf(sectionsType, blockType, ['type'], true);
+				expect(announced).toEqual(
+					update ? { text: ['heading'], source: ['body', 'aside'] } : { text: [], source: [] }
+				);
+				expect(accepted(h, CANDIDATES)).toEqual(announced);
+			} finally {
+				await h.close();
+			}
 		}
 	});
 });
@@ -293,7 +332,7 @@ describe('fields of the page record (A)', () => {
 	test('only visible, writable text fields outside the path; the save sends only what changed, versioned', async () => {
 		const h = await setup('page');
 		try {
-			expect(h.editor.inlineFields().text).toEqual(['title', 'description']);
+			expect(accepted(h, CANDIDATES).text).toEqual(['title', 'description']);
 			expect(h.editor.beginInline('path')).toBeNull();
 			expect(h.editor.beginInline('slug')).toBeNull();
 			expect(h.editor.beginInline('secret')).toBeNull();
@@ -326,10 +365,109 @@ describe('fields of the page record (A)', () => {
 		}
 		const locked = await setup('page', { update: false });
 		try {
-			expect(locked.editor.inlineFields().text).toEqual([]);
+			expect(accepted(locked, CANDIDATES).text).toEqual([]);
 			expect(locked.editor.beginInline('title')).toBeNull();
 		} finally {
 			await locked.close();
+		}
+	});
+
+	test('`editable.record` (page-fields.ts, sent before the card loads) matches what the card allows', async () => {
+		for (const update of [true, false]) {
+			const { pagesType } = models(update);
+			const h = await setup('page', { update });
+			try {
+				expect(pageStructuralFields(pagesType)).toEqual(['path']);
+				// The card is mounted with `pageStructuralFields`; `setup` adds `slug` on top, which
+				// this type does not declare as its slug: compare with the same exclusions.
+				expect(pageInlineFields(pagesType).filter((field) => field !== 'slug')).toEqual(
+					accepted(h, CANDIDATES).text
+				);
+			} finally {
+				await h.close();
+			}
+		}
+	});
+});
+
+describe('review of 22 Oct 2026', () => {
+	test('applying a Markdown range without changes keeps its CRLF and leaves the card clean', async () => {
+		const h = await setup('block');
+		try {
+			const first = range('Hola, soy **David**. [Escríbeme](/contacto){.btn}');
+			const list = range('- uno\r\n- dos');
+			// The site sends what it shows: line breaks as "\n".
+			h.editor.beginInline('body', list);
+			expect(h.editor.updateInline('body', '- uno\n- dos')).toBe(true);
+			h.editor.finishInline();
+			await tick();
+			expect(h.lastDraft().body).toBe(BODY);
+			h.editor.beginInline('body', first);
+			h.editor.updateInline('body', 'Hola, soy **David**. [Escríbeme](/contacto){.btn}');
+			h.editor.finishInline();
+			await tick();
+			expect(h.lastDraft().body).toBe(BODY);
+			expect(await h.editor.save()).toBe('idle');
+			expect(h.submit).not.toHaveBeenCalled();
+		} finally {
+			await h.close();
+		}
+	});
+
+	test('the page card sends only the fields it shows to the preview draft', async () => {
+		const { pagesType } = models();
+		const target = document.createElement('div');
+		document.body.append(target);
+		const draft = vi.fn();
+		const ctx = {
+			t: (key: string) => t('es', key),
+			locale: 'es',
+			port: { get: vi.fn(), update: vi.fn() },
+			feedback: { reportError: vi.fn(), toast: vi.fn() }
+		} as unknown as VegaAppContext;
+		const card = mount(VisualPageFields, {
+			target,
+			context: new Map([[VEGA_CONTEXT_KEY, ctx]]),
+			props: {
+				ctx,
+				Editor: BlockEditor,
+				Icon,
+				type: pagesType,
+				record: {
+					id: 'p1',
+					type: 'pages',
+					values: {
+						title: 'Sobre mí',
+						description: 'Hola',
+						path: '/sobre-mi',
+						slug: 'x',
+						secret: 's'
+					}
+				},
+				name: 'Sobre mí',
+				fullFormHref: '/c/pages/p1',
+				onClose: vi.fn(),
+				onSaved: vi.fn(),
+				onDirtyChange: vi.fn(),
+				onDraftChange: draft,
+				onInlineTakeover: vi.fn(),
+				interceptSave: () => false,
+				structuralFields: pageStructuralFields(pagesType),
+				textFields: pageTextFields(pagesType),
+				onBusyChange: vi.fn(),
+				onSaveError: vi.fn()
+			}
+		});
+		try {
+			await tick();
+			expect(Object.keys(draft.mock.lastCall?.[0].fields).sort()).toEqual(
+				['description', 'slug', 'title'].sort()
+			);
+			expect(draft.mock.lastCall?.[0].fields).not.toHaveProperty('path');
+			expect(draft.mock.lastCall?.[0].fields).not.toHaveProperty('secret');
+		} finally {
+			await unmount(card);
+			target.remove();
 		}
 	});
 });

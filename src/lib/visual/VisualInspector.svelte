@@ -133,6 +133,7 @@
 	import { resolveFocusTarget } from '$lib/form/focus-target';
 	import { focusables } from './a11y-audit';
 	import type { InlineEditor, InlineSource, InlineTargets } from './inline-session';
+	import { inlineFieldsOf } from './inline-fields';
 	import Icon from '$lib/icons/Icon.svelte';
 
 	interface Props {
@@ -239,14 +240,21 @@
 	export function beginInline(blockId: string, field: string, source?: InlineSource) {
 		return editorRefs[blockId]?.beginInline(field, source) ?? null;
 	}
-	/** Por bloque, lo que su ficha deja editar en la página (`BlockEditor#inlineFields`). */
+	/** Por bloque, lo que su ficha deja editar en la página (`inline-fields.ts`, las reglas de
+	 *  `BlockEditor#inlineTarget`). */
 	export function inlineTargets(): Pick<InlineTargets, 'blocks' | 'sources'> {
 		const targets: Pick<InlineTargets, 'blocks' | 'sources'> = { blocks: {}, sources: {} };
-		for (const [id, editor] of Object.entries(editorRefs)) {
-			const fields = editor?.inlineFields();
-			if (!fields) continue;
-			targets.blocks[id] = fields.text;
-			targets.sources[id] = fields.source;
+		const childType = blocks.childType;
+		if (!childType || blocks.hidden) return targets;
+		for (const record of blocks.records) {
+			const fields = inlineFieldsOf(
+				childType,
+				blocks.blockTypeOf(record),
+				blocks.structuralFields,
+				blocks.blocksConfig?.dataField != null
+			);
+			targets.blocks[record.id] = fields.text;
+			targets.sources[record.id] = fields.source;
 		}
 		return targets;
 	}

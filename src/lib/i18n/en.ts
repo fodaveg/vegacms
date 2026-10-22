@@ -2184,5 +2184,11 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.inline.stale':
 		'The page does not show the latest text of that field yet. It is updating: double-click again in a moment.',
 	'editor.visual.page.title': 'Page fields',
-	'editor.visual.page.rest': 'The page’s other fields are edited in the form.'
+	'editor.visual.page.rest': 'The page’s other fields are edited in the form.',
+	'editor.visual.page.loadError':
+		'The page fields card could not be loaded. Reload the page to retry.',
+	'editor.visual.status.loadError': 'The status could not be loaded. Reload',
+	'editor.visual.pending.page': 'Page fields with unsaved changes',
+	'editor.visual.pending.withPage': 'Page and {blocks}',
+	'editor.visual.pending.openPage': 'Open the page fields'
 };
