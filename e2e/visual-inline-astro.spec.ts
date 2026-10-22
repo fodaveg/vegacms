@@ -996,6 +996,9 @@ test.describe('page fields in the bar and on failures (review of 22 Oct 2026)', 
 		const confirm = page.getByRole('alertdialog', { name: 'Antes de publicar', exact: true });
 		await expect(confirm).toBeVisible();
 		await expect(confirm).toContainText('«Campos de la página»');
+		// …and counting them as what they are: QA of 22 Oct 2026 read «Hay 1 bloque sin guardar».
+		await expect(confirm).toContainText('Hay campos de la página sin guardar');
+		await expect(confirm).not.toContainText('Hay 1 bloque sin guardar');
 		await page.keyboard.press('Escape');
 		await expect(confirm).toHaveCount(0);
 		// A save that fails (someone else saved the page meanwhile) is said in the bar, with Retry.

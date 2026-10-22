@@ -627,6 +627,10 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// Singular of the `.many` keys above (confirm.title, connected, overlay.skipped,
 	// overlay.missing): the caller picks with `count === 1`, like `list.export.success.one/many`.
 	'editor.visual.status.confirm.title.one': '1 block not saved',
+	// Page fields are counted apart from blocks (they are not "1 block").
+	'editor.visual.status.confirm.title.page': 'Page fields not saved',
+	'editor.visual.status.confirm.title.pageAndOne': 'Page fields and 1 block not saved',
+	'editor.visual.status.confirm.title.pageAndMany': 'Page fields and {count} blocks not saved',
 	'editor.visual.connected.one': 'Connected to the site: 1 block on the page.',
 	'editor.visual.overlay.skipped.one': "1 block the site described badly: can't be selected.",
 	'editor.visual.overlay.missing.one': "1 block that exists but the site isn't rendering.",

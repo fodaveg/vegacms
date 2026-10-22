@@ -682,6 +682,11 @@ export const es = {
 	// Singular de las claves `.many` de arriba (confirm.title, connected, overlay.skipped,
 	// overlay.missing): el llamador elige con `count === 1`, como `list.export.success.one/many`.
 	'editor.visual.status.confirm.title.one': 'Hay 1 bloque sin guardar',
+	// Los campos de la página se cuentan aparte de los bloques (no son «1 bloque»).
+	'editor.visual.status.confirm.title.page': 'Hay campos de la página sin guardar',
+	'editor.visual.status.confirm.title.pageAndOne': 'Hay campos de la página y 1 bloque sin guardar',
+	'editor.visual.status.confirm.title.pageAndMany':
+		'Hay campos de la página y {count} bloques sin guardar',
 	'editor.visual.connected.one': 'Conectado al sitio: 1 bloque en la página.',
 	'editor.visual.overlay.skipped.one':
 		'1 bloque que el sitio describió mal: no se puede seleccionar.',

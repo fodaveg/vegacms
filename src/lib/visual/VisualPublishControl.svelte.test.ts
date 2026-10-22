@@ -107,6 +107,8 @@ function mountControl(opts: {
 	record: VegaRecord;
 	type?: ResolvedContentType;
 	pendingBlocks?: string[];
+	/** La primera de `pendingBlocks` son los campos de la página. */
+	pendingPage?: boolean;
 	update?: ReturnType<typeof vi.fn>;
 	buildApiUrl?: string | null;
 	/** `ContentModel.scheduledPublishing`; default `'active'`, como un servidor con `vegaschedule`. */
@@ -140,6 +142,7 @@ function mountControl(opts: {
 			record: opts.record,
 			name: 'Inicio',
 			pendingBlocks: opts.pendingBlocks ?? [],
+			pendingPage: opts.pendingPage ?? false,
 			review: opts.review ?? null,
 			onReviewGo: opts.onReviewGo,
 			onReviewDescribe: opts.onReviewDescribe
@@ -265,6 +268,28 @@ describe('VisualPublishControl.svelte', () => {
 		expect(pop.textContent).toContain('Hay 1 bloque sin guardar');
 		expect(pop.textContent).not.toContain('bloques');
 	});
+
+	// QA del 22 oct 2026: con solo los campos de la página pendientes decía «Hay 1 bloque sin
+	// guardar» y la lista nombraba «Campos de la página». La página se cuenta aparte.
+	test.each([
+		[['Campos de la página'], 'Hay campos de la página sin guardar'],
+		[['Campos de la página', 'Galería'], 'Hay campos de la página y 1 bloque sin guardar'],
+		[
+			['Campos de la página', 'Portada', 'Galería'],
+			'Hay campos de la página y 2 bloques sin guardar'
+		]
+	])(
+		'con los campos de la página pendientes, el título los cuenta aparte: %j',
+		async (pending, title) => {
+			h = mountControl({ record: page('draft'), pendingBlocks: pending, pendingPage: true });
+			action(h)!.click();
+			await settle();
+			const pop = h.target.querySelector<HTMLElement>('[role="alertdialog"]')!;
+			expect(pop.textContent).toContain(title);
+			expect(pop.textContent).toContain('«Campos de la página»');
+			if (pending.length === 1) expect(pop.textContent).not.toContain('bloque');
+		}
+	);
 
 	test('con bloques sin guardar, publicar pide confirmación en línea: foco en Cancelar, Esc cierra', async () => {
 		h = mountControl({ record: page('draft'), pendingBlocks: ['Portada: bienvenida', 'Galería'] });

@@ -82,8 +82,11 @@
 		record: VegaRecord;
 		/** Nombre legible de la página (el de las migas), para el mensaje de éxito. */
 		name: string;
-		/** Títulos de los bloques con cambios sin guardar (`blocks.isDirty`). */
+		/** Títulos de lo que tiene cambios sin guardar (`blocks.isDirty`), en el orden de la lista. */
 		pendingBlocks: readonly string[];
+		/** La primera entrada de `pendingBlocks` son los campos de la página, no un bloque: el título
+		 *  de la confirmación los cuenta aparte («Hay campos de la página y 2 bloques sin guardar»). */
+		pendingPage?: boolean;
 		/** La revisión antes de publicar de esta página (ver cabecera), o `null` si el tipo no tiene
 		 *  revisión (sin `statusField` ya no se pinta nada; sin comprobaciones que apliquen,
 		 *  `review.enabled` es `false` y se publica a la primera). */
@@ -113,6 +116,7 @@
 		record,
 		name,
 		pendingBlocks,
+		pendingPage = false,
 		review = null,
 		onReviewGo,
 		onReviewDescribe,
@@ -280,17 +284,25 @@
 	);
 	const retrying = $derived(phase === 'error' && errorKind === 'failed' && errorTarget === target);
 
+	/** «Hay N bloques sin guardar», con los campos de la página contados aparte: solo la página,
+	 *  la página y N bloques, o N bloques (antes decía «1 bloque» con solo la página pendiente). */
+	const pendingTitle = $derived.by(() => {
+		const count = pendingBlocks.length - (pendingPage ? 1 : 0);
+		if (pendingPage && count === 0) return ctx.t('editor.visual.status.confirm.title.page');
+		const key = pendingPage
+			? count === 1
+				? 'editor.visual.status.confirm.title.pageAndOne'
+				: 'editor.visual.status.confirm.title.pageAndMany'
+			: count === 1
+				? 'editor.visual.status.confirm.title.one'
+				: 'editor.visual.status.confirm.title.many';
+		return ctx.t(key, { count });
+	});
+
 	/** Título del popover: UNA confirmación con las dos cosas si hay bloques sin guardar y avisos. */
 	const popTitle = $derived.by(() => {
 		if (pendingBlocks.length > 0 && reviewSays) return ctx.t('editor.visual.review.title.mixed');
-		if (pendingBlocks.length > 0) {
-			return ctx.t(
-				pendingBlocks.length === 1
-					? 'editor.visual.status.confirm.title.one'
-					: 'editor.visual.status.confirm.title.many',
-				{ count: pendingBlocks.length }
-			);
-		}
+		if (pendingBlocks.length > 0) return pendingTitle;
 		if (reviewLoading) return ctx.t('editor.visual.review.checking.title');
 		if (reviewFailed) return ctx.t('editor.visual.review.error');
 		if (findingsCount > 0) {
@@ -623,14 +635,7 @@
 							tabindex="0"
 						>
 							<div class="vega-review-pop-section">
-								<p class="vega-review-pop-head">
-									{ctx.t(
-										pendingBlocks.length === 1
-											? 'editor.visual.status.confirm.title.one'
-											: 'editor.visual.status.confirm.title.many',
-										{ count: pendingBlocks.length }
-									)}
-								</p>
+								<p class="vega-review-pop-head">{pendingTitle}</p>
 								<ul>
 									{#each pendingBlocks as title, i (i)}
 										<li>«{title}»</li>

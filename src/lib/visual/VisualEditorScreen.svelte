@@ -1592,6 +1592,7 @@
 					name={docName}
 					bar
 					pendingBlocks={pending.map((entry) => entry.title)}
+					pendingPage={pageDirty}
 					{review}
 					onReviewGo={handleReviewGo}
 					onReviewDescribe={handleReviewDescribe}
