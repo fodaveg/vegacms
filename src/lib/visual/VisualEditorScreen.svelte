@@ -61,8 +61,9 @@
 	 * `selectedBlockId` sin que a este componente le importe qué camino tomó el refresco. Cuando el
 	 * sitio manda `select` (clic dentro
 	 * de un bloque, en el iframe) O el autor elige una fila del árbol, esta pantalla actualiza
-	 * `selectedBlockId` Y avisa al sitio con `highlight`/`scrollTo` (ya expuestos por el cliente)
-	 * para que el marco reaccione a su propia selección — `handleBlockSelect`, más abajo, es la
+	 * `selectedBlockId` Y avisa al sitio con `highlight`/`scrollTo` (ya expuestos por el cliente;
+	 * `scrollTo` solo si la selección no vino de un clic en el propio sitio, que ya tiene el bloque
+	 * a la vista) para que el marco reaccione a su propia selección — `handleBlockSelect`, más abajo, es la
 	 * ÚNICA puerta de entrada para las dos fuentes, así que los dos sentidos ("clic en el lienzo
 	 * selecciona en el árbol" y "elegir en el árbol resalta el lienzo") quedan sincronizados sin
 	 * ningún camino que los pueda desincronizar. Por el mismo motivo es también el único sitio que
@@ -349,6 +350,8 @@
 	import { readColumnWidths, writeColumnWidths } from './column-widths-storage';
 	import {
 		frameWidthFor,
+		frozenZoomFactor,
+		layoutCanvasWidth,
 		resolveZoomFactor,
 		SCREEN_PRESETS,
 		stageHeightFor,
@@ -655,6 +658,8 @@
 	/** Abre la edición que el puente autorizó (bloque o página) y para el refresco del lienzo. */
 	function startInline(blockId: string | null, field: string, target: InlineRequest) {
 		inlineNotice = null;
+		// El sitio no se vuelve a maquetar mientras se escribe en él (ver `frozenFrameWidth`).
+		frozenFrameWidth ??= liveFrameWidth;
 		inlineEdit = {
 			blockId,
 			field,
@@ -949,13 +954,17 @@
 	 *  `VisualBlockTree.svelte` — un solo sitio (esta puerta), no tres, aunque la selección pueda
 	 *  llegar por el sitio o por el árbol.
 	 */
-	function handleBlockSelect(blockId: string): void {
+	function handleBlockSelect(blockId: string, fromPage = false): void {
 		bridgeClient?.finishInline();
 		pageOpen = false;
 		selectedBlockId = blockId;
 		inspectorVisible = true;
 		bridgeClient?.highlight(blockId);
-		bridgeClient?.scrollTo(blockId);
+		// Solo si la selección vino de fuera del sitio (árbol, aviso, revisión): un clic en la página
+		// ya tiene el bloque a la vista, y desplazarlo movería lo que hay bajo el cursor entre los
+		// dos clics de un doble clic (gate del 22 oct 2026: con escritorio al 100 % la sección
+		// pulsada no siempre cabe entera y el sitio se desplazaba 35 px antes de editar).
+		if (!fromPage) bridgeClient?.scrollTo(blockId);
 		announceSelection(blockId);
 	}
 
@@ -1041,7 +1050,9 @@
 					pageHoveredBlockId = null;
 				}
 			},
-			onSelect: handleBlockSelect,
+			// Un clic DENTRO del sitio: el bloque ya está a la vista, no se desplaza (ver
+			// `handleBlockSelect`).
+			onSelect: (blockId) => handleBlockSelect(blockId, true),
 			onInlineBegin: (blockId, field, source, isCurrent) => {
 				if (blockId === null) return beginPageInline(field, isCurrent);
 				const target = inspectorRef?.beginInline(blockId, field, source ?? undefined);
@@ -1196,22 +1207,40 @@
 		return () => observer.disconnect();
 	});
 
-	/** Ancho de LAYOUT del iframe (390/834, o el del lienzo en escritorio; ver `viewport.ts`). */
-	const frameWidth = $derived(frameWidthFor(screenPreset, canvasSize.width, zoomPreference));
+	/** Ancho del lienzo con el que se maqueta el sitio: reserva la columna del inspector aunque esté
+	 *  cerrado, para que abrirlo al seleccionar no vuelva a maquetar el sitio (`viewport.ts`). */
+	const layoutWidth = $derived(
+		layoutCanvasWidth(canvasSize.width, inspectorVisible, columnWidths.inspector)
+	);
+	/** Ancho de LAYOUT del iframe que pide el lienzo ahora (390/834, o el del lienzo en escritorio). */
+	const liveFrameWidth = $derived(frameWidthFor(screenPreset, layoutWidth, zoomPreference));
+	/** Ancho congelado mientras hay una edición en línea (`startInline` → fin de la sesión): el
+	 *  sitio no se vuelve a maquetar a mitad de escribir; si el lienzo encoge, el escenario se
+	 *  escala para caber (`frozenZoomFactor`) y la pista, el anillo y la franja siguen alineados. */
+	let frozenFrameWidth = $state<number | null>(null);
+	// Sin edición en línea, el iframe vuelve a seguir al lienzo, acabe como acabe la sesión.
+	$effect(() => {
+		if (inlineEdit === null) frozenFrameWidth = null;
+	});
+	const frameWidth = $derived(frozenFrameWidth ?? liveFrameWidth);
 	/** Factor de `transform: scale()` del "escenario" (ver cabecera). */
-	const zoomFactor = $derived(resolveZoomFactor(zoomPreference, canvasSize.width, frameWidth));
+	const zoomFactor = $derived(
+		frozenFrameWidth === null
+			? resolveZoomFactor(zoomPreference, layoutWidth, frameWidth)
+			: frozenZoomFactor(zoomPreference, layoutWidth, frozenFrameWidth)
+	);
 	/** Ajuste disponible en el menú, incluso cuando la escala activa es un nivel manual: con el
 	 *  ancho que tendría el iframe en «Ajustar», no con el del nivel manual vigente. */
 	const fitZoomFactor = $derived(
-		resolveZoomFactor('fit', canvasSize.width, frameWidthFor(screenPreset, canvasSize.width))
+		resolveZoomFactor('fit', layoutWidth, frameWidthFor(screenPreset, layoutWidth))
 	);
 	/** Alto propio del escenario, para que al escalarlo llene el lienzo exacto (ver `viewport.ts`). */
 	const stageHeightPx = $derived(stageHeightFor(canvasSize.height, zoomFactor));
-	/** Borde izquierdo de la hoja: centrada en el escenario cuando cabe, pegada al margen de la
-	 *  izquierda (`STAGE_GUTTER`, el `padding` izquierdo del escenario) cuando el zoom la hace más
-	 *  ancha que él. */
+	/** Borde izquierdo de la hoja: centrada en el ancho de maquetación cuando cabe (escritorio lo
+	 *  llena, así que queda pegada al margen de los «+», `STAGE_GUTTER`); abrir o cerrar el
+	 *  inspector no la mueve, porque ese ancho ya lo descuenta. */
 	const stageLeft = $derived(
-		STAGE_GUTTER + Math.max(0, (canvasSize.width - frameWidth * zoomFactor) / 2)
+		STAGE_GUTTER + Math.max(0, (layoutWidth - frameWidth * zoomFactor) / 2)
 	);
 	/** Ancho en pantalla de la franja: el de la hoja, sin salirse del escenario. */
 	const chromeWidth = $derived(
@@ -1695,7 +1724,7 @@
 						type="button"
 						aria-pressed={screenPreset === preset}
 						title={ctx.t('editor.visual.screen.width', {
-							width: frameWidthFor(preset, canvasSize.width, zoomPreference)
+							width: frameWidthFor(preset, layoutWidth, zoomPreference)
 						})}
 						onclick={() => setScreenPreset(preset)}
 						><Icon id={PRESET_ICONS[preset]} size={14} strokeWidth={1.6} /><span

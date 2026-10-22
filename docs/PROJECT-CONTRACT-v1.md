@@ -441,11 +441,18 @@ needs to know it is being scaled.
 The mobile and tablet presets set the iframe's CSS viewport to a fixed 390px and 834px,
 centred in the canvas. The desktop preset sets it to the available canvas width (rounded
 down), so the site renders at 100% with the layout of that width; below the site's own
-desktop breakpoint the site shows its narrower layout. A new viewport preference defaults to
+desktop breakpoint the site shows its narrower layout. The inspector's column counts as taken
+even while the inspector is closed: selecting a block opens it, and the first click of a
+double click is a selection, so a site that took that space would be laid out again between
+the two clicks. The sheet sits at the left edge and the inspector opens into the reserved
+space without moving anything. A new viewport preference defaults to
 desktop with fit zoom; valid saved preferences remain in effect. Fit keeps desktop at 100%
 and scales mobile or tablet down only when their fixed width does not fit, never above 100%.
 A manual zoom level scales iframe and overlay together; on desktop the CSS viewport becomes
-the canvas width divided by that level, so the sheet still fills the canvas. In every case the
+the canvas width divided by that level, so the sheet still fills the canvas. While an inline
+edit is in progress the iframe's CSS viewport is frozen: opening a panel or narrowing the
+window never lays the site out again under the caret; if the sheet no longer fits it is
+scaled down, and the viewport follows the canvas again once the edit ends. In every case the
 overlay, the selection ring, the strip and the inline-editing hint are measured in the same
 scaled box, so they stay aligned. Entering visual editing temporarily collapses the app's desktop
 sidebar without persisting that automatic change. Manual sidebar toggles still persist; leaving

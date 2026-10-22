@@ -30,6 +30,7 @@ import { resolveContentModel } from '$lib/model/resolve';
 import { t as translate } from '$lib/i18n';
 import { INSPECTOR_DEFAULT_WIDTH, TREE_DEFAULT_WIDTH } from './column-widths';
 import { readColumnWidths } from './column-widths-storage';
+import { INSPECTOR_TRACK_EXTRA } from './viewport';
 
 const PREVIEW_ORIGIN = 'https://sitio.test';
 const TOKEN_URL = `${PREVIEW_ORIGIN}/preview/post/rec-1?token=abc`;
@@ -993,9 +994,16 @@ describe('VisualEditorScreen.svelte — árbol de secciones e inspector', () => 
 		expect(bodies[0].hasAttribute('hidden')).toBe(true); // b1, no seleccionado
 		expect(bodies[1].hasAttribute('hidden')).toBe(false); // b2, seleccionado
 
-		// 2) Lienzo → árbol + inspector (al revés).
+		// 2) Lienzo → árbol + inspector (al revés). Sin `scroll-to`: el bloque pulsado ya está a la
+		// vista, y desplazarlo movería lo que hay bajo el cursor entre los dos clics de un doble clic.
+		postMessageSpy.mockClear();
 		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b1' });
 		await tick();
+		expect(
+			postMessageSpy.mock.calls.some(
+				([msg]) => (msg as Record<string, unknown>).type === 'scroll-to'
+			)
+		).toBe(false);
 
 		expect(rows[0].getAttribute('aria-current')).toBe('true');
 		expect(rows[1].getAttribute('aria-current')).toBeNull();
@@ -2498,14 +2506,17 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 
 		// Escritorio (spec del 22 oct 2026, parte F): el iframe mide lo que el lienzo deja libre y
 		// se pinta sin escalar. La medida física controlada dispara el mismo observer que una
-		// ventana, un panel plegado o una manilla de columna.
+		// ventana, un panel plegado o una manilla de columna. Sin nada seleccionado el inspector está
+		// cerrado y su columna se reserva (`layoutCanvasWidth`): el sitio maqueta con el lienzo medido
+		// menos `INSPECTOR_RESERVE`, así que abrirlo al seleccionar no lo vuelve a maquetar.
+		const INSPECTOR_RESERVE = INSPECTOR_DEFAULT_WIDTH + INSPECTOR_TRACK_EXTRA;
 		const canvasEl = mounted.target.querySelector('.vega-visual-canvas')!;
 		const canvasRect = vi.spyOn(canvasEl, 'getBoundingClientRect').mockReturnValue({
-			width: 700,
+			width: 700 + INSPECTOR_RESERVE,
 			height: 500,
 			top: 0,
 			left: 0,
-			right: 700,
+			right: 700 + INSPECTOR_RESERVE,
 			bottom: 500,
 			x: 0,
 			y: 0,
@@ -2555,7 +2566,11 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		expect(stage.style.width).toBe('700px');
 		// Un lienzo más ancho (ventana mayor, panel plegado): más viewport, misma escala. Un ancho
 		// fraccionario se redondea hacia abajo, nunca más ancho que el lienzo.
-		canvasRect.mockReturnValue({ ...canvasEl.getBoundingClientRect(), width: 900.6, right: 900.6 });
+		canvasRect.mockReturnValue({
+			...canvasEl.getBoundingClientRect(),
+			width: 900.6 + INSPECTOR_RESERVE,
+			right: 900.6 + INSPECTOR_RESERVE
+		});
 		resize.triggerResize();
 		await tick();
 		expect(stage.style.width).toBe('900px');
@@ -2571,11 +2586,52 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		await tick();
 		expect(stage.style.width).toBe('834px');
 		expect(stage.style.transform).toBe('scale(1)');
-		canvasRect.mockReturnValue({ ...canvasEl.getBoundingClientRect(), width: 700, right: 700 });
+		canvasRect.mockReturnValue({
+			...canvasEl.getBoundingClientRect(),
+			width: 700 + INSPECTOR_RESERVE,
+			right: 700 + INSPECTOR_RESERVE
+		});
 		resize.triggerResize();
 		await tick();
 		expect(stage.style.width).toBe('834px');
 		expect(stage.style.transform).toBe(`scale(${700 / 834})`);
+	});
+
+	test('seleccionar un bloque abre el inspector SIN volver a maquetar el sitio: su columna ya estaba reservada', async () => {
+		// Gate del 22 oct 2026: el primer clic de un doble clic selecciona y abre el inspector; si el
+		// sitio tomara el hueco del inspector cerrado, ese clic lo remaquetaría entre los dos clics.
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
+		const { ctx, type } = await setup([
+			{ id: 'b1', heading: 'Hero', sort: 0 },
+			{ id: 'b2', heading: 'Features', sort: 1 }
+		]);
+		const resize = stubResizeObserver();
+		mounted = mountScreen(ctx, type);
+		await flush();
+		const reserve = INSPECTOR_DEFAULT_WIDTH + INSPECTOR_TRACK_EXTRA;
+		const canvasEl = mounted.target.querySelector('.vega-visual-canvas')!;
+		const canvasRect = vi
+			.spyOn(canvasEl, 'getBoundingClientRect')
+			.mockReturnValue({ width: 1061, height: 500 } as DOMRect);
+		resize.triggerResize();
+		await tick();
+		const stage = mounted.target.querySelector<HTMLElement>('.vega-visual-stage')!;
+		expect(stage.style.width).toBe(`${1061 - reserve}px`);
+		expect(stage.style.transform).toBe('scale(1)');
+
+		await connectBridge(mounted.target, [
+			{ id: 'b1', type: 'hero' },
+			{ id: 'b2', type: 'hero' }
+		]);
+		sendSiteMessage({ vega: 'vega-visual-1', type: 'select', blockId: 'b2' });
+		await tick();
+		// El inspector se abre y el lienzo pierde su columna: el iframe ni cambia ni se escala.
+		expect(mounted.target.querySelector('.vega-visual-grid--inspector')).not.toBeNull();
+		canvasRect.mockReturnValue({ width: 1061 - reserve, height: 500 } as DOMRect);
+		resize.triggerResize();
+		await tick();
+		expect(stage.style.width).toBe(`${1061 - reserve}px`);
+		expect(stage.style.transform).toBe('scale(1)');
 	});
 
 	test('conmutador de tamaño: móvil/tableta fijan el ancho del iframe SIN mirar el lienzo', async () => {

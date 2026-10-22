@@ -208,15 +208,22 @@ const statusGroup = (page: Page) => page.getByRole('group', { name: 'Estado de l
 const formLink = (page: Page, name = 'Volver al formulario') =>
 	page.getByRole('link', { name, exact: true });
 
-/** Ancho de la caja de CONTENIDO del lienzo, redondeado hacia abajo: el viewport del sitio en
- *  «Escritorio» con «Ajustar» (spec del 22 oct 2026, parte F; `viewport.ts#frameWidthFor`). */
-const canvasContentWidth = (page: Page) =>
+/** Ancho de la caja de CONTENIDO del lienzo con el que se maqueta el sitio, redondeado hacia abajo:
+ *  el viewport del sitio en «Escritorio» con «Ajustar» (spec del 22 oct 2026, parte F;
+ *  `viewport.ts#frameWidthFor` y `#layoutCanvasWidth`). */
+const canvasLayoutWidth = (page: Page) =>
 	page.locator('.vega-visual-canvas').evaluate((el) => {
 		const style = getComputedStyle(el);
 		const inset = ['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth']
 			.map((key) => parseFloat(style[key as 'paddingLeft']))
 			.reduce((sum, value) => sum + value, 0);
-		return Math.floor(el.getBoundingClientRect().width - inset);
+		// Con el inspector cerrado su columna se reserva (`viewport.ts#layoutCanvasWidth`): su
+		// ancho de la rejilla más 12 px de manilla y huecos. Abrirlo al seleccionar no remaqueta.
+		const grid = el.closest('.vega-visual-grid')!;
+		const reserve = grid.classList.contains('vega-visual-grid--inspector')
+			? 0
+			: parseFloat(getComputedStyle(grid).getPropertyValue('--vega-visual-inspector-w')) + 12;
+		return Math.floor(Math.max(0, el.getBoundingClientRect().width - inset - reserve));
 	});
 
 /** Tamaño de pantalla de la barra (lámina, `.segm`): un botón por preset, `aria-pressed` el vigente.
@@ -292,7 +299,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		// del lienzo (el escenario deja su margen alrededor de la hoja, lámina «edición en vivo»,
 		// `.stage`), redondeada hacia abajo, y se pinta al 100 %: la hoja mide en pantalla lo mismo.
 		const desktopAt100 = async () => {
-			const width = await canvasContentWidth(page);
+			const width = await canvasLayoutWidth(page);
 			const painted = await iframe.boundingBox();
 			const layout = width >= 900 ? 'desktop' : 'narrow';
 			return (
@@ -313,9 +320,9 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await page.screenshot({ path: testInfo.outputPath('desktop-fit-1440.png') });
 
 		// Una ventana más estrecha cambia el viewport del sitio, nunca su escala.
-		const before = await canvasContentWidth(page);
+		const before = await canvasLayoutWidth(page);
 		await page.setViewportSize({ width: 1200, height: 900 });
-		await expect.poll(() => canvasContentWidth(page)).toBeLessThan(before);
+		await expect.poll(() => canvasLayoutWidth(page)).toBeLessThan(before);
 		await expect.poll(desktopAt100).toBe(true);
 		await expect.poll(alignedOverlay).toBe(true);
 		for (const width of [390, 834] as const) {
@@ -332,7 +339,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await expectZoom(page, '50');
 		await expect
 			.poll(async () => {
-				const expected = Math.floor((await canvasContentWidth(page)) / 0.5);
+				const expected = Math.floor((await canvasLayoutWidth(page)) / 0.5);
 				return (await siteViewport()).width - expected;
 			})
 			.toBe(0);
@@ -402,7 +409,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 
 		/** Geometría medida de la combinación vigente, para comparar y dejar en el informe. */
 		const measure = async () => {
-			const content = await canvasContentWidth(page);
+			const content = await canvasLayoutWidth(page);
 			const site = await frame.evaluate(() => ({
 				innerWidth,
 				scrollWidth: document.documentElement.scrollWidth
@@ -451,6 +458,17 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 				});
 			}
 		}
+		// Abrir o cerrar el inspector (lo abre la selección, el primer clic de un doble clic) no
+		// cambia el viewport del sitio: su columna se reserva (gate del 22 oct 2026).
+		const siteOf = (width: number, panels: string) =>
+			(
+				evidence.find(
+					(e) =>
+						(e as { width: number }).width === width && (e as { panels: string }).panels === panels
+				) as { site: { innerWidth: number } }
+			).site.innerWidth;
+		for (const width of [1440, 1280, 1024])
+			expect(siteOf(width, 'sin-inspector'), `${width}`).toBe(siteOf(width, 'ambos'));
 		const evidencePath = testInfo.outputPath('geometria-escritorio-100.json');
 		writeFileSync(evidencePath, JSON.stringify(evidence, null, 2));
 		await testInfo.attach('geometria-escritorio-100.json', {
@@ -1786,7 +1804,7 @@ test('UX01: título largo, controles de vista y error del puente conservan las a
 	// Escritorio al 50 %: el sitio ve el doble del ancho del lienzo (spec del 22 oct 2026, F).
 	await expect
 		.poll(async () => {
-			const expected = Math.floor((await canvasContentWidth(page)) / 0.5);
+			const expected = Math.floor((await canvasLayoutWidth(page)) / 0.5);
 			return (await frame.evaluate(() => innerWidth)) - expected;
 		})
 		.toBe(0);
@@ -2457,7 +2475,7 @@ test('UX04: Secciones a 901 recibe clic y teclado y devuelve el foco al cerrar',
 		.locator('iframe.vega-visual-frame')
 		.elementHandle())!.contentFrame();
 	// Escritorio a 901 px: el sitio ve el ancho que deja el lienzo, al 100 % (spec del 22 oct 2026, F).
-	expect(await frame!.evaluate(() => innerWidth)).toBe(await canvasContentWidth(page));
+	expect(await frame!.evaluate(() => innerWidth)).toBe(await canvasLayoutWidth(page));
 });
 
 /**

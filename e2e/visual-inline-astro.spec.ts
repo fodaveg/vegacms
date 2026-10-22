@@ -389,6 +389,49 @@ test.describe('actual Astro inline bridge', () => {
 		expect((await box(next)).top).toBe(nextBefore.top);
 	});
 
+	test('while typing in the page, a narrower canvas never re-lays out the site; it follows the canvas again on exit', async ({
+		page
+	}) => {
+		// Gate of 22 Oct 2026 on spec part F: Desktop takes the canvas width at 100%, so a canvas that
+		// narrows mid-edit (the window, a panel) would re-lay out the site under the caret. The
+		// iframe width is frozen for the session (the sheet scales to fit, hint and ring scale with
+		// it) and released on exit. The window is narrowed with the focus still in the page.
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await openEditor(page);
+		const frame = frameOf(page);
+		const heading = field(frame, 'seccion_2', 'heading');
+		const siteWidth = () => heading.evaluate(() => innerWidth);
+		const top = () => heading.evaluate((el) => el.getBoundingClientRect().top);
+		const scale = () =>
+			page
+				.locator('.vega-visual-stage')
+				.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).a);
+		await startEditing(page, 'seccion_2', 'heading');
+		const width = await siteWidth();
+		const headingTop = await top();
+		await page.setViewportSize({ width: 1200, height: 900 });
+		// The canvas shrank and the sheet scaled to fit; the site kept its viewport and its layout.
+		await expect.poll(scale).toBeLessThan(1);
+		await expect(heading).toHaveAttribute('contenteditable', 'plaintext-only');
+		expect(await siteWidth()).toBe(width);
+		expect(await top()).toBe(headingTop);
+		// The hint still sits right under the edited text, in screen coordinates.
+		const frameBox = (await page.locator('.vega-visual-frame').boundingBox())!;
+		const zoom = await page
+			.locator('.vega-visual-frame')
+			.evaluate((el) => el.getBoundingClientRect().width / (el as HTMLIFrameElement).offsetWidth);
+		expect(zoom).toBeCloseTo(await scale(), 3);
+		const bottom = await heading.evaluate((el) => el.getBoundingClientRect().bottom);
+		const hint = (await page.locator('.vega-visual-inline-hint').boundingBox())!;
+		expect(hint.y).toBeGreaterThan(frameBox.y + bottom * zoom);
+		expect(hint.y - (frameBox.y + bottom * zoom)).toBeLessThan(24);
+		await page.keyboard.press('Escape');
+		await expect(heading).not.toHaveAttribute('contenteditable');
+		// Session over: the site takes the narrower canvas width again, at 100%.
+		await expect.poll(siteWidth).toBeLessThan(width);
+		await expect.poll(scale).toBe(1);
+	});
+
 	test('pasting HTML from the system clipboard inserts plain text', async ({ page, context }) => {
 		await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: CMS });
 		await openEditor(page);
