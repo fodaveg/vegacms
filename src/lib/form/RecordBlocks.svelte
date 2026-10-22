@@ -201,6 +201,12 @@
 		() => blocks.records.length,
 		(state) => (dragState = state)
 	);
+	/** Imagen de arrastre de la fila (`$lib/list/drag-image.ts`): a demanda, llega al montar. */
+	let setDragImage: typeof import('$lib/list/drag-image').setCopyDragImage | undefined;
+	import('$lib/list/drag-image').then(
+		(module) => (setDragImage = module.setCopyDragImage),
+		() => {} // sin red: imagen por defecto del navegador
+	);
 
 	/** Destino de foco de reserva de `DeleteConfirm` (su cabecera: el nodo de la fila borrada ya no
 	 *  existe tras un borrado con éxito) — la cabecera de la propia tarjeta, `tabindex="-1"`, mismo
@@ -356,7 +362,12 @@
 									!blocks.structuralBusy &&
 									!blocks.anySaving &&
 									!blocks.anyDirty}
-								ondragstart={(event) => dnd.handleDragStart(event, i)}
+								ondragstart={(event) => {
+									// Imagen: la cabecera de la fila (asa, tipo y título), no la fila
+									// desplegada con todos sus campos (ver `drag-image.ts`).
+									setDragImage?.(event, event.currentTarget.closest('.vega-block-header'));
+									dnd.handleDragStart(event, i);
+								}}
 								ondragend={dnd.handleDragEnd}
 								onkeydown={(event) => dnd.handleHandleKeydown(event, i)}
 							>

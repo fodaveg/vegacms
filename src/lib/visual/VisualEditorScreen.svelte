@@ -206,9 +206,9 @@
 	 * **Tamaño de pantalla + zoom del lienzo (tarea "el acabado: tamaños de pantalla, zoom, atajos
 	 * y estado de guardado" del lote del editor visual)**: el cálculo puro vive en `viewport.ts`
 	 * (ver su cabecera para el porqué de cada número); aquí solo el DOM. `screenPreset` cambia el
-	 * ancho de LAYOUT del `<iframe>` (390/834/1280, nunca el ancho del `<div>` de Vega — así
-	 * el sitio dispara sus propios puntos de corte de verdad); `zoomPreference` decide el factor de
-	 * `transform: scale()`.
+	 * ancho de LAYOUT del `<iframe>` (390/834 fijos; en escritorio, el ancho medido del lienzo —
+	 * así el sitio dispara sus propios puntos de corte de verdad); `zoomPreference` decide el
+	 * factor de `transform: scale()`, que en escritorio con «Ajustar» es siempre 1.
 	 *
 	 * El punto CENTRAL, para que nadie lo deshaga sin querer: `<iframe>` y `VisualOverlay` viven
 	 * DENTRO del mismo "escenario" (`.vega-visual-stage`, el único elemento que se escala) para que
@@ -231,9 +231,10 @@
 	 * tamaño (la ventana, arrastrar una manilla, el árbol colapsando a cajón) dispara el mismo
 	 * aviso sin que este componente tenga que enterarse de la causa.
 	 *
-	 * "Ajustar" encaja el escritorio de 1280px CSS en el ancho físico del lienzo. Cambiar la
-	 * ventana o plegar la sidebar recalcula la escala sin disparar otros puntos de corte del sitio.
-	 * El mismo escenario escala iframe y overlay, conservando las coordenadas que reporta el puente.
+	 * Escritorio pinta el sitio al 100 % con el ancho disponible del lienzo (spec del 22 oct 2026,
+	 * parte F): cambiar la ventana, plegar un panel o mover una manilla cambia el viewport del sitio,
+	 * nunca su escala. «Ajustar» solo encoge móvil y tableta cuando no caben. Con un zoom manual, el
+	 * mismo escenario escala iframe y overlay, conservando las coordenadas que reporta el puente.
 	 *
 	 * **Atajos de teclado, a nivel de PANTALLA** (mismo encargo): un solo escuchador de `keydown`
 	 * en `window`, añadido/quitado en el MISMO `onMount`/`onDestroy` que ya gestiona `message` y
@@ -1065,12 +1066,15 @@
 		return () => observer.disconnect();
 	});
 
-	/** Ancho de LAYOUT del iframe (390/834/1280, ver `viewport.ts`). */
-	const frameWidth = $derived(frameWidthFor(screenPreset));
+	/** Ancho de LAYOUT del iframe (390/834, o el del lienzo en escritorio; ver `viewport.ts`). */
+	const frameWidth = $derived(frameWidthFor(screenPreset, canvasSize.width, zoomPreference));
 	/** Factor de `transform: scale()` del "escenario" (ver cabecera). */
 	const zoomFactor = $derived(resolveZoomFactor(zoomPreference, canvasSize.width, frameWidth));
-	/** Ajuste disponible en el menú, incluso cuando la escala activa es un nivel manual. */
-	const fitZoomFactor = $derived(resolveZoomFactor('fit', canvasSize.width, frameWidth));
+	/** Ajuste disponible en el menú, incluso cuando la escala activa es un nivel manual: con el
+	 *  ancho que tendría el iframe en «Ajustar», no con el del nivel manual vigente. */
+	const fitZoomFactor = $derived(
+		resolveZoomFactor('fit', canvasSize.width, frameWidthFor(screenPreset, canvasSize.width))
+	);
 	/** Alto propio del escenario, para que al escalarlo llene el lienzo exacto (ver `viewport.ts`). */
 	const stageHeightPx = $derived(stageHeightFor(canvasSize.height, zoomFactor));
 	/** Borde izquierdo de la hoja: centrada en el escenario cuando cabe, pegada al margen de la
@@ -1520,7 +1524,9 @@
 					<button
 						type="button"
 						aria-pressed={screenPreset === preset}
-						title={ctx.t('editor.visual.screen.width', { width: frameWidthFor(preset) })}
+						title={ctx.t('editor.visual.screen.width', {
+							width: frameWidthFor(preset, canvasSize.width, zoomPreference)
+						})}
 						onclick={() => setScreenPreset(preset)}
 						><Icon id={PRESET_ICONS[preset]} size={14} strokeWidth={1.6} /><span
 							class="vega-visual-segm-label">{ctx.t(`editor.visual.screen.${preset}`)}</span

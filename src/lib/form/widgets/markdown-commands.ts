@@ -307,8 +307,5 @@ export function applyMarkdownCommand(
 	}
 }
 
-/** Counts whitespace-delimited words for the unobtrusive editor footer. */
-export function countMarkdownWords(value: string): number {
-	const trimmed = value.trim();
-	return trimmed ? trimmed.split(/\s+/u).length : 0;
-}
+/** The footer's word count lives in `markdown-words.ts` (static); re-exported for existing callers. */
+export { countMarkdownWords } from './markdown-words';

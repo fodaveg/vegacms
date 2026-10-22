@@ -18,19 +18,44 @@ import {
 } from './viewport';
 
 describe('frameWidthFor', () => {
-	test('los tres presets tienen un ancho CSS fijo, sin depender del lienzo', () => {
+	test('móvil y tableta tienen un ancho CSS fijo, sin depender del lienzo ni del zoom', () => {
 		expect(frameWidthFor('mobile')).toBe(MOBILE_WIDTH);
 		expect(frameWidthFor('tablet')).toBe(TABLET_WIDTH);
-		expect(frameWidthFor('desktop')).toBe(1280);
+		expect(frameWidthFor('mobile', 1000, 50)).toBe(MOBILE_WIDTH);
+		expect(frameWidthFor('tablet', 300, 'fit')).toBe(TABLET_WIDTH);
+	});
+
+	test('escritorio toma el ancho medido del lienzo, redondeado hacia abajo (spec 22 oct, F)', () => {
+		expect(frameWidthFor('desktop', 1012)).toBe(1012);
+		expect(frameWidthFor('desktop', 1012.9, 'fit')).toBe(1012);
+		expect(frameWidthFor('desktop', 640, 100)).toBe(640);
+	});
+
+	test('escritorio con zoom manual sigue llenando el lienzo: el sitio ve lienzo / factor', () => {
+		expect(frameWidthFor('desktop', 700, 50)).toBe(1400);
+		expect(frameWidthFor('desktop', 700, 75)).toBe(933);
+	});
+
+	test('escritorio sin medida todavía (0, negativo, NaN): ancho de partida, nunca 0px', () => {
+		expect(frameWidthFor('desktop')).toBe(DESKTOP_WIDTH);
+		expect(frameWidthFor('desktop', 0)).toBe(DESKTOP_WIDTH);
+		expect(frameWidthFor('desktop', -5)).toBe(DESKTOP_WIDTH);
+		expect(frameWidthFor('desktop', Number.NaN)).toBe(DESKTOP_WIDTH);
 	});
 });
 
 describe('resolveZoomFactor', () => {
-	test('escritorio ajusta el espacio físico sin cambiar su ancho CSS', () => {
-		expect(resolveZoomFactor('fit', 425, DESKTOP_WIDTH)).toBe(425 / 1280);
-		expect(resolveZoomFactor('fit', 0, DESKTOP_WIDTH)).toBe(0.1);
-		expect(resolveZoomFactor('fit', Number.NaN, DESKTOP_WIDTH)).toBe(1);
-		expect(resolveZoomFactor('fit', 1440, DESKTOP_WIDTH)).toBe(1);
+	test('escritorio con «ajustar» se pinta al 100 % a cualquier ancho de lienzo', () => {
+		for (const canvas of [425, 1012.5, 1440]) {
+			expect(resolveZoomFactor('fit', canvas, frameWidthFor('desktop', canvas))).toBe(1);
+		}
+	});
+
+	test('escritorio con zoom manual: el factor es el del nivel y la hoja cabe en el lienzo', () => {
+		const frame = frameWidthFor('desktop', 700, 75);
+		const factor = resolveZoomFactor(75, 700, frame);
+		expect(factor).toBe(0.75);
+		expect(frame * factor).toBeLessThanOrEqual(700);
 	});
 
 	test('niveles fijos: se traducen a factor sin mirar el lienzo', () => {
@@ -55,6 +80,10 @@ describe('resolveZoomFactor', () => {
 		// La proporción real (1/834 ≈ 0.0012) cae muy por debajo del piso de seguridad: el
 		// resultado es el PISO, no la proporción cruda.
 		expect(resolveZoomFactor('fit', 1, 834)).toBeCloseTo(0.1);
+	});
+
+	test('"ajustar" con un lienzo a 0 (aún sin medir): el piso, nunca 0', () => {
+		expect(resolveZoomFactor('fit', 0, DESKTOP_WIDTH)).toBe(0.1);
 	});
 
 	test('"ajustar" sin nada medido todavía (frameWidth 0, o el lienzo a 0/NaN): cae a 1, no a Infinity', () => {

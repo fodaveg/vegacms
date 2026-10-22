@@ -2489,15 +2489,16 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		expect(stage!.querySelector('.vega-visual-overlay-root')).not.toBeNull();
 	});
 
-	test('cambiar el zoom escala el escenario con `transform`, sin tocar el ancho de LAYOUT del iframe', async () => {
+	test('escritorio toma el ancho del lienzo al 100 %; el zoom manual escala el escenario con `transform`', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(tokenBody())));
 		const { ctx, type } = await setup([{ id: 'b1', heading: 'Hero', sort: 0 }]);
 		const resize = stubResizeObserver();
 		mounted = mountScreen(ctx, type);
 		await flush();
 
-		// Escritorio conserva 1280px CSS y ajusta su escala al lienzo medido. La medida física
-		// controlada dispara el mismo observer que una ventana o una sidebar redimensionada.
+		// Escritorio (spec del 22 oct 2026, parte F): el iframe mide lo que el lienzo deja libre y
+		// se pinta sin escalar. La medida física controlada dispara el mismo observer que una
+		// ventana, un panel plegado o una manilla de columna.
 		const canvasEl = mounted.target.querySelector('.vega-visual-canvas')!;
 		const canvasRect = vi.spyOn(canvasEl, 'getBoundingClientRect').mockReturnValue({
 			width: 700,
@@ -2514,22 +2515,23 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 		await tick();
 
 		const stage = mounted.target.querySelector<HTMLElement>('.vega-visual-stage')!;
-		expect(stage.style.width).toBe('1280px');
-		expect(stage.style.transform).toBe(`scale(${700 / 1280})`); // ajustar de partida
-		expect(parseFloat(stage.style.height)).toBeCloseTo(500 / (700 / 1280));
+		expect(stage.style.width).toBe('700px');
+		expect(stage.style.transform).toBe('scale(1)'); // ajustar de partida: 100 %
+		expect(parseFloat(stage.style.height)).toBe(500);
 
 		const zoomTrigger = mounted.target.querySelector<HTMLButtonElement>(
 			'.vega-visual-zoom-trigger'
 		)!;
-		expect(zoomTrigger.textContent).toContain('1280 px · 55 %');
+		expect(zoomTrigger.textContent).toContain('700 px · 100 %');
 		await chooseZoom(mounted.target, '50');
 
-		// El ancho de LAYOUT no se movió ni un píxel: solo cambió `transform`. Es la landmine
-		// central de la tarea (ver cabecera del componente) — si esto fallara, el overlay se
-		// despegaría del iframe.
-		expect(stage.style.width).toBe('1280px');
+		// Zoom manual: el escritorio sigue llenando el lienzo, como el zoom de un navegador (el sitio
+		// ve el doble de ancho y se pinta a la mitad). Iframe y overlay comparten el MISMO `transform`
+		// del escenario — si esto fallara, el overlay se despegaría del iframe.
+		expect(stage.style.width).toBe('1400px');
 		expect(stage.style.transform).toBe('scale(0.5)');
-		expect(zoomTrigger.textContent).toContain('1280 px · 50 %');
+		expect(parseFloat(stage.style.height)).toBe(1000);
+		expect(zoomTrigger.textContent).toContain('1400 px · 50 %');
 		// La opción Ajustar ofrece el ajuste DISPONIBLE, independiente del nivel manual activo.
 		for (const level of ['50', '75', '100'] as const) {
 			await chooseZoom(mounted.target, level);
@@ -2537,28 +2539,43 @@ describe('VisualEditorScreen.svelte — el acabado (tamaños, zoom, atajos, esta
 			await tick();
 			expect(
 				mounted.target.querySelector('.vega-visual-zoom-menu [role="menuitemradio"]')?.textContent
-			).toBe('Ajustar · 55 %');
+			).toBe('Ajustar · 100 %');
 			expect(
 				mounted.target
 					.querySelector('.vega-visual-zoom-menu [aria-checked="true"]')
 					?.textContent?.trim()
 			).toBe(`${level} %`);
 			expect(stage.style.transform).toBe(`scale(${Number(level) / 100})`);
+			expect(stage.style.width).toBe(`${Math.floor(700 / (Number(level) / 100))}px`);
 		}
 
 		await chooseZoom(mounted.target, 'fit');
 		expect(mounted.target.querySelector('.vega-visual-zoom-menu')).toBeNull();
-		expect(stage.style.transform).toBe(`scale(${700 / 1280})`);
-		canvasRect.mockReturnValue({ ...canvasEl.getBoundingClientRect(), width: 900, right: 900 });
+		expect(stage.style.transform).toBe('scale(1)');
+		expect(stage.style.width).toBe('700px');
+		// Un lienzo más ancho (ventana mayor, panel plegado): más viewport, misma escala. Un ancho
+		// fraccionario se redondea hacia abajo, nunca más ancho que el lienzo.
+		canvasRect.mockReturnValue({ ...canvasEl.getBoundingClientRect(), width: 900.6, right: 900.6 });
 		resize.triggerResize();
 		await tick();
-		expect(stage.style.width).toBe('1280px');
-		expect(stage.style.transform).toBe(`scale(${900 / 1280})`);
-		expect(parseFloat(stage.style.height)).toBeCloseTo(500 / (900 / 1280));
+		expect(stage.style.width).toBe('900px');
+		expect(stage.style.transform).toBe('scale(1)');
+		expect(parseFloat(stage.style.height)).toBe(500);
 		expect(JSON.parse(localStorage.getItem('vega.visual.viewport.v1')!)).toEqual({
 			preset: 'desktop',
 			zoom: 'fit'
 		});
+
+		// Tableta: ancho fijo, y solo se encoge si no cabe.
+		screenButton(mounted.target, 'tablet').click();
+		await tick();
+		expect(stage.style.width).toBe('834px');
+		expect(stage.style.transform).toBe('scale(1)');
+		canvasRect.mockReturnValue({ ...canvasEl.getBoundingClientRect(), width: 700, right: 700 });
+		resize.triggerResize();
+		await tick();
+		expect(stage.style.width).toBe('834px');
+		expect(stage.style.transform).toBe(`scale(${700 / 834})`);
 	});
 
 	test('conmutador de tamaño: móvil/tableta fijan el ancho del iframe SIN mirar el lienzo', async () => {

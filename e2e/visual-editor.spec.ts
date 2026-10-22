@@ -44,6 +44,7 @@
  * adaptador — en vez de confiar en que el array reactivo del árbol refleje lo que de verdad se
  * escribió. Es la comprobación más fuerte que este backend permite sin un hook nuevo.
  */
+import { writeFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { expect, loginAsDemo, test, waitForHome } from './fixtures';
 import { createVisualSite, type VisualSite, type VisualSiteBlock } from './visual-site';
@@ -207,6 +208,17 @@ const statusGroup = (page: Page) => page.getByRole('group', { name: 'Estado de l
 const formLink = (page: Page, name = 'Volver al formulario') =>
 	page.getByRole('link', { name, exact: true });
 
+/** Ancho de la caja de CONTENIDO del lienzo, redondeado hacia abajo: el viewport del sitio en
+ *  «Escritorio» con «Ajustar» (spec del 22 oct 2026, parte F; `viewport.ts#frameWidthFor`). */
+const canvasContentWidth = (page: Page) =>
+	page.locator('.vega-visual-canvas').evaluate((el) => {
+		const style = getComputedStyle(el);
+		const inset = ['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth']
+			.map((key) => parseFloat(style[key as 'paddingLeft']))
+			.reduce((sum, value) => sum + value, 0);
+		return Math.floor(el.getBoundingClientRect().width - inset);
+	});
+
 /** Tamaño de pantalla de la barra (lámina, `.segm`): un botón por preset, `aria-pressed` el vigente.
  *  Sustituye al antiguo `<select>` «Vista» (`mobile`/`tablet`/`desktop`). */
 const SCREEN = { mobile: 'Móvil', tablet: 'Tableta', desktop: 'Escritorio' } as const;
@@ -242,7 +254,7 @@ async function treeAction(page: Page, rowId: string, name: string) {
 }
 
 test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-origin', () => {
-	test('escritorio 1280 con ajustar conserva media queries y overlay al redimensionar', async ({
+	test('escritorio toma el ancho del lienzo al 100 %, con media queries y overlay al redimensionar', async ({
 		page
 	}, testInfo) => {
 		await page.setViewportSize({ width: 1440, height: 900 });
@@ -276,26 +288,35 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 					Math.abs(block[key as keyof typeof block] - overlay[key as keyof typeof overlay]) < 2
 			);
 		};
-		// «Ajustar» llena la caja de CONTENIDO del lienzo: el escenario deja su margen alrededor de la
-		// hoja (lámina «edición en vivo», `.stage`), que no es sitio para la página.
-		const fitFillsCanvas = async () => {
-			const canvasWidth = await page.locator('.vega-visual-canvas').evaluate((el) => {
-				const style = getComputedStyle(el);
-				return el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-			});
+		// Escritorio (spec del 22 oct 2026, parte F): el viewport del sitio es la caja de CONTENIDO
+		// del lienzo (el escenario deja su margen alrededor de la hoja, lámina «edición en vivo»,
+		// `.stage`), redondeada hacia abajo, y se pinta al 100 %: la hoja mide en pantalla lo mismo.
+		const desktopAt100 = async () => {
+			const width = await canvasContentWidth(page);
 			const painted = await iframe.boundingBox();
-			return !!painted && Math.abs(Math.min(canvasWidth, 1280) - painted.width) < 2;
+			const layout = width >= 900 ? 'desktop' : 'narrow';
+			return (
+				JSON.stringify(await siteViewport()) ===
+					JSON.stringify({ width, desktop: width >= 1000, layout }) &&
+				!!painted &&
+				Math.abs(painted.width - width) < 1
+			);
 		};
 		await expectZoom(page, 'fit');
 		await expect(page.locator('#vega-sidebar')).toHaveClass(/vega-sidebar-collapsed/);
-		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
-		await expect.poll(fitFillsCanvas).toBe(true);
+		await expect.poll(desktopAt100).toBe(true);
+		await expect(page.locator('.vega-visual-stage')).toHaveCSS(
+			'transform',
+			'matrix(1, 0, 0, 1, 0, 0)'
+		);
 		await expect.poll(alignedOverlay).toBe(true);
 		await page.screenshot({ path: testInfo.outputPath('desktop-fit-1440.png') });
 
+		// Una ventana más estrecha cambia el viewport del sitio, nunca su escala.
+		const before = await canvasContentWidth(page);
 		await page.setViewportSize({ width: 1200, height: 900 });
-		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
-		await expect.poll(fitFillsCanvas).toBe(true);
+		await expect.poll(() => canvasContentWidth(page)).toBeLessThan(before);
+		await expect.poll(desktopAt100).toBe(true);
 		await expect.poll(alignedOverlay).toBe(true);
 		for (const width of [390, 834] as const) {
 			const preset = screenButton(page, width === 390 ? 'mobile' : 'tablet');
@@ -304,13 +325,24 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 			await expect.poll(siteViewport).toEqual({ width, desktop: false, layout: 'narrow' });
 			await expect.poll(alignedOverlay).toBe(true);
 		}
+		// Zoom manual en escritorio: el sitio ve lienzo / 0,5 y se pinta a la mitad; sigue llenando
+		// el lienzo y el overlay sigue alineado.
 		await chooseZoom(page, '50');
 		await screenButton(page, 'desktop').click();
 		await expectZoom(page, '50');
-		await expect.poll(siteViewport).toEqual({ width: 1280, desktop: true, layout: 'desktop' });
+		await expect
+			.poll(async () => {
+				const expected = Math.floor((await canvasContentWidth(page)) / 0.5);
+				return (await siteViewport()).width - expected;
+			})
+			.toBe(0);
+		await expect(page.locator('.vega-visual-stage')).toHaveCSS(
+			'transform',
+			'matrix(0.5, 0, 0, 0.5, 0, 0)'
+		);
 		await expect.poll(alignedOverlay).toBe(true);
 		await chooseZoom(page, 'fit');
-		await expect.poll(fitFillsCanvas).toBe(true);
+		await expect.poll(desktopAt100).toBe(true);
 		// Ventanas pequeñas conservan el modo de textos; el nuevo preset no habilita el lienzo allí.
 		for (const width of [834, 390]) {
 			await page.setViewportSize({ width, height: 844 });
@@ -328,6 +360,103 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await page.locator('.vega-editor-visual-button').click();
 		await waitConnected(page, 3);
 		await expect(page.locator('#vega-sidebar')).toHaveClass(/vega-sidebar-collapsed/);
+	});
+
+	test('escritorio al 100 % a 1440, 1280 y 1024 px, con los dos paneles abiertos y con uno cerrado', async ({
+		page
+	}, testInfo) => {
+		// Aceptación de la spec del 22 oct 2026, parte F: en cada combinación el sitio se pinta a su
+		// tamaño real, sin desplazamiento horizontal, y el anillo de selección y la franja casan con
+		// la página. Una captura por combinación.
+		await page.setViewportSize({ width: 1440, height: 900 });
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+		const iframe = page.locator('iframe.vega-visual-frame');
+		const frame = (await (await iframe.elementHandle())!.contentFrame())!;
+		await frame.locator('[data-vega-block-id="seccion_2"]').click();
+		await expect(visibleInspectorBody(page)).toBeVisible();
+		const inspectorClose = page.getByRole('button', { name: 'Cerrar inspector', exact: true });
+		const inspectorOpen = page.getByRole('button', { name: 'Editar bloque', exact: true });
+		/** Estructura abierta o cerrada: columna por encima de 1180 px, cajón hasta 1180 px
+		 *  (`TREE_QUERY` de la pantalla; el cajón tapa su propio disparador al abrirse y se cierra con
+		 *  su botón «Cerrar»). El modo sale del ancho pedido, no de lo que haya en el DOM en ese
+		 *  instante: justo después de redimensionar, el control del modo anterior aún existe. */
+		const setTree = async (open: boolean, width: number) => {
+			const drawer = width <= 1180;
+			const column = page.locator('.vega-visual-panel-toggle--tree');
+			const toggle = drawer ? page.locator('.vega-tree-toggle') : column;
+			await expect(column).toHaveCount(drawer ? 0 : 1);
+			await expect(toggle).toBeVisible();
+			if (((await toggle.getAttribute('aria-expanded')) === 'true') !== open) {
+				if (open || !drawer) await toggle.click();
+				else await page.locator('.vega-tree-close').click();
+			}
+			await expect(toggle).toHaveAttribute('aria-expanded', String(open));
+		};
+		const setInspector = async (open: boolean) => {
+			if (open && (await inspectorOpen.isVisible())) await inspectorOpen.click();
+			if (!open && (await inspectorClose.isVisible())) await inspectorClose.click();
+			await expect(visibleInspectorBody(page)).toBeVisible({ visible: open });
+		};
+
+		/** Geometría medida de la combinación vigente, para comparar y dejar en el informe. */
+		const measure = async () => {
+			const content = await canvasContentWidth(page);
+			const site = await frame.evaluate(() => ({
+				innerWidth,
+				scrollWidth: document.documentElement.scrollWidth
+			}));
+			const painted = (await iframe.boundingBox())!;
+			const block = (await frame.locator('[data-vega-block-id="seccion_2"]').boundingBox())!;
+			const ring = (await page
+				.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_2"]')
+				.boundingBox())!;
+			const strip = (await page.locator('.vega-visual-chrome').boundingBox())!;
+			const transform = await page
+				.locator('.vega-visual-stage')
+				.evaluate((el) => getComputedStyle(el).transform);
+			return { content, site, painted, block, ring, strip, transform };
+		};
+		const near = (a: number, b: number, slack = 1) => Math.abs(a - b) <= slack;
+		const evidence: unknown[] = [];
+
+		for (const width of [1440, 1280, 1024]) {
+			await page.setViewportSize({ width, height: 900 });
+			for (const panels of ['ambos', 'sin-estructura', 'sin-inspector'] as const) {
+				await setTree(false, width);
+				await setInspector(panels !== 'sin-inspector');
+				await setTree(panels !== 'sin-estructura', width);
+
+				await expect
+					.poll(async () => {
+						const m = await measure();
+						return (
+							m.transform === 'matrix(1, 0, 0, 1, 0, 0)' &&
+							m.site.innerWidth === m.content &&
+							m.site.scrollWidth <= m.site.innerWidth &&
+							near(m.painted.width, m.site.innerWidth) &&
+							near(m.ring.x, m.block.x, 2) &&
+							near(m.ring.y, m.block.y, 2) &&
+							near(m.ring.width, m.block.width, 2) &&
+							near(m.ring.height, m.block.height, 2) &&
+							near(m.strip.x, m.painted.x) &&
+							near(m.strip.width, m.painted.width)
+						);
+					}, `${width} ${panels}`)
+					.toBe(true);
+				evidence.push({ width, panels, ...(await measure()) });
+				await page.screenshot({
+					path: testInfo.outputPath(`escritorio-100-${width}-${panels}.png`)
+				});
+			}
+		}
+		const evidencePath = testInfo.outputPath('geometria-escritorio-100.json');
+		writeFileSync(evidencePath, JSON.stringify(evidence, null, 2));
+		await testInfo.attach('geometria-escritorio-100.json', {
+			path: evidencePath,
+			contentType: 'application/json'
+		});
 	});
 
 	test('pinta los contornos que reporta el sitio, con la geometría real de sus bloques', async ({
@@ -382,14 +511,18 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await expect(box).toHaveClass(/vega-visual-overlay-box--selected/);
 
 		// Posición resuelta del `::before` (el trazo) respecto a la caja del bloque: negativa en los
-		// cuatro lados = fuera. Antes era `inset: 4px`, positiva: encima del contenido.
-		const ring = await box.evaluate((el) => {
-			const style = getComputedStyle(el, '::before');
-			return ['top', 'right', 'bottom', 'left'].map((side) =>
-				parseFloat(style.getPropertyValue(side))
-			);
-		});
-		for (const offset of ring) expect(offset).toBeLessThan(0);
+		// cuatro lados = fuera. Antes era `inset: 4px`, positiva: encima del contenido. Se lee ya
+		// asentado: al entrar, la barra lateral de la app se pliega con transición y, con escritorio
+		// al ancho del lienzo (spec del 22 oct 2026, F), el iframe se ensancha con ella; durante ese
+		// gesto el ancho del overlay y el `rect` del puente llegan en fotogramas distintos.
+		const ring = () =>
+			box.evaluate((el) => {
+				const style = getComputedStyle(el, '::before');
+				return ['top', 'right', 'bottom', 'left'].map((side) =>
+					parseFloat(style.getPropertyValue(side))
+				);
+			});
+		await expect.poll(async () => (await ring()).every((offset) => offset < 0)).toBe(true);
 	});
 
 	// QA de fodaveg (21 oct 2026): la etiqueta y la barra del seleccionado iban ENCIMA del bloque y
@@ -865,6 +998,132 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_2$/);
 		await expect(page.locator('.vega-block-title')).toHaveCount(1);
 		await expect(page.locator('.vega-block-type')).toHaveText(/Portada/);
+	});
+});
+
+/**
+ * Imagen de arrastre (spec del 22 oct 2026, parte E; `$lib/list/drag-image.ts`). Fallo de 0.14.1:
+ * al arrastrar una baldosa de «Añadir sección» la imagen era la del navegador por defecto, con lo
+ * que había DETRÁS de la baldosa transparente. Playwright no captura la imagen nativa de arrastre,
+ * así que se intercepta `DataTransfer#setDragImage` y se mide el nodo que recibe: una copia (no el
+ * original), opaca, de la misma caja que el elemento y con el cursor en el punto donde se agarró.
+ */
+test.describe('imagen de arrastre: copia opaca y compacta del elemento arrastrado', () => {
+	interface DragImageRecord {
+		copy: boolean;
+		width: number;
+		height: number;
+		x: number;
+		y: number;
+		background: string;
+		text: string;
+	}
+
+	/** Anota cada `setDragImage` de la página (y lo deja pasar al navegador). */
+	async function recordDragImages(page: Page): Promise<void> {
+		await page.addInitScript(() => {
+			const original = DataTransfer.prototype.setDragImage;
+			const records: unknown[] = [];
+			(window as unknown as { __dragImages: unknown[] }).__dragImages = records;
+			DataTransfer.prototype.setDragImage = function (element: Element, x: number, y: number) {
+				const rect = element.getBoundingClientRect();
+				records.push({
+					copy: element.hasAttribute('data-vega-drag-image'),
+					width: rect.width,
+					height: rect.height,
+					x,
+					y,
+					background: getComputedStyle(element).backgroundColor,
+					text: element.textContent?.trim() ?? ''
+				});
+				return original.call(this, element, x, y);
+			};
+		});
+	}
+
+	/** Agarra `source` a (`dx`, `dy`) de su esquina, arrastra un poco, lee el último registro y
+	 *  suelta donde empezó (sin destino: no crea ni mueve nada). */
+	async function dragFrom(
+		page: Page,
+		source: ReturnType<Page['locator']>,
+		dx: number,
+		dy: number
+	): Promise<{ record: DragImageRecord; box: { width: number; height: number } }> {
+		const box = (await source.boundingBox())!;
+		await page.evaluate(() => {
+			(window as unknown as { __dragImages: unknown[] }).__dragImages.length = 0;
+		});
+		await page.mouse.move(box.x + dx, box.y + dy);
+		await page.mouse.down();
+		await page.mouse.move(box.x + dx + 24, box.y + dy + 6, { steps: 5 });
+		const record = await page.evaluate(() => {
+			const records = (window as unknown as { __dragImages: DragImageRecord[] }).__dragImages;
+			return records[records.length - 1];
+		});
+		await page.mouse.move(box.x + dx, box.y + dy, { steps: 3 });
+		await page.mouse.up();
+		return { record, box };
+	}
+
+	function expectCopyOf(
+		{ record, box }: { record: DragImageRecord; box: { width: number; height: number } },
+		dx: number,
+		dy: number
+	): void {
+		expect(record, 'setDragImage no se llamó').toBeTruthy();
+		expect(record.copy).toBe(true);
+		expect(Math.abs(record.width - box.width)).toBeLessThan(1);
+		expect(Math.abs(record.height - box.height)).toBeLessThan(1);
+		expect(Math.abs(record.x - dx)).toBeLessThan(1.5);
+		expect(Math.abs(record.y - dy)).toBeLessThan(1.5);
+		// Opaco: el color de fondo resuelto no tiene transparencia (las capas translúcidas del
+		// original van como degradados encima de ese color). El tema usa oklch, así que llega como
+		// `oklab(…)`; con alfa llevaría `/ a` o sería `rgba(…)`/`transparent`.
+		expect(record.background).not.toMatch(/transparent|rgba|\//);
+	}
+
+	test('paleta «Añadir sección», asa del lienzo y fila de las secciones del formulario', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await recordDragImages(page);
+		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
+		await openVisualEditor(page, site, 'pagina_1');
+		await waitConnected(page, 3);
+		await openStructure(page);
+
+		const tile = page.locator('.vega-palette-panel .vega-palette-item').first();
+		await tile.hover();
+		const fromTile = await dragFrom(page, tile, 12, 9);
+		expectCopyOf(fromTile, 12, 9);
+		expect(fromTile.record.text).toBe((await tile.textContent())?.trim());
+
+		const frame = page.frameLocator('iframe.vega-visual-frame');
+		await frame.locator('[data-vega-block-id="seccion_2"]').click();
+		const handle = page.locator('.vega-visual-overlay-handle');
+		await expect(handle).toBeEnabled();
+		expectCopyOf(await dragFrom(page, handle, 6, 7), 6, 7);
+		await expect(page.locator('.vega-visual-overlay-drop-zone')).toHaveCount(0);
+
+		await formLink(page).click();
+		await expect(page).toHaveURL(/\/c\/paginas\/pagina_1$/);
+		const rowHandle = page.locator('.vega-block-handle').nth(1);
+		const header = page.locator('.vega-block-header').nth(1);
+		const handleBox = (await rowHandle.boundingBox())!;
+		const headerBox = (await header.boundingBox())!;
+		// La imagen es la cabecera de la fila (asa, tipo y título), agarrada por el asa. El módulo
+		// de la copia se pide al montar el formulario (`drag-image.ts`): si el primer arrastre llega
+		// antes que él, ese lleva la imagen por defecto y se repite.
+		await expect(async () => {
+			const fromRow = await dragFrom(page, rowHandle, 5, 8);
+			expectCopyOf(
+				{ record: fromRow.record, box: headerBox },
+				handleBox.x - headerBox.x + 5,
+				handleBox.y - headerBox.y + 8
+			);
+			expect(fromRow.record.text).toContain(SECCIONES[1].text);
+		}).toPass({ timeout: 5000 });
+		await expect(page.locator('.vega-block-title').nth(1)).toHaveText(SECCIONES[1].text);
 	});
 });
 
@@ -1512,22 +1771,30 @@ test('UX01: título largo, controles de vista y error del puente conservan las a
 	await expect.poll(() => frame.evaluate(() => innerWidth)).toBe(834);
 	await screenButton(page, 'desktop').click();
 	await chooseZoom(page, '50');
-	await expect.poll(() => frame.evaluate(() => innerWidth)).toBe(1280);
+	// Escritorio al 50 %: el sitio ve el doble del ancho del lienzo (spec del 22 oct 2026, F).
+	await expect
+		.poll(async () => {
+			const expected = Math.floor((await canvasContentWidth(page)) / 0.5);
+			return (await frame.evaluate(() => innerWidth)) - expected;
+		})
+		.toBe(0);
 	await expect(page.locator('.vega-visual-stage')).toHaveCSS(
 		'transform',
 		'matrix(0.5, 0, 0, 0.5, 0, 0)'
 	);
 	await page.setViewportSize({ width: 901, height: 900 });
-	await frame.evaluate(() =>
-		parent.postMessage(
-			{
-				vega: 'vega-visual-1',
-				type: 'error',
-				code: 'render-unavailable',
-				detail: 'Test: bridge rendering failed'
-			},
-			'http://localhost:4173'
-		)
+	await frame.evaluate(
+		(appOrigin) =>
+			parent.postMessage(
+				{
+					vega: 'vega-visual-1',
+					type: 'error',
+					code: 'render-unavailable',
+					detail: 'Test: bridge rendering failed'
+				},
+				appOrigin
+			),
+		new URL(page.url()).origin
 	);
 	const retry = preview.getByRole('button', { name: 'Reintentar', exact: true });
 	await expect(retry).toBeVisible();
@@ -2177,7 +2444,8 @@ test('UX04: Secciones a 901 recibe clic y teclado y devuelve el foco al cerrar',
 	const frame = await (await page
 		.locator('iframe.vega-visual-frame')
 		.elementHandle())!.contentFrame();
-	expect(await frame!.evaluate(() => innerWidth)).toBe(1280);
+	// Escritorio a 901 px: el sitio ve el ancho que deja el lienzo, al 100 % (spec del 22 oct 2026, F).
+	expect(await frame!.evaluate(() => innerWidth)).toBe(await canvasContentWidth(page));
 });
 
 /**
@@ -2584,7 +2852,23 @@ for (const locale of ['es', 'en']) {
 					requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
 				)
 		);
-		await page.locator('.vega-visual-overlay-insert').nth(2).focus();
+		// Escritorio se pinta al 100 % (spec del 22 oct 2026, parte F): a 420 px de alto la junta
+		// entre la 2.ª y la 3.ª sección queda bajo el pliegue y su «+» no se pinta. Se desplaza el sitio
+		// hasta ella, como haría quien la busca (la doble del sitio solo publica `layout` al cambiar
+		// de tamaño, así que se le avisa con un `resize`).
+		await page
+			.frameLocator('iframe.vega-visual-frame')
+			.locator('[data-vega-block-id="seccion_3"]')
+			.evaluate((el) => {
+				scrollBy(0, el.getBoundingClientRect().top - innerHeight / 3);
+				dispatchEvent(new Event('resize'));
+			});
+		const atPosition3 = page.locator(
+			locale === 'es'
+				? '.vega-visual-overlay-insert[aria-label^="Insertar bloque en la posición 3 de 4"]'
+				: '.vega-visual-overlay-insert[aria-label^="Insert block at position 3 of 4"]'
+		);
+		await atPosition3.focus();
 		await page.keyboard.press('Enter');
 		const menu = page.getByRole('menu');
 		await expect(menu).toHaveAccessibleName(

@@ -123,6 +123,12 @@ export const ALLOWLIST_RAW_COLOR = [
 	{
 		file: 'src/lib/richtext/markdown.test.ts',
 		snippet: 'java&#115;cript'
+	},
+	{
+		// Fixture de test: `drag-image.ts` lee colores YA resueltos por `getComputedStyle` (alfa de
+		// `rgb()`/`rgba()`), que es lo que hay que darle; un `var(--token)` no se resuelve en jsdom.
+		file: 'src/lib/list/drag-image.dom.test.ts',
+		snippet: "const [SOLID, PAPER, TINT] = ['rgb(1, 2, 30)'"
 	}
 ];
 
