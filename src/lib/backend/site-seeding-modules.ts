@@ -11,12 +11,16 @@
 import { SITE_SEED_BASE_MODULE, type SiteSeedModule } from './site-seeding';
 import { SITE_SEED_BLOG_MODULE } from './site-seeding-blog';
 import { SITE_SEED_CONTACT_MODULE } from './site-seeding-contact';
+import { SITE_SEED_MENUS_MODULE } from './site-seeding-menus';
+import { SITE_SEED_SITE_SETTINGS_MODULE } from './site-seeding-site-settings';
 
 /** Todos los módulos que Vega sabe sembrar. La base va la primera y se siembra siempre. */
 export const SITE_SEED_MODULES: readonly SiteSeedModule[] = [
 	SITE_SEED_BASE_MODULE,
 	SITE_SEED_BLOG_MODULE,
-	SITE_SEED_CONTACT_MODULE
+	SITE_SEED_CONTACT_MODULE,
+	SITE_SEED_MENUS_MODULE,
+	SITE_SEED_SITE_SETTINGS_MODULE
 ];
 
 /** Los módulos que se pueden pedir en `SiteSeedOptions.modules`: todos menos la base. */

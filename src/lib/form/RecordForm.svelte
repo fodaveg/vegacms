@@ -772,7 +772,7 @@
 	}
 
 	/** Tarea "pantalla del editor visual" (aditiva sobre "Vista previa" de arriba): visible SOLO
-	 *  con las MISMAS cuatro puertas que `visual-gate.ts` («forbidden» no aplica aquí — esta ruta
+	 *  con una página declarada y las MISMAS cuatro puertas que `visual-gate.ts` («forbidden» no aplica aquí — esta ruta
 	 *  ya exige `permissions.view` para estar montada) más `model.recordId` no nulo (nada que
 	 *  editar visualmente en `/new` sin guardar, mismo criterio que `previewCapable`). Repetir las
 	 *  condiciones en vez de importar `resolveVisualGate` es deliberado: esa función decide si la
@@ -782,6 +782,7 @@
 		(ctx.port.previewApiUrl ?? null) !== null &&
 			ctx.port.previewVisualEditing === true &&
 			Boolean(type.blocks) &&
+			Boolean(type.page) &&
 			model.recordId !== null
 	);
 

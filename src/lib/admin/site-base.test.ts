@@ -260,7 +260,12 @@ describe('site-base', () => {
 		test('la tarjeta ofrece los opcionales del registro, y cada uno tiene nombre, descripción y los textos de sus colecciones en los dos idiomas', async () => {
 			await ensureLocaleLoaded('en');
 			expect(SITE_BASE_MODULES).toBe(SITE_SEED_OPTIONAL_MODULES);
-			expect(SITE_BASE_MODULES.map((module) => module.id)).toEqual(['blog', 'contacto']);
+			expect(SITE_BASE_MODULES.map((module) => module.id)).toEqual([
+				'blog',
+				'contacto',
+				'menus',
+				'datos-del-sitio'
+			]);
 			for (const locale of ['es', 'en'] as const) {
 				const tr = (key: string) => translate(locale, key);
 				for (const module of SITE_BASE_MODULES) {

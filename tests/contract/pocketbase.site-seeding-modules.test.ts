@@ -17,7 +17,8 @@ import {
 } from '$lib/backend/site-seeding';
 import { SITE_SEED_BLOG_MODULE, SITE_SEED_TAGS_READ_RULE } from '$lib/backend/site-seeding-blog';
 import { CONTACT_CREATE_RULE, SITE_SEED_CONTACT_MODULE } from '$lib/backend/site-seeding-contact';
-import { SITE_SEED_OPTIONAL_MODULES } from '$lib/backend/site-seeding-modules';
+import { SITE_SEED_MENUS_MODULE } from '$lib/backend/site-seeding-menus';
+import { SITE_SEED_SITE_SETTINGS_MODULE } from '$lib/backend/site-seeding-site-settings';
 import {
 	handEditedManifest,
 	seedLikePrevious0ace139
@@ -87,6 +88,96 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 	}
 
 	const items = (body: Json) => body.items as Json[];
+
+	test.each([SITE_SEED_MENUS_MODULE, SITE_SEED_SITE_SETTINGS_MODULE])(
+		'$id: siembra registros por clave; conserva cambios y la segunda pasada no escribe',
+		async (module) => {
+			const options = { modules: [module] };
+			const first = await seedSiteProject(port, options);
+			expect(first.createdModuleRecords).toEqual(
+				module.records!.map(({ collection, keyField, key }) => ({ collection, keyField, key }))
+			);
+			for (const spec of module.collections) {
+				expect(rules(await admin.collections.getOne(spec.name))).toEqual({
+					listRule: spec.listRule ?? null,
+					viewRule: spec.viewRule ?? null,
+					createRule: spec.createRule ?? null,
+					updateRule: spec.updateRule ?? null,
+					deleteRule: spec.deleteRule ?? null
+				});
+			}
+			const seeded = module.records![0]!;
+			const records = await admin.collection(seeded.collection).getFullList();
+			const record = records.find((record) => record[seeded.keyField] === seeded.key)!;
+			const field = module.id === 'menus' ? 'name' : 'description';
+			await admin
+				.collection(seeded.collection)
+				.update(record.id, { [field]: 'Texto del proyecto' });
+			const second = await seedSiteProject(port, options);
+			expect(second).toEqual({
+				createdCollections: [],
+				addedFields: {},
+				createdRecords: [],
+				upgradedRecords: []
+			});
+			expect((await admin.collection(seeded.collection).getOne(record.id))[field]).toBe(
+				'Texto del proyecto'
+			);
+			expect(await previewSiteSeed(port, options)).toMatchObject({
+				status: 'ready',
+				plan: { upToDate: true }
+			});
+			await admin.collection(seeded.collection).delete(record.id);
+			expect((await seedSiteProject(port, options)).createdModuleRecords).toEqual([
+				{ collection: seeded.collection, keyField: seeded.keyField, key: seeded.key }
+			]);
+		}
+	);
+
+	test('menus: editor guarda elementos y nombre, clave inmutable y destinos seguros en la colección sembrada', async () => {
+		await seedSiteProject(port, { modules: [SITE_SEED_MENUS_MODULE] });
+		const token = await editorToken();
+		const menu = (await admin.collection('menus').getFullList()).find(
+			(menu) => menu.key === 'principal'
+		)!;
+		const name = await request(`/api/collections/menus/records/${menu.id}`, {
+			method: 'PATCH',
+			body: { name: 'Cabecera' },
+			token
+		});
+		expect(name.status).toBe(200);
+		expect(
+			(
+				await request(`/api/collections/menus/records/${menu.id}`, {
+					method: 'PATCH',
+					body: { key: 'principal' },
+					token
+				})
+			).status
+		).toBe(404);
+		for (const url of ['/', '#equipo', 'mailto:ana@example.test']) {
+			expect(
+				(
+					await request('/api/collections/menu_items/records', {
+						method: 'POST',
+						body: { menu: menu.id, url, label: 'Enlace' },
+						token
+					})
+				).status
+			).toBe(200);
+		}
+		for (const url of ['javascript:alert(1)', '//evil.test', String.raw`/\evil.test`]) {
+			expect(
+				(
+					await request('/api/collections/menu_items/records', {
+						method: 'POST',
+						body: { menu: menu.id, url },
+						token
+					})
+				).status
+			).toBe(400);
+		}
+	});
 
 	test('base + blog: crea `tags` y `posts` con sus reglas, el `slug` es único y sin sesión solo se lee lo publicado', async () => {
 		const result = await seedSiteProject(port, { modules: [SITE_SEED_BLOG_MODULE] });
@@ -416,7 +507,7 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 		edited.nav.groups = ['Taller', 'Sitio'];
 		edited.collections.recetas!.group = 'Taller';
 		await admin.collection('vega').update(record.id, { manifest: edited });
-		const modules = [...SITE_SEED_OPTIONAL_MODULES];
+		const modules = [SITE_SEED_BLOG_MODULE, SITE_SEED_CONTACT_MODULE];
 
 		const preview = await previewSiteSeed(port, { modules });
 		if (preview.status !== 'ready') throw new Error('se esperaba un plan');

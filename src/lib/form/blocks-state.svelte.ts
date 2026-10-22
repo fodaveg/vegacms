@@ -457,7 +457,7 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 			createdRecord = created;
 		} catch (err) {
 			const vegaErr =
-				err instanceof VegaError ? err : VegaError.backend('No se pudo crear el bloque', err);
+				err instanceof VegaError ? err : VegaError.backend('No se pudo crear el elemento', err);
 			ctx.feedback.reportError(vegaErr, { action: 'blocks:create' });
 		} finally {
 			structuralBusy = false;
@@ -510,11 +510,14 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 				true
 			);
 			if (reordered && isCurrentView(view)) {
-				ctx.feedback.toast(ctx.t('editor.blocks.duplicateSuccess'), { kind: 'success' });
+				ctx.feedback.toast(
+					ctx.t('editor.blocks.duplicateSuccess', { label: blockTitle(created) }),
+					{ kind: 'success' }
+				);
 			}
 		} catch (err) {
 			const vegaErr =
-				err instanceof VegaError ? err : VegaError.backend('No se pudo duplicar el bloque', err);
+				err instanceof VegaError ? err : VegaError.backend('No se pudo duplicar el elemento', err);
 			ctx.feedback.reportError(vegaErr, { action: 'blocks:duplicate' });
 		} finally {
 			duplicatingIds.delete(record.id);
@@ -555,7 +558,7 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 			pendingDelete = null;
 		} catch (err) {
 			const vegaErr =
-				err instanceof VegaError ? err : VegaError.backend('No se pudo borrar el bloque', err);
+				err instanceof VegaError ? err : VegaError.backend('No se pudo borrar el elemento', err);
 			ctx.feedback.reportError(vegaErr, { action: 'blocks:delete' });
 		} finally {
 			deleting = false;

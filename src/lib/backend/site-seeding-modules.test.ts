@@ -10,6 +10,8 @@ import {
 } from './site-seeding';
 import { SITE_SEED_BLOG_MODULE, SITE_SEED_TAGS_READ_RULE } from './site-seeding-blog';
 import { CONTACT_CREATE_RULE, SITE_SEED_CONTACT_MODULE } from './site-seeding-contact';
+import { SITE_SEED_MENUS_MODULE } from './site-seeding-menus';
+import { SITE_SEED_SITE_SETTINGS_MODULE } from './site-seeding-site-settings';
 import starterManifest from './site-seeding-manifest.json';
 import { mergeManifestFragment } from './site-seeding-merge';
 import {
@@ -62,9 +64,20 @@ const MODULES: Array<[string, SiteSeedModule, string[]]> = [
 ];
 
 describe('registro de módulos de sembrado', () => {
-	test('la base va la primera y los opcionales son `blog` y `contacto`, en ese orden', () => {
-		expect(SITE_SEED_MODULES.map((module) => module.id)).toEqual(['base', 'blog', 'contacto']);
-		expect(SITE_SEED_OPTIONAL_MODULES).toEqual([SITE_SEED_BLOG_MODULE, SITE_SEED_CONTACT_MODULE]);
+	test('la base va la primera y los opcionales incluyen los módulos de contenido, en orden', () => {
+		expect(SITE_SEED_MODULES.map((module) => module.id)).toEqual([
+			'base',
+			'blog',
+			'contacto',
+			'menus',
+			'datos-del-sitio'
+		]);
+		expect(SITE_SEED_OPTIONAL_MODULES).toEqual([
+			SITE_SEED_BLOG_MODULE,
+			SITE_SEED_CONTACT_MODULE,
+			SITE_SEED_MENUS_MODULE,
+			SITE_SEED_SITE_SETTINGS_MODULE
+		]);
 		expect(SITE_SEED_OPTIONAL_MODULES).not.toContain(SITE_SEED_BASE_MODULE);
 		expect(findSiteSeedModule('blog')).toBe(SITE_SEED_BLOG_MODULE);
 		expect(findSiteSeedModule('contacto')).toBe(SITE_SEED_CONTACT_MODULE);
@@ -256,7 +269,7 @@ describe('navegación de un módulo añadido a un sitio ya sembrado', () => {
 		await seedSiteProject(port, { modules: [...SITE_SEED_OPTIONAL_MODULES] });
 
 		expect(await resolvedNav(port)).toEqual([
-			['Sitio', ['pages', 'redirects', 'posts', 'tags', 'messages']]
+			['Sitio', ['pages', 'redirects', 'posts', 'tags', 'messages', 'menus', 'site_settings']]
 		]);
 		// El grupo ya estaba declarado: `nav` no cambia.
 		expect((await savedManifest(port)).nav).toEqual({ groups: ['Sitio'] });

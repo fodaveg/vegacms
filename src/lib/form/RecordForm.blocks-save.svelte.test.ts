@@ -229,7 +229,7 @@ describe('RecordForm: el Guardar de la página guarda también sus secciones', (
 		expect(onSaved).not.toHaveBeenCalled();
 		await until(() => target.querySelector('.vega-visual-publish-error') !== null);
 		expect(target.querySelector('.vega-visual-publish-error')?.textContent).toBe(
-			'Sin guardar: Escríbeme. Cada sección dice qué falta.'
+			'Sin guardar: Escríbeme. Revisa cada elemento.'
 		);
 		// El aviso ocupa el hueco del estado de la barra; el punto «sin guardar» sigue en la miga.
 		expect(target.querySelector('.vega-editor-dirty')).not.toBeNull();

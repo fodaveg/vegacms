@@ -69,7 +69,8 @@ export function siteModuleState(module: SiteSeedModule, plan: SiteSeedModulePlan
 	const pending =
 		plan.createdCollections.length > 0 ||
 		Object.keys(plan.addedFields).length > 0 ||
-		plan.manifestEntries.length > 0;
+		plan.manifestEntries.length > 0 ||
+		(plan.createdRecords?.length ?? 0) > 0;
 	return pending ? 'incomplete' : 'added';
 }
 
@@ -83,6 +84,7 @@ export function onlyModuleWrites(plan: SiteSeedPlanSummary, base: SiteSeedModule
 		base.createdCollections.length === 0 &&
 		Object.keys(base.addedFields).length === 0 &&
 		base.manifestEntries.length === 0 &&
+		(base.createdRecords?.length ?? 0) === 0 &&
 		!plan.constrainedFields &&
 		!plan.pageMissing
 	);
@@ -352,6 +354,20 @@ function buildModulePlanView(module: SiteSeedModulePlan, t: Translate): PlanView
 			}))
 		});
 	}
+	const records = module.createdRecords ?? [];
+	if (records.length > 0) {
+		const items = records.map((record) => ({
+			title: t('settings.site.record.title', {
+				collection: collectionLabel(t, record.collection),
+				key: record.key
+			}),
+			text: t('settings.site.record.text'),
+			code: `${record.collection}.${record.keyField} = ${record.key}`
+		}));
+		const create = groups.find((group) => group.id === 'create');
+		if (create) create.items.push(...items);
+		else groups.push({ id: 'create', heading: t('settings.site.group.create'), items });
+	}
 	const add = fieldItems(module.addedFields, t);
 	if (add.length > 0) groups.push({ id: 'add', heading: t('settings.site.group.add'), items: add });
 	groups.push(...manifestGroups([module], true, t));
@@ -597,6 +613,9 @@ export function summarizeResult(result: SiteSeedResult, t: Translate): string {
 		parts.push(t('settings.site.result.manifestUpgraded'));
 	}
 	if (result.createdRecords.includes('page:/')) parts.push(t('settings.site.result.page'));
+	if (result.createdModuleRecords?.length) {
+		parts.push(t('settings.site.result.records', { count: result.createdModuleRecords.length }));
+	}
 	if (parts.length === 0) return t('settings.site.result.nothing');
 	return t('settings.site.result.done', { summary: joinList(t, parts) });
 }

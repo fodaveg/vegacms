@@ -187,9 +187,9 @@ describe('BlockEditor: un campo markdown con HTML', () => {
 
 		expect(update).not.toHaveBeenCalled();
 		const alerts = [...target.querySelectorAll('[role="alert"]')].map((el) => el.textContent);
-		expect(
-			alerts.some((text) => /No se ha guardado el bloque\. Revisa: Cuerpo\./.test(text ?? ''))
-		).toBe(true);
+		expect(alerts.some((text) => /No se ha guardado\. Revisa: Cuerpo\./.test(text ?? ''))).toBe(
+			true
+		);
 		expect(target.querySelector('[data-field="bodyEs"]')?.textContent).toContain(
 			'No se puede guardar'
 		);

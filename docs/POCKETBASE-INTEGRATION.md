@@ -1087,17 +1087,56 @@ pasan en `seedSiteProject(port, { modules })` y se registran en
 las de la base (ausente se crea, presente recibe los campos que falten, forma incompatible aborta
 el lote) y su fragmento se fusiona como el de la base. `previewSiteSeed(port, { modules })`
 devuelve, además del plan total, el desglose por módulo: colecciones que se crearían, campos que
-se añadirían, entradas de manifiesto que se añadirían y las que no se pueden añadir. Un módulo
-solo aporta colecciones y manifiesto: no siembra registros.
+se añadirían, entradas de manifiesto que se añadirían y las que no se pueden añadir. También puede
+aportar `records`: registros iniciales de sus propias colecciones, identificados por una columna de
+texto obligatoria y única (`collection`, `keyField`, `key`, `values` opcionales). Se crean después de
+las colecciones solo si falta esa clave; un registro existente nunca se actualiza. Si se borra,
+vuelve en la próxima pasada de ese módulo. El plan enumera cada clave que falta y el resultado las
+recoge en `createdModuleRecords`. Una clave incompatible, repetida o ausente en una colección ya
+poblada bloquea el lote antes de escribir. La relectura justo antes de crear conserva un registro
+que otra pasada haya creado mientras tanto; el índice único cierra la carrera restante sin duplicar.
+No hay transacción ni rollback del lote completo: ante un fallo se repite para completar faltantes.
 
-Además de `base` hay dos módulos opcionales, que se añaden desde «Ajustes → Base del sitio →
+Además de `base` hay cuatro módulos opcionales, que se añaden desde «Ajustes → Base del sitio →
 Módulos» (cada uno con su vista previa de solo lectura; solo con la base al día, porque la base
 va en toda pasada y lo que tuviera pendiente se escribiría también):
 
-| Módulo     | Fichero                   | Colecciones     | En el menú                           |
-| ---------- | ------------------------- | --------------- | ------------------------------------ |
-| `blog`     | `site-seeding-blog.ts`    | `tags`, `posts` | «Entradas» y «Etiquetas», en «Sitio» |
-| `contacto` | `site-seeding-contact.ts` | `messages`      | «Mensajes», en «Sitio»               |
+| Módulo            | Fichero                         | Colecciones           | En el menú                              |
+| ----------------- | ------------------------------- | --------------------- | --------------------------------------- |
+| `blog`            | `site-seeding-blog.ts`          | `tags`, `posts`       | «Entradas» y «Etiquetas», en «Sitio»    |
+| `contacto`        | `site-seeding-contact.ts`       | `messages`            | «Mensajes», en «Sitio»                  |
+| `menus`           | `site-seeding-menus.ts`         | `menus`, `menu_items` | «Menús», en «Sitio»                     |
+| `datos-del-sitio` | `site-seeding-site-settings.ts` | `site_settings`       | «Datos del sitio», singleton en «Sitio» |
+
+**Menús.** Siembra las claves `principal` y `pie` sin sustituir sus nombres ni elementos. Los
+editores renombran un menú y gestionan sus enlaces desde la lista embebida homogénea: añadir,
+duplicar, borrar y reordenar con arrastre o teclado. No ofrece editor visual porque un menú no es
+una página. Solo superusuarios crean o borran menús o cambian su clave. `menu_items.page` enlaza una
+página y `url` admite rutas seguras, anclas, HTTP(S) y correo; el consumidor resuelve el destino y el
+título. Sin sesión, la regla oculta el elemento entero mientras su página esté en borrador. Borrar
+un menú borra sus elementos por cascada. Borrar una página vacía su relación, sin borrar el elemento:
+si no queda URL no hay destino; **si queda una URL, incluido `#ancla`, pasa a ser un enlace libre**.
+No hay un campo que permita recordar o distinguir su origen. Una URL sin página necesita texto de
+enlace. Restaurar una página no repone las relaciones vaciadas. Borrar un elemento no actualiza otro
+registro: la comprobación de cambios sin publicar comparte esa limitación con los bloques.
+
+**Datos del sitio.** Siembra `site_settings/key=default`, inicialmente sin contenido. Su manifiesto
+lo declara singleton y oculta la clave: se abre directamente su formulario desde el menú. El nombre
+público, la descripción, la imagen social (relación a `vega_media` sin cascada) y el texto del pie son
+columnas reales. `site.name` sigue siendo el nombre del proyecto en Vega; no se sincroniza con
+`siteTitle`. El consumidor escoge sus reservas si un campo está vacío. **Toda columna de esta
+colección es pública**, incluidas las añadidas por el proyecto, salvo que PocketBase la marque como
+`hidden`. Los secretos pertenecen a otra colección o al servidor. Un `socialImage` previo de tipo
+`file` es incompatible y bloquea antes de escribir; los campos y `localizedFields` propios se
+conservan por fusión aditiva.
+
+Ambos módulos protegen la clave con
+`@request.auth.collectionName = "vega_editors" && @request.body.key:isset = false`.
+El formulario envía solo campos cambiados: un editor guarda contenido normalmente, pero un PATCH
+que incluya `key` (también si lleva el mismo valor) recibe **404**. Las reglas nulas de creación y
+borrado rechazan al editor con **403**. Un superusuario puede cambiar la clave. Medido en PocketBase
+0.39.9 en `pocketbase.menus-settings-rule-probe.test.ts`, incluida la expansión pública de la imagen
+con listado de medios cerrado a visitantes y vista individual pública.
 
 **Blog.** `posts` se publica como `pages` y comparte con ella las mismas constantes: `status`
 (`draft`/`published`), `publishAt`, los campos de SEO (`description`, `socialImage`, `noindex`),

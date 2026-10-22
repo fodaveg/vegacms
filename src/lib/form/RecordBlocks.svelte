@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * `RecordBlocks.svelte` (capacidad `blocks`, lote "editor" Fase A, `ResolvedBlocksConfig`):
-	 * PRESENTACIÓN de la lista embebida de bloques de un registro — el marcado, el menú "Añadir
+	 * PRESENTACIÓN de la lista embebida de elementos de un registro — el marcado, el menú "Añadir
 	 * bloque" con su gestión de foco y teclado, el controlador de arrastre y el CSS. El ESTADO y las
 	 * MUTACIONES (carga, crear, duplicar, borrar, reordenar) viven en `blocks-state.svelte.ts`
 	 * (`createBlocksState`): este componente instancia esa fábrica UNA VEZ (`blocks`, más abajo) y

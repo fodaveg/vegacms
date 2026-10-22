@@ -41,8 +41,8 @@
  * fusión no pasa `validateManifestStrict`.
  *
  * MÓDULOS (`SiteSeedModule`). Lo que se siembra se agrupa en módulos: colecciones a asegurar más
- * un fragmento de manifiesto. La base de siempre es el módulo `base` y va en toda pasada; los
- * demás se piden en `SiteSeedOptions.modules` y se registran en `site-seeding-modules.ts`.
+ * un fragmento de manifiesto y registros iniciales por clave única. La base de siempre es el
+ * módulo `base` y va en toda pasada; los demás se piden en `SiteSeedOptions.modules` y se registran en `site-seeding-modules.ts`.
  *
  * REGLAS DE ACCESO DE UNA COLECCIÓN DE MÓDULO QUE YA EXISTE. `tags`, `posts` y `messages` son nombres
  * genéricos y una instalación puede tenerlos con otras reglas (una `messages` con `listRule: ""`
@@ -79,7 +79,7 @@ import {
 	mergeManifestFragment,
 	type ManifestMergeSkipped
 } from './site-seeding-merge';
-import type { ContentType, Field, InvitationLinkState, JsonValue } from './types';
+import type { ContentType, Field, InvitationLinkState, JsonValue, RecordInput } from './types';
 import { ensureMediaCollection, VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
 import { listManifestRecords, saveManifest } from '$lib/model/load';
 import { resolveContentModel } from '$lib/model/resolve';
@@ -88,6 +88,8 @@ import { validateManifestStrict } from '$lib/model/validate';
 
 export const SITE_SEED_MANIFEST_READ_RULE = '@request.auth.collectionName = "vega_editors"';
 export const SITE_SEED_EDITOR_ACCESS_RULE = '@request.auth.collectionName = "vega_editors"';
+/** :isset mira el cuerpo enviado: permite contenido y protege la clave; PATCH rechazado da 404. */
+export const SITE_SEED_KEY_UPDATE_RULE = `${SITE_SEED_EDITOR_ACCESS_RULE} && @request.body.key:isset = false`;
 export const SITE_SEED_PAGES_READ_RULE =
 	'status = "published" || @request.auth.collectionName = "vega_editors"';
 /**
@@ -284,13 +286,25 @@ const PROJECT_MANIFEST_COLLECTION: CollectionSpec = {
 	viewRule: SITE_SEED_MANIFEST_READ_RULE
 };
 
+/** Identidad estable de un registro inicial; su clave es una columna de texto única. */
+export interface SiteSeedRecordKey {
+	collection: string;
+	keyField: string;
+	key: string;
+}
+
+/** Se crea solo si falta. Los valores iniciales nunca se aplican sobre un registro existente. */
+export interface SiteSeedRecord extends SiteSeedRecordKey {
+	values?: RecordInput;
+}
+
 /**
- * Una unidad de sembrado: las colecciones que asegura y el fragmento de manifiesto que aporta.
+ * Una unidad de sembrado: colecciones, fragmento de manifiesto y registros iniciales por clave.
  *
- * Las dos mitades siguen la misma regla aditiva. Una colección ausente se crea; a una presente se
+ * Todas sus piezas siguen la misma regla aditiva. Una colección ausente se crea; a una presente se
  * le añaden los campos que falten; un campo presente con otra forma aborta el lote entero antes
  * de escribir. Al manifiesto se le añaden las entradas del fragmento que falten
- * (`mergeManifestFragment`).
+ * (`mergeManifestFragment`). Los registros se crean si falta su clave; nunca se actualizan.
  */
 export interface SiteSeedModule {
 	/** Identificador estable: es la clave por la que el preflight y el resultado nombran el módulo. */
@@ -307,6 +321,8 @@ export interface SiteSeedModule {
 	 * entradas que el módulo aporta (`collections.<c>`, `blockTypes.<t>`…).
 	 */
 	manifest: JsonValue;
+	/** Registros iniciales de las colecciones del propio módulo, identificados por clave única. */
+	records?: readonly SiteSeedRecord[];
 }
 
 /**
@@ -382,12 +398,16 @@ interface SeedPlan {
 	collections: Map<string, CollectionPlan>;
 	manifest: ManifestPlan;
 	pageMissing: boolean;
+	/** Registros ausentes por id de módulo. */
+	records: Map<string, SiteSeedRecord[]>;
 }
 
 export interface SiteSeedResult {
 	createdCollections: string[];
 	addedFields: Record<string, string[]>;
 	createdRecords: Array<'manifest' | 'page:/'>;
+	/** Registros iniciales de módulos creados en esta pasada, sin incluir los que ya existían. */
+	createdModuleRecords?: SiteSeedRecordKey[];
 	/** `manifest`: a un manifiesto que ya existía se le añadieron entradas (`manifestEntries`). */
 	upgradedRecords: Array<'manifest'>;
 	/** Solo si hubo alguna: entradas AÑADIDAS a un manifiesto que ya existía, por `id` de módulo
@@ -487,7 +507,8 @@ function moduleHasWrites(plan: SiteSeedModulePlan): boolean {
 	return (
 		plan.createdCollections.length > 0 ||
 		Object.keys(plan.addedFields).length > 0 ||
-		plan.manifestEntries.length > 0
+		plan.manifestEntries.length > 0 ||
+		(plan.createdRecords?.length ?? 0) > 0
 	);
 }
 
@@ -501,7 +522,8 @@ export function ruleDifferencesToConfirm(plan: SiteSeedModulePlan): SiteSeedRule
  * manifiesto solo se le añaden entradas, ver la cabecera del módulo).
  * El orden de aplicación es explícito porque el puerto no ordena specs:
  * `vega_editors` -> `vega_media` (sola) -> `pages` -> `blocks` -> `redirects` -> `vega` -> las
- * colecciones de cada módulo pedido, en su orden -> manifiesto -> página canónica.
+ * colecciones de cada módulo pedido, en su orden -> registros iniciales de módulos -> manifiesto
+ * -> página canónica.
  * `vega_media` va antes que `pages` porque `pages.socialImage` la enlaza.
  *
  * Entre el preflight y la escritura del manifiesto otro editor puede haberlo guardado: justo antes
@@ -549,6 +571,19 @@ export async function seedSiteProject(
 		if (module === SITE_SEED_BASE_MODULE) continue;
 		for (const spec of module.collections) {
 			await applyCollectionPlan(port, plan.collections.get(spec.name)!, result);
+		}
+	}
+
+	// Las colecciones y relaciones ya existen. Releer cada clave evita reescribir un registro que
+	// otra pasada haya creado desde el preflight; el índice único resuelve la carrera restante.
+	for (const records of plan.records.values()) {
+		for (const record of records) {
+			if (!(await seedRecordMissing(port, record))) continue;
+			await port.create(record.collection, {
+				...structuredClone(record.values ?? {}),
+				[record.keyField]: record.key
+			});
+			(result.createdModuleRecords ??= []).push(seedRecordKey(record));
 		}
 	}
 
@@ -645,6 +680,8 @@ export interface SiteSeedPlanSummary {
 	manifest: ManifestAction;
 	/** La página canónica «Inicio» se crearía. */
 	pageMissing: boolean;
+	/** Registros iniciales de módulos que faltan. Ausente cuando no hay ninguno. */
+	createdModuleRecords?: SiteSeedRecordKey[];
 	/** Nada que escribir en las piezas visibles. */
 	upToDate: boolean;
 }
@@ -673,6 +710,8 @@ export interface SiteSeedModulePlan {
 	 * con `fieldGroups` propios, un campo en un tipo de bloque que ya existe.
 	 */
 	manifestSkipped: ManifestMergeSkipped[];
+	/** Registros iniciales que se crearían. Ausente cuando todos existen. */
+	createdRecords?: SiteSeedRecordKey[];
 	/**
 	 * Reglas de acceso de colecciones del módulo que YA existen y no son las que declara. Ausente o vacía si
 	 * no hay diferencias o si el puerto no puede leer reglas (`BackendPort.collectionRules`). Con
@@ -729,6 +768,9 @@ export async function previewSiteSeed(
 			addedFields: {},
 			manifestEntries: [...(plan.manifest.entries.get(module.id) ?? [])],
 			manifestSkipped: [...(plan.manifest.skipped.get(module.id) ?? [])],
+			...((plan.records.get(module.id)?.length ?? 0) > 0
+				? { createdRecords: plan.records.get(module.id)!.map(seedRecordKey) }
+				: {}),
 			ruleDifferences: [...(plan.ruleDifferences.get(module.id) ?? [])]
 		};
 		for (const { name } of module.collections) {
@@ -753,12 +795,14 @@ export async function previewSiteSeed(
 		Object.assign(addedFields, modulePlan.addedFields);
 		modules.push(modulePlan);
 	}
+	const createdModuleRecords = modules.flatMap((module) => module.createdRecords ?? []);
 	const summary: SiteSeedPlanSummary = {
 		createdCollections,
 		addedFields,
 		...(constrainedFields ? { constrainedFields } : {}),
 		manifest: plan.manifest.action,
 		pageMissing: plan.pageMissing,
+		...(createdModuleRecords.length > 0 ? { createdModuleRecords } : {}),
 		upToDate: false
 	};
 	summary.upToDate =
@@ -766,6 +810,7 @@ export async function previewSiteSeed(
 		Object.keys(addedFields).length === 0 &&
 		!constrainedFields &&
 		plan.manifest.action === 'keep' &&
+		createdModuleRecords.length === 0 &&
 		!plan.pageMissing;
 	return { status: 'ready', plan: summary, modules };
 }
@@ -792,6 +837,20 @@ function resolveSeedModules(extra: readonly SiteSeedModule[] = []): readonly Sit
 				);
 			}
 			owners.set(name, module.id);
+		}
+		const recordKeys = new Set<string>();
+		for (const record of module.records ?? []) {
+			const field = module.collections
+				.find((spec) => spec.name === record.collection)
+				?.fields.find((field) => field.name === record.keyField);
+			if (!field || field.type !== 'text' || !field.unique || !field.required || !record.key) {
+				throw new Error(
+					`El registro inicial "${record.collection}/${record.key}" requiere una clave de texto obligatoria y única en su propio módulo.`
+				);
+			}
+			const identity = JSON.stringify(seedRecordKey(record));
+			if (recordKeys.has(identity)) throw new Error(`Registro inicial repetido: ${identity}.`);
+			recordKeys.add(identity);
 		}
 	}
 	return modules;
@@ -840,9 +899,32 @@ async function inspectSeedPlan(
 		divergences
 	);
 
+	const records = new Map<string, SiteSeedRecord[]>();
+	for (const module of modules) {
+		const missing: SiteSeedRecord[] = [];
+		for (const record of module.records ?? []) {
+			const collection = collections.get(record.collection)!;
+			if (collection.incompatibleFields.has(record.keyField)) continue;
+			if (collection.missing) {
+				missing.push(record);
+				continue;
+			}
+			if (collection.missingFields.some((field) => field.name === record.keyField)) {
+				const existing = await port.list(record.collection, { perPage: 1 });
+				if (existing.totalItems > 0) {
+					divergences.push({
+						piece: `registro "${record.collection}/${record.key}"`,
+						expected: `colección vacía para añadir la clave única "${record.keyField}"`,
+						actual: `${existing.totalItems} registros sin esa clave`
+					});
+				} else missing.push(record);
+			} else if (await seedRecordMissing(port, record, divergences)) missing.push(record);
+		}
+		records.set(module.id, missing);
+	}
 	if (divergences.length > 0) throw new SiteSeedDivergenceError(divergences);
 	const ruleDifferences = await inspectRuleDifferences(port, modules, actualByName);
-	return { modules, collections, manifest, pageMissing, ruleDifferences };
+	return { modules, collections, manifest, pageMissing, ruleDifferences, records };
 }
 
 /**
@@ -895,7 +977,9 @@ function assertRuleDifferencesConfirmed(plan: SeedPlan, confirmed: readonly stri
 			module.collections.some((spec) => {
 				const collection = plan.collections.get(spec.name)!;
 				return collection.missing || collection.missingFields.length > 0;
-			}) || (plan.manifest.entries.get(module.id)?.length ?? 0) > 0;
+			}) ||
+			(plan.manifest.entries.get(module.id)?.length ?? 0) > 0 ||
+			(plan.records.get(module.id)?.length ?? 0) > 0;
 		if (writes) pending[module.id] = differences;
 	}
 	if (Object.keys(pending).length > 0) throw new SiteSeedRuleDifferencesError(pending);
@@ -1086,6 +1170,33 @@ function inspectManifestPage(
 		entries,
 		skipped
 	};
+}
+
+/** Proyección del registro para el plan y el resultado, sin sus valores iniciales. */
+function seedRecordKey(record: SiteSeedRecordKey): SiteSeedRecordKey {
+	return { collection: record.collection, keyField: record.keyField, key: record.key };
+}
+
+/** Lee por clave con filtro estructurado. Nunca interpreta un error de transporte como ausencia. */
+async function seedRecordMissing(
+	port: BackendPort,
+	record: SiteSeedRecordKey,
+	divergences?: SiteSeedDivergence[]
+): Promise<boolean> {
+	const found = await port.list(record.collection, {
+		perPage: 2,
+		filter: { kind: 'cond', field: record.keyField, op: 'eq', value: record.key }
+	});
+	if (found.totalItems > 1) {
+		const divergence = {
+			piece: `registro "${record.collection}/${record.key}"`,
+			expected: 'un único registro con esa clave',
+			actual: `${found.totalItems} registros con esa clave`
+		};
+		if (divergences) divergences.push(divergence);
+		else throw new SiteSeedDivergenceError([divergence]);
+	}
+	return found.totalItems === 0;
 }
 
 async function inspectCanonicalPage(

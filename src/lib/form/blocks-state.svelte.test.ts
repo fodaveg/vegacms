@@ -241,7 +241,7 @@ describe('blocks-state.svelte.ts', () => {
 		await state.handleDuplicate(original);
 
 		expect(state.records.map((r) => r.values.heading)).toEqual(['Hero', 'Hero', 'Features']);
-		expect(feedback.toast).toHaveBeenCalledWith('Bloque duplicado.', { kind: 'success' });
+		expect(feedback.toast).toHaveBeenCalledWith('Copia de «Hero» creada.', { kind: 'success' });
 	});
 
 	test('borrar quita el bloque, limpia pendingDelete y el aviso de sucio', async () => {

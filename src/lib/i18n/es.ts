@@ -795,9 +795,9 @@ export const es = {
 	'editor.blocks.form.noType':
 		'Este bloque no tiene tipo. Queda en solo lectura hasta que el modelo indique cómo editarlo.',
 	'editor.blocks.form.reviewFields': 'Revisa los campos señalados.',
-	'editor.blocks.form.errorSummary': 'No se ha guardado el bloque. Revisa: {fields}.',
+	'editor.blocks.form.errorSummary': 'No se ha guardado. Revisa: {fields}.',
 	// «Guardar» de la página con secciones que no se pudieron guardar (cada ficha dice por qué).
-	'editor.blocks.notSaved': 'Sin guardar: {labels}. Cada sección dice qué falta.',
+	'editor.blocks.notSaved': 'Sin guardar: {labels}. Revisa cada elemento.',
 	'editor.blocks.form.invalidData':
 		'La columna «{field}» no contiene un objeto JSON. Guardar sustituiría el valor existente, así que Vega ha bloqueado este bloque.',
 	'editor.blocks.form.rawData': 'Valor crudo de «{field}»',
@@ -808,7 +808,7 @@ export const es = {
 	'editor.blocks.duplicateLabel': 'Duplicar «{label}»',
 	// Título del diálogo de borrar una sección: su nombre, nunca el genérico «esta entrada».
 	'editor.blocks.deleteTitle': '¿Borrar «{label}»?',
-	'editor.blocks.duplicateSuccess': 'Bloque duplicado.',
+	'editor.blocks.duplicateSuccess': 'Copia de «{label}» creada.',
 	'editor.blocks.expandLabel': 'Desplegar «{label}»',
 	'editor.blocks.collapseLabel': 'Plegar «{label}»',
 	'editor.blocks.reorder.moved': '«{label}» movido a la posición {position} de {total}',
@@ -1894,6 +1894,21 @@ export const es = {
 	'settings.site.modules.dialog.running': 'Añadiendo… {elapsed}',
 	'settings.site.modules.blockedDialog.title': 'No se puede añadir: {name}',
 	'settings.site.modules.toast.added': 'Añadido: {name}.',
+	'settings.site.module.menus.name': 'Menús',
+	'settings.site.module.menus.desc': 'Menús planos de páginas y enlaces, con elementos ordenables.',
+	'settings.site.module.datos-del-sitio.name': 'Datos del sitio',
+	'settings.site.module.datos-del-sitio.desc':
+		'Nombre público, descripción, imagen para redes y texto del pie.',
+	'settings.site.collection.menus': 'Menús',
+	'settings.site.collection.menu_items': 'Elementos de menú',
+	'settings.site.collection.site_settings': 'Datos del sitio',
+	'settings.site.create.menus': 'Menús con una clave estable para el sitio.',
+	'settings.site.create.menu_items': 'Enlaces ordenados a páginas o direcciones.',
+	'settings.site.create.site_settings':
+		'Un registro de datos públicos compartidos por todo el sitio.',
+	'settings.site.record.title': '{collection}: «{key}»',
+	'settings.site.record.text': 'Se crea si falta. Si ya existe, conserva su contenido.',
+	'settings.site.result.records': '{count} registros iniciales',
 	'settings.site.module.blog.name': 'Blog',
 	'settings.site.module.blog.desc': 'Entradas con etiquetas, portada, fecha y SEO.',
 	'settings.site.module.contacto.name': 'Formulario de contacto',
