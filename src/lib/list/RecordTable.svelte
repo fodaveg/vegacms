@@ -181,6 +181,7 @@
 	import { recordInlineStatusBadge, recordOpenText, recordSubtitleText } from './record-table-text';
 	import { createReorderDndController, dropIndicatorEdge } from './reorder-dnd';
 	import ActionMenu from './ActionMenu.svelte';
+	import type { TreeRow } from '$lib/tree/records';
 	import type { ActionMenuItem } from './action-menu';
 	import { selectThumbSpec } from '$lib/backend/thumb-select';
 	import type { ResolvedContentType } from '$lib/model/types';
@@ -209,6 +210,9 @@
 		/** `true` cuando `+page.svelte` decide que ESTA vista se puede reordenar a mano (ver
 		 *  cabecera): pinta la columna del asa de arrastre. `false` en cualquier otro caso, ni
 		 *  siquiera se pinta la columna. */
+		/** Árbol completo para conservar títulos de madres aunque el listado esté filtrado. */
+		treeRows?: TreeRow[];
+		onTreeMove?: (record: VegaRecord, direction: -1 | 1) => void;
 		reorderable: boolean;
 		/** Avisa de un reorder por arrastre o teclado (ver cabecera): `fromIndex`/`toIndex` son
 		 *  posiciones dentro de `records`, en el orden ya renderizado. Solo se invoca cuando
@@ -226,7 +230,9 @@
 		onDeleteRequest,
 		onDuplicateRequest,
 		reorderable,
-		onReorder
+		onReorder,
+		treeRows,
+		onTreeMove
 	}: Props = $props();
 
 	const ctx = getVegaContext();
@@ -245,7 +251,10 @@
 	// ————— Menú de acciones de fila (ver cabecera) —————
 
 	/** ¿Hay alguna acción de fila que ofrecer? Sin ninguna, ni celda ni hueco (lámina 7). */
-	const hasRowMenu = $derived(contentType.permissions.delete || onDuplicateRequest !== undefined);
+	const hasRowMenu = $derived(
+		contentType.permissions.delete || onDuplicateRequest !== undefined || onTreeMove !== undefined
+	);
+	const treeById = $derived(new Map((treeRows ?? []).map((row) => [row.record.id, row])));
 
 	/** Entradas del menú de `record`, en el orden de la lámina: «Duplicar» antes que «Borrar…» (la
 	 *  destructiva la última, con su tono de peligro). Cada una emite al dueño con el mismo `label`
@@ -253,6 +262,28 @@
 	function rowMenuItems(record: VegaRecord): ActionMenuItem[] {
 		const label = openText(record);
 		const items: ActionMenuItem[] = [];
+		const move = onTreeMove;
+		const row = treeById.get(record.id);
+		if (move && row && !row.problem) {
+			const siblings = (treeRows ?? []).filter(
+				(item) => item.parentId === row.parentId && !item.problem
+			);
+			const position = siblings.findIndex((item) => item.record.id === record.id);
+			if (position > 0)
+				items.push({
+					id: 'tree-up',
+					label: ctx.t('list.tree.up'),
+					action: 'tree-up',
+					onSelect: () => move(record, -1)
+				});
+			if (position < siblings.length - 1)
+				items.push({
+					id: 'tree-down',
+					label: ctx.t('list.tree.down'),
+					action: 'tree-down',
+					onSelect: () => move(record, 1)
+				});
+		}
 		const duplicate = onDuplicateRequest;
 		if (duplicate) {
 			items.push({
@@ -511,6 +542,8 @@
 							)}
 							<td
 								class:vega-cell-title={isOpenColumn}
+								class:vega-cell-tree={isOpenColumn && treeRows !== undefined}
+								style:--tree-depth={isOpenColumn ? (treeById.get(record.id)?.depth ?? 1) - 1 : 0}
 								class:vega-cell-mono={!isOpenColumn &&
 									(descriptor.kind === 'date' || descriptor.kind === 'mono')}
 								class:vega-cell-right={!isOpenColumn && isRightAlignedColumn(column)}
@@ -602,9 +635,19 @@
 	{/if}
 	<!-- Línea secundaria (M3, `subtitleField`, ver cabecera): SOLO si el tipo lo declara Y el
 	     registro tiene valor (caso límite `blog_6`, ver demo-seed.ts). -->
-	{@const subtitle = subtitleText(record)}
+	{@const treeRow = treeById.get(record.id)}
+	{@const parent = treeRow?.parentId ? treeById.get(treeRow.parentId)?.record : null}
+	{@const subtitle = treeRow
+		? treeRow.problem
+			? ctx.t(`list.tree.${treeRow.problem}`)
+			: parent
+				? ctx.t('list.tree.inside', { title: openText(parent) })
+				: ctx.t('list.tree.root')
+		: subtitleText(record)}
 	{#if subtitle !== null}
-		<span class="vega-cell-subtitle">{subtitle}</span>
+		<span class="vega-cell-subtitle" class:vega-tree-problem={Boolean(treeRow?.problem)}
+			>{subtitle}</span
+		>
 	{/if}
 	<!-- Estado DEBAJO del título en pantallas estrechas (≤640px): la columna «Estado» se oculta ahí
 	     (`.vega-col-status`) y esta copia, solo visible en ese rango, ocupa su sitio. Sin
@@ -669,6 +712,18 @@
 {/snippet}
 
 <style>
+	.vega-record-table td.vega-cell-tree {
+		padding-left: calc(var(--cell-x) + var(--tree-depth) * 1.5rem);
+	}
+	.vega-tree-problem {
+		color: var(--danger);
+	}
+	@media (max-width: 640px) {
+		.vega-record-table td.vega-cell-tree {
+			padding-left: calc(var(--cell-x) + var(--tree-depth) * 1rem);
+		}
+	}
+
 	/* Solo el scroll horizontal de tablas anchas (ver cabecera del módulo): el marco/tarjeta
 	   (borde, radio, fondo, sombra) vive ahora en `+page.svelte`, que envuelve tabla + gridfoot
 	   en UNA sola tarjeta (mockup `.grid`). */

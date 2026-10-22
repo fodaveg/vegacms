@@ -797,3 +797,84 @@ actualizar el texto de un sitio ya sembrado, edita manualmente
 `collections.posts.fields.tags.help` en el manifiesto, por ejemplo: «Elige etiquetas existentes o
 crea una sin salir de la entrada. La etiqueta se guarda de forma independiente». La creación inline
 funciona aunque el manifiesto mantenga la ayuda antigua.
+
+## Colecciones en árbol (`tree`)
+
+`collections.<nombre>.tree` activa una jerarquía editorial sobre una relación **simple a la propia
+colección**. Es una decoración opt-in del manifiesto v1; no crea campos ni impone reglas de servidor.
+
+```json
+{
+	"collections": {
+		"categories": {
+			"titleField": "name",
+			"slugField": "slug",
+			"orderField": "order",
+			"tree": { "parentField": "parent", "maxDepth": 3 },
+			"listFields": ["name", "slug"]
+		}
+	}
+}
+```
+
+`parentField` y `maxDepth` son obligatorios. `maxDepth` admite enteros de 1 a 10; las raíces cuentan
+como nivel 1. Un `parentField` que no sea autorrelación simple, o una profundidad inválida, produce
+un aviso del modelo y se ignora la decoración entera. El editor técnico muestra el mismo aviso en
+su dry-run; el escritor rechaza formas o límites inválidos antes de escribir. Vega anterior ignora
+la clave nueva y conserva un listado plano; guardar ese manifiesto desde un escritor antiguo exige
+actualizar Vega, porque el escritor antiguo rechaza claves desconocidas.
+
+El listado lee todas las páginas antes de montar ramas, con hermanas por `orderField` y después por
+`id`. Conserva las columnas declaradas, sangra el título y muestra la madre debajo. Subir/Bajar en
+el menú solo cambia el orden entre hermanas; para cambiar la madre se usa el formulario. Buscar o
+filtrar mantiene el nivel y el nombre de la madre aunque esta no coincida; mientras se filtra no se
+ofrece reordenar. El árbol sustituye la paginación y el orden por cabeceras del listado plano.
+Los registros con ciclos, madres ausentes o demasiados niveles aparecen como raíces con aviso.
+
+El formulario excluye la propia fila y sus descendientes del selector de madre. Antes de cada envío
+(incluido Crear y seleccionar y Guardar igualmente) relee `id` y `parentField`, y comprueba la nueva
+ascendencia **y la altura completa de la rama movida**. Una lectura fallida bloquea el guardado con
+un error del campo y conserva el borrador; el selector ofrece Reintentar. Una rama inválida creada
+por importación u otro cliente se señala al abrir y puede repararse cambiando o vaciando su madre.
+
+La guarda es del cliente. Dos editores pueden formar un ciclo si guardan a la vez movimientos
+opuestos sobre lecturas anteriores; clientes directos e importaciones también pueden saltársela.
+El sitio debe tolerar esos datos. `buildVegaTree` de `@vega/astro` construye el árbol sin red y devuelve
+los problemas, ancestros e ids descendientes. Una URL plana `/categoria/<slug>` permite cambiar de
+madre sin cambiar direcciones; las URLs anidadas requieren redirecciones al mover una rama.
+
+## Firmas y clasificación del blog
+
+Al añadir Blog desde Base del sitio se incluyen `authors`, `categories`, `tags` y `posts`. Un blog
+anterior recibe las colecciones y relaciones ausentes tras pulsar Añadir; se conservan datos,
+reglas y personalizaciones del manifiesto. Para ocultar una colección se declara `hidden: true`;
+borrarla del manifiesto la vuelve a añadir en la siguiente actualización del módulo.
+
+`posts.authors` y `posts.categories` son relaciones múltiples opcionales y ordenadas. El widget
+permite crear destinos sin salir de la entrada y reordenar con Subir/Bajar. El orden de autores es
+el de la firma; la primera categoría es la principal. Autores, categorías y etiquetas son públicos
+desde su creación, aunque solo los enlace una entrada en borrador. No se deben guardar datos privados
+como correo o teléfono en `authors`.
+
+El sitio lee las entradas con el SDK de PocketBase; Vega no añade un cargador de entradas:
+
+```ts
+const entries = await pb.collection('posts').getList(1, 20, {
+	filter: 'status = "published"',
+	sort: '-date',
+	expand: 'authors,authors.avatar,categories'
+});
+const author = await pb
+	.collection('authors')
+	.getFirstListItem(pb.filter('slug = {:slug}', { slug }));
+const byAuthor = await pb.collection('posts').getFullList({
+	filter: pb.filter('status = "published" && authors ?= {:id}', { id: author.id }),
+	sort: '-date'
+});
+```
+
+La expansión anidada de avatar usa la regla de vista de `vega_media`, abierta, aunque listar la
+biblioteca exija sesión. Se conserva el orden guardado de las firmas. Una entrada sin firmas o sin
+categorías sigue siendo válida; el sitio decide qué mostrar. La foto se obtiene con
+`pb.files.getURL(avatar, avatar.file)`. SEO de autor, cuentas de editores, redes sociales y cargador de
+entradas quedan fuera de este módulo.

@@ -62,6 +62,7 @@ const COLLECTION_ALLOWED_KEYS = [
 	'statusLabels',
 	'publishAtField',
 	'orderField',
+	'tree',
 	'defaultSort',
 	'previewUrl',
 	'listFields',
@@ -653,6 +654,7 @@ function validateCollection(
 			`orderField de "${name}"`
 		);
 	}
+	if ('tree' in value) validateTree(name, value.tree, errors);
 	if ('defaultSort' in value) {
 		validateDefaultSort(name, value.defaultSort, errors);
 	}
@@ -687,6 +689,29 @@ function validateCollection(
 		validateLocalizedFields(name, value.localizedFields, errors);
 	}
 	if ('fields' in value) validateFields(name, value.fields, errors);
+}
+
+/** Forma estricta; la autorrelación real la comprueba el lector contra el esquema. */
+function validateTree(
+	name: string,
+	value: JsonValue,
+	errors: ManifestValidationErrorEntry[]
+): void {
+	const base = `/collections/${name}/tree`;
+	if (!isPlainObject(value)) {
+		fail(errors, base, 'tree debe ser un objeto.');
+		return;
+	}
+	checkAdditionalProperties(value, ['parentField', 'maxDepth'], base, errors);
+	checkString(value.parentField, `${base}/parentField`, 1, Infinity, errors, 'tree.parentField');
+	if (
+		typeof value.maxDepth !== 'number' ||
+		!Number.isInteger(value.maxDepth) ||
+		value.maxDepth < 1 ||
+		value.maxDepth > 10
+	) {
+		fail(errors, `${base}/maxDepth`, 'tree.maxDepth debe ser un entero de 1 a 10.');
+	}
 }
 
 function validateLocalizedFields(

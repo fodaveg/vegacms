@@ -1818,7 +1818,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.site.record.text': 'Created only when missing. Existing content is preserved.',
 	'settings.site.result.records': '{count} initial records',
 	'settings.site.module.blog.name': 'Blog',
-	'settings.site.module.blog.desc': 'Posts with tags, cover, date and SEO.',
+	'settings.site.module.blog.desc': 'Posts with authors, categories, tags, cover, date and SEO.',
 	'settings.site.module.contacto.name': 'Contact form',
 	'settings.site.module.contacto.desc':
 		'An inbox with the messages that arrive from the form on the site.',
@@ -1828,7 +1828,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'settings.site.collection.tags': 'Tags',
 	'settings.site.collection.messages': 'Messages',
 	'settings.site.create.posts':
-		'title, address, summary, content, cover, status, dates, tags and SEO',
+		'title, address, summary, content, cover, status, dates, authors, categories, tags and SEO',
 	'settings.site.create.tags': 'the name and address of each tag',
 	'settings.site.create.messages':
 		'name, email and message of whoever writes, and whether it has been read',
@@ -2208,5 +2208,21 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'editor.visual.status.loadError': 'The status could not be loaded. Reload',
 	'editor.visual.pending.page': 'Page fields with unsaved changes',
 	'editor.visual.pending.withPage': 'Page and {blocks}',
-	'editor.visual.pending.openPage': 'Open the page fields'
+	'editor.visual.pending.openPage': 'Open the page fields',
+	'settings.site.collection.authors': 'Authors',
+	'settings.site.collection.categories': 'Categories',
+	'settings.site.create.authors': 'each author’s name, address, biography, photo and website',
+	'settings.site.create.categories': 'blog categories and their hierarchy of up to three levels',
+	'form.tree.cycle': 'It cannot be inside itself or one of its subcategories.',
+	'form.tree.too-deep': 'This would exceed {maxDepth} levels.',
+	'form.tree.missing-parent': 'The parent no longer exists. Choose another or leave this empty.',
+	'form.tree.unavailable': 'Could not check the tree. Please try again.',
+	'form.tree.loading': 'Checking the tree…',
+	'list.tree.up': 'Move up among siblings',
+	'list.tree.down': 'Move down among siblings',
+	'list.tree.inside': 'Inside {title}',
+	'list.tree.root': 'Root category',
+	'list.tree.cycle': 'Cycle: correct its parent',
+	'list.tree.too-deep': 'Too many levels: correct its parent',
+	'list.tree.missing-parent': 'Parent not found: choose another'
 };

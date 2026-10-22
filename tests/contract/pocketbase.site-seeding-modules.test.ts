@@ -190,6 +190,8 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 			'redirects',
 			'vega',
 			'tags',
+			'authors',
+			'categories',
 			'posts'
 		]);
 		const posts = await admin.collections.getOne('posts');
@@ -528,17 +530,32 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 					'collections.redirects'
 				]
 			],
-			['blog', ['tags', 'posts'], ['collections.posts', 'collections.tags']],
+			[
+				'blog',
+				['tags', 'authors', 'categories', 'posts'],
+				['collections.posts', 'collections.authors', 'collections.categories', 'collections.tags']
+			],
 			['contacto', ['messages'], ['collections.messages']]
 		]);
 		expect(preview.modules.flatMap((module) => module.manifestSkipped)).toEqual([]);
 
 		const result = await seedSiteProject(port, { modules });
 
-		expect(result.createdCollections).toEqual(['tags', 'posts', 'messages']);
+		expect(result.createdCollections).toEqual([
+			'tags',
+			'authors',
+			'categories',
+			'posts',
+			'messages'
+		]);
 		expect(result.upgradedRecords).toEqual(['manifest']);
 		expect(result.manifestEntries).toMatchObject({
-			blog: ['collections.posts', 'collections.tags'],
+			blog: [
+				'collections.posts',
+				'collections.authors',
+				'collections.categories',
+				'collections.tags'
+			],
 			contacto: ['collections.messages']
 		});
 		const manifests = await admin.collection('vega').getFullList();
@@ -565,7 +582,15 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 		// es una propiedad de la fusión pura, no de lo que se lee del servidor. Las listas
 		// (`nav.groups`) sí conservan su orden.
 		expect(Object.keys(saved.collections).sort()).toEqual(
-			[...Object.keys(edited.collections), 'redirects', 'posts', 'tags', 'messages'].sort()
+			[
+				...Object.keys(edited.collections),
+				'redirects',
+				'posts',
+				'tags',
+				'messages',
+				'authors',
+				'categories'
+			].sort()
 		);
 		for (const name of ['posts', 'tags', 'messages']) {
 			expect(saved.collections[name]!.group).toBe('Sitio');
@@ -602,7 +627,12 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 		// La base también declara «Sitio» en su fragmento: es ella quien lo añade.
 		expect(result.manifestEntries).toEqual({
 			base: ['nav.groups.Sitio'],
-			blog: ['collections.posts', 'collections.tags']
+			blog: [
+				'collections.posts',
+				'collections.authors',
+				'collections.categories',
+				'collections.tags'
+			]
 		});
 		const saved = (await admin.collection('vega').getOne(record.id)).manifest as typeof edited;
 		expect(saved.nav.groups).toEqual(['Taller', 'Web', 'Sitio']);

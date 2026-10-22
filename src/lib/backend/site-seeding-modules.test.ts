@@ -59,7 +59,11 @@ const SAVED_MANIFESTS: Array<[string, () => JsonValue]> = [
 ];
 
 const MODULES: Array<[string, SiteSeedModule, string[]]> = [
-	['blog', SITE_SEED_BLOG_MODULE, ['collections.posts', 'collections.tags']],
+	[
+		'blog',
+		SITE_SEED_BLOG_MODULE,
+		['collections.posts', 'collections.authors', 'collections.categories', 'collections.tags']
+	],
 	['contacto', SITE_SEED_CONTACT_MODULE, ['collections.messages']]
 ];
 
@@ -132,9 +136,15 @@ describe.each(MODULES)('fragmento de manifiesto del módulo %s', (_id, module, e
 
 describe('módulo blog', () => {
 	test('`posts` usa las reglas de `pages` y `tags` se lee sin sesión; solo los editores escriben', () => {
-		const [tags, posts] = SITE_SEED_BLOG_MODULE.collections;
+		const tags = SITE_SEED_BLOG_MODULE.collections.find((spec) => spec.name === 'tags');
+		const posts = SITE_SEED_BLOG_MODULE.collections.find((spec) => spec.name === 'posts');
 
-		expect([tags!.name, posts!.name]).toEqual(['tags', 'posts']);
+		expect(SITE_SEED_BLOG_MODULE.collections.map((spec) => spec.name)).toEqual([
+			'tags',
+			'authors',
+			'categories',
+			'posts'
+		]);
 		expect(posts).toMatchObject({
 			listRule: SITE_SEED_PAGES_READ_RULE,
 			viewRule: SITE_SEED_PAGES_READ_RULE,
@@ -170,6 +180,8 @@ describe('módulo blog', () => {
 			'publishAt',
 			'date',
 			'tags',
+			'authors',
+			'categories',
 			'description',
 			'socialImage',
 			'noindex',
@@ -206,11 +218,18 @@ describe('módulo blog', () => {
 		const result = await seedSiteProject(port, { modules: [SITE_SEED_BLOG_MODULE] });
 
 		expect(result).toEqual({
-			createdCollections: ['tags', 'posts'],
+			createdCollections: ['tags', 'authors', 'categories', 'posts'],
 			addedFields: {},
 			createdRecords: [],
 			upgradedRecords: ['manifest'],
-			manifestEntries: { blog: ['collections.posts', 'collections.tags'] }
+			manifestEntries: {
+				blog: [
+					'collections.posts',
+					'collections.authors',
+					'collections.categories',
+					'collections.tags'
+				]
+			}
 		});
 		const tag = await port.create('tags', { name: 'Taller', slug: 'taller' });
 		await port.create('posts', { title: 'Hola', slug: 'hola', tags: [tag.id] });
@@ -269,7 +288,20 @@ describe('navegación de un módulo añadido a un sitio ya sembrado', () => {
 		await seedSiteProject(port, { modules: [...SITE_SEED_OPTIONAL_MODULES] });
 
 		expect(await resolvedNav(port)).toEqual([
-			['Sitio', ['pages', 'redirects', 'posts', 'tags', 'messages', 'menus', 'site_settings']]
+			[
+				'Sitio',
+				[
+					'pages',
+					'redirects',
+					'posts',
+					'tags',
+					'messages',
+					'authors',
+					'menus',
+					'categories',
+					'site_settings'
+				]
+			]
 		]);
 		// El grupo ya estaba declarado: `nav` no cambia.
 		expect((await savedManifest(port)).nav).toEqual({ groups: ['Sitio'] });
@@ -308,7 +340,10 @@ describe('navegación de un módulo añadido a un sitio ya sembrado', () => {
 		// La base también declara «Sitio»: es ella quien lo añade, y el blog ya lo encuentra.
 		expect(preview.modules.map((module) => [module.id, module.manifestEntries])).toEqual([
 			['base', ['nav.groups.Sitio']],
-			['blog', ['collections.posts', 'collections.tags']]
+			[
+				'blog',
+				['collections.posts', 'collections.authors', 'collections.categories', 'collections.tags']
+			]
 		]);
 		await seedSiteProject(port, { modules: [SITE_SEED_BLOG_MODULE] });
 
@@ -316,7 +351,7 @@ describe('navegación de un módulo añadido a un sitio ya sembrado', () => {
 		expect(await resolvedNav(port)).toEqual([
 			['Taller', ['redirects']],
 			['Web', ['pages']],
-			['Sitio', ['posts', 'tags']]
+			['Sitio', ['posts', 'tags', 'authors', 'categories']]
 		]);
 		// Segunda pasada: nada que añadir, y el menú no se mueve.
 		const again = await previewSiteSeed(port, { modules: [SITE_SEED_BLOG_MODULE] });

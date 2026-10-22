@@ -71,8 +71,19 @@ export async function ensureCollectionsOnPocketBase(
 				skipped.push(spec.name);
 				continue;
 			}
-			const fields = await resolveCollectionFields(pb, spec.fields);
-			await pb.collections.create(collectionSpecToPocketBasePayload(spec, fields));
+			// El id propio todavía no existe: mismo orden que la migración generada.
+			const selfRelations = spec.fields.filter(
+				(field) => field.type === 'relation' && field.target === spec.name
+			);
+			const initialSpec = {
+				...spec,
+				fields: spec.fields.filter((field) => !selfRelations.includes(field))
+			};
+			const fields = await resolveCollectionFields(pb, initialSpec.fields);
+			await pb.collections.create(collectionSpecToPocketBasePayload(initialSpec, fields));
+			// Sin rollback: si falla, queda un esquema parcial; addCollectionFields o el sembrado
+			// lo completan explícitamente. ensureCollections sigue omitiendo las ya existentes.
+			if (selfRelations.length) await addFieldsOnPocketBase(pb, spec.name, selfRelations);
 			created.push(spec.name);
 		} catch (err) {
 			throw withCollectionContext(spec.name, err);

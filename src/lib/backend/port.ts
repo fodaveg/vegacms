@@ -360,6 +360,10 @@ export interface BackendPort {
 	 * local, sin tocar red. Sin
 	 * `capabilities.schemaBootstrap` ⇒ `VegaError 'backend'` inmediato (L8). Sin permiso de
 	 * creación de esquema (PB: superuser) ⇒ `VegaError 'forbidden'`.
+	 * Una relación al propio nombre se añade después de crear la colección, resolviendo su id
+	 * real por addCollectionFields. Si esa segunda escritura falla queda una colección parcial:
+	 * no se borra ni se completa implícitamente al repetir ensureCollections; el llamador añade
+	 * los campos ausentes con addCollectionFields (el sembrado ya lo hace).
 	 */
 	ensureCollections(specs: CollectionSpec[]): Promise<EnsureResult>;
 

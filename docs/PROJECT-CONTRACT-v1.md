@@ -1400,3 +1400,19 @@ The manifest's `blockTypes.<name>.description` is optional plain text (1–240
 characters). It describes the block in the searchable catalogue; absent or invalid
 descriptions fall back to the declared field labels. Invalid descriptions never
 remove an otherwise valid block type. They do not contain HTML or inferred screenshots.
+
+### Editorial trees (additive manifest v1)
+
+`collections.<name>.tree` declares `{ parentField, maxDepth }`: both keys are required, `parentField`
+references an existing single relation to the same collection, and `maxDepth` is an integer from
+1 to 10 (roots have depth 1). Invalid declarations degrade to a model warning and `tree: null`;
+strict writers reject invalid shape or depth. Unknown nested keys remain forward compatible on
+read, while strict writers reject them. This additive decoration does not bump `schemaVersion`.
+Older readers keep their flat listing; older strict writers require upgrading before saving it.
+
+The admin reads the complete hierarchy before presenting branches, orders siblings by `orderField`
+and then id, and limits manual movement to siblings. Save validation reads current parents and
+checks cycles, missing parents and the entire moved branch against the depth limit. A failed read
+blocks saving. This is client validation, including contextual creation and conflict overwrite;
+it is not a server integrity guarantee. Imports, direct API clients and concurrent opposite moves
+can bypass it, so public consumers must handle malformed trees without hanging.

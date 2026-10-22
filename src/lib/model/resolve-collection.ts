@@ -27,6 +27,7 @@ import {
 } from './conventions';
 import { validatePreviewUrlPlaceholders } from './preview-url';
 import { resolveBlocks } from './resolve-blocks';
+import { resolveTree } from './resolve-tree';
 import { resolvePage, resolveSocialCard } from './resolve-presentation';
 import {
 	asJsonObject,
@@ -137,6 +138,7 @@ export function resolveContentType(
 		subtitleField,
 		slugField,
 		orderField,
+		tree: resolveTree(type, collectionRaw?.tree, warnings),
 		defaultSort,
 		statusField,
 		statusLabels,

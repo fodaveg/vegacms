@@ -8,10 +8,12 @@ import { isFieldValidationError, mapFieldErrors, type FieldErrorsView } from './
 import type { FormMode, FormValues } from './form-model';
 import type { FormInputValues } from './dirty';
 import { toRecordInput } from './to-record-input';
+import type { TreeValidationContext } from './tree-validation';
 
 interface RecordSend<TJob> {
 	type: ResolvedContentType;
 	baseline: FormValues;
+	treeValidation?: TreeValidationContext;
 	values: FormInputValues;
 	/** Omitido en «Guardar igualmente»: `toRecordInput` conserva su modo edit por defecto. */
 	mode?: FormMode;
@@ -31,6 +33,10 @@ interface RecordSend<TJob> {
  * validación, el conflicto y el foco posterior a `saving = false` pertenecen al componente.
  */
 export async function sendRecord<TJob>(request: RecordSend<TJob>): Promise<void> {
+	if (request.type.tree) {
+		const { validateTreeBeforeSave } = await import('./tree-validation');
+		await validateTreeBeforeSave(request.type, request.values, request.treeValidation);
+	}
 	const input = toRecordInput(request.type, request.baseline, request.values, request.mode);
 	const job = request.captureRedirectJob();
 	const expectedVersion = request.expectedVersion();

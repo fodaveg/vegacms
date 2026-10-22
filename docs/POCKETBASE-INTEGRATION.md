@@ -1101,12 +1101,12 @@ Además de `base` hay cuatro módulos opcionales, que se añaden desde «Ajustes
 Módulos» (cada uno con su vista previa de solo lectura; solo con la base al día, porque la base
 va en toda pasada y lo que tuviera pendiente se escribiría también):
 
-| Módulo            | Fichero                         | Colecciones           | En el menú                              |
-| ----------------- | ------------------------------- | --------------------- | --------------------------------------- |
-| `blog`            | `site-seeding-blog.ts`          | `tags`, `posts`       | «Entradas» y «Etiquetas», en «Sitio»    |
-| `contacto`        | `site-seeding-contact.ts`       | `messages`            | «Mensajes», en «Sitio»                  |
-| `menus`           | `site-seeding-menus.ts`         | `menus`, `menu_items` | «Menús», en «Sitio»                     |
-| `datos-del-sitio` | `site-seeding-site-settings.ts` | `site_settings`       | «Datos del sitio», singleton en «Sitio» |
+| Módulo            | Fichero                         | Colecciones                              | En el menú                                                    |
+| ----------------- | ------------------------------- | ---------------------------------------- | ------------------------------------------------------------- |
+| `blog`            | `site-seeding-blog.ts`          | `tags`, `authors`, `categories`, `posts` | «Entradas», «Etiquetas», «Autores» y «Categorías», en «Sitio» |
+| `contacto`        | `site-seeding-contact.ts`       | `messages`                               | «Mensajes», en «Sitio»                                        |
+| `menus`           | `site-seeding-menus.ts`         | `menus`, `menu_items`                    | «Menús», en «Sitio»                                           |
+| `datos-del-sitio` | `site-seeding-site-settings.ts` | `site_settings`                          | «Datos del sitio», singleton en «Sitio»                       |
 
 **Menús.** Siembra las claves `principal` y `pie` sin sustituir sus nombres ni elementos. Los
 editores renombran un menú y gestionan sus enlaces desde la lista embebida homogénea: añadir,
@@ -1142,7 +1142,8 @@ con listado de medios cerrado a visitantes y vista individual pública.
 (`draft`/`published`), `publishAt`, los campos de SEO (`description`, `socialImage`, `noindex`),
 `created`/`updated` y las reglas de acceso (sin sesión se lee solo lo publicado; solo los editores
 escriben). Lo propio: `title` y `slug` (único) obligatorios, `excerpt` (máx. 300), `body`
-(`editor`), `cover` (relación simple a `vega_media`, sin cascada), `tags` (relación múltiple a
+(`editor`), `cover` (relación simple a `vega_media`, sin cascada), `authors` y `categories` (relaciones
+múltiples ordenadas, sin cascada, para la firma y la clasificación editorial), `tags` (relación múltiple a
 `tags`, sin cascada) y `date`, la fecha VISIBLE de la entrada, que existe porque `vegaschedule`
 vacía `publishAt` al publicar. `tags` tiene `name` y `slug` (único), obligatorios; la escriben
 solo los editores y se lee sin sesión (regla `""`), porque no tiene estado de publicación que
@@ -1154,6 +1155,14 @@ etiquetas se pueden crear en su listado o desde el campo de relación de una ent
 creación abre un formulario en diálogo. La etiqueta se guarda de forma independiente y se
 selecciona al confirmar; la entrada conserva sus cambios sin guardar. El diálogo exige permiso de
 creación en `tags` y respeta `hideCreate` y el límite de selección.
+
+El mismo flujo crea autores y categorías desde sus campos de relación. `authors` contiene nombre,
+slug único, biografía, foto y web; las cuentas privadas de `vega_editors` siguen separadas.
+`categories` contiene nombre, slug único global, madre, orden y descripción: un árbol de hasta tres
+niveles con guarda en el admin. La primera categoría de una entrada es la principal; el orden de
+autores es el de la firma. Autores y categorías son públicos desde que se crean, también si solo los
+usan borradores. Véase [Blog: autores y categorías](#blog-autores-y-categorías) para límites, reglas,
+consumo y borrado de relaciones.
 
 **Formulario de contacto.** `messages` es la bandeja: `name` (text, obligatorio, máx. 200),
 `email` (email, obligatorio), `message` (text, obligatorio, máx. 5000), `read` (bool),
@@ -1620,3 +1629,46 @@ sin que se haya cargado el marco.
 1. Verifica que `static/vega.config.json` existe en el servidor.
 2. Verifica que CORS está habilitado en PocketBase para el origen de Vega.
 3. Abre DevTools (F12 → Console) y busca errores CORS.
+
+## Blog: autores y categorías
+
+El módulo Blog de Base del sitio crea, por este orden, `tags`, `authors`, `categories` y `posts`.
+Se aplica en la instancia conectada solo tras confirmar Añadir. Las instalaciones con un blog
+anterior reciben `authors`, `categories`, `posts.authors` y `posts.categories` de forma aditiva;
+una forma incompatible de cualquiera de esas colecciones/campos bloquea el lote antes de escribir.
+Reglas distintas en colecciones existentes exigen confirmación y se conservan.
+
+- `authors`: `name` obligatorio (120), `slug` obligatorio y único (120), `bio` opcional (500),
+  `avatar` relación simple a `vega_media` sin cascada, `url` de tipo URL, `created` y `updated`
+  automáticos. No es una cuenta de `vega_editors` y no contiene correo ni teléfono.
+- `categories`: `name` obligatorio (80), `slug` obligatorio y único globalmente (80), `parent`
+  relación simple a sí misma sin cascada, `order` numérico **opcional** (0 válido), `description`
+  opcional (300) y fechas automáticas. El manifiesto declara `tree` con máximo de tres niveles.
+- `posts.authors` y `posts.categories`: relaciones múltiples opcionales, `maxSelect: 99`, sin
+  cascada. Conservan el orden: firma y categoría principal, respectivamente. No sustituyen `tags`.
+
+Autores y categorías siguen las reglas de etiquetas: `listRule` y `viewRule` vacías (lectura sin
+sesión), y crear/editar/borrar reservado a `vega_editors` (además del bypass del superusuario).
+Un autor o categoría que solo se use en borradores **ya es público por la API**. El sitio puede
+expandir `authors,authors.avatar,categories` sin sesión sobre entradas publicadas; el avatar usa la
+regla de vista abierta de `vega_media`, aunque su listado exija ser editor. Medido en PocketBase
+0.39.9, junto a la conservación del orden de la relación múltiple.
+
+Borrar un autor o categoría quita su id de las relaciones múltiples y conserva las entradas; si se
+borra la categoría principal, la siguiente pasa a serlo. Borrar una madre vacía el `parent` de sus
+hijas (PB crudo devuelve `''`, el puerto normaliza a `null`), que siguen existiendo como raíces.
+Borrar el avatar vacía la relación simple. Restaurar desde la papelera no restituye los enlaces
+que PocketBase ya retiró.
+
+`ensureCollections` acepta autorrelaciones tanto en `memory` como en PocketBase: crea primero sin
+los campos que se apuntan a sí misma y los añade por `addCollectionFields`, con el id real, igual
+que la migración generada. Si la segunda escritura falla, conserva la colección parcial; no hay
+rollback implícito. La siguiente pasada del sembrado detecta y añade sus campos ausentes.
+Repetir `ensureCollections` a solas sigue omitiendo una colección existente, sin completarla.
+Relaciones externas a destinos inexistentes siguen rechazándose.
+
+Los ciclos y la profundidad se comprueban al guardar desde Vega, también en la creación contextual,
+y el selector excluye la fila y sus descendientes. No hay hook servidor: la API directa, importaciones
+y guardados concurrentes pueden formar ciclos. El sitio debe construir el árbol con tolerancia a
+esos problemas; véase [tree y consumo del blog](CONFIG.md#colecciones-en-árbol-tree). Importar hijas
+con madre requiere que la madre ya exista; si no, se corrige el enlace después.

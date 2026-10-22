@@ -341,6 +341,7 @@
 	// Perezoso: el aviso solo se descarga si hay conflicto (ver `ConflictNoticeLoader.svelte`).
 	import ConflictNotice from './ConflictNoticeLoader.svelte';
 	import { classifyRecordSaveError, sendRecord } from './record-save';
+	import type { FilterNode } from '$lib/backend/query';
 	import FormPublishControl from './FormPublishControl.svelte';
 	import { captureEditorIdentity, currentEditorIdentity } from './deferred-editor-identity';
 	import { recordConflictRows } from './record-conflict-rows';
@@ -419,6 +420,72 @@
 	setRelationCreationAllowed(!modal);
 
 	const ctx = getVegaContext();
+	/** La guarda refresca siempre; esta lectura solo prepara el filtro del selector y el aviso inicial. */
+	let treeFilter = $state<FilterNode | null>(null);
+	let treeReadState = $state<'loading' | 'ready' | 'error'>('loading');
+	let treeRetry = $state(0);
+	$effect(() => {
+		void treeRetry;
+		const config = type.tree;
+		const name = type.name;
+		const id = model.recordId;
+		if (!config) return;
+		let active = true;
+		treeReadState = 'loading';
+		const raw = baseline[config.parentField];
+		void import('$lib/tree/editor')
+			.then(({ prepareTreeEditor }) =>
+				prepareTreeEditor(ctx.port, name, id, typeof raw === 'string' && raw ? raw : null, config)
+			)
+			.then(
+				({ filter, problem }) => {
+					if (!active) return;
+					treeFilter = filter;
+					treeReadState = 'ready';
+					if (problem)
+						backendErrors = {
+							byField: {
+								[config.parentField]: {
+									code: `vega_tree_${problem}`,
+									message: ctx.t(`form.tree.${problem}`, { maxDepth: config.maxDepth }),
+									known: false
+								}
+							},
+							record: null
+						};
+				},
+				() => {
+					if (active) treeReadState = 'error';
+				}
+			);
+		return () => {
+			active = false;
+		};
+	});
+
+	function treeValidationContext() {
+		return {
+			port: ctx.port,
+			id: model.recordId,
+			message: (
+				reason: 'cycle' | 'too-deep' | 'missing-parent' | 'unavailable',
+				maxDepth: number
+			) => ctx.t(`form.tree.${reason}`, { maxDepth })
+		};
+	}
+
+	/** Conserva la selección actual; solo restringe los candidatos nuevos. */
+	function withTreePicker(field: ResolvedField): ResolvedField {
+		if (!type.tree || field.name !== type.tree.parentField) return field;
+		return {
+			...field,
+			relationPicker: {
+				thumbField: null,
+				filter: treeFilter
+			}
+		};
+	}
+
 	const EMPTY_ERRORS: FieldErrorsView = { byField: {}, record: null };
 	/** Referencia al `<form>` (R7): la usa el atajo ⌘S para reenviar por `requestSubmit()`, el
 	 *  mismo camino que un click real en "Guardar" — ver cabecera del módulo. Variable PLANA (no
@@ -1499,6 +1566,7 @@
 				values: current,
 				expectedVersion: () => conflict!.serverVersion,
 				onSubmit,
+				treeValidation: treeValidationContext(),
 				captureRedirectJob,
 				syncRedirects,
 				runAfterSave: (saved) => afterSave.run(saved),
@@ -1693,6 +1761,7 @@
 				mode: model.mode,
 				expectedVersion: () => (model.mode === 'edit' && version !== null ? version : undefined),
 				onSubmit,
+				treeValidation: treeValidationContext(),
 				captureRedirectJob,
 				syncRedirects,
 				runAfterSave: (saved) => afterSave.run(saved),
@@ -2339,13 +2408,20 @@
 		{/if}
 	{/snippet}
 
+	{#snippet treeRetryControl()}
+		<button type="button" class="vega-tree-retry" onclick={() => (treeRetry += 1)}
+			>{ctx.t('common.retry')}</button
+		>
+	{/snippet}
+
 	{#snippet fieldRow(field: ResolvedField, stacked: boolean)}
 		{#key resetCount}
 			<FieldRow
-				field={withDefaultHelp(field)}
+				field={withTreePicker(withDefaultHelp(field))}
 				value={current[field.name]}
 				error={errors.byField[field.name] ?? null}
-				disabled={formDisabled}
+				disabled={formDisabled ||
+					(field.name === type.tree?.parentField && treeReadState !== 'ready')}
 				typeReadonly={locked}
 				{stacked}
 				isTitleField={field.name === type.titleField}
@@ -2362,18 +2438,22 @@
 							  (scheduleControl.kind === 'draft' || scheduleControl.kind === 'scheduled')
 							? scheduleAction
 							: undefined}
-				below={!modal &&
-				field.name === type.statusField &&
-				(scheduleControl.kind === 'scheduled' ||
-					scheduleControl.kind === 'overdue' ||
-					reviewLine !== null)
-					? statusBelow
-					: undefined}
-				notice={field.name === pagePathFieldName
-					? (pathNotUniqueNotice ?? undefined)
-					: field.name === type.publishAtField
-						? (publishAtNotice ?? undefined)
+				below={field.name === type.tree?.parentField && treeReadState === 'error'
+					? treeRetryControl
+					: !modal &&
+						  field.name === type.statusField &&
+						  (scheduleControl.kind === 'scheduled' ||
+								scheduleControl.kind === 'overdue' ||
+								reviewLine !== null)
+						? statusBelow
 						: undefined}
+				notice={field.name === type.tree?.parentField && treeReadState !== 'ready'
+					? ctx.t(treeReadState === 'loading' ? 'form.tree.loading' : 'form.tree.unavailable')
+					: field.name === pagePathFieldName
+						? (pathNotUniqueNotice ?? undefined)
+						: field.name === type.publishAtField
+							? (publishAtNotice ?? undefined)
+							: undefined}
 				onChange={(value) => handleFieldChange(field.name, value)}
 			/>
 		{/key}
@@ -2687,6 +2767,16 @@
 {/if}
 
 <style>
+	.vega-tree-retry {
+		min-height: 44px;
+		padding: var(--pad-field);
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		background: var(--btn);
+		color: var(--ink);
+		font: inherit;
+		cursor: pointer;
+	}
 	.vega-record-form--relation .vega-fgroup-grid {
 		grid-template-columns: minmax(0, 1fr);
 	}

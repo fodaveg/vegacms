@@ -17,13 +17,14 @@ import type { Page, VegaRecord } from '$lib/backend/types';
 import type { VegaAppContext } from '$lib/app-context';
 import type { ResolvedContentType } from '$lib/model/types';
 import { buildListQuery } from './search';
+import type { TreeRow } from '$lib/tree/records';
 import type { ViewState } from './query-state';
 import { normalizeListError, RequestSequencer } from './list-load';
 
 /** Estado de carga del listado, unión discriminada por `kind` (§4c: loading/ready/error). */
 export type ListLoadStatus =
 	| { kind: 'loading' }
-	| { kind: 'ready'; page: Page<VegaRecord> }
+	| { kind: 'ready'; page: Page<VegaRecord>; treeRows?: TreeRow[] }
 	| { kind: 'error'; error: VegaError };
 
 interface ListState {
@@ -94,9 +95,13 @@ export function createListState(): ListState {
 		}
 		try {
 			const query = buildListQuery(type, viewState);
-			const result = await ctx.port.list(type.name, query);
+			const tree = type.tree
+				? await (await import('./tree-load')).loadTreeList(ctx.port, type, viewState)
+				: null;
+			const result = tree ? tree.page : await ctx.port.list(type.name, query);
+			const treeRows = tree?.treeRows;
 			if (!sequencer.isLatest(seq)) return; // respuesta obsoleta (anti-carrera): se descarta
-			status = { kind: 'ready', page: result };
+			status = { kind: 'ready', page: result, ...(treeRows ? { treeRows } : {}) };
 			refreshing = false;
 			// Una carga buena demuestra que el transporte responde: la píldora vuelve a verde tras un
 			// «Reintentar» que funciona (no toca el banner global de otra operación).

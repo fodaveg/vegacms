@@ -143,7 +143,13 @@
 
 	const typeParam = $derived(page.params.type ?? '');
 	const contentType = $derived(resolveVisibleContentType(ctx.model, typeParam));
-	const columns = $derived(contentType ? deriveColumns(contentType) : []);
+	const columns = $derived(
+		contentType
+			? deriveColumns(contentType).map((column) =>
+					contentType.tree ? { ...column, sortable: false } : column
+				)
+			: []
+	);
 	// Estado de vista EFÍMERO de la URL (4b, D-P4.9): esta fase solo escribe `?page=`, pero
 	// respeta el round-trip completo de `q`/`sort`/`status` si ya estuvieran en la URL (L-P4.13).
 	const viewState = $derived(parseViewState(page.url.searchParams));
@@ -153,7 +159,9 @@
 	// sin orden activo). `buildListQuery` (`search.ts`) aplica el MISMO fallback para la query
 	// real — este derivado solo existe para que la tabla/el ciclo de orden pinten y partan del
 	// mismo estado que los datos que se están mostrando.
-	const effectiveSort = $derived(viewState.sort ?? contentType?.defaultSort ?? null);
+	const effectiveSort = $derived(
+		contentType?.tree ? null : (viewState.sort ?? contentType?.defaultSort ?? null)
+	);
 
 	let routerReady = $state(false);
 	onMount(() => {
@@ -230,6 +238,7 @@
 		!persisting &&
 			contentType !== null &&
 			contentType.orderField !== null &&
+			!contentType.tree &&
 			contentType.permissions.update &&
 			effectiveSort === null &&
 			viewState.q === '' &&
@@ -277,6 +286,31 @@
 			listState.reload();
 		} finally {
 			persisting = false;
+		}
+	}
+
+	/** Relee antes de ordenar y mueve solo hermanas; nunca cambia la relación madre. */
+	async function handleTreeMove(record: VegaRecord, direction: -1 | 1): Promise<void> {
+		const type = contentType;
+		if (
+			!type?.tree ||
+			!type.orderField ||
+			!type.permissions.update ||
+			persisting ||
+			hasActiveFilters
+		)
+			return;
+		persisting = true;
+		try {
+			const { moveTreeSibling } = await import('$lib/tree/reorder');
+			await moveTreeSibling(ctx.port, type, record.id, direction);
+		} catch (error) {
+			ctx.feedback.reportError(
+				error instanceof VegaError ? error : VegaError.backend(ctx.t('list.reorder.error'), error)
+			);
+		} finally {
+			persisting = false;
+			listState.reload();
 		}
 	}
 
@@ -734,6 +768,14 @@
 						{contentType}
 						{columns}
 						records={readyPage.items}
+						treeRows={listStatus.kind === 'ready' ? listStatus.treeRows : undefined}
+						onTreeMove={contentType.tree &&
+						contentType.orderField &&
+						contentType.permissions.update &&
+						!persisting &&
+						!hasActiveFilters
+							? handleTreeMove
+							: undefined}
 						sort={effectiveSort}
 						onSort={(field) =>
 							navigateView({ sort: cycleSort(viewState.sort, field, contentType.defaultSort) })}
@@ -742,14 +784,16 @@
 						{reorderable}
 						onReorder={handleReorder}
 					/>
-					<Pagination
-						page={readyPage.page}
-						totalPages={readyPage.totalPages}
-						totalItems={readyPage.totalItems}
-						perPage={DEFAULT_PER_PAGE}
-						onPrev={() => goToPage(readyPage.page - 1)}
-						onNext={() => goToPage(readyPage.page + 1)}
-					/>
+					{#if !contentType.tree}
+						<Pagination
+							page={readyPage.page}
+							totalPages={readyPage.totalPages}
+							totalItems={readyPage.totalItems}
+							perPage={DEFAULT_PER_PAGE}
+							onPrev={() => goToPage(readyPage.page - 1)}
+							onNext={() => goToPage(readyPage.page + 1)}
+						/>
+					{/if}
 				</div>
 			{/if}
 		</div>

@@ -199,6 +199,8 @@ export interface ResolvedContentType {
 	 *  de `statusField`): solo existe si el manifiesto lo declara explícitamente y el campo es
 	 *  `number`. Habilita el reorder por arrastre del listado y el orden por defecto. */
 	orderField: string | null;
+	/** Árbol opt-in: relación simple a esta colección y profundidad máxima (raíces = nivel 1). */
+	tree?: ResolvedTreeConfig | null;
 	/** (M) orden INICIAL del listado cuando la URL no trae uno explícito (mockup
 	 *  `aquelarre-dark.html`, columna "Actualizado" con `↓`), o null ⇒ sin orden por defecto —
 	 *  comportamiento histórico de P4 ("nunca ordena por defecto"), que esta clave reabre de forma
@@ -601,7 +603,7 @@ export interface ResolvedField {
 	 * Solo lo rellena `BlockEditor` para una relación de bloque que declara `relation` en el
 	 * manifiesto: miniatura y filtro del selector. Opcional a propósito (misma razón que
 	 * `optionLabels` en `WidgetProps`): la interfaz de widget de D-P5.1 no cambia, el dato viaja en
-	 * el `field` que el widget ya recibe. Ningún campo de nivel superior lo lleva.
+	 * el `field` que el widget ya recibe. El formulario también lo rellena para la madre de una colección con tree.
 	 */
 	relationPicker?: { thumbField: string | null; filter: FilterNode | null };
 }
@@ -762,4 +764,10 @@ export interface ModelWarning {
 	layout?: string;
 	/** JSON Pointer a la clave del manifiesto que lo causó, si aplica (p.ej. '/collections/posts/fields/body/widget'). */
 	path?: string;
+}
+
+/** Declaración validada contra el esquema; no modifica datos ni impone reglas en el servidor. */
+export interface ResolvedTreeConfig {
+	parentField: string;
+	maxDepth: number;
 }

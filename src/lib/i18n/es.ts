@@ -1910,7 +1910,8 @@ export const es = {
 	'settings.site.record.text': 'Se crea si falta. Si ya existe, conserva su contenido.',
 	'settings.site.result.records': '{count} registros iniciales',
 	'settings.site.module.blog.name': 'Blog',
-	'settings.site.module.blog.desc': 'Entradas con etiquetas, portada, fecha y SEO.',
+	'settings.site.module.blog.desc':
+		'Entradas con autores, categorías, etiquetas, portada, fecha y SEO.',
 	'settings.site.module.contacto.name': 'Formulario de contacto',
 	'settings.site.module.contacto.desc':
 		'Una bandeja con los mensajes que llegan desde el formulario del sitio.',
@@ -1920,7 +1921,7 @@ export const es = {
 	'settings.site.collection.tags': 'Etiquetas',
 	'settings.site.collection.messages': 'Mensajes',
 	'settings.site.create.posts':
-		'título, dirección, resumen, contenido, portada, estado, fechas, etiquetas y SEO',
+		'título, dirección, resumen, contenido, portada, estado, fechas, autores, categorías, etiquetas y SEO',
 	'settings.site.create.tags': 'el nombre y la dirección de cada etiqueta',
 	'settings.site.create.messages': 'nombre, correo y mensaje de quien escribe, y si ya se ha leído',
 
@@ -2318,5 +2319,21 @@ export const es = {
 	// Los campos de la página como una entrada más de lo pendiente en la barra.
 	'editor.visual.pending.page': 'Campos de la página sin guardar',
 	'editor.visual.pending.withPage': 'Página y {blocks}',
-	'editor.visual.pending.openPage': 'Abrir los campos de la página'
+	'editor.visual.pending.openPage': 'Abrir los campos de la página',
+	'settings.site.collection.authors': 'Autores',
+	'settings.site.collection.categories': 'Categorías',
+	'settings.site.create.authors': 'el nombre, dirección, biografía, foto y web de cada autor',
+	'settings.site.create.categories': 'las categorías del blog y su jerarquía de hasta tres niveles',
+	'form.tree.cycle': 'No puede estar dentro de sí misma ni de una de sus subcategorías.',
+	'form.tree.too-deep': 'Pasaría de {maxDepth} niveles.',
+	'form.tree.missing-parent': 'La categoría madre ya no existe. Elige otra o deja el campo vacío.',
+	'form.tree.unavailable': 'No se ha podido comprobar el árbol, reintenta.',
+	'form.tree.loading': 'Comprobando el árbol…',
+	'list.tree.up': 'Subir entre hermanas',
+	'list.tree.down': 'Bajar entre hermanas',
+	'list.tree.inside': 'Dentro de {title}',
+	'list.tree.root': 'Categoría principal',
+	'list.tree.cycle': 'Ciclo: corrige su madre',
+	'list.tree.too-deep': 'Demasiados niveles: corrige su madre',
+	'list.tree.missing-parent': 'La madre no existe: elige otra'
 };

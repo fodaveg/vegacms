@@ -1,5 +1,5 @@
 /**
- * Módulo de sembrado `blog`: las colecciones `tags` y `posts` y sus entradas de manifiesto.
+ * Módulo de sembrado `blog`: etiquetas, autores, categorías y entradas con su manifiesto.
  *
  * `posts` se publica igual que `pages`, así que comparte con ella —mismas constantes de
  * `site-seeding.ts`, no una copia— el campo de estado, «Publicar el», los tres campos de SEO, las
@@ -14,8 +14,8 @@
  * El campo `posts.tags` permite elegir etiquetas existentes o crearlas en un diálogo sin salir
  * de la entrada. El destino se guarda de forma independiente, antes del formulario de origen.
  *
- * NAVEGACIÓN. Las dos colecciones van al grupo «Sitio», detrás de `pages` y `redirects` (`order`
- * 2 y 3). Qué colección sale en qué grupo lo dice su `group`, así que aparecen en el menú también
+ * NAVEGACIÓN. Las colecciones van al grupo «Sitio», detrás de `pages` y `redirects` (`order`
+ * 2 y 3 para posts/tags, 5 y 6 para authors/categories). Qué colección sale en qué grupo lo dice su `group`, así que aparecen en el menú también
  * en un sitio ya sembrado. El fragmento declara además el grupo en `nav.groups`: si el menú
  * guardado no lo tiene (alguien renombró los grupos), la fusión lo añade al final.
  */
@@ -50,6 +50,54 @@ const TAGS_COLLECTION: CollectionSpec = {
 	]
 };
 
+/** Firmas públicas; nunca reutiliza las cuentas privadas de vega_editors. */
+const AUTHORS_COLLECTION: CollectionSpec = {
+	name: 'authors',
+	listRule: SITE_SEED_TAGS_READ_RULE,
+	viewRule: SITE_SEED_TAGS_READ_RULE,
+	createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	deleteRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	fields: [
+		{ name: 'name', type: 'text', required: true, max: 120 },
+		{ name: 'slug', type: 'text', required: true, max: 120, unique: true },
+		{ name: 'bio', type: 'text', max: 500 },
+		{
+			name: 'avatar',
+			type: 'relation',
+			target: VEGA_MEDIA_COLLECTION.name,
+			multiple: false,
+			cascadeDelete: false
+		},
+		{ name: 'url', type: 'url' },
+		...SITE_SEED_AUTODATE_FIELDS
+	]
+};
+
+/** Estructura editorial del blog; borrar una madre conserva sus hijas como raíces. */
+const CATEGORIES_COLLECTION: CollectionSpec = {
+	name: 'categories',
+	listRule: SITE_SEED_TAGS_READ_RULE,
+	viewRule: SITE_SEED_TAGS_READ_RULE,
+	createRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	updateRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	deleteRule: SITE_SEED_EDITOR_ACCESS_RULE,
+	fields: [
+		{ name: 'name', type: 'text', required: true, max: 80 },
+		{ name: 'slug', type: 'text', required: true, max: 80, unique: true },
+		{
+			name: 'parent',
+			type: 'relation',
+			target: 'categories',
+			multiple: false,
+			cascadeDelete: false
+		},
+		{ name: 'order', type: 'number' },
+		{ name: 'description', type: 'text', max: 300 },
+		...SITE_SEED_AUTODATE_FIELDS
+	]
+};
+
 const POSTS_COLLECTION: CollectionSpec = {
 	name: 'posts',
 	listRule: SITE_SEED_PAGES_READ_RULE,
@@ -80,6 +128,20 @@ const POSTS_COLLECTION: CollectionSpec = {
 			name: 'tags',
 			type: 'relation',
 			target: TAGS_COLLECTION.name,
+			multiple: true,
+			cascadeDelete: false
+		},
+		{
+			name: 'authors',
+			type: 'relation',
+			target: AUTHORS_COLLECTION.name,
+			multiple: true,
+			cascadeDelete: false
+		},
+		{
+			name: 'categories',
+			type: 'relation',
+			target: CATEGORIES_COLLECTION.name,
 			multiple: true,
 			cascadeDelete: false
 		},
@@ -130,6 +192,14 @@ const BLOG_MANIFEST: JsonValue = {
 					label: 'Etiquetas',
 					help: 'Elige etiquetas existentes o crea una sin salir de la entrada. La etiqueta se guarda de forma independiente.'
 				},
+				authors: {
+					label: 'Autores',
+					help: 'Quién firma la entrada, en el orden en que aparece. Un autor se puede crear sin salir de la entrada y es público desde que se crea.'
+				},
+				categories: {
+					label: 'Categorías',
+					help: 'La primera es la principal. Elige categorías existentes o crea una sin salir de la entrada. Son públicas desde que se crean.'
+				},
 				description: {
 					label: 'Descripción',
 					help: 'Resumen de una o dos frases para buscadores y redes sociales. Si lo dejas vacío, el sitio usa su descripción general.',
@@ -145,6 +215,59 @@ const BLOG_MANIFEST: JsonValue = {
 					label: 'No indexar',
 					help: 'Pide a los buscadores que no muestren esta entrada y la saca del mapa del sitio. Quien tenga el enlace puede seguir abriéndola.',
 					group: 'SEO'
+				}
+			}
+		},
+		authors: {
+			label: 'Autores',
+			labelSingular: 'Autor',
+			icon: 'user',
+			group: 'Sitio',
+			order: 5,
+			titleField: 'name',
+			subtitleField: 'slug',
+			slugField: 'slug',
+			listFields: ['name', 'slug'],
+			fields: {
+				slug: {
+					label: 'Dirección (slug)',
+					help: 'La parte de la dirección del sitio que identifica al autor. Se puede regenerar a partir del nombre.'
+				},
+				bio: {
+					label: 'Biografía',
+					help: 'Unas líneas sobre el autor. Se publican junto a sus entradas.',
+					widget: 'textarea'
+				},
+				avatar: { label: 'Foto' },
+				url: { label: 'Web' }
+			}
+		},
+		categories: {
+			label: 'Categorías',
+			labelSingular: 'Categoría',
+			icon: 'list',
+			group: 'Sitio',
+			order: 6,
+			titleField: 'name',
+			subtitleField: 'slug',
+			slugField: 'slug',
+			orderField: 'order',
+			tree: { parentField: 'parent', maxDepth: 3 },
+			listFields: ['name', 'slug'],
+			fields: {
+				slug: {
+					label: 'Dirección (slug)',
+					help: 'La parte de la dirección del sitio que identifica la categoría. Se puede regenerar a partir del nombre.'
+				},
+				parent: {
+					label: 'Dentro de',
+					help: 'La categoría madre. Vacío si es una categoría principal.'
+				},
+				order: { label: 'Orden', hidden: true },
+				description: {
+					label: 'Descripción',
+					help: 'Una o dos frases que presentan la categoría en su página y en buscadores.',
+					widget: 'textarea'
 				}
 			}
 		},
@@ -168,9 +291,9 @@ const BLOG_MANIFEST: JsonValue = {
 	}
 };
 
-/** `tags` va antes que `posts`, que la enlaza. */
+/** Los destinos van antes que posts, que los enlaza. */
 export const SITE_SEED_BLOG_MODULE: SiteSeedModule = {
 	id: 'blog',
-	collections: [TAGS_COLLECTION, POSTS_COLLECTION],
+	collections: [TAGS_COLLECTION, AUTHORS_COLLECTION, CATEGORIES_COLLECTION, POSTS_COLLECTION],
 	manifest: BLOG_MANIFEST
 };

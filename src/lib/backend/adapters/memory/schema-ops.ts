@@ -49,7 +49,7 @@ export function createSchemaOps(
 		);
 	}
 
-	return {
+	const ops: MemorySchemaOps = {
 		inspectCollection(name) {
 			const collection = collectionsByName.get(name);
 			return collection ? structuredClone(collection) : null;
@@ -94,8 +94,15 @@ export function createSchemaOps(
 					skipped.push(spec.name);
 					continue;
 				}
+				const selfRelations = spec.fields.filter(
+					(field) => field.type === 'relation' && field.target === spec.name
+				);
+				const initialSpec = {
+					...spec,
+					fields: spec.fields.filter((field) => !selfRelations.includes(field))
+				};
 				const relationRejects = checkRelationTargets(
-					spec.fields,
+					initialSpec.fields,
 					[...collectionsByName.values()]
 						.filter((collection) => collection.type !== 'view')
 						.map((collection) => collection.name)
@@ -106,16 +113,17 @@ export function createSchemaOps(
 						`No se pudo crear la colección "${spec.name}"`
 					);
 				}
-				collectionsByName.set(spec.name, collectionSpecToMemorySnapshot(spec));
+				collectionsByName.set(spec.name, collectionSpecToMemorySnapshot(initialSpec));
 				if (expectedType === 'base') {
 					const ct: ContentType = {
 						name: spec.name,
 						readonly: false,
-						fields: spec.fields.map(collectionFieldSpecToField)
+						fields: initialSpec.fields.map(collectionFieldSpecToField)
 					};
 					contentTypesByName.set(spec.name, ct);
 					records.set(spec.name, new Map());
 				}
+				if (selfRelations.length) await ops.addCollectionFields(spec.name, selfRelations);
 				created.push(spec.name);
 			}
 			return { created, skipped };
@@ -257,6 +265,7 @@ export function createSchemaOps(
 			return { applied, skipped };
 		}
 	};
+	return ops;
 }
 
 export function defaultReadonlyValue(field: Field): FieldValue {

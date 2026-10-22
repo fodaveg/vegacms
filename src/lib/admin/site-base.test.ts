@@ -249,7 +249,7 @@ describe('site-base', () => {
 			manifestSkipped: []
 		};
 		const plan = {
-			createdCollections: ['tags', 'posts'],
+			createdCollections: ['tags', 'authors', 'categories', 'posts'],
 			addedFields: {},
 			manifest: 'upgrade' as const,
 			pageMissing: false,
@@ -291,7 +291,11 @@ describe('site-base', () => {
 
 		test('siteModuleState: ninguna colección = no añadido; algo pendiente = incompleto; nada = añadido', () => {
 			expect(
-				siteModuleState(blog, { ...empty, id: 'blog', createdCollections: ['tags', 'posts'] })
+				siteModuleState(blog, {
+					...empty,
+					id: 'blog',
+					createdCollections: blog.collections.map((spec) => spec.name)
+				})
 			).toBe('absent');
 			expect(siteModuleState(blog, { ...empty, id: 'blog', createdCollections: ['posts'] })).toBe(
 				'incomplete'
@@ -339,7 +343,7 @@ describe('site-base', () => {
 					{
 						...empty,
 						id: 'blog',
-						createdCollections: ['tags', 'posts'],
+						createdCollections: blog.collections.map((spec) => spec.name),
 						manifestEntries: ['collections.posts', 'collections.tags']
 					}
 				]
@@ -355,10 +359,22 @@ describe('site-base', () => {
 					text: 'el nombre y la dirección de cada etiqueta'
 				},
 				{
+					title: 'Autores',
+					code: 'authors',
+					codeFirst: true,
+					text: 'el nombre, dirección, biografía, foto y web de cada autor'
+				},
+				{
+					title: 'Categorías',
+					code: 'categories',
+					codeFirst: true,
+					text: 'las categorías del blog y su jerarquía de hasta tres niveles'
+				},
+				{
 					title: 'Entradas',
 					code: 'posts',
 					codeFirst: true,
-					text: 'título, dirección, resumen, contenido, portada, estado, fechas, etiquetas y SEO'
+					text: 'título, dirección, resumen, contenido, portada, estado, fechas, autores, categorías, etiquetas y SEO'
 				}
 			]);
 			expect(view.groups[1]!.items.map((item) => item.title)).toEqual([

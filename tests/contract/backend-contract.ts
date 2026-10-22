@@ -1990,6 +1990,34 @@ export function describeBackendContract(makePort: MakePort, opts: ContractOption
 				await expect(port.create(name, { title: 'Sin portada' })).resolves.toBeDefined();
 			});
 
+			test('crea autorrelación simple con id real y repetir conserva los datos', async () => {
+				const port = await makeAuthedPort();
+				const name = uniqueCollectionName();
+				const spec: CollectionSpec = {
+					name,
+					fields: [
+						{ name: 'name', type: 'text' },
+						{
+							name: 'parent',
+							type: 'relation',
+							target: name,
+							multiple: false,
+							cascadeDelete: false
+						}
+					]
+				};
+				expect(await port.ensureCollections([spec])).toEqual({ created: [name], skipped: [] });
+				const parent = await port.create(name, { name: 'Madre' });
+				const child = await port.create(name, { name: 'Hija', parent: parent.id });
+				expect((await port.get(name, child.id)).values.parent).toBe(parent.id);
+				expect(await port.ensureCollections([spec])).toEqual({ created: [], skipped: [name] });
+				expect(
+					(await port.listContentTypes())
+						.find((type) => type.name === name)!
+						.fields.find((field) => field.name === 'parent')
+				).toMatchObject({ type: 'relation', target: name, multiple: false, cascadeDelete: false });
+			});
+
 			test('crea una relation hacia una colección anterior del mismo lote y resuelve su destino', async () => {
 				const port = await makeAuthedPort();
 				const target = uniqueCollectionName();
