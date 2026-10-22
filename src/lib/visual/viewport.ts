@@ -8,14 +8,21 @@
  * **Por qué el ancho del IFRAME, nunca el de la ventana** (§encargo): el sitio dispara sus propios
  * puntos de corte contra el viewport que VE, que es el del `<iframe>` — ensanchar o encoger un
  * `<div>` de Vega no movería ni un solo `@media` del sitio. Móvil/tablet son anchos FIJOS (390/834,
- * los mismos números que trae cualquier DevTools de navegador); escritorio usa 1280px CSS.
- * "Llenar el lienzo" se resuelve con el zoom "ajustar": el espacio físico disponible nunca
- * convierte el preset de escritorio en un viewport CSS móvil.
+ * los mismos números que trae cualquier DevTools de navegador).
+ *
+ * **Escritorio = el ancho disponible del lienzo, al 100 %** (spec de David del 22 oct 2026, parte
+ * F). Hasta 0.14.1 escritorio era un viewport fijo de 1280px escalado para caber entre los paneles,
+ * así que el texto del sitio se pintaba más pequeño que su tamaño real en cualquier portátil. Ahora
+ * el `<iframe>` mide lo que el lienzo deja libre y se pinta sin escalar: si ese ancho baja del punto
+ * de corte de escritorio del sitio, el sitio enseña su diseño de ese ancho, que es lo que vería un
+ * navegador de ese tamaño. Con un zoom MANUAL el escritorio sigue llenando el lienzo, como el zoom
+ * de un navegador: al 50 % el sitio ve el doble de ancho (`lienzo / 0.5`) y se pinta a la mitad.
+ * `DESKTOP_WIDTH` queda solo como ancho de partida mientras el lienzo aún no está medido.
  *
  * **Zoom: por qué el `<iframe>` se escala con `transform`, no con `width`.** `transform: scale()`
  * NO cambia el viewport CSS que ve el documento de dentro (a diferencia de tocar `width`, que sí
  * dispararía los puntos de corte del sitio) — es justo la propiedad que hace falta: el sitio sigue
- * creyendo que mide 390/834/1280 aunque Vega lo PINTE más pequeño. Este módulo solo calcula EL
+ * creyendo que mide 390/834 (o el ancho de escritorio) aunque Vega lo PINTE más pequeño. Este módulo solo calcula EL
  * FACTOR (`resolveZoomFactor`); quién escala qué elemento del DOM (el "escenario" que envuelve
  * iframe + overlay, para que los dos se muevan a la vez — ver la cabecera de
  * `VisualEditorScreen.svelte`) es decisión de quien monta el componente, no de este módulo.
@@ -61,19 +68,29 @@ export const DEFAULT_ZOOM: ZoomPreference = 'fit';
 const MIN_ZOOM_FACTOR = 0.1;
 
 /**
- * Ancho de LAYOUT del `<iframe>` (el que el sitio de dentro cree que mide), en px. Fijo para
- * los tres presets, independiente del ancho físico del lienzo y del zoom. Un escritorio al
- * 50 % sigue midiendo 1280px CSS; solo se pinta más pequeño. Existe también antes del primer
- * aviso de `ResizeObserver`: la medida del lienzo solo interviene en `resolveZoomFactor`.
+ * Ancho de LAYOUT del `<iframe>` (el que el sitio de dentro cree que mide), en px.
+ *
+ * Móvil y tableta: fijo, independiente del lienzo y del zoom. Escritorio: el ancho MEDIDO del
+ * lienzo dividido entre el factor del zoom manual (`'fit'` cuenta como 100 %), redondeado hacia
+ * abajo para que la hoja pintada nunca sea ni medio píxel más ancha que el lienzo (ver cabecera).
+ * Sin medida todavía (antes del primer aviso de `ResizeObserver`, o una medida no finita) cae a
+ * `DESKTOP_WIDTH`, para que el iframe nunca nazca con 0px.
  */
-export function frameWidthFor(preset: ScreenPreset): number {
+export function frameWidthFor(
+	preset: ScreenPreset,
+	measuredCanvasWidth = 0,
+	zoom: ZoomPreference = 'fit'
+): number {
 	switch (preset) {
 		case 'mobile':
 			return MOBILE_WIDTH;
 		case 'tablet':
 			return TABLET_WIDTH;
-		case 'desktop':
-			return DESKTOP_WIDTH;
+		case 'desktop': {
+			if (!Number.isFinite(measuredCanvasWidth) || measuredCanvasWidth < 1) return DESKTOP_WIDTH;
+			const factor = zoom === 'fit' ? 1 : zoom / 100;
+			return Math.floor(measuredCanvasWidth / factor);
+		}
 	}
 }
 
@@ -81,7 +98,8 @@ export function frameWidthFor(preset: ScreenPreset): number {
  * Factor de escala (`1` = 100 %, el que consume `transform: scale()`). Un nivel FIJO se traduce
  * sin más (`50`/`75`/`100` → `0.5`/`0.75`/`1`); `'fit'` divide el ancho MEDIDO del lienzo entre el
  * ancho de layout del iframe, recortado a `[MIN_ZOOM_FACTOR, 1]` (nunca amplía, ver cabecera del
- * módulo). `frameWidth <= 0` (todavía sin resolver, o un lienzo aún sin medir) no tiene proporción
+ * módulo). En escritorio, `frameWidthFor` ya da el ancho del lienzo, así que `'fit'` sale a `1`:
+ * solo móvil y tableta se encogen, y solo cuando no caben. `frameWidth <= 0` (todavía sin resolver, o un lienzo aún sin medir) no tiene proporción
  * honesta que calcular: cae a `1` en vez de `Infinity`/`NaN`.
  */
 export function resolveZoomFactor(

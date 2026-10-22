@@ -434,11 +434,16 @@ bridge installed and offers the ordinary preview, which still works.
 viewport**. Vega applies the frame's offset and any canvas zoom itself; the bridge never
 needs to know it is being scaled.
 
-The screen presets set the iframe's CSS viewport to 390px (mobile), 834px (tablet),
-or 1280px (desktop), independently of the physical canvas width. A new viewport preference
-defaults to desktop with fit zoom; valid saved preferences remain in effect. Fit scales the
-iframe and overlay together to the available canvas width, never above 100%, without changing
-the site's CSS viewport. Entering visual editing temporarily collapses the app's desktop
+The mobile and tablet presets set the iframe's CSS viewport to a fixed 390px and 834px,
+centred in the canvas. The desktop preset sets it to the available canvas width (rounded
+down), so the site renders at 100% with the layout of that width; below the site's own
+desktop breakpoint the site shows its narrower layout. A new viewport preference defaults to
+desktop with fit zoom; valid saved preferences remain in effect. Fit keeps desktop at 100%
+and scales mobile or tablet down only when their fixed width does not fit, never above 100%.
+A manual zoom level scales iframe and overlay together; on desktop the CSS viewport becomes
+the canvas width divided by that level, so the sheet still fills the canvas. In every case the
+overlay, the selection ring, the strip and the inline-editing hint are measured in the same
+scaled box, so they stay aligned. Entering visual editing temporarily collapses the app's desktop
 sidebar without persisting that automatic change. Manual sidebar toggles still persist; leaving
 visual editing restores the latest manual preference. The mobile drawer remains independent.
 
