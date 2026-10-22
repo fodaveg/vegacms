@@ -681,6 +681,26 @@ the same coordinates as block rects, so Vega's hint stays under the text when th
 (necessary for a record field, which has no block whose rect it could follow). Optional; a
 malformed one is ignored.
 
+**Links in annotated text.** A link inside an annotated text (a link in a paragraph) or one whose
+content is annotated text (a Button's or a Card's link, `<a href><span data-vega-field="…">`) is
+part of that text in the canvas: while a v2 session runs, clicking it never navigates the frame —
+the click is the text's click (it selects the block) and the double click opens the text. An
+annotated leaf inside a link is therefore editable like any other (the link's `href` is not: it is
+edited in the inspector); while it is typed its link is not draggable. Links outside annotated
+text (navigation, footer) keep their behaviour. Navigating would take the frame to a page that may
+refuse to be framed and leave the canvas empty. Public pages never load the bridge, so their links
+are untouched.
+
+**Early and moved double clicks.** Vega greets on the frame's `load`, which waits for every image
+and font, so the text is on screen before the bridge knows whether it is editable. A double click
+on an annotated text before the session or `editable` exists is kept (a few seconds, the latest
+one) and asked for on the next `editable`, until it opens; its second press never leaves a native
+word selection on annotated text. The double click belongs to the annotated text of its FIRST
+press: Vega answers that first click (selection, its form opening) and the page may move before
+the second press lands. For the same reason the bridge does not follow a `scroll-to` for the block
+the author just clicked in the page (within the double-click interval). An older Vega never sends
+`editable`, so an early double click there stays unanswered, as before.
+
 #### Hover (optional)
 
 While the pointer is over a cross-origin `<iframe>`, the embedding page receives no mouse events

@@ -45,6 +45,8 @@ interface InlineSite {
 	/** Holds every token answer until the returned function is called: the page keeps showing what
 	 *  it showed, whatever the draft says meanwhile. */
 	holdTokens(): () => void;
+	/** With `slowLoad`: lets the held image load, so the frame fires `load` and Vega greets. */
+	releaseLoad(): void;
 }
 
 /** Page record values of `pagina_1` in the showcase seed, painted outside the blocks root. */
@@ -62,7 +64,15 @@ const inlineMarkdown = (source: string) =>
  * ranges by the real `@vega/astro/markdown-source` (the site's «parser» here splits paragraphs
  * on blank lines, and the same tokens give the ranges, as a real site must do).
  */
-async function installSite(page: Page, { markdown = false } = {}): Promise<InlineSite> {
+async function installSite(
+	page: Page,
+	{ markdown = false, slowLoad = false } = {}
+): Promise<InlineSite> {
+	// `slowLoad`: an image that never finishes until `releaseLoad()`. Vega greets on the frame's
+	// `load`, which waits for it, while the text is already on screen: the window in which an author
+	// double-clicks a text before the bridge can know whether it is editable (QA, 22 Oct 2026).
+	let releaseLoad!: () => void;
+	const loadHeld = new Promise<void>((resolve) => (releaseLoad = resolve));
 	const fixture = readFileSync(
 		join(astroRoot!, 'fixtures/basic/dist/inline-preview/index.html'),
 		'utf8'
@@ -136,6 +146,17 @@ async function installSite(page: Page, { markdown = false } = {}): Promise<Inlin
 			});
 			return;
 		}
+		if (pathname === '/__slow.png') {
+			await loadHeld;
+			await route.fulfill({
+				contentType: 'image/png',
+				body: Buffer.from(
+					'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+					'base64'
+				)
+			});
+			return;
+		}
 		if (pathname.startsWith('/_astro/') && !pathname.includes('..')) {
 			await route.fulfill({
 				contentType: pathname.endsWith('.css') ? 'text/css' : 'text/javascript',
@@ -154,7 +175,8 @@ async function installSite(page: Page, { markdown = false } = {}): Promise<Inlin
 			.replace(/__VEGA_INLINE__(\w+?)__(\w+?)__/g, (_match, block, field) =>
 				escape(values[block]?.[field] ?? '')
 			)
-			.replace(/__VEGA_RECORD__(\w+?)__/g, (_match, field) => escape(record[field] ?? ''));
+			.replace(/__VEGA_RECORD__(\w+?)__/g, (_match, field) => escape(record[field] ?? ''))
+			.replace('</body>', slowLoad ? '<img src="/__slow.png" alt=""></body>' : '</body>');
 		await route.fulfill({
 			contentType: 'text/html',
 			headers: { 'Content-Security-Policy': `frame-ancestors ${CMS}` },
@@ -174,7 +196,8 @@ async function installSite(page: Page, { markdown = false } = {}): Promise<Inlin
 				held = null;
 				release();
 			};
-		}
+		},
+		releaseLoad
 	};
 }
 
@@ -389,15 +412,26 @@ test.describe('actual Astro inline bridge', () => {
 			})
 		);
 		// The hint (screen coordinates) ends above the next text, which moved down to make room.
-		const hint = await page.locator('.vega-visual-inline-hint').boundingBox();
-		const frameBox = await page.locator('.vega-visual-frame').boundingBox();
-		const zoom = await page
-			.locator('.vega-visual-frame')
-			.evaluate((el) => el.getBoundingClientRect().width / (el as HTMLIFrameElement).offsetWidth);
-		const nextEditing = await box(next);
-		expect(nextEditing.top).toBeGreaterThan(nextBefore.top);
-		expect(hint!.y + hint!.height).toBeLessThanOrEqual(frameBox!.y + nextEditing.top * zoom);
-		expect(hint!.y).toBeGreaterThan(frameBox!.y + editing.bottom * zoom);
+		// Vega places the hint from the rects the site posts (`input`, then `layout`), a message
+		// after the DOM changed: the geometry is read together, until Vega has caught up, never
+		// from one instant that may fall between the two.
+		const geometry = async () => {
+			const hint = await page.locator('.vega-visual-inline-hint').boundingBox();
+			const frameBox = await page.locator('.vega-visual-frame').boundingBox();
+			const zoom = await page
+				.locator('.vega-visual-frame')
+				.evaluate((el) => el.getBoundingClientRect().width / (el as HTMLIFrameElement).offsetWidth);
+			const nextEditing = await box(next);
+			const editingNow = await box(heading);
+			return {
+				nextMoved: nextEditing.top > nextBefore.top,
+				hintAboveNext: hint!.y + hint!.height <= frameBox!.y + nextEditing.top * zoom,
+				hintBelowText: hint!.y > frameBox!.y + editingNow.bottom * zoom
+			};
+		};
+		await expect
+			.poll(geometry)
+			.toEqual({ nextMoved: true, hintAboveNext: true, hintBelowText: true });
 		await page.keyboard.press('Escape');
 		await expect(heading).not.toHaveAttribute('contenteditable');
 		expect((await box(heading)).width).toBe(before.width);
@@ -1118,6 +1152,118 @@ test.describe('page fields in the bar and on failures (review of 22 Oct 2026)', 
 		await expect(page.locator('.vega-page-fields')).toBeVisible();
 		await page.keyboard.press('Escape');
 	});
+});
+
+/** One test per engine: Chromium is the project's page; WebKit is launched here (the project
+ *  only runs Chromium and `browserName` cannot be set per describe). */
+function inBothEngines(title: string, body: (page: Page) => Promise<void>): void {
+	for (const engine of ['chromium', 'webkit'] as const)
+		test(`${title} (${engine})`, async ({ page: chromiumPage }, testInfo) => {
+			const browser = engine === 'webkit' ? await webkit.launch() : null;
+			const page = browser
+				? await browser.newPage({ baseURL: testInfo.project.use.baseURL, locale: 'es-ES' })
+				: chromiumPage;
+			try {
+				if (browser) await preparePage(page);
+				await body(page);
+			} finally {
+				await browser?.close();
+			}
+		});
+}
+
+/** The frame's document URL: the canvas must stay on the preview it was given. */
+const frameUrl = (page: Page) =>
+	page
+		.frames()
+		.find((frame) => frame.url().startsWith(SITE))
+		?.url();
+
+test.describe('links, button labels and early double clicks (QA of 22 Oct 2026)', () => {
+	test.skip(!astroRoot, 'Requires VEGA_ASTRO_ROOT pointing to the reviewed @vega/astro checkout');
+
+	inBothEngines(
+		'a link inside a Markdown paragraph never navigates the canvas; a paragraph that is only a link edits',
+		async (page) => {
+			await openWithMarkdownBody(page);
+			const frame = frameOf(page);
+			const paragraphs = frame.locator('[data-vega-block-id="seccion_2"] [data-vega-source-range]');
+			await expect(paragraphs.first()).toHaveAttribute('title', 'Doble clic para editar');
+			await paragraphs.first().click();
+			await expect(inspector(page)).toHaveAttribute('data-block-id', 'seccion_2');
+			await inspectorControl(page, 'texto').fill(
+				'Escríbeme [aquí](/precios).\n\n[Request Access](/precios)'
+			);
+			await expect(paragraphs).toHaveCount(2);
+			const only = paragraphs.nth(1).locator('a');
+			await expect(only).toHaveText('Request Access');
+			await expect(paragraphs.nth(1)).toHaveAttribute('title', 'Doble clic para editar');
+			// One click selects the block and stays on the preview.
+			await only.click();
+			await page.waitForTimeout(300);
+			expect(frameUrl(page)).toMatch(/\/preview$/);
+			// A double click on the link opens the paragraph it is all of.
+			await only.dblclick();
+			await expect(paragraphs.nth(1)).toHaveAttribute('contenteditable', 'plaintext-only');
+			await expect(paragraphs.nth(1)).toHaveText('[Request Access](/precios)');
+			await page.keyboard.press('Escape');
+			// And on a link inside a longer paragraph, that paragraph.
+			await paragraphs.first().locator('a').dblclick();
+			await expect(paragraphs.first()).toHaveAttribute('contenteditable', 'plaintext-only');
+			await page.keyboard.press('Escape');
+			expect(frameUrl(page)).toMatch(/\/preview$/);
+		}
+	);
+
+	inBothEngines(
+		"a Button's label inside its link is edited in place and the button never navigates",
+		async (page) => {
+			await openEditor(page);
+			const button = frameOf(page).locator('[data-vega-block-id="seccion_1"] a.cta');
+			const label = button.locator('[data-vega-field="subtitulo"]');
+			await expect(label).toHaveAttribute('title', 'Doble clic para editar');
+			await button.click();
+			await expect(inspector(page)).toHaveAttribute('data-block-id', 'seccion_1');
+			expect(frameUrl(page)).toMatch(/\/preview$/);
+			await button.dblclick();
+			await expect(label).toHaveAttribute('contenteditable', 'plaintext-only');
+			await caretToEnd(label);
+			await page.keyboard.type(' ya');
+			await expect(inspectorControl(page, 'subtitulo')).toHaveValue(
+				`${SEED.seccion_1.subtitulo} ya`
+			);
+			await page.keyboard.press('Enter');
+			await expect(label).not.toHaveAttribute('contenteditable');
+			await expect(label).toHaveText(`${SEED.seccion_1.subtitulo} ya`);
+			expect(frameUrl(page)).toMatch(/\/preview$/);
+		}
+	);
+
+	for (const [what, locate] of [
+		['a block text', (page: Page) => field(frameOf(page), 'seccion_2', 'heading')],
+		['the page title', (page: Page) => frameOf(page).locator('[data-vega-record-field="title"]')]
+	] as const)
+		inBothEngines(
+			`a double click on ${what} before Vega greets opens it once Vega does, without selecting a word`,
+			async (page) => {
+				const site = await installSite(page, { slowLoad: true });
+				await loginAsDemo(page, { seedShowcase: true });
+				await page.goto('/c/paginas/pagina_1/visual');
+				const text = locate(page);
+				await expect(text).toBeVisible();
+				await text.dblclick();
+				expect(await text.evaluate((node) => node.ownerDocument.getSelection()?.toString())).toBe(
+					''
+				);
+				await expect(text).not.toHaveAttribute('contenteditable');
+				// The frame finishes loading: Vega greets, the site answers, the kept double click opens
+				// (also when the first press's selection made Vega move the page before the second).
+				site.releaseLoad();
+				await expect(text).toHaveAttribute('contenteditable', 'plaintext-only');
+				await page.keyboard.press('Escape');
+				await expect(text).not.toHaveAttribute('contenteditable');
+			}
+		);
 });
 
 test.describe('v1 site compatibility', () => {
