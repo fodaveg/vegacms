@@ -900,17 +900,46 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
  * ahora que `pagina_1`/`pagina_2` tienen `hasTypeMenu === true` (ver la cabecera de
  * `SECCIONES_CONTENT_TYPE`, `demo-seed.ts`).
  *
- * **Arrastre HTML5 NATIVO real, no un manejador disparado a mano.** `mouse.down()` + varios
- * `mouse.move({ steps })` + `mouse.up()`, MISMA receta que ya usa esta suite para el reorden por
- * arrastre de `e2e/merged-view.spec.ts` ("el arrastre pinta feedback visual…", que usa el mismo
- * gesto manual en dos pasos para poder observar el estado A MITAD del gesto) — verificada aquí
- * empíricamente, no asumida: cada test comprueba que la capa de destinos de
- * `VisualOverlay.svelte` (`.vega-visual-overlay-drop-zone`/`.vega-visual-overlay-empty-drop`, que
- * SOLO existen durante un `dragstart` real, ver su cabecera) apareció ANTES de soltar. Sin esa
- * comprobación intermedia, un arrastre que degradase a un simple `click` (el mismo botón lleva las
- * dos vías, ver la cabecera de `VisualPalette.svelte`) crearía igual una sección — al FINAL, no en
- * la posición pedida — y el test podría colar un falso verde si solo mirara el conteo final.
+ * **Eventos de arrastre despachados, no el ratón de Playwright** (gate del 22 oct 2026). Hasta
+ * entonces estos tests hacían el gesto con `mouse.down()`/`mouse.move()`/`mouse.up()`, y uno salió
+ * rojo de forma intermitente: la capa de destino apareció, no se creó nada y el formulario dijo
+ * «Todavía no hay secciones». Playwright solo entrega el `drop` si cree que el `mousemove` empezó
+ * un arrastre: lo averigua con un `setTimeout(0)` y evaluando `window.__cleanupDrag()` en TODOS
+ * los marcos (incluido el iframe de otro origen) con `.catch(() => false)`; si eso falla o llega
+ * tarde, el `mouseup` es un `mouseup` sin más y el arrastre acaba en `dragend` sin `drop`. El
+ * producto, en cambio, crea siempre que el `drop` llega (el adaptador `memory` escribe dentro del
+ * propio manejador). Así que el gesto va con `dispatchEvent` y un `DataTransfer` compartido:
+ * `dragstart` en la baldosa, `dragover` + `drop` en la capa con sus coordenadas, `dragend`. Pasa
+ * por los MISMOS manejadores (`VisualPalette#handleDragStart`, `VisualOverlay`
+ * `handleZoneDragOver`/`handleZoneDrop`, `handleInsert`). El arrastre nativo de la baldosa sigue
+ * ejercido de punta a punta en «imagen de arrastre», más abajo.
+ *
+ * Cada test comprueba que la capa de destinos (`.vega-visual-overlay-drop-zone` /
+ * `.vega-visual-overlay-empty-drop`, que SOLO existen con un arrastre de paleta en vuelo) apareció
+ * ANTES de soltar, y espera a la señal real de que el bloque se creó (su fila en el árbol, que solo
+ * aparece cuando `create` respondió) antes de releerlo en el formulario.
  */
+
+/** El gesto de la paleta con eventos despachados (ver la cabecera del bloque): arrastra `tile`
+ *  y lo suelta sobre `zone` en `point` (coordenadas de la página). `during` corre con el arrastre
+ *  en vuelo, antes de soltar. */
+async function dropFromPalette(
+	page: Page,
+	tile: ReturnType<Page['locator']>,
+	zone: ReturnType<Page['locator']>,
+	point: { x: number; y: number },
+	during?: () => Promise<void>
+): Promise<void> {
+	const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+	await tile.dispatchEvent('dragstart', { dataTransfer });
+	// La capa de destino SOLO existe con un arrastre de paleta en vuelo.
+	await expect(zone).toBeVisible();
+	await during?.();
+	const at = { dataTransfer, clientX: point.x, clientY: point.y, bubbles: true, cancelable: true };
+	await zone.dispatchEvent('dragover', at);
+	await zone.dispatchEvent('drop', at);
+	await tile.dispatchEvent('dragend', { dataTransfer });
+}
 test.describe('editor visual — paleta de bloques arrastrable, crear sobre el lienzo', () => {
 	test('arrastrar un tipo de la paleta sobre una página CON bloques inserta EN LA POSICIÓN correcta, no al final', async ({
 		page
@@ -925,8 +954,6 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
 			.locator('.vega-palette-item')
 			.filter({ has: page.getByText('Texto', { exact: true }) });
 		await expect(paletteItem).toBeVisible();
-		const sourceBox = await paletteItem.boundingBox();
-		if (!sourceBox) throw new Error('bounding box ausente (layout no resuelto)');
 
 		// Mitad INFERIOR de `seccion_1` (`insert-position.ts`: `y < midpoint ? index : index + 1`):
 		// inserta DESPUÉS de ella, posición 1 — ni al principio ni al final, el único caso que
@@ -935,28 +962,19 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
 			.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_1"]')
 			.boundingBox();
 		if (!firstBox) throw new Error('bounding box ausente (layout no resuelto)');
-		const dropX = firstBox.x + firstBox.width / 2;
-		const dropY = firstBox.y + firstBox.height * 0.85;
-
-		await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
-		await page.mouse.down();
-		// Paso intermedio corto: el umbral de arrastre nativo de Chromium necesita distancia real
-		// antes de disparar `dragstart` (mismo criterio que el arrastre manual de
-		// `merged-view.spec.ts`).
-		await page.mouse.move(
-			sourceBox.x + sourceBox.width / 2 + 24,
-			sourceBox.y + sourceBox.height / 2,
-			{ steps: 5 }
+		const zones = page.locator('.vega-visual-overlay-drop-zone');
+		await dropFromPalette(
+			page,
+			paletteItem,
+			zones.first(),
+			{ x: firstBox.x + firstBox.width / 2, y: firstBox.y + firstBox.height * 0.85 },
+			// La capa de destinos SOLO existe durante el gesto (ver cabecera): un destino por bloque
+			// reportado (3, para `SECCIONES`).
+			() => expect(zones).toHaveCount(3)
 		);
-		await page.mouse.move(dropX, dropY, { steps: 15 });
-
-		// La capa de destinos SOLO existe durante el gesto (ver cabecera): un destino por bloque
-		// reportado (3, para `SECCIONES`).
-		await expect(page.locator('.vega-visual-overlay-drop-zone')).toHaveCount(3);
-
-		await page.mouse.up();
-
-		await expect(page.locator('.vega-visual-overlay-drop-zone')).toHaveCount(0);
+		await expect(zones).toHaveCount(0);
+		// Señal real de que el bloque se creó (y se recolocó): su fila en el árbol.
+		await expect(page.locator('.vega-tree-list li')).toHaveCount(4);
 
 		// Comprueba el resultado leyendo el backend por su cuenta (`RecordBlocks.svelte`, un
 		// `list()` PROPIO), no la lista del árbol que el propio gesto acaba de tocar.
@@ -989,30 +1007,21 @@ test.describe('editor visual — paleta de bloques arrastrable, crear sobre el l
 			.locator('.vega-palette-item')
 			.filter({ has: page.getByText('Portada', { exact: true }) });
 		await expect(paletteItem).toBeVisible();
-		const sourceBox = await paletteItem.boundingBox();
-		if (!sourceBox) throw new Error('bounding box ausente (layout no resuelto)');
 
 		const iframeBox = await page.locator('iframe.vega-visual-frame').boundingBox();
 		if (!iframeBox) throw new Error('bounding box ausente (layout no resuelto)');
-		const dropX = iframeBox.x + iframeBox.width / 2;
-		const dropY = iframeBox.y + iframeBox.height / 2;
-
-		await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
-		await page.mouse.down();
-		await page.mouse.move(
-			sourceBox.x + sourceBox.width / 2 + 24,
-			sourceBox.y + sourceBox.height / 2,
-			{ steps: 5 }
-		);
-		await page.mouse.move(dropX, dropY, { steps: 15 });
 
 		// Sin un solo bloque que sobrevolar, la ÚNICA capa de destino es la caja entera del lienzo
 		// (ver la cabecera de `VisualOverlay.svelte`, "Página vacía + arrastre de paleta en vuelo").
-		await expect(page.locator('.vega-visual-overlay-empty-drop')).toBeVisible();
-
-		await page.mouse.up();
-
-		await expect(page.locator('.vega-visual-overlay-empty-drop')).toHaveCount(0);
+		const emptyDrop = page.locator('.vega-visual-overlay-empty-drop');
+		await dropFromPalette(page, paletteItem, emptyDrop, {
+			x: iframeBox.x + iframeBox.width / 2,
+			y: iframeBox.y + iframeBox.height / 2
+		});
+		await expect(emptyDrop).toHaveCount(0);
+		// Señal real de que el bloque se creó: su fila en el árbol (solo aparece cuando `create`
+		// respondió). Hasta aquí no se va al formulario.
+		await expect(page.locator('.vega-tree-list li')).toHaveCount(1);
 
 		await formLink(page).click();
 		await expect(page).toHaveURL(/\/c\/paginas\/pagina_2$/);
