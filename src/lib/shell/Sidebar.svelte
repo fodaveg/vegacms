@@ -51,12 +51,14 @@
 	import { page } from '$app/state';
 	import { getVegaContext } from '$lib/app-context';
 	import {
+		activityRoute,
 		backupsRoute,
 		editorsRoute,
 		mediaRoute,
 		settingsRoute,
 		trashRoute
 	} from '$lib/nav/routes';
+	import { hasActivityCollection } from '$lib/activity/activity-collection';
 	import { VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
 	import Icon from '$lib/icons/Icon.svelte';
 	import NavItem from './NavItem.svelte';
@@ -88,6 +90,10 @@
 	// no las ve; si llega por URL, cada ruta enseña su propia puerta.
 	const showAdministration = $derived(
 		ctx.port.capabilities.administration && ctx.port.administration !== undefined
+	);
+	const activityHref = activityRoute();
+	const showActivity = $derived(
+		showAdministration && hasActivityCollection(ctx.model.types.map((type) => type.schema))
 	);
 	const editorsHref = editorsRoute();
 	const backupsHref = backupsRoute();
@@ -306,6 +312,17 @@
 					<Icon id="archive" size={16} strokeWidth={1.6} />
 					<span class="vega-nav-fixed-label">{ctx.t('nav.backups')}</span>
 				</a>
+			</li>
+		{/if}
+		{#if showActivity}
+			<li>
+				<a
+					href={activityHref}
+					aria-current={page.url.pathname === activityHref ? 'page' : undefined}
+					><Icon id="update" size={16} strokeWidth={1.6} /><span class="vega-nav-fixed-label"
+						>{ctx.t('activity.title')}</span
+					></a
+				>
 			</li>
 		{/if}
 		<li>

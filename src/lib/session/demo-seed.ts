@@ -169,6 +169,7 @@
  * exactas, cero peso en el bundle. `DEMO_SEED`/`DEMO_SEED_WITH_MEDIA` conservan el PNG de 1×1.
  */
 import type { ContentType, FieldValue, JsonValue } from '$lib/backend/types';
+import { ACTIVITY_DEMO_TYPE, activityDemoRecords } from '$lib/activity/activity-demo';
 import { VEGA_COLLECTION } from '$lib/backend/collections';
 import type { MemorySeed } from '$lib/backend/adapters/memory';
 
@@ -871,6 +872,7 @@ const EXTRA_POST_RECORDS = Array.from({ length: 30 }, (_, i) => {
 export const DEMO_SEED: MemorySeed = {
 	users: [DEMO_CREDENTIALS],
 	contentTypes: [
+		ACTIVITY_DEMO_TYPE,
 		VEGA_CONTENT_TYPE,
 		POSTS_CONTENT_TYPE,
 		PAGES_CONTENT_TYPE,
@@ -884,6 +886,7 @@ export const DEMO_SEED: MemorySeed = {
 		SITE_INFO_CONTENT_TYPE
 	],
 	records: {
+		vega_activity: activityDemoRecords(),
 		[VEGA_COLLECTION.name]: [{ id: 'vega_manifest', values: { manifest: DEMO_MANIFEST } }],
 		posts: [
 			{
@@ -2433,6 +2436,7 @@ export const SHOWCASE_SEED: MemorySeed = {
 	// sembrado del sitio es David). La demo pública (`DEMO_SEED`) sigue sin él: «Buenos días.»
 	users: [{ ...DEMO_CREDENTIALS, name: 'David' }],
 	contentTypes: [
+		ACTIVITY_DEMO_TYPE,
 		VEGA_CONTENT_TYPE,
 		ENTRADAS_CONTENT_TYPE,
 		PAGINAS_CONTENT_TYPE,
@@ -2443,6 +2447,7 @@ export const SHOWCASE_SEED: MemorySeed = {
 		VEGA_MEDIA_CONTENT_TYPE
 	],
 	records: {
+		vega_activity: activityDemoRecords('entradas', ENTRADAS_RECORDS[0].id),
 		[VEGA_COLLECTION.name]: [{ id: 'vega_manifest', values: { manifest: SHOWCASE_MANIFEST } }],
 		entradas: ENTRADAS_RECORDS,
 		paginas: PAGINAS_RECORDS,

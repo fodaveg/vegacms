@@ -878,3 +878,49 @@ biblioteca exija sesión. Se conserva el orden guardado de las firmas. Una entra
 categorías sigue siendo válida; el sitio decide qué mostrar. La foto se obtiene con
 `pb.files.getURL(avatar, avatar.file)`. SEO de autor, cuentas de editores, redes sociales y cargador de
 entradas quedan fuera de este módulo.
+
+## Registro de actividad
+
+La imagen oficial incluye `infra/production/pb_hooks/vega-activity.pb.js` y
+`vega-activity-lib.js`. En una imagen propia copia ambos al directorio `pb_hooks` de PocketBase;
+el helper no termina en `.pb.js` y se carga desde cada callback. Reinicia PocketBase para activar
+el hook. Al arrancar crea `vega_activity` si no existe, con sus índices y las cinco reglas en
+`null`. Si existe con una forma incompatible, conserva la colección y desactiva el registro en
+ese proceso, dejando un aviso en el log. No hay sembrado del cliente ni historia anterior.
+
+La pantalla **Actividad** (`/actividad`) aparece junto a Editores y Copias para superusuarios
+cuando el esquema descubierto contiene la colección completa y sus reglas cerradas. Un editor
+que accede por URL ve la puerta de superusuario. La presencia de la colección acredita su
+esquema, **no que el hook siga instalado o activo**: retirarlo conserva las filas anteriores.
+Un servidor sin el hook muestra la explicación de instalación al abrir la URL.
+
+Registra altas, ediciones y borrados solicitados por API con sesión, incluidos editores de una
+colección auth configurada por el proyecto, Dashboard y peticiones batch. Solo contenido de
+colecciones `base` no de sistema: excluye `vega` y `vega_*`, salvo `vega_media`. Restaurar e importar
+se leen como altas. Publicar, despublicar y reordenar se deducen de los campos del modelo.
+No registra escrituras sin petición (migraciones, crons, publicación programada), altas públicas,
+referencias vaciadas y borrados en cascada de PocketBase, cambios de esquema, manifiesto ni cuentas.
+Inicio, historial y papelera conservan su funcionamiento.
+
+Solo guarda nombres de campos modificados (máximo 50); valores anteriores y siguientes únicamente
+para `select` y `bool`. Guarda id, colección y correo de la cuenta que actúa, sin IP. La etiqueta
+se limita a 200 caracteres y se vacía en colecciones con algún campo `email`. Borrar cualquier
+cuenta auth vacía su correo en las filas de esa identidad (colección e id); no anonimiza el
+campo `author` del historial de versiones.
+
+| Variable del proceso PocketBase | Por defecto | Efecto                                       |
+| ------------------------------- | ----------- | -------------------------------------------- |
+| `VEGA_ACTIVITY_DAYS`            | `90`        | Antigüedad máxima en días                    |
+| `VEGA_ACTIVITY_MAX_ROWS`        | `100000`    | Máximo de filas después de la poda por fecha |
+
+Solo se admiten enteros positivos seguros: `0`, negativos, decimales o valores inválidos usan el
+valor por defecto. El cron `vega-activity-prune` corre a las 03:30 según el reloj del servidor y
+borra mediante SQL por tandas de 1000, primero por fecha y después por tope. No hay ajuste de
+retención en el admin. Los filtros de fecha de la pantalla usan días UTC; la carga obtiene 50 filas
+con cursor `created` descendente e `id` ascendente, sin desplazar páginas cuando entran filas nuevas.
+Los guardados cercanos y rachas masivas se agrupan solo para presentar, conservando cada fila.
+
+Un fallo al guardar actividad no rompe la escritura original; deja un aviso sin valores del
+contenido. Puede perderse una fila si el proceso muere entre ambas escrituras. Un superusuario
+puede modificar o borrar actividad por la API: es un registro de equipo, no una auditoría
+transaccional ni inmutable. La demo usa filas fijas y no simula la ejecución del hook.

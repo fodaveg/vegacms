@@ -391,3 +391,16 @@ no se poda hasta el siguiente deploy correcto.
 La imagen nunca contiene `pb_data`, por lo que cambiarla no altera el volumen. Si el primer
 despliegue falla, elimina `/srv/edge/conf.d/vega.caddy`, valida y recarga Caddy, y detén el Compose
 sin usar `--volumes`.
+
+## Hook de actividad
+
+El Dockerfile ya copia todo `pb_hooks/`: distribuye juntos `vega-activity.pb.js` y
+`vega-activity-lib.js`, sin recompilar extensiones Go. El hook crea su colección cerrada al
+arrancar y registra peticiones de contenido con sesión. No requiere migración ni sembrado.
+Las imágenes de otros proyectos deben copiar ambos ficheros a su propio `pb_hooks` y fijar su
+procedencia; actualizar esta imagen no actualiza esas copias. No se despliegan por este cambio.
+
+Configura `VEGA_ACTIVITY_DAYS` (90) y `VEGA_ACTIVITY_MAX_ROWS` (100000) en el entorno del proceso
+si necesitas otra retención. Véanse [cobertura y privacidad](../../docs/CONFIG.md#registro-de-actividad)
+y el contrato real `tests/contract/pocketbase.activity-hook.test.ts`. La existencia de la colección
+no demuestra que el hook siga activo; consulta el proceso y sus logs al comprobar la instalación.

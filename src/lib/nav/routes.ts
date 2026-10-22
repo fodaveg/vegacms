@@ -118,3 +118,8 @@ export function passwordResetRoute(): string {
 export function loginRoute(): string {
 	return `${base}/login`;
 }
+
+/** `/actividad` — registro interno de peticiones, solo superusuarios. */
+export function activityRoute(): string {
+	return `${base}/actividad`;
+}

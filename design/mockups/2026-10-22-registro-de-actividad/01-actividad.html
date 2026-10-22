@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es" data-theme="aquelarre" data-mode="dark">
+	<meta charset="utf-8" /><meta
+		name="viewport"
+		content="width=device-width,initial-scale=1"
+	/><title>Actividad · Vega</title>
+	<link rel="stylesheet" href="../../../src/lib/themes/themes.generated.css" />
+	<style>
+		body {
+			margin: 0;
+			background: var(--bg);
+			color: var(--ink);
+			font: 16px/1.5 system-ui;
+		}
+		main {
+			max-width: 1000px;
+			margin: auto;
+			padding: 32px;
+		}
+		h1 {
+			font-size: 28px;
+		}
+		p {
+			margin: 0;
+		}
+		small,
+		.muted {
+			color: var(--ink-2);
+		}
+		form {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 12px;
+			margin: 24px 0;
+		}
+		label {
+			display: grid;
+			gap: 4px;
+			flex: 1;
+			min-width: 120px;
+		}
+		select,
+		input,
+		button,
+		summary {
+			font: inherit;
+			color: var(--ink);
+			background: var(--surface);
+			border: 1px solid var(--line);
+			border-radius: 8px;
+			min-height: 44px;
+			padding: 8px;
+			box-sizing: border-box;
+		}
+		article {
+			border: 1px solid var(--line);
+			border-radius: 12px;
+			overflow: hidden;
+		}
+		h2 {
+			font-size: 14px;
+			background: var(--surface-2);
+			padding: 12px 16px;
+			margin: 0;
+		}
+		.row {
+			display: flex;
+			gap: 16px;
+			padding: 16px;
+			border-top: 1px solid var(--line);
+		}
+		.row div {
+			flex: 1;
+			overflow-wrap: anywhere;
+		}
+		a {
+			color: var(--ink);
+		}
+		time {
+			color: var(--ink-2);
+			font-size: 13px;
+		}
+		details {
+			padding: 16px;
+		}
+		summary {
+			cursor: pointer;
+		}
+		.states {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 16px;
+			margin-top: 32px;
+		}
+		.states div {
+			padding: 24px;
+			border: 1px solid var(--line);
+			border-radius: 12px;
+		}
+		*:focus-visible {
+			outline: 2px solid var(--ink);
+			outline-offset: 2px;
+		}
+		@media (max-width: 600px) {
+			main {
+				padding: 16px;
+			}
+			.row {
+				flex-wrap: wrap;
+			}
+			.states {
+				grid-template-columns: 1fr;
+			}
+			time {
+				width: 100%;
+			}
+		}
+	</style>
+	<main>
+		<p class="muted">VEGA / ADMINISTRACIÓN</p>
+		<h1>Actividad</h1>
+		<p class="muted">Quién hizo qué y cuándo en el contenido del sitio.</p>
+		<form>
+			<label
+				>Persona<select>
+					<option>Todas las personas</option>
+					<option>Ana Ruiz</option>
+					<option>Superusuarios</option>
+				</select></label
+			><label
+				>Tipo<select>
+					<option>Todos los tipos</option>
+					<option>Entradas</option>
+				</select></label
+			><label
+				>Acción<select>
+					<option>Todas las acciones</option>
+					<option>Crear</option>
+					<option>Editar</option>
+					<option>Borrar</option>
+				</select></label
+			><label>Desde (UTC)<input type="date" /></label><label>Hasta (UTC)<input type="date" /></label
+			><button>Filtrar</button>
+		</form>
+		<article>
+			<h2>Jueves, 22 de octubre de 2026</h2>
+			<div class="row">
+				<div>
+					<p><strong>Ana Ruiz</strong> editó <a href="#">Inicio</a>, 4 guardados</p>
+					<small>Páginas · título, cuerpo</small>
+				</div>
+				<time>hace 8 minutos</time>
+			</div>
+			<div class="row">
+				<div>
+					<p><strong>David</strong> publicó <a href="#">La nueva exposición del museo</a></p>
+					<small>Entradas · estado</small>
+				</div>
+				<time>hace 1 hora</time>
+			</div>
+			<div class="row">
+				<div>
+					<p><strong>Jorge Pérez</strong> borró Una entrada retirada</p>
+					<small>Entradas · sin copia en la papelera</small>
+				</div>
+				<time>hace 2 horas</time>
+			</div>
+			<h2>Miércoles, 21 de octubre de 2026</h2>
+			<details>
+				<summary>David creó 120 registros en Entradas</summary>
+				<p>Entrada importada 1</p>
+				<p>Entrada importada 2</p>
+			</details>
+		</article>
+		<button style="display: block; margin: 24px auto">Cargar más</button>
+		<p class="muted">
+			La colección acredita el esquema instalado; no confirma que el hook siga activo.
+		</p>
+		<div class="states">
+			<div>
+				<h2>Todavía no hay actividad</h2>
+				<p>Las próximas escrituras con sesión aparecerán aquí.</p>
+			</div>
+			<div>
+				<h2>Sin resultados para estos filtros</h2>
+				<p>Cambia la persona, el tipo, la acción o las fechas.</p>
+			</div>
+			<div>
+				<h2>No se pudo cargar la actividad</h2>
+				<button>Reintentar</button>
+			</div>
+			<div>
+				<h2>Registro no disponible</h2>
+				<p>Este servidor necesita el hook de actividad y su colección con reglas cerradas.</p>
+				<a href="#">Cómo instalar el hook</a>
+			</div>
+		</div>
+	</main>
+</html>

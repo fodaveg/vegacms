@@ -171,12 +171,12 @@ function stringOrder(
 function compileNode(
 	node: FilterNode,
 	byName: Map<string, Field>,
-	nextParam: (value: unknown) => string,
+	bind: (value: unknown) => string,
 	mode: FilterParserMode
 ): string {
 	if (node.kind === 'group') {
 		const combinator = node.combinator === 'and' ? '&&' : '||';
-		const parts = node.nodes.map((n) => `(${compileNode(n, byName, nextParam, mode)})`);
+		const parts = node.nodes.map((n) => `(${compileNode(n, byName, bind, mode)})`);
 		return parts.join(` ${combinator} `);
 	}
 
@@ -184,6 +184,14 @@ function compileNode(
 	// de `ContentType.fields`) — `validateQuery`/`ID_FILTER_OPS` ya lo validan aparte.
 	const field = node.field === 'id' ? ID_FIELD : (byName.get(node.field) as Field); // ya validado por validateQuery
 	const name = pbFieldExpr(node.field);
+	// El puerto usa ISO UTC, SQLite guarda fechas PB con espacio. Sin esta conversión,
+	// un cursor ISO considera anteriores todas las filas del mismo día y las repite.
+	const nextParam = (value: unknown): string =>
+		bind(
+			field.type === 'date' && typeof value === 'string' && Number.isFinite(Date.parse(value))
+				? new Date(value).toISOString().replace('T', ' ')
+				: value
+		);
 
 	switch (node.op) {
 		case 'empty':

@@ -1672,3 +1672,23 @@ y el selector excluye la fila y sus descendientes. No hay hook servidor: la API 
 y guardados concurrentes pueden formar ciclos. El sitio debe construir el árbol con tolerancia a
 esos problemas; véase [tree y consumo del blog](CONFIG.md#colecciones-en-árbol-tree). Importar hijas
 con madre requiere que la madre ya exista; si no, se corrige el enlace después.
+
+## Registro interno de actividad
+
+El hook JS de la imagen oficial crea `vega_activity` desde `onBootstrap` después de `e.next()`.
+Este guardado del modelo no genera una migración automática de la API; el contrato real verifica
+el arranque con `--automigrate` activo y un directorio de migraciones que rechaza escritura.
+Una colección existente nunca se modifica; una forma incompatible apaga el registro del proceso.
+
+Las cinco reglas permanecen en `null`, como `vega_revisions`: solo el superusuario puede leerlas.
+El hook usa el servidor para registrar peticiones con sesión, incluidos editores. Abrir reglas de
+creación permitiría falsificar acciones y abrir lecturas revelaría títulos ajenos. No uses la
+actividad como fuente del historial ni como auditoría inmutable. La colección sola no es una
+señal de salud del hook después de su instalación.
+
+Campos: `action`, `collection`, `recordId`, `label`, `actorId`, `actorCollection`, `actorEmail`,
+`changes` (JSON) y `created` (autodate de alta). Índices por `created`, `(collection, recordId)` y
+`(actorId, created)`. Sin relaciones: borrar contenido conserva su rastro. La anonimización usa
+el hook de modelo `onRecordAfterDeleteSuccess` para cualquier colección auth. La poda es SQL
+por tandas, con límites del entorno. Consulta [configuración](CONFIG.md#registro-de-actividad)
+para privacidad, cobertura, instalación y límites exactos.
