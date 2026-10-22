@@ -8,6 +8,7 @@ import { createMemoryBackend } from '$lib/backend/adapters/memory';
 import { loadContentModel } from '$lib/model/load';
 import { loadReviewData } from '$lib/publish-review/load-review-data';
 import { reviewRecord } from '$lib/publish-review/publish-review';
+import { mediaFoldersState } from '$lib/media/media-folders';
 import { DEMO_CREDENTIALS, DEMO_SEED, DEMO_SEED_WITH_MEDIA, SHOWCASE_SEED } from './demo-seed';
 
 /** Dominios admitidos en un correo de la semilla; un subdominio suyo también vale. */
@@ -68,4 +69,21 @@ test('el escaparate declara páginas con rutas reales y detecta /precios como en
 			expect.objectContaining({ check: 'link.broken', params: { href: '/precios' } })
 		])
 	);
+});
+
+test('el escaparate muestra carpetas actuales y el escenario de actualización sigue siendo legacy explícito', async () => {
+	expect(mediaFoldersState(SHOWCASE_SEED.contentTypes)).toBe('ready');
+	expect(mediaFoldersState(DEMO_SEED_WITH_MEDIA.contentTypes)).toBe('missing');
+	const { users, contentTypes, records } = SHOWCASE_SEED;
+	const port = createMemoryBackend({ users, contentTypes, records });
+	await port.login(DEMO_CREDENTIALS);
+	const folders = await port.list('vega_media_folders');
+	expect(folders.items.map((folder) => folder.values.name).sort()).toEqual([
+		'Documentos',
+		'Fotografía'
+	]);
+	const media = await port.list('vega_media');
+	expect(media.items).toHaveLength(8);
+	expect(media.items.some((item) => item.values.folder === 'folder_photos')).toBe(true);
+	expect(media.items.some((item) => item.values.folder === null)).toBe(true);
 });

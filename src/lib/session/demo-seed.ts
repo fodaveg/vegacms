@@ -1106,7 +1106,9 @@ export const DEMO_SEED: MemorySeed = {
 // `'creatable'` que esa suite ejercita) — mezclarla ahí rompería esos tests. En vez de eso,
 // `DEMO_SEED_WITH_MEDIA` es una copia AUMENTADA de `DEMO_SEED` que solo activa el gancho de e2e
 // `window.__VEGA_SEED_MEDIA__` (ver `session/backend.ts`), consumida por `loginAsDemo(page,
-// { seedMedia: true })` (`e2e/fixtures.ts`).
+// { seedMedia: true })` (`e2e/fixtures.ts`). Es una biblioteca LEGACY sin carpetas: el E2E
+// `media-folders.spec.ts` verifica expresamente su actualización. El escaparate de QA usa
+// la ampliación actual con carpetas que se declara junto a `SHOWCASE_SEED`.
 //
 // Forma del `ContentType`: réplica manual (mismo criterio que el resto de este fichero, ninguno
 // de los tipos de la semilla se deriva programáticamente de otro sitio) de lo que produce
@@ -2431,6 +2433,52 @@ const ETIQUETAS_RECORDS = [
 	{ id: 'etiqueta_12', values: { name: 'self-host' } }
 ];
 
+/** El escaparate enseña la biblioteca actual; la fixture de upgrade permanece independiente. */
+const SHOWCASE_MEDIA_FOLDERS_CONTENT_TYPE: ContentType = {
+	name: 'vega_media_folders',
+	readonly: false,
+	fields: [
+		{
+			name: 'name',
+			type: 'text',
+			subtype: 'plain',
+			required: true,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: true,
+			maxLength: 80
+		},
+		{
+			name: 'created',
+			type: 'date',
+			required: false,
+			readonly: true,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+const SHOWCASE_MEDIA_CONTENT_TYPE: ContentType = {
+	...VEGA_MEDIA_CONTENT_TYPE,
+	fields: [
+		...VEGA_MEDIA_CONTENT_TYPE.fields,
+		{
+			name: 'folder',
+			type: 'relation',
+			target: 'vega_media_folders',
+			multiple: false,
+			cascadeDelete: false,
+			required: false,
+			readonly: false,
+			presentable: false,
+			hidden: false,
+			unique: false
+		}
+	]
+};
+
 export const SHOWCASE_SEED: MemorySeed = {
 	// Con nombre: el escaparate enseña el saludo «Buenos días, David.» de Inicio v2 (el autor
 	// sembrado del sitio es David). La demo pública (`DEMO_SEED`) sigue sin él: «Buenos días.»
@@ -2444,7 +2492,8 @@ export const SHOWCASE_SEED: MemorySeed = {
 		PROYECTOS_CONTENT_TYPE,
 		AUTORES_CONTENT_TYPE,
 		ETIQUETAS_CONTENT_TYPE,
-		VEGA_MEDIA_CONTENT_TYPE
+		SHOWCASE_MEDIA_FOLDERS_CONTENT_TYPE,
+		SHOWCASE_MEDIA_CONTENT_TYPE
 	],
 	records: {
 		vega_activity: activityDemoRecords('entradas', ENTRADAS_RECORDS[0].id),
@@ -2458,7 +2507,25 @@ export const SHOWCASE_SEED: MemorySeed = {
 		// Biblioteca PROPIA del escaparate (ya no los 3 assets de `DEMO_SEED_WITH_MEDIA`): ocho
 		// ficheros con la variedad de tipos del mockup, cuatro de ellos con bitmap real generado en
 		// tiempo de siembra — ver `SHOWCASE_MEDIA_RECORDS`/`renderShowcaseBitmap`.
-		vega_media: SHOWCASE_MEDIA_RECORDS
+		vega_media_folders: [
+			{ id: 'folder_photos', values: { name: 'Fotografía', created: '2024-01-01T00:00:00.000Z' } },
+			{
+				id: 'folder_documents',
+				values: { name: 'Documentos', created: '2024-01-01T00:00:00.000Z' }
+			}
+		],
+		vega_media: SHOWCASE_MEDIA_RECORDS.map((record, index) => ({
+			...record,
+			values: {
+				...record.values,
+				folder:
+					index === 7
+						? null
+						: /\.(png|jpe?g|webp)$/i.test(record.values.file)
+							? 'folder_photos'
+							: 'folder_documents'
+			}
+		}))
 	},
 	// Como un servidor con `extensions/vegaschedule`: así «Programar…» se ofrece en `paginas` (ver
 	// `PAGINAS_CONTENT_TYPE#publishAt`) y el e2e de la cabecera del editor visual puede recorrerlo.

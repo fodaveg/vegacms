@@ -945,3 +945,23 @@ Un fallo al guardar actividad no rompe la escritura original; deja un aviso sin 
 contenido. Puede perderse una fila si el proceso muere entre ambas escrituras. Un superusuario
 puede modificar o borrar actividad por la API: es un registro de equipo, no una auditoría
 transaccional ni inmutable. La demo usa filas fijas y no simula la ejecución del hook.
+
+## Carpetas de medios
+
+La base del sitio incluye carpetas planas privadas (`vega_media_folders`) y la relación opcional
+`vega_media.folder`, simple y sin cascada. En una biblioteca anterior, un superuser puede usar
+**Medios → Añadir campos**: añade lo que falta, conserva campos, reglas y archivos existentes y
+actualiza el snapshot que leen los editores. Un esquema incompatible se avisa sin modificarlo.
+El bootstrap manual de `vega_media` sigue funcionando por separado; no añade carpetas por sí solo.
+
+En Medios puedes crear, renombrar y borrar carpetas, filtrar con Todos/Sin carpeta y mover medios
+individuales o seleccionados. Subir dentro de una carpeta la asigna en el mismo guardado. Borrar una
+carpeta muestra antes su recuento; sus archivos se conservan en Sin carpeta. Los selectores de fichero
+y de relación a medios comparten el filtro durante la página. Detalle de esquema, permisos y
+actualización en [Carpetas planas de la biblioteca](POCKETBASE-INTEGRATION.md#carpetas-planas-de-la-biblioteca).
+
+El escaparate de QA (`SHOWCASE_SEED`) incluye el esquema actual con Fotografía, Documentos y archivos
+sin carpeta. `DEMO_SEED_WITH_MEDIA` queda como fixture explícita de biblioteca anterior, sin carpetas:
+`e2e/media-folders.spec.ts` comprueba su actualización antes de crear/subir/mover/renombrar/borrar.
+`DEMO_SEED` sin biblioteca sigue cubriendo el bootstrap inicial. Estas fixtures no son migraciones ni
+cambian el esquema de un servidor conectado.
