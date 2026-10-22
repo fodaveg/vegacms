@@ -44,10 +44,10 @@ import type { Page, Route } from '@playwright/test';
  *  `page.route()` lo intercepta antes de que Chromium intente averiguarlo. */
 export const SITE_ORIGIN = 'https://vega-visual-site.example';
 
-/** Origen de la app bajo prueba (`playwright.config.ts`, `PORT = 4173`). Playwright corre en un
- *  runtime Node aparte de Vite y no resuelve el alias `$lib`, así que se duplica aquí a
+/** Origen de la app bajo prueba (`playwright.config.ts`: 4173, o `VEGA_E2E_PORT`). Playwright corre
+ *  en un runtime Node aparte de Vite y no resuelve el alias `$lib`, así que se duplica aquí a
  *  propósito — mismo criterio que `e2e/fixtures.ts` con las credenciales de demo. */
-const APP_ORIGIN = 'http://localhost:4173';
+const APP_ORIGIN = `http://localhost:${process.env.VEGA_E2E_PORT ?? 4173}`;
 
 const PREVIEW_API_PATH = '/api/vega-preview';
 const PREVIEW_PAGE_PATH = '/preview';
