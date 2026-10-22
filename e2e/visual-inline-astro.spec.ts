@@ -16,6 +16,11 @@ import { expect, loginAsDemo, preparePage, test } from './fixtures';
 import { createVisualSite } from './visual-site';
 
 const astroRoot = process.env.VEGA_ASTRO_ROOT;
+// Drain intercepted downloads before Playwright closes the page. In particular, a
+// lazy chunk can still be in flight after the recovery UI assertion has passed.
+test.afterEach(async ({ page }) => {
+	await page.unrouteAll({ behavior: 'wait' });
+});
 const SITE = 'https://inline-astro.example';
 const CMS = `http://localhost:${process.env.VEGA_E2E_PORT ?? 4173}`;
 const escape = (value: string) =>
