@@ -58,7 +58,7 @@ afterEach(async () => {
 });
 async function settle() {
 	await tick();
-	await new Promise((resolve) => setTimeout(resolve, 5));
+	await new Promise<void>((resolve) => queueMicrotask(resolve));
 	await tick();
 }
 function input(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
@@ -135,6 +135,8 @@ async function setup(
 		fileInput.dispatchEvent(new Event('change', { bubbles: true }));
 		flushSync();
 	}
+	// El widget se descarga por demanda: esperar su control, no un plazo arbitrario.
+	await vi.waitFor(() => expect(target.querySelector('.vega-relation-search')).not.toBeNull());
 	const search = target.querySelector<HTMLInputElement>('.vega-relation-search')!;
 	input(search, 'Taller');
 	const originalInert = target.querySelector<HTMLFormElement>('form')!.inert;
@@ -220,7 +222,7 @@ describe('L12: diálogo de creación de relación', () => {
 		expect(dialog()).toBeNull();
 		expect(document.activeElement).toBe(opener);
 		opener.click();
-		await settle();
+		await vi.waitFor(() => expect(dialog()).not.toBeNull());
 		input(dialog().querySelector<HTMLTextAreaElement>('textarea')!, 'Otra');
 		button('Cancelar').click();
 		await settle();
@@ -271,7 +273,9 @@ describe('L12: diálogo de creación de relación', () => {
 		await settle();
 		expect(dialog().textContent).toContain('Problema del registro');
 		expect(dialog().querySelector('.vega-field-error')).not.toBeNull();
-		expect(document.activeElement).toBe(dialog().querySelector('input[type="text"]'));
+		await vi.waitFor(() =>
+			expect(document.activeElement).toBe(dialog().querySelector('input[type="text"]'))
+		);
 		expect(dialog().querySelector<HTMLInputElement>('input[type="text"]')!.value).toBe('taller');
 		expect(parentName.value).toBe('Padre sin guardar');
 		expect(button('Buscar registros coincidentes')).toBeDefined();

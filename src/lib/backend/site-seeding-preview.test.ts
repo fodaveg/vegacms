@@ -38,7 +38,14 @@ describe('previewSiteSeed', () => {
 		const plan = ready(await previewSiteSeed(port));
 
 		expect(plan).toEqual({
-			createdCollections: ['vega_media', 'pages', 'blocks', 'redirects', 'vega'],
+			createdCollections: [
+				'vega_media_folders',
+				'vega_media',
+				'pages',
+				'blocks',
+				'redirects',
+				'vega'
+			],
 			addedFields: {},
 			manifest: 'create',
 			pageMissing: true,
@@ -113,7 +120,7 @@ describe('previewSiteSeed', () => {
 			manifestSkipped: [],
 			ruleDifferences: []
 		});
-		expect(plan.createdCollections).toEqual(['redirects']);
+		expect(plan.createdCollections).toEqual(['vega_media_folders', 'redirects']);
 		expect(plan.addedFields.pages).toEqual(
 			expect.arrayContaining(['publishAt', 'description', 'socialImage', 'noindex'])
 		);
