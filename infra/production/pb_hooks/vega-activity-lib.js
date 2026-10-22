@@ -176,7 +176,12 @@ function prune(app) {
 	if (!app.store().get('vegaActivityReady')) return;
 	const days = positiveInt($os.getenv('VEGA_ACTIVITY_DAYS'), 90);
 	const max = positiveInt($os.getenv('VEGA_ACTIVITY_MAX_ROWS'), 100000);
-	const cutoff = new Date(Date.now() - days * 86400000).toISOString().replace('T', ' ');
+	// Un entero seguro también puede desbordar Date: usa el mismo default que una
+	// configuración inválida y permite ejecutar siempre el límite de filas.
+	const now = Date.now();
+	let cutoffDate = new Date(now - days * 86400000);
+	if (!Number.isFinite(cutoffDate.getTime())) cutoffDate = new Date(now - 90 * 86400000);
+	const cutoff = cutoffDate.toISOString().replace('T', ' ');
 	const remove = (where, params) => {
 		let result;
 		do {
