@@ -1692,3 +1692,44 @@ Campos: `action`, `collection`, `recordId`, `label`, `actorId`, `actorCollection
 el hook de modelo `onRecordAfterDeleteSuccess` para cualquier colección auth. La poda es SQL
 por tandas, con límites del entorno. Consulta [configuración](CONFIG.md#registro-de-actividad)
 para privacidad, cobertura, instalación y límites exactos.
+
+## Formularios y bandejas
+
+**Ajustes → Base del sitio → Nuevo formulario** permite al superusuario crear una bandeja cuando
+la base está al día. Cada formulario es una colección base con columnas reales: texto corto
+(máximo 200), texto largo (5000), correo, URL, número, sí/no, opciones simples o múltiples y fecha.
+El asistente reutiliza el editor de campos, el preflight y el sembrado aditivo; una colección con
+otra forma bloquea la operación. Una forma compatible existente se adopta y exige confirmar las
+diferencias de reglas. Si falla una escritura, lo creado se conserva y repetir completa lo pendiente.
+El resultado muestra la migración, incluido `hidden: true` del campo de control.
+
+Toda bandeja añade `read` booleano, `notifyState` texto oculto de máximo 20 y `created` autodate.
+El visitante solo puede crear; la regla compartida `FORM_INBOX_CREATE_RULE` conserva la trampa
+`website` vacía y rechaza `read: true`. La API valida longitudes, formato y opciones; un booleano
+obligatorio rechaza `false` y un número obligatorio rechaza cero. El sitio debe tratar cualquier
+400 como un fallo genérico. El visitante no puede consultar la bandeja ni fijar `notifyState`.
+Listar, leer, marcar y borrar siguen reservados a los editores y superusuarios. No hay adjuntos,
+relaciones ni respuestas almacenadas en JSON. Los nombres `website`, `read`, `notifyState`,
+`created`, `updated` e `id` están reservados.
+
+La entrada de manifiesto añade el formulario al grupo Sitio, oculta Nuevo y Duplicar y ordena por
+fecha descendente. El editor usa el listado normal para filtrar por correo, fecha y leído, atender
+peticiones sobre datos personales y borrar envíos. Añadir campos después sigue siendo una operación
+aditiva del editor de esquema; ocultar un formulario se hace en el manifiesto. Vega no borra colecciones.
+
+La sección enumera las bandejas por su forma real, incluida `messages`, y consulta el límite nativo
+de PocketBase. «Añadir límite» relee los ajustes y envía la lista completa, conservando reglas ajenas,
+IPs excluidas y claves adicionales: el PATCH de PocketBase reemplaza la lista. Añade
+`<colección>:create`, audiencia `@guest`, 5 peticiones cada 60 segundos y activa el limitador.
+El sexto envío anónimo recibe 429; esa regla no limita los envíos autenticados. Un estado
+«desconocido» no acredita protección y no habilita una escritura a ciegas.
+
+El marcado público pertenece al sitio: envía FormData a `/api/collections/<bandeja>/records` sin
+sesión, con `website` oculto mediante CSS, `tabindex="-1"`, `autocomplete="off"` y
+`aria-hidden="true"`. Respuestas: 200 enviado, 400 no se pudo enviar, 429 probar más tarde.
+Para un origen distinto se necesita CORS de PocketBase. El README de `@vega/astro` incluye el ejemplo.
+
+El aviso y la caducidad dependen del servidor, no del manifiesto: consulte **Aviso por correo de
+los formularios** en [CONFIG.md](CONFIG.md). `VEGA_FORMS_RETENTION_DAYS`, entero positivo optativo,
+borra también revisiones antiguas de esas bandejas sin crear copias nuevas. Sin hook o sin plazo
+válido, no hay retención automática. No se migra el `messages` propio de otros sitios.

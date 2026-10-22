@@ -39,7 +39,9 @@ import type { JsonValue } from './types';
  * El rechazo de la regla es un 400 genérico («Failed to create record.»), sin detalle de qué
  * condición falló: el componente del sitio trata cualquier 400 como «no se pudo enviar».
  */
-export const CONTACT_CREATE_RULE = '@request.body.website = "" && @request.body.read != true';
+export const FORM_INBOX_CREATE_RULE = '@request.body.website = "" && @request.body.read != true';
+/** Alias compatible para consumidores del módulo contacto. */
+export const CONTACT_CREATE_RULE = FORM_INBOX_CREATE_RULE;
 
 /** Tope del texto del mensaje. Se rechaza en el servidor con un 400 que sí nombra el campo. */
 const CONTACT_MESSAGE_MAX_LENGTH = 5000;

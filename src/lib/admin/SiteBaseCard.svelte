@@ -76,6 +76,7 @@
 		type PlanView
 	} from './site-base';
 	import './admin.css';
+	import FormInboxesCard from '$lib/forms/FormInboxesCard.svelte';
 
 	interface Props {
 		/** Tras escribir (también si falló a medias): que la página refresque tipos y modelo. */
@@ -638,6 +639,13 @@
 			</div>
 		</div>
 	{/if}
+	<FormInboxesCard
+		baseReady={phase === 'ready' && kind === 'current'}
+		onChanged={async () => {
+			await onChanged?.();
+			await check();
+		}}
+	/>
 </section>
 
 <AdminDialog

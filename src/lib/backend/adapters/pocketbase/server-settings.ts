@@ -20,7 +20,8 @@ import type {
 	ConnectionTestOutcome,
 	ServerS3,
 	ServerSettings,
-	ServerSettingsPatch
+	ServerSettingsPatch,
+	ServerRateLimits
 } from '../../server-settings';
 import type { FieldError } from '../../errors';
 import { VegaError } from '../../errors';
@@ -107,7 +108,13 @@ function toServerSettings(raw: unknown): ServerSettings {
 		throw VegaError.backend('Respuesta de ajustes del servidor con forma inesperada.');
 	}
 	const maxKeep = backups.cronMaxKeep;
+	const rate = record(body.rateLimits);
+	const rateLimits =
+		typeof rate.enabled === 'boolean' && Array.isArray(rate.rules)
+			? (structuredClone(rate) as unknown as ServerRateLimits)
+			: undefined;
 	return {
+		rateLimits,
 		meta: {
 			appURL: str(record(body.meta).appURL),
 			senderName: str(record(body.meta).senderName),

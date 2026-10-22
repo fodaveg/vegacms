@@ -16,6 +16,7 @@
 import { afterEach, beforeAll, afterAll, describe, expect, test } from 'vitest';
 import net from 'node:net';
 import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { isPocketBaseBinaryAvailable } from './pb-harness/binary';
 import { startSmtpSink, startTlsSmtpSink, type SmtpSink } from './pb-harness/smtp-sink';
 import {
@@ -451,8 +452,8 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 
 	test('(h) lo que no se puede avisar no se reintenta siempre: pendiente de hace 2 h y envío sin terminar pasan a failed', async () => {
 		await start({ VEGA_CONTACT_NOTIFY_TO: TO }, sink.port, false);
-		// `created` como fecha corriente (no autodate) para poder fijar un mensaje antiguo: el
-		// autodate no admite que se le dé valor ni al crear ni al editar.
+		// El fixture conserva la forma real de la bandeja. Solo el reloj persistido se ajusta
+		// por SQL de test: un visitante no puede escribir un campo autodate.
 		await api('POST', '/api/collections', {
 			name: 'messages',
 			type: 'base',
@@ -461,7 +462,7 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 				{ name: 'email', type: 'email' },
 				{ name: 'message', type: 'text' },
 				{ name: 'notifyState', type: 'text', max: 20, hidden: true },
-				{ name: 'created', type: 'date' }
+				{ name: 'created', type: 'autodate', onCreate: true, onUpdate: false }
 			],
 			createRule: ''
 		});
@@ -476,6 +477,15 @@ describe.skipIf(!AVAILABLE)('pb_hooks de producto: aviso de mensajes de contacto
 				{ name, email: 'a@example.com', message: 'x', created },
 				''
 			);
+			const db = new DatabaseSync(path.join(instance!.dataDir, 'data.db'));
+			try {
+				db.prepare('UPDATE messages SET created = ? WHERE id = ?').run(
+					created,
+					String(res.body.id)
+				);
+			} finally {
+				db.close();
+			}
 			if (state !== 'pending') {
 				await api('PATCH', `/api/collections/messages/records/${res.body.id}`, {
 					notifyState: state

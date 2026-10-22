@@ -56,6 +56,7 @@ export function createMemoryServerSettings({
 	checkSessionAlive
 }: MemoryServerSettingsOptions): MemoryServerSettings {
 	let settings: ServerSettings = {
+		rateLimits: { enabled: false, rules: [], excludedIPs: [] },
 		meta: {
 			appURL: 'http://localhost:8090',
 			senderName: 'Support',
@@ -141,6 +142,7 @@ export function createMemoryServerSettings({
 			const { password, ...smtp } = patch.smtp ?? {};
 			const { secret, ...s3 } = patch.backups?.s3 ?? {};
 			const next: ServerSettings = {
+				rateLimits: structuredClone(patch.rateLimits ?? settings.rateLimits),
 				meta: { ...settings.meta, ...patch.meta },
 				smtp: { ...settings.smtp, ...smtp },
 				backups: {

@@ -660,13 +660,21 @@ Aquí `post` y `page` deben tener ambas un campo `rating` numérico (heredado co
 
 **Nota para operadores con CSP estricta**: si defines `Content-Security-Policy` con `connect-src` restringido, añade `https://api.github.com` a esa directiva o la comprobación de actualizaciones fallará silenciosamente (se degrada a "No se pudo comprobar", nunca rompe el resto de la app).
 
-## Aviso por correo de los mensajes de contacto
+## Aviso por correo de los formularios
 
 La imagen de producción (`infra/production/Dockerfile`) incluye un hook de PocketBase,
 `infra/production/pb_hooks/vega-contact-notify.pb.js`, copiado a `/pb/pb_hooks/`. Avisa por correo de
 los mensajes que llegan a la colección `messages` con el nombre, el correo y el mensaje del
 visitante (escapados: el correo es HTML y el visitante puede mandar marcado) y su correo como
 `Reply-To`. El asunto lleva el nombre del sitio (`Application name` en los ajustes de PocketBase).
+
+El mismo fichero y el mismo cron atienden ahora todas las bandejas: colecciones base con
+`notifyState` de tipo texto oculto y `created` de tipo autodate. No copie el hook con otro nombre:
+duplicaría el cron. El asistente de **Ajustes → Base del sitio → Nuevo formulario** crea esa forma.
+El asunto usa el título del formulario y el cuerpo enumera sus columnas con las etiquetas del
+manifiesto; si este no se puede leer, usa los nombres. Todos los valores se escapan. Solo un campo
+llamado `email` de tipo correo genera `Reply-To`. El contacto histórico conserva su presentación.
+El tope y la ventana descritos abajo se calculan por bandeja, con un único cerrojo por proceso.
 
 **Cómo funciona.** El envío NO ocurre en la petición del visitante. Al crearse el mensaje, el hook
 solo lo marca como pendiente (campo `notifyState`) y devuelve la respuesta normal sin tocar el SMTP;
@@ -725,6 +733,19 @@ Se configura con variables de entorno del proceso de PocketBase (en el `compose.
   Linux real; esa prueba no acredita un proveedor externo. **La bandeja puede entregarse sin
   SMTP**: los mensajes se guardan sin avisos si `VEGA_CONTACT_NOTIFY_TO` está vacío; el operador
   debe verificar su proveedor cuando configure y active el correo.
+
+### Retención opcional de los envíos
+
+`VEGA_FORMS_RETENTION_DAYS` fija un número entero positivo de días. Ausente, vacío, cero,
+negativo o decimal significa **sin borrado automático**. El cron `vega-forms-retention` corre cada
+día a las 03:45, según el reloj del servidor. Borra los envíos de las bandejas anteriores al plazo y
+las filas antiguas de `vega_revisions` de esas mismas colecciones, incluidas las copias de la papelera.
+Usa el borrado del servidor sin crear otra revisión; el log solo da recuentos. Un plazo menor que
+`revisions.trashDays` prevalece para esas copias. El operador decide el plazo de su sitio.
+
+Esta retención también necesita el hook de la imagen oficial. Instancias que solo copian
+`pb_public`, como admin.lumbre.pro, guardan los envíos pero no avisan ni los caducan. La presencia
+de columnas en PocketBase no demuestra que el hook esté instalado o activo.
 
 ## Ocultar una entrada sin borrarla
 

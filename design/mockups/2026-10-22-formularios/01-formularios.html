@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es" data-theme="aquelarre" data-mode="light">
+	<meta charset="utf-8" /><meta
+		name="viewport"
+		content="width=device-width,initial-scale=1"
+	/><title>Formularios · Vega</title
+	><link rel="stylesheet" href="../../../src/lib/themes/themes.generated.css" /><style>
+		body {
+			background: var(--bg);
+			color: var(--ink);
+			font: 16px/1.5 system-ui;
+			margin: 0;
+			padding: 24px;
+		}
+		main {
+			max-width: 900px;
+			margin: auto;
+		}
+		.card,
+		.dialog {
+			background: var(--surface);
+			border: 1px solid var(--line);
+			border-radius: var(--r);
+			padding: 24px;
+			margin: 16px 0;
+		}
+		.row {
+			display: flex;
+			gap: 16px;
+			justify-content: space-between;
+			align-items: center;
+			flex-wrap: wrap;
+		}
+		button,
+		input,
+		select,
+		textarea {
+			font: inherit;
+			min-height: 44px;
+			box-sizing: border-box;
+			border: 1px solid var(--line);
+			border-radius: var(--r);
+			background: var(--surface);
+			color: var(--ink);
+			padding: 8px;
+			max-width: 100%;
+		}
+		label {
+			display: grid;
+			gap: 4px;
+			margin: 12px 0;
+		}
+		.muted {
+			color: var(--ink-2);
+		}
+		.dialog {
+			max-width: 540px;
+		}
+		pre {
+			overflow: auto;
+			background: var(--surface-2);
+			padding: 16px;
+		}
+		*:focus-visible {
+			outline: 2px solid var(--ink);
+			outline-offset: 2px;
+		}
+		@media (max-width: 600px) {
+			body {
+				padding: 16px;
+			}
+			.card,
+			.dialog {
+				padding: 16px;
+			}
+			.row > * {
+				max-width: 100%;
+			}
+		}
+	</style>
+	<main>
+		<h1>Base del sitio</h1>
+		<div class="card">
+			<div class="row">
+				<h2>Formularios</h2>
+				<button>Nuevo formulario</button>
+			</div>
+			<p class="muted">Cada formulario tiene su propia bandeja con campos reales.</p>
+			<div class="row">
+				<p>Mensajes <small>messages</small></p>
+				<p>5 envíos cada 60 segundos</p>
+			</div>
+			<div class="row">
+				<p>Inscripciones <small>inscripciones</small></p>
+				<p>Sin límite específico</p>
+				<button>Añadir límite</button>
+			</div>
+		</div>
+		<div class="dialog">
+			<h2>Nuevo formulario</h2>
+			<label>Título<input value="Inscripciones" /></label
+			><label>Nombre singular<input value="Inscripción" /></label
+			><label>Colección<input value="inscripciones" /></label>
+			<div class="card">
+				<label>Etiqueta<input value="Nombre" /></label
+				><label>Nombre del campo<input value="name" /></label
+				><label
+					>Tipo<select>
+						<option>Texto corto</option>
+					</select></label
+				><label><input type="checkbox" checked /> Obligatorio</label>
+			</div>
+			<button>Añadir campo</button>
+			<p class="muted">
+				El aviso por correo y el límite por IP dependen del servidor. Los números obligatorios
+				rechazan 0; el consentimiento obligatorio debe marcarse.
+			</p>
+			<button>Vista previa</button>
+		</div>
+		<div class="dialog">
+			<h2>Vista previa</h2>
+			<p>Se crea inscripciones con 5 campos. Se añade collections.inscripciones al modelo.</p>
+			<pre>
+name · text · obligatorio
+email · email · obligatorio
+read · bool
+notifyState · text · oculto
+created · autodate</pre>
+			<button>Volver</button> <button>Crear formulario</button>
+		</div>
+		<div class="card">
+			<h2>Formulario creado</h2>
+			<p>Migración lista para copiar. Sin límite específico.</p>
+			<button>Añadir límite</button>
+		</div>
+		<div class="card">
+			<h2>Estados</h2>
+			<p>
+				Comprobando… · No se escribió nada: colección incompatible · Ya existe: conservar reglas
+				tras confirmación · Error al escribir: lo creado se conserva; Reintentar
+			</p>
+		</div>
+	</main>
+</html>

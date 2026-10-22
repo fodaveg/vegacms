@@ -51,7 +51,15 @@
 		VegaError
 	} from '$lib/backend';
 	import { generateSchemaMigration, type GeneratedMigration } from '$lib/backend/migration';
-	import { SvelteSet } from 'svelte/reactivity';
+	import {
+		newFieldDraft,
+		newSelectOptionDraft,
+		draftToSpec,
+		analyzeSelectOptions,
+		selectOptionsValid,
+		UNIQUE_DRAFT_TYPES,
+		type FieldDraft
+	} from './field-draft';
 	import MigrationPanel from './MigrationPanel.svelte';
 
 	interface Props {
@@ -64,183 +72,6 @@
 	}
 
 	const { port, types, t, onSchemaChanged }: Props = $props();
-
-	type DraftFieldType =
-		| 'text'
-		| 'editor'
-		| 'url'
-		| 'email'
-		| 'image'
-		| 'number'
-		| 'bool'
-		| 'date'
-		| 'json'
-		| 'select'
-		| 'relation';
-
-	/** Tipos de borrador que admiten la casilla «No se puede repetir» (`unique`). */
-	const UNIQUE_DRAFT_TYPES: readonly DraftFieldType[] = ['text', 'url', 'email'];
-	type RelationDeleteMode = 'unlink' | 'cascade';
-
-	/** Una fila de la lista de opciones de un campo `select` en edición. `id` estable para
-	 *  `{#each ... (draft.id)}` — sin él, reordenar/quitar filas reasigna el foco a la fila
-	 *  equivocada. */
-	interface SelectOptionDraft {
-		id: string;
-		value: string;
-	}
-
-	function newSelectOptionDraft(): SelectOptionDraft {
-		return { id: crypto.randomUUID(), value: '' };
-	}
-
-	interface FieldDraft {
-		id: string;
-		name: string;
-		type: DraftFieldType;
-		required: boolean;
-		/** Solo se usa para `type === 'text'`: cadena cruda del input, `''` = sin límite. */
-		max: string;
-		/** Solo para `text`/`url`/`email` (`UNIQUE_DRAFT_TYPES`): índice único sobre el campo. */
-		unique: boolean;
-		/** Solo para `relation`: nombre de una colección presente en `types`. */
-		relationTarget: string;
-		relationMultiple: boolean;
-		relationDeleteMode: RelationDeleteMode;
-		/** Solo para `select`: opciones en edición, en el orden final del spec. */
-		selectOptions: SelectOptionDraft[];
-		/** Solo para `select`: `true` compila a `multiple: true` (§`collections.ts`, `maxSelect: 99`
-		 *  en el adaptador/migración), `false` a selección simple. */
-		selectMultiple: boolean;
-	}
-
-	function newFieldDraft(): FieldDraft {
-		return {
-			id: crypto.randomUUID(),
-			name: '',
-			type: 'text',
-			required: false,
-			max: '',
-			unique: false,
-			relationTarget: '',
-			relationMultiple: false,
-			relationDeleteMode: 'unlink',
-			selectOptions: [newSelectOptionDraft()],
-			selectMultiple: false
-		};
-	}
-
-	/** Análisis de las opciones de un `select` en edición: cuántas opciones ÚNICAS no vacías
-	 *  quedan (tras recortar espacios) y qué filas repiten el valor de una anterior — mismas
-	 *  reglas que `checkCollectionFieldSpecs` (`collections.ts`): vacía se descarta en silencio,
-	 *  repetida (comparando el string recortado, distinguiendo mayúsculas) se marca por fila. */
-	function analyzeSelectOptions(options: SelectOptionDraft[]): {
-		uniqueCount: number;
-		duplicateIds: SvelteSet<string>;
-	} {
-		// `SvelteSet`, no `Set`: `svelte/prefer-svelte-reactivity` prohíbe un `Set` mutable
-		// (`.add`) en un `.svelte`, aunque aquí sea puramente local a la llamada — mismo criterio
-		// que `failedImages` de `MediaGrid.svelte`/`FileInput.svelte`.
-		const seen = new SvelteSet<string>();
-		const duplicateIds = new SvelteSet<string>();
-		let uniqueCount = 0;
-		for (const option of options) {
-			const value = option.value.trim();
-			if (!value) continue;
-			if (seen.has(value)) {
-				duplicateIds.add(option.id);
-				continue;
-			}
-			seen.add(value);
-			uniqueCount++;
-		}
-		return { uniqueCount, duplicateIds };
-	}
-
-	function selectOptionsValid(options: SelectOptionDraft[]): boolean {
-		const { uniqueCount, duplicateIds } = analyzeSelectOptions(options);
-		return uniqueCount > 0 && duplicateIds.size === 0;
-	}
-
-	/** `null` si la fila no tiene nombre (fila en blanco descartada al enviar, nunca un error). */
-	function draftToSpec(draft: FieldDraft): CollectionFieldSpec | null {
-		const name = draft.name.trim();
-		if (!name) return null;
-		switch (draft.type) {
-			case 'text': {
-				const max = Number(draft.max);
-				return {
-					name,
-					type: 'text',
-					required: draft.required,
-					max: Number.isFinite(max) && max > 0 ? max : undefined,
-					...(draft.unique ? { unique: true as const } : {})
-				};
-			}
-			case 'editor':
-				return { name, type: 'editor', required: draft.required };
-			case 'url':
-				return {
-					name,
-					type: 'url',
-					required: draft.required,
-					...(draft.unique ? { unique: true as const } : {})
-				};
-			case 'email':
-				return {
-					name,
-					type: 'email',
-					required: draft.required,
-					...(draft.unique ? { unique: true as const } : {})
-				};
-			case 'image':
-				// Atajo: una relación simple a `vega_media`. Al borrar la imagen, el registro se
-				// conserva (nunca `cascadeDelete`: borrar una entrada por quitar su portada sería
-				// una sorpresa destructiva).
-				return {
-					name,
-					type: 'relation',
-					target: IMAGE_FIELD_TARGET,
-					required: draft.required,
-					multiple: false,
-					cascadeDelete: false
-				};
-			case 'number':
-				return { name, type: 'number', required: draft.required };
-			case 'bool':
-				return { name, type: 'bool', required: draft.required };
-			case 'date':
-				return { name, type: 'date', required: draft.required };
-			case 'json':
-				return { name, type: 'json' };
-			case 'select': {
-				// Espacios de los extremos recortados al enviar; opción vacía descartada en silencio
-				// (mismo criterio que una fila de campo sin nombre) — `draftsAreValid` ya bloqueó el
-				// envío si no queda ninguna opción única o si hay una repetida.
-				const options = draft.selectOptions
-					.map((option) => option.value.trim())
-					.filter((value) => value.length > 0);
-				if (options.length === 0) return null;
-				return {
-					name,
-					type: 'select',
-					required: draft.required,
-					multiple: draft.selectMultiple,
-					options
-				};
-			}
-			case 'relation':
-				if (!draft.relationTarget) return null;
-				return {
-					name,
-					type: 'relation',
-					target: draft.relationTarget,
-					required: draft.required,
-					multiple: draft.relationMultiple,
-					cascadeDelete: draft.relationDeleteMode === 'cascade'
-				};
-		}
-	}
 
 	function draftsAreValid(drafts: FieldDraft[]): boolean {
 		return drafts.every((draft) => {

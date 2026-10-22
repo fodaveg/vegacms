@@ -26,7 +26,8 @@
  *   un email. Con `smtp.enabled` PocketBase exige `smtp.host` y un `smtp.port` válido (error de campo
  *   por ruta). Con una contraseña guardada y un servidor sin AUTH la prueba de correo falla con un
  *   texto crudo poco claro (`250 "OK"`): se enseña tal cual, como cualquier fallo de prueba.
- * - Sin medir: si las listas de ajustes se fusionan o se reemplazan. Esta sección no toca ninguna.
+ * - `rateLimits.rules` se REEMPLAZA (sonda `pocketbase.forms-probe.test.ts`, PB 0.39.9).
+ *   Releer y devolver la lista completa conserva reglas ajenas y exclusiones.
  */
 
 import type { ServerSettingsPort } from './port';
@@ -74,7 +75,24 @@ export interface ServerBackups {
 }
 
 /** Lo que `get()` devuelve: solo los bloques que la interfaz usa. */
+/** Regla nativa de PocketBase; se preservan también las claves adicionales del servidor. */
+export interface ServerRateLimitRule {
+	label: string;
+	audience: string;
+	maxRequests: number;
+	duration: number;
+	[key: string]: import('./types').JsonValue;
+}
+export interface ServerRateLimits {
+	enabled: boolean;
+	rules: ServerRateLimitRule[];
+	excludedIPs?: string[];
+	[key: string]: import('./types').JsonValue | undefined;
+}
+
 export interface ServerSettings {
+	/** Ausente en adaptadores anteriores: no se afirma que el servidor no tenga límites. */
+	rateLimits?: ServerRateLimits;
 	meta: ServerMeta;
 	smtp: ServerSmtp;
 	backups: ServerBackups;
@@ -109,6 +127,7 @@ export interface ServerSettingsDraft {
  * `string` que existe únicamente si hay un valor nuevo o es el `""` explícito de «quitar».
  */
 export interface ServerSettingsPatch {
+	rateLimits?: ServerRateLimits;
 	meta?: Partial<ServerMeta>;
 	smtp?: Partial<ServerSmtp> & { password?: string };
 	backups?: {
