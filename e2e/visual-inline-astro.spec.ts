@@ -1330,3 +1330,70 @@ test.describe('v1 site compatibility', () => {
 		await expect(page.locator('.vega-visual-inline-hint')).toHaveCount(0);
 	});
 });
+
+test.describe('the selection ring follows the block while a paragraph is typed (QA of 22 Oct 2026)', () => {
+	test.skip(!astroRoot, 'Requires VEGA_ASTRO_ROOT pointing to the reviewed @vega/astro checkout');
+
+	/** The block's box on screen: its own box, or the union of its children's when it has none
+	 *  (`display: contents`, as in fodaveg). */
+	async function blockOnScreen(page: Page, block: string) {
+		const frameEl = page.locator('.vega-visual-frame');
+		const frameBox = (await frameEl.boundingBox())!;
+		const zoom = await frameEl.evaluate(
+			(el) => el.getBoundingClientRect().width / (el as HTMLIFrameElement).offsetWidth
+		);
+		const box = await frameOf(page)
+			.locator(`[data-vega-block-id="${block}"]`)
+			.evaluate((el) => {
+				const own = el.getBoundingClientRect();
+				if (own.width || own.height) return { top: own.top, bottom: own.bottom };
+				const kids = [...el.children]
+					.map((child) => child.getBoundingClientRect())
+					.filter((r) => r.width || r.height);
+				return {
+					top: Math.min(...kids.map((r) => r.top)),
+					bottom: Math.max(...kids.map((r) => r.bottom))
+				};
+			});
+		return { top: frameBox.y + box.top * zoom, bottom: frameBox.y + box.bottom * zoom };
+	}
+
+	// Vega's half: the ring is scaled with the canvas and follows every `layout` the site sends.
+	// A site whose body does not change size when a block grows (fodaveg: `body { min-height:
+	// 100dvh }` on a page shorter than the frame) gets no `layout` from @vega/astro e43cda0 when
+	// the hint space is applied, and its ring stays short: that is the bridge's to fix (it should
+	// post a `layout` when it applies and restores the inline layout properties).
+	for (const zoom of ['50', '75', '100'] as const)
+		test(`at ${zoom} %`, async ({ page }) => {
+			await page.setViewportSize({ width: 1440, height: 900 });
+			await openWithMarkdownBody(page);
+			await page.locator('.vega-visual-zoom-trigger').click();
+			await page
+				.getByRole('menuitemradio', { name: zoom === '100' ? /^Ajustar/ : `${zoom} %` })
+				.click();
+			const frame = frameOf(page);
+			const paragraph = frame
+				.locator('[data-vega-block-id="seccion_2"] [data-vega-source-range]')
+				.first();
+			await expect(paragraph).toHaveAttribute('title', 'Doble clic para editar');
+			const ring = page.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_2"]');
+			const aligned = async () => {
+				const block = await blockOnScreen(page, 'seccion_2');
+				const box = (await ring.boundingBox())!;
+				return Math.max(Math.abs(box.y - block.top), Math.abs(box.y + box.height - block.bottom));
+			};
+			await expect.poll(aligned).toBeLessThanOrEqual(1);
+			const before = await blockOnScreen(page, 'seccion_2');
+			await paragraph.dblclick();
+			await expect(paragraph).toHaveAttribute('contenteditable', 'plaintext-only');
+			// The hint space pushes what follows down: first the block is taller…
+			await expect
+				.poll(async () => (await blockOnScreen(page, 'seccion_2')).bottom)
+				.toBeGreaterThan(before.bottom + 1);
+			// …and then the ring has followed it (only a `layout` from the site can say so).
+			await expect.poll(aligned).toBeLessThanOrEqual(1);
+			await page.keyboard.press('Escape');
+			await expect(paragraph).not.toHaveAttribute('contenteditable');
+			await expect.poll(aligned).toBeLessThanOrEqual(1);
+		});
+});
