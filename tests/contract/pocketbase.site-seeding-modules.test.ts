@@ -184,6 +184,7 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 
 		expect(result.createdCollections).toEqual([
 			'vega_editors',
+			'vega_media_folders',
 			'vega_media',
 			'pages',
 			'blocks',
@@ -522,7 +523,7 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 		).toEqual([
 			[
 				'base',
-				[],
+				['vega_media_folders'],
 				[
 					'collections.pages.publishAtField',
 					'collections.pages.fields.publishAt',
@@ -542,6 +543,7 @@ describe.skipIf(!AVAILABLE)('módulos de sembrado contra PocketBase real', () =>
 		const result = await seedSiteProject(port, { modules });
 
 		expect(result.createdCollections).toEqual([
+			'vega_media_folders',
 			'tags',
 			'authors',
 			'categories',

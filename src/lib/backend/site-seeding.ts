@@ -81,6 +81,7 @@ import {
 } from './site-seeding-merge';
 import type { ContentType, Field, InvitationLinkState, JsonValue, RecordInput } from './types';
 import { ensureMediaCollection, VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
+import { VEGA_MEDIA_FOLDERS_COLLECTION, VEGA_MEDIA_FOLDER_FIELD } from '$lib/media/media-folders';
 import { listManifestRecords, saveManifest } from '$lib/model/load';
 import { resolveContentModel } from '$lib/model/resolve';
 import type { ResolvedBlocksConfig } from '$lib/model/types';
@@ -335,7 +336,11 @@ export interface SiteSeedModule {
 export const SITE_SEED_BASE_MODULE: SiteSeedModule = {
 	id: 'base',
 	collections: [
-		VEGA_MEDIA_COLLECTION,
+		VEGA_MEDIA_FOLDERS_COLLECTION,
+		{
+			...VEGA_MEDIA_COLLECTION,
+			fields: [...VEGA_MEDIA_COLLECTION.fields, VEGA_MEDIA_FOLDER_FIELD]
+		},
 		PAGES_COLLECTION,
 		BLOCKS_COLLECTION,
 		REDIRECTS_COLLECTION,
@@ -551,10 +556,12 @@ export async function seedSiteProject(
 		);
 	}
 
+	await applyCollectionPlan(port, plan.collections.get('vega_media_folders')!, result);
 	const mediaPlan = plan.collections.get('vega_media')!;
 	const mediaResult = await ensureMediaCollection(port);
 	result.createdCollections.push(...mediaResult.created);
 	await addMissingFields(port, mediaPlan, result);
+	if (mediaPlan.missing) await port.addCollectionFields('vega_media', [VEGA_MEDIA_FOLDER_FIELD]);
 
 	await applyCollectionPlan(port, plan.collections.get('pages')!, result);
 	await applyCollectionPlan(port, plan.collections.get('blocks')!, result);

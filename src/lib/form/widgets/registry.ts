@@ -29,7 +29,7 @@ import Chips from './Chips.svelte';
 import Json from './Json.svelte';
 import Markdown from './Markdown.svelte';
 import Richtext from './Richtext.svelte';
-import Relation from './Relation.svelte';
+import Relation from './LazyRelation.svelte';
 import FileInput from './FileInput.svelte';
 
 export const WIDGET_REGISTRY: Record<WidgetId, WidgetComponent> = {

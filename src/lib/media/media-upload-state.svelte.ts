@@ -88,6 +88,7 @@ interface MediaUploadOptions {
 	/** «Subir el original»: no se reduce nada y se valida el fichero tal cual (comportamiento de
 	 *  siempre). Por defecto `false`. */
 	keepOriginal?: boolean;
+	folder?: string | null;
 }
 
 /** La reducción del navegador (`shrink-image-browser`); los tests inyectan otra. */
@@ -147,6 +148,7 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 	let running = $state(false);
 	// Casilla y esquema del ÚLTIMO lote: `resume()` los hereda (no reduce lo que se pidió intacto).
 	let keepOriginal = false;
+	let batchFolder: string | null = null;
 	let lastSchema: MediaFileFieldSchema | null = null;
 
 	function canShrink(file: File): boolean {
@@ -171,6 +173,7 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 	): Promise<void> {
 		if (files.length === 0) return;
 		keepOriginal = options.keepOriginal === true;
+		batchFolder = options.folder ?? null;
 		lastSchema = schema;
 
 		// Pre-validación (D-P6.3): calculada UNA vez por fichero, antes de tocar el puerto para
@@ -254,7 +257,8 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 				// sobre lo que de verdad se sube y crear (`uploadMediaFile`, el mismo camino que la
 				// copia a Medios desde un campo `file`).
 				const result = await uploadMediaFile(ctx.port, schema, files[i], {
-					shrink: keepOriginal ? null : shrink
+					shrink: keepOriginal ? null : shrink,
+					folder: batchFolder
 				});
 				if (result.shrink) setShrink(item.id, result.shrink);
 				if (result.kind === 'rejected') {
@@ -278,7 +282,10 @@ export function createMediaUploadState(shrink: ShrinkFn = defaultShrink): MediaU
 					break;
 				}
 
-				setStatus(item.id, { kind: 'error', message: mediaUploadErrorMessage(vegaErr) });
+				setStatus(item.id, {
+					kind: 'error',
+					message: mediaUploadErrorMessage(vegaErr, ctx.t('media.folders.uploadError'))
+				});
 				failed++;
 
 				if (abortsBatch(vegaErr)) {

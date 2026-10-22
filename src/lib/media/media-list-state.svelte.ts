@@ -34,7 +34,7 @@ interface MediaListState {
 	/** Dispara una carga de `vega_media` para `page` (1-based), con `search` opcional (Fase P6·6e,
 	 *  ver cabecera). Anti-carrera: una respuesta que ya no es la última emitida se descarta sin
 	 *  tocar `status`. `auth-expired` va SOLO al overlay global (§2.3), nunca al estado local. */
-	load(ctx: VegaAppContext, page: number, search?: string): Promise<void>;
+	load(ctx: VegaAppContext, page: number, search?: string, folder?: string | null): Promise<void>;
 	/** Repite la ÚLTIMA carga (botón "Reintentar" del error). Alias de `reload()` (misma máquina
 	 *  interna, ver `list-state.svelte.ts` §4c: dos nombres para el mismo gesto, cada uno
 	 *  documentando su disparador real). */
@@ -49,14 +49,27 @@ interface MediaListState {
 export function createMediaListState(): MediaListState {
 	let status = $state<MediaListStatus>({ kind: 'loading' });
 	const sequencer = new RequestSequencer();
-	let lastCall: { ctx: VegaAppContext; page: number; search?: string } | null = null;
+	let lastCall: {
+		ctx: VegaAppContext;
+		page: number;
+		search?: string;
+		folder?: string | null;
+	} | null = null;
 
-	async function load(ctx: VegaAppContext, page: number, search?: string): Promise<void> {
-		lastCall = { ctx, page, search };
+	async function load(
+		ctx: VegaAppContext,
+		page: number,
+		search?: string,
+		folder?: string | null
+	): Promise<void> {
+		lastCall = { ctx, page, search, folder };
 		const seq = sequencer.next();
 		status = { kind: 'loading' };
 		try {
-			const result = await ctx.port.list('vega_media', buildMediaListQuery(page, { search }));
+			const result = await ctx.port.list(
+				'vega_media',
+				buildMediaListQuery(page, { search, folder })
+			);
 			if (!sequencer.isLatest(seq)) return;
 			status = { kind: 'ready', page: result };
 		} catch (err) {
@@ -72,7 +85,7 @@ export function createMediaListState(): MediaListState {
 
 	function repeatLastLoad(): void {
 		if (!lastCall) return;
-		void load(lastCall.ctx, lastCall.page, lastCall.search);
+		void load(lastCall.ctx, lastCall.page, lastCall.search, lastCall.folder);
 	}
 
 	return {

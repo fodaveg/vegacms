@@ -1,0 +1,1677 @@
+<!doctype html>
+<html lang="es" data-theme="brasa" data-mode="light">
+	<meta charset="utf-8" /><meta name="viewport" content="width=device-width" /><title>
+		Carpetas de medios</title
+	><style>
+		/* GENERADO por scripts/build-themes.mjs — NO EDITAR */
+
+		:root {
+			--sans: 'Geist', -apple-system, 'Segoe UI', system-ui, sans-serif;
+			--display: 'Bricolage Grotesque', 'Geist', system-ui, sans-serif;
+			--mono: 'Geist Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+			--r: 8px;
+			--r-sm: 10px;
+			--r-md: 16px;
+			--r-lg: 22px;
+			--r-pill: 999px;
+			--accent-grad: linear-gradient(115deg, var(--accent), var(--accent-hover));
+			--sheen: linear-gradient(100deg, var(--accent), var(--accent-text));
+			--accent-fill: var(--accent);
+			--halo: none;
+			--brand-a: var(--accent);
+			--brand-b: var(--accent);
+			--brand-c: var(--accent);
+			--brand-edge-opacity: 0.35;
+			--glass: color-mix(in srgb, var(--surface) 72%, transparent);
+			--v-ol-select: var(--accent);
+			--v-ol-select-ink: var(--accent-ink);
+			--v-ol-hover: color-mix(in srgb, var(--accent) 55%, transparent);
+		}
+		:root {
+			--fs-12: 12px;
+		}
+		:root {
+			--fs-13: 13px;
+		}
+		:root {
+			--fs-14: 14px;
+		}
+		:root {
+			--fs-15: 15px;
+		}
+		:root {
+			--fs-17: 17px;
+		}
+		:root {
+			--fs-22: 22px;
+		}
+		:root {
+			--fs-28: 28px;
+		}
+		:root {
+			--fs-36: 36px;
+		}
+		:root {
+			--fs-44: 44px;
+		}
+		:root {
+			--sp-1: 4px;
+		}
+		:root {
+			--sp-2: 8px;
+		}
+		:root {
+			--sp-3: 12px;
+		}
+		:root {
+			--sp-4: 16px;
+		}
+		:root {
+			--sp-5: 20px;
+		}
+		:root {
+			--sp-6: 24px;
+		}
+		:root {
+			--sp-8: 32px;
+		}
+		:root {
+			--sp-10: 40px;
+		}
+		:root {
+			--sp-12: 48px;
+		}
+		:root {
+			--row-h: 44px;
+			--cell-x: 1.1rem;
+			--fs-base: 14px;
+			--pad-field: 1.1rem;
+			--gap-field: 1.75rem;
+			--pad-card: 1.5rem;
+			--sidebar-item-h: 40px;
+			--topbar-h: 56px;
+		}
+		[data-density='compact'] {
+			--row-h: 36px;
+			--cell-x: 0.8rem;
+			--fs-base: 13px;
+			--pad-field: 0.8rem;
+			--gap-field: 1.2rem;
+			--pad-card: 1rem;
+			--sidebar-item-h: 32px;
+			--topbar-h: 44px;
+		}
+		[data-mode='light'] {
+			--shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 3px 12px rgb(0 0 0 / 0.04);
+			--shadow-raised: 0 2px 6px rgb(0 0 0 / 0.06), 0 16px 40px rgb(0 0 0 / 0.08);
+			--shadow-brand: 0 10px 30px color-mix(in srgb, var(--accent) 28%, transparent);
+			--halo: radial-gradient(
+				900px 420px at 18% -8%,
+				color-mix(in srgb, var(--accent) 13%, transparent),
+				transparent 70%
+			);
+			--success: #045a26;
+			--success-soft: color-mix(in oklab, #045a26 10%, var(--paper));
+			--danger: #a91408;
+			--danger-soft: color-mix(in oklab, #a91408 10%, var(--paper));
+			--warning: #684800;
+			--warning-soft: color-mix(in oklab, #684800 10%, var(--paper));
+			--info: #07517d;
+			--info-soft: color-mix(in oklab, #07517d 10%, var(--paper));
+		}
+		[data-mode='dark'] {
+			--shadow-card: 0 1px 3px rgb(0 0 0 / 0.4), 0 5px 16px rgb(0 0 0 / 0.28);
+			--shadow-raised: 0 2px 6px rgb(0 0 0 / 0.4), 0 18px 48px rgb(0 0 0 / 0.5);
+			--shadow-brand: 0 10px 30px color-mix(in srgb, var(--accent) 32%, transparent);
+			--halo: radial-gradient(
+				900px 420px at 18% -8%,
+				color-mix(in srgb, var(--accent) 22%, transparent),
+				transparent 70%
+			);
+			--success: #5cbd8e;
+			--success-soft: color-mix(in oklab, #5cbd8e 17%, var(--paper));
+			--danger: #ef8078;
+			--danger-soft: color-mix(in oklab, #ef8078 15%, var(--paper));
+			--warning: #dfae4d;
+			--warning-soft: color-mix(in oklab, #dfae4d 15%, var(--paper));
+			--info: #74b6d6;
+			--info-soft: color-mix(in oklab, #74b6d6 15%, var(--paper));
+		}
+
+		[data-theme='brasa'] {
+			--tint: #e8763a;
+			--accent: #e8763a;
+			--accent-ink: #1f1206;
+		}
+		[data-theme='brasa'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #e1d6cf;
+			--v-ol-inline: #7c3aed;
+			--v-ol-inline-text: #6d28d9;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='brasa'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #2a1e1a;
+			--v-ol-inline: #b18cff;
+			--v-ol-inline-text: #b18cff;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='faro'] {
+			--tint: #d1642f;
+			--accent: #d1642f;
+			--accent-ink: #2a1408;
+		}
+		[data-theme='faro'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #dfd5ce;
+			--v-ol-inline: #7c3aed;
+			--v-ol-inline-text: #6d28d9;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='faro'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #271c19;
+			--v-ol-inline: #b18cff;
+			--v-ol-inline-text: #b18cff;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='rescoldo'] {
+			--tint: #4a4a52;
+			--accent: #f0842f;
+			--accent-ink: #201206;
+			--accent-grad: linear-gradient(115deg, #f6a63b 0%, #f0842f 42%, #e4583c 75%, #dd4f52 100%);
+			--brand-edge-opacity: 0.7;
+		}
+		[data-theme='rescoldo'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #d5d3d0;
+			--v-ol-inline: #7c3aed;
+			--v-ol-inline-text: #6d28d9;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='rescoldo'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #18181b;
+			--v-ol-inline: #b18cff;
+			--v-ol-inline-text: #b18cff;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='miel'] {
+			--tint: #d59a2e;
+			--accent: #d59a2e;
+			--accent-ink: #241905;
+		}
+		[data-theme='miel'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #dfd8cf;
+			--v-ol-inline: #7c3aed;
+			--v-ol-inline-text: #6d28d9;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='miel'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #27211a;
+			--v-ol-inline: #b18cff;
+			--v-ol-inline-text: #b18cff;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='halloween'] {
+			--tint: #7a3fa0;
+			--accent: #ef7a26;
+			--accent-ink: #201206;
+			--accent-grad: linear-gradient(115deg, #f7b13a 0%, #ef7a26 42%, #e2542f 75%, #dd4f52 100%);
+			--accent-fill: var(--accent-grad);
+			--halo:
+				radial-gradient(
+					125% 72% at 86% -14%,
+					color-mix(in oklab, #f6a63b 26%, transparent),
+					transparent 48%
+				),
+				radial-gradient(
+					110% 66% at -12% 112%,
+					color-mix(in oklab, #9558cc 20%, transparent),
+					transparent 46%
+				),
+				radial-gradient(
+					90% 50% at 50% 128%,
+					color-mix(in oklab, #c9342a 13%, transparent),
+					transparent 42%
+				);
+			--brand-a: #f7b13a;
+			--brand-b: #e04f28;
+			--brand-c: #c9342a;
+			--brand-edge-opacity: 0.7;
+		}
+		[data-theme='halloween'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, #ef7a26 52%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 9%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 9%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 9%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #d5ced4;
+			--v-ol-inline: #7c3aed;
+			--v-ol-inline-text: #6d28d9;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='halloween'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, #ef7a26 52%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 21%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 21%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 21%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #241b2d;
+			--v-ol-inline: #b18cff;
+			--v-ol-inline-text: #b18cff;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='aquelarre'] {
+			--tint: #6e3fb5;
+			--accent: #f0842f;
+			--accent-ink: #201206;
+			--accent-grad: linear-gradient(115deg, #f6a63b 0%, #f0842f 42%, #e4583c 75%, #dd4f52 100%);
+			--sheen: linear-gradient(100deg, #7ac943 0%, #3fbf8f 38%, #8a7ae0 74%, #b05fd6 100%);
+			--accent-fill: var(--accent-grad);
+			--halo:
+				radial-gradient(
+					125% 72% at 86% -14%,
+					color-mix(in oklab, #f6a63b 24%, transparent),
+					transparent 48%
+				),
+				radial-gradient(
+					110% 66% at -12% 112%,
+					color-mix(in oklab, #9a7ae8 17%, transparent),
+					transparent 46%
+				),
+				radial-gradient(
+					90% 50% at 50% 128%,
+					color-mix(in oklab, #e4583c 12%, transparent),
+					transparent 42%
+				);
+			--brand-a: #f6a63b;
+			--brand-b: #e4583c;
+			--brand-c: #dd4f52;
+			--brand-edge-opacity: 0.7;
+		}
+		[data-theme='aquelarre'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, #f0842f 52%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 13%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 13%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 13%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: #605a57;
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #cfc8d5;
+			--v-ol-inline: #7c3aed;
+			--v-ol-inline-text: #692cce;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='aquelarre'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, #f6a63b 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, #f0842f 52%, var(--line));
+			--bg: #0d0913;
+			--sidebar: #100c17;
+			--paper: #17121f;
+			--surface: #2a2034;
+			--surface-2: #221a2d;
+			--btn: #2e2136;
+			--active: #382845;
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #120e18;
+			--v-ol-inline: #b18cff;
+			--v-ol-inline-text: #b18cff;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='cereza'] {
+			--tint: #c0466b;
+			--accent: #c0466b;
+			--accent-ink: #ffffff;
+		}
+		[data-theme='cereza'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #dfd3d1;
+			--v-ol-inline: #7c3aed;
+			--v-ol-inline-text: #6d28d9;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='cereza'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #26191d;
+			--v-ol-inline: #b18cff;
+			--v-ol-inline-text: #b18cff;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='tinta'] {
+			--tint: #6ea3f0;
+			--accent: #6ea3f0;
+			--accent-ink: #0e1a2e;
+		}
+		[data-theme='tinta'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #d8d9da;
+			--v-ol-inline: #e8562a;
+			--v-ol-inline-text: #a13f21;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='tinta'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #1c222c;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		:where(:root),
+		[data-theme='niebla'] {
+			--tint: #4c4ad9;
+			--accent: #4c4ad9;
+			--accent-ink: #ffffff;
+			--accent-grad: linear-gradient(135deg, #4c4ad9 0%, #6a5ae0 100%);
+			--accent-fill: var(--accent-grad);
+			--brand-a: #4c4ad9;
+			--brand-b: #6a5ae0;
+			--brand-c: #8a7cf0;
+		}
+		:where(:root)[data-mode='light'],
+		[data-theme='niebla'][data-mode='light'] {
+			--accent-text: #4441cf;
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, #4c4ad9 25%, var(--line));
+			--bg: #f3f4f7;
+			--sidebar: #f5f6f9;
+			--paper: #ffffff;
+			--surface: #ffffff;
+			--surface-2: #ffffff;
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: #e3e6ec;
+			--line-soft: #edeff3;
+			--line-strong: #cbd1da;
+			--ring: #4c4ad9;
+			--ink-hi: #14171c;
+			--ink: #14171c;
+			--ink-2: #5b6472;
+			--ink-3: #8a93a1;
+			--v-stage: #e4e5e8;
+			--v-ol-inline: #e8562a;
+			--v-ol-inline-text: #b43d18;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		:where(:root)[data-mode='dark'],
+		[data-theme='niebla'][data-mode='dark'] {
+			--accent-text: #9b9ffc;
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, #4c4ad9 25%, var(--line));
+			--bg: #0c0e12;
+			--sidebar: #0e1116;
+			--paper: #15181d;
+			--surface: #15181d;
+			--surface-2: #15181d;
+			--btn: #1b1f26;
+			--active: #20242c;
+			--line: #262b33;
+			--line-soft: #1f242b;
+			--line-strong: #353c47;
+			--ring: #9b9ffc;
+			--ink-hi: #eceef2;
+			--ink: #eceef2;
+			--ink-2: #9aa3b1;
+			--ink-3: #687180;
+			--v-stage: #111317;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='marea'] {
+			--tint: #147885;
+			--accent: #147885;
+			--accent-ink: #ffffff;
+		}
+		[data-theme='marea'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #d4d6d3;
+			--v-ol-inline: #e8562a;
+			--v-ol-inline-text: #9e3f20;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='marea'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #151d20;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='sea-wingnow'] {
+			--tint: #58a6d8;
+			--accent: #58a6d8;
+			--accent-ink: #0c1c29;
+		}
+		[data-theme='sea-wingnow'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #d8d9d9;
+			--v-ol-inline: #e8562a;
+			--v-ol-inline-text: #a13f20;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='sea-wingnow'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #1b2229;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='bosque'] {
+			--tint: #8bbf5a;
+			--accent: #8bbf5a;
+			--accent-ink: #16240c;
+		}
+		[data-theme='bosque'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #dadbd1;
+			--v-ol-inline: #e8562a;
+			--v-ol-inline-text: #a2401e;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='bosque'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #1f251d;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='menta'] {
+			--tint: #2f9e73;
+			--accent: #2f9e73;
+			--accent-ink: #08201a;
+		}
+		[data-theme='menta'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #d6d9d2;
+			--v-ol-inline: #e8562a;
+			--v-ol-inline-text: #a13f1f;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='menta'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #18211e;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='salvia'] {
+			--tint: #7a9b78;
+			--accent: #7a9b78;
+			--accent-ink: #16210f;
+		}
+		[data-theme='salvia'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #d9d8d2;
+			--v-ol-inline: #e8562a;
+			--v-ol-inline-text: #a13f1f;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='salvia'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #1d211f;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='lavanda'] {
+			--tint: #8f84cf;
+			--accent: #8f84cf;
+			--accent-ink: #1a1630;
+		}
+		[data-theme='lavanda'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #dad7d8;
+			--v-ol-inline: #e8562a;
+			--v-ol-inline-text: #a13f21;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='lavanda'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #1f1e28;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='ciruela'] {
+			--tint: #7d4a9c;
+			--accent: #7d4a9c;
+			--accent-ink: #ffffff;
+		}
+		[data-theme='ciruela'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #d9d3d5;
+			--v-ol-inline: #e8562a;
+			--v-ol-inline-text: #9b3e22;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='ciruela'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #1e1823;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='carbon'] {
+			--tint: #4a4a52;
+			--accent: #4a4a52;
+			--accent-ink: #ffffff;
+		}
+		[data-theme='carbon'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #d5d3d0;
+			--v-ol-inline: #e8562a;
+			--v-ol-inline-text: #9b3e20;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='carbon'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #18181b;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='colibri'] {
+			--tint: #527d8f;
+			--accent: #2f8f96;
+			--accent-ink: #0a1d1f;
+			--sheen: linear-gradient(100deg, #2f8f96 0%, #8a7ad9 55%, #c9a24e 100%);
+			--halo:
+				radial-gradient(
+					120% 68% at 84% -12%,
+					color-mix(in oklab, #2f8f96 11%, transparent),
+					transparent 46%
+				),
+				radial-gradient(
+					100% 60% at -10% 110%,
+					color-mix(in oklab, #8a7ad9 8%, transparent),
+					transparent 44%
+				);
+			--brand-a: #2f8f96;
+			--brand-b: #8a7ad9;
+			--brand-c: #c9a24e;
+			--brand-edge-opacity: 0.3;
+		}
+		[data-theme='colibri'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #d6d6d4;
+			--v-ol-inline: #e8562a;
+			--v-ol-inline-text: #9e3f20;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='colibri'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #191e21;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='tornasol'] {
+			--tint: #5b5f8f;
+			--accent: #2f9a94;
+			--accent-ink: #14102a;
+			--accent-grad: linear-gradient(115deg, #2fb7a8 0%, #8d7bf0 42%, #d16bb2 72%, #dda63f 100%);
+			--accent-fill: var(--accent-grad);
+			--halo:
+				radial-gradient(
+					120% 68% at 84% -12%,
+					color-mix(in oklab, #2fb7a8 13%, transparent),
+					transparent 46%
+				),
+				radial-gradient(
+					100% 60% at -10% 110%,
+					color-mix(in oklab, #d16bb2 9%, transparent),
+					transparent 44%
+				);
+			--brand-a: #2fb7a8;
+			--brand-b: #8d7bf0;
+			--brand-c: #dda63f;
+			--brand-edge-opacity: 0.5;
+		}
+		[data-theme='tornasol'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 10%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 10%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 10%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #d0cfd1;
+			--v-ol-inline: #e0552b;
+			--v-ol-inline-text: #953e22;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='tornasol'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 20%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 20%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 20%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #1e1f28;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='pizarra'] {
+			--tint: #5d6d83;
+			--accent: #5d6d83;
+			--accent-ink: #ffffff;
+		}
+		[data-theme='pizarra'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #d7d5d3;
+			--v-ol-inline: #e8562a;
+			--v-ol-inline-text: #9e3e20;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='pizarra'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #1a1c20;
+			--v-ol-inline: #ff7a4d;
+			--v-ol-inline-text: #ff7a4d;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+
+		[data-theme='terracota'] {
+			--tint: #bd430f;
+			--accent: #bd430f;
+			--accent-ink: #ffffff;
+		}
+		[data-theme='terracota'][data-mode='light'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 12%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 6%, #ece9e5);
+			--sidebar: color-mix(in oklab, var(--tint) 6%, #efeeeb);
+			--paper: color-mix(in oklab, var(--tint) 6%, #f7f6f4);
+			--surface: color-mix(in oklab, var(--tint) 3%, #ffffff);
+			--surface-2: color-mix(in oklab, var(--tint) 3%, #fffffe);
+			--btn: color-mix(in oklab, var(--tint) 3%, #eeece9);
+			--active: color-mix(in oklab, var(--tint) 8%, #eae7e1);
+			--line: color-mix(in oklab, var(--tint) 8%, #e6e4e0);
+			--line-soft: color-mix(in oklab, var(--tint) 8%, #edece8);
+			--line-strong: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ring: color-mix(in oklab, var(--tint) 8%, #c9c6bf);
+			--ink-hi: color-mix(in oklab, var(--tint) 5%, #26241f);
+			--ink: color-mix(in oklab, var(--tint) 5%, #2c2a24);
+			--ink-2: color-mix(in oklab, var(--tint) 5%, #625e56);
+			--ink-3: color-mix(in oklab, var(--tint) 5%, #a8a49b);
+			--v-stage: #dfd3cd;
+			--v-ol-inline: #7c3aed;
+			--v-ol-inline-text: #6d28d9;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 12%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 12%, transparent);
+		}
+		[data-theme='terracota'][data-mode='dark'] {
+			--accent-text: color-mix(in oklab, var(--accent) 45%, var(--ink));
+			--accent-soft: color-mix(in oklab, var(--accent) 20%, var(--paper));
+			--accent-hover: color-mix(in oklab, var(--accent) 85%, #ffffff);
+			--accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+			--bg: color-mix(in oklab, var(--tint) 14%, #0b0b0d);
+			--sidebar: color-mix(in oklab, var(--tint) 14%, #0f0f11);
+			--paper: color-mix(in oklab, var(--tint) 14%, #141416);
+			--surface: color-mix(in oklab, var(--tint) 12%, #232327);
+			--surface-2: color-mix(in oklab, var(--tint) 12%, #1c1c1f);
+			--btn: color-mix(in oklab, var(--tint) 12%, #242428);
+			--active: color-mix(in oklab, var(--tint) 16%, #302f37);
+			--line: color-mix(in oklab, var(--tint) 16%, #2a2a30);
+			--line-soft: color-mix(in oklab, var(--tint) 16%, #28282e);
+			--line-strong: color-mix(in oklab, var(--tint) 16%, #3c3c44);
+			--ring: color-mix(in oklab, var(--tint) 16%, #49494f);
+			--ink-hi: color-mix(in oklab, var(--tint) 8%, #f4f4f7);
+			--ink: color-mix(in oklab, var(--tint) 8%, #eaeaef);
+			--ink-2: color-mix(in oklab, var(--tint) 8%, #a5a5ad);
+			--ink-3: color-mix(in oklab, var(--tint) 8%, #87878f);
+			--v-stage: #261916;
+			--v-ol-inline: #b18cff;
+			--v-ol-inline-text: #b18cff;
+			--v-ol-inline-soft: color-mix(in oklab, var(--v-ol-inline) 16%, var(--paper));
+			--v-ol-inline-tint: color-mix(in srgb, var(--v-ol-inline) 16%, transparent);
+		}
+		/**
+ * `base.css` (Fase F7w-b, "purificar los consumidores al vocabulario §3"): tras F7w-a (que
+ * encendió los temas con un SHIM de alias `--vega-color-*`/`--vega-size-topbar`/`--vega-size-row`
+ * → tokens §3), esta fase sustituyó cada consumidor por su token §3 exacto (`var(--surface)`,
+ * `var(--ink)`, `var(--accent)`, …, definidos en `themes.generated.css`, motor P7, importado ANTES
+ * que este fichero en `+layout.svelte`). El shim de color ya no hace falta y se ha borrado entero:
+ * ningún `.svelte`/`.ts` de la app pinta con `--vega-color-*`.
+ *
+ * Lo que queda aquí son las reglas transversales del documento y las fuentes autoalojadas.
+ * 1. Dos tamaños SIN equivalente en el vocabulario §3 porque no son de rol: el ANCHO del sidebar
+ *    (§3 solo tiene `sidebar-item-h`, el alto de un item) y un "gutter" genérico (§3 no define
+ *    espaciados de layout, solo paddings/gaps de campo). Huecos reales del contrato — se
+ *    mantienen como valores literales por densidad (candidatos a reabrir el vocabulario §3 en una
+ *    v2 si se decide que sí son de rol).
+ * 2. Las reglas base transversales del documento (`body`, foco visible, `color-scheme`,
+ *    `prefers-reduced-motion`) que no son alias de nada.
+ */
+
+		/* Fuentes variables OFL: Vite resuelve las URL con el base path de la instalación. */
+		@font-face {
+			font-family: Geist;
+			src: url('../assets/fonts/Geist.ttf') format('truetype');
+			font-weight: 100 900;
+			font-display: swap;
+		}
+
+		@font-face {
+			font-family: 'Geist Mono';
+			src: url('../assets/fonts/GeistMono.ttf') format('truetype');
+			font-weight: 100 900;
+			font-display: swap;
+		}
+
+		@font-face {
+			font-family: 'Bricolage Grotesque';
+			src: url('../assets/fonts/BricolageGrotesque.ttf') format('truetype');
+			font-weight: 200 800;
+			font-display: swap;
+		}
+
+		:root {
+			color-scheme: light dark;
+		}
+
+		/* Huecos del vocabulario §3 (ver cabecera): sin equivalente de rol, valores literales por
+   densidad, igual que antes de F7w-a. */
+		html[data-density='comfortable'] {
+			--vega-size-sidebar: 248px;
+			--vega-space-gutter: 0.75rem;
+		}
+
+		html[data-density='compact'] {
+			--vega-size-sidebar: 216px;
+			--vega-space-gutter: 0.65rem;
+		}
+
+		html,
+		body {
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			/* El lienzo usa `--bg` directamente (tono más "exterior" que `--surface`, ver §3 "papel/
+	   fondos"): es el único sitio que lo pinta. */
+			background: var(--bg);
+			color: var(--ink);
+			font-family: var(--sans);
+		}
+
+		/* El atributo `hidden` tiene que ocultar SIEMPRE, y por eso lleva `!important`.
+   La regla que lo oculta (`[hidden] { display: none }`) es del NAVEGADOR, y cualquier regla de
+   autor le gana, por poca especificidad que tenga: basta con que un componente ponga
+   `display: flex` (o grid, o block) en la clase de ese mismo elemento para que `hidden` deje de
+   ocultar nada, EN SILENCIO. Pasó de verdad: la ficha del editor visual monta todos los bloques a
+   la vez y oculta los no elegidos con `hidden`; como su clase traía `display: flex`, se veían
+   TODOS apilados y la ficha parecía no seguir a la selección. No lo caza ningún test unitario,
+   porque en jsdom los tests miran el atributo en el DOM (`:not([hidden])`), que estaba puesto y
+   correcto. Comprobado en Chromium: con `display: flex` el `getComputedStyle` sale `flex`, no
+   `none`. `!important` es la única forma de que la regla base gane a la del componente, y es lo
+   que hacen los reset de siempre (normalize.css) por este mismo motivo. Si algún día un elemento
+   necesita estar `hidden` y verse, eso es una contradicción: que no lleve `hidden`. */
+		[hidden] {
+			display: none !important;
+		}
+
+		/* Los placeholders habilitados son texto de ayuda, con el mismo contraste que un label. */
+		input:enabled::placeholder,
+		textarea:enabled::placeholder {
+			color: var(--ink-2);
+			opacity: 1;
+		}
+
+		/* A11y transversal (§4.3 del checklist): foco visible en todo interactivo. */
+		:focus-visible {
+			outline: 2px solid var(--ink);
+			outline-offset: 2px;
+		}
+
+		/* Objetivo táctil de 44 px con el dedo en los campos de una línea de los widgets escalares (ronda 3
+   del QA de fodaveg: medían 42 de alto). Una sola regla para los seis, que cada uno pinta con su
+   propia caja: ninguno declara alto, así que no compite con su CSS. */
+		@media (pointer: coarse) {
+			.vega-widget-text,
+			.vega-widget-url,
+			.vega-widget-email,
+			.vega-widget-number,
+			.vega-widget-datetime,
+			.vega-widget-select {
+				min-height: 44px;
+			}
+		}
+
+		@media (prefers-reduced-motion: reduce) {
+			*,
+			*::before,
+			*::after {
+				animation-duration: 0.001ms !important;
+				animation-iteration-count: 1 !important;
+				transition-duration: 0.001ms !important;
+			}
+		}
+		body {
+			padding: 24px;
+			background: var(--bg);
+			color: var(--ink);
+			font-family: var(--sans);
+		}
+		main {
+			max-width: 1000px;
+			margin: auto;
+		}
+		.browser {
+			display: grid;
+			grid-template-columns: 200px 1fr;
+			gap: 24px;
+		}
+		button,
+		input,
+		select {
+			min-height: 44px;
+			border: 1px solid var(--line);
+			border-radius: var(--r);
+			background: var(--surface);
+			color: var(--ink);
+			font: inherit;
+			padding: 8px;
+		}
+		nav {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+		.grid {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 16px;
+		}
+		article {
+			padding: 24px;
+			border: 1px solid var(--line);
+			border-radius: var(--r);
+			background: var(--surface);
+		}
+		.error {
+			color: var(--danger);
+		}
+		:focus-visible {
+			outline: 2px solid var(--accent-text);
+			outline-offset: 2px;
+		}
+		@media (max-width: 640px) {
+			body {
+				padding: 12px;
+			}
+			.browser {
+				grid-template-columns: 1fr;
+			}
+			nav {
+				flex-direction: row;
+				flex-wrap: wrap;
+			}
+			.grid {
+				grid-template-columns: 1fr;
+			}
+		}
+	</style>
+	<main>
+		<h1>Biblioteca · 2 archivos</h1>
+		<div class="browser">
+			<nav aria-label="Carpetas">
+				<button>Todos</button><button>Sin carpeta</button
+				><button aria-current="true">Viajes y fotografía</button><button>Retratos</button
+				><button>Nueva carpeta</button>
+			</nav>
+			<section>
+				<label>Buscar <input value="montaña" /></label>
+				<p>Subir aquí: Viajes y fotografía</p>
+				<div class="grid">
+					<article>
+						Montaña al amanecer.jpg
+						<p>Viajes y fotografía</p>
+					</article>
+					<article>
+						Guía de rutas.pdf
+						<p>Viajes y fotografía</p>
+					</article>
+				</div>
+				<p>2 seleccionados <button>Mover a…</button></p>
+			</section>
+		</div>
+		<hr />
+		<h2>Ficha / selector</h2>
+		<label
+			>Carpeta
+			<select>
+				<option>Sin carpeta</option>
+				<option>Viajes y fotografía</option>
+			</select></label
+		>
+		<h2>Borrar carpeta</h2>
+		<p>2 archivos pasarán a Sin carpeta. Los archivos se conservan.</p>
+		<button>Cancelar</button><button>Borrar carpeta</button>
+		<h2>Estados</h2>
+		<p>Cargando carpetas…</p>
+		<p>Esta carpeta está vacía. Sube un archivo aquí.</p>
+		<p class="error">No se pudieron cargar las carpetas. <button>Reintentar</button></p>
+		<p class="error">Ya existe una carpeta con ese nombre.</p>
+		<p class="error">La carpeta ya no existe. Se muestran todos los archivos.</p>
+		<p role="status">1 archivo movido. No se pudo mover el siguiente; conserva su selección.</p>
+	</main>
+</html>

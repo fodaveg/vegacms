@@ -28,6 +28,15 @@ function fakePort(
 }
 
 describe('uploadMediaFile', () => {
+	test('subir dentro de una carpeta usa el mismo create; la copia directa no añade folder', async () => {
+		const { port, create } = fakePort();
+		const f = file('a.pdf', 'application/pdf', 10);
+		await uploadMediaFile(port, schema, f, { shrink: null, folder: 'folder1' });
+		expect(create).toHaveBeenLastCalledWith('vega_media', { file: f, folder: 'folder1' });
+		await uploadMediaFile(port, schema, f, { shrink: null });
+		expect(create).toHaveBeenLastCalledWith('vega_media', { file: f });
+	});
+
 	test('un fichero válido se crea en `vega_media` con `file` y, si lo trae, `alt` recortado', async () => {
 		const { port, create } = fakePort();
 		const f = file('foto.png', 'image/png', 100);

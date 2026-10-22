@@ -48,6 +48,8 @@
 	import { ALL_PERMISSIONS, permissionsFor } from '$lib/backend/access';
 	import Icon from '$lib/icons/Icon.svelte';
 	import MediaDetail from './MediaDetail.svelte';
+	import MediaFolderSelect from './MediaFolderSelect.svelte';
+	import { mediaFoldersState } from './media-folders';
 	import { createMediaListState } from './media-list-state.svelte';
 	import { MEDIA_PER_PAGE, MEDIA_SEARCH_DEBOUNCE_MS } from './media-query';
 	import { toMediaItemView, type MediaItemView } from './media-item';
@@ -154,7 +156,14 @@
 		const forRequest = request,
 			version = ++loadVersion;
 		currentPage = page;
-		await listState.load(ctx, page, search);
+		await listState.load(
+			ctx,
+			page,
+			search,
+			mediaFoldersState(ctx.model.types.map((type) => type.schema)) === 'ready'
+				? mediaPickerState.folder
+				: null
+		);
 		if (request !== forRequest || version !== loadVersion || status.kind !== 'ready') return;
 		const lastPage = Math.max(1, status.page.totalPages);
 		if (page > lastPage) {
@@ -470,6 +479,14 @@
 					}}
 				>
 					<div class="vega-media-picker-search">
+						<MediaFolderSelect
+							value={mediaPickerState.folder}
+							includeAll
+							onChange={(value) => {
+								mediaPickerState.folder = value;
+								void loadPage(1, searchTerm);
+							}}
+						/>
 						<label for="vega-media-picker-search-input">{ctx.t('media.picker.searchLabel')}</label>
 						<input
 							id="vega-media-picker-search-input"

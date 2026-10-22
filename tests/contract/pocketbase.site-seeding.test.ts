@@ -1002,12 +1002,12 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		const result = await seedSiteProject(port);
 
 		expect(result).toEqual({
-			createdCollections: ['redirects'],
+			createdCollections: ['vega_media_folders', 'redirects'],
 			// `vega_editors` gana `created` (autodate) y `vega_media` gana `focal`: ninguno de los dos
 			// lo creaba el sembrado anterior.
 			addedFields: {
 				vega_editors: ['created'],
-				vega_media: ['focal'],
+				vega_media: ['focal', 'folder'],
 				pages: ['publishAt', 'description', 'socialImage', 'noindex', 'created', 'updated'],
 				blocks: ['created', 'updated']
 			},
@@ -1100,10 +1100,10 @@ describe.skipIf(!AVAILABLE)('sembrado de sitio contra PocketBase real', () => {
 		const result = await seedSiteProject(port);
 
 		expect(result).toEqual({
-			createdCollections: [],
+			createdCollections: ['vega_media_folders'],
 			addedFields: {
 				vega_editors: ['created'],
-				vega_media: ['focal'],
+				vega_media: ['focal', 'folder'],
 				pages: ['publishAt', 'created', 'updated'],
 				blocks: ['created', 'updated'],
 				redirects: ['created', 'updated']

@@ -92,6 +92,8 @@
 	import { findMediaFileFieldSchema, validateMediaFile } from './media-upload';
 	import { handleMediaDetailKeyboard } from './media-detail-keyboard';
 	import MediaDeleteConfirm from './MediaDeleteConfirm.svelte';
+	import MediaFolderSelect from './MediaFolderSelect.svelte';
+	import { mediaFoldersState } from './media-folders';
 	import MediaReplaceConfirm from './MediaReplaceConfirm.svelte';
 
 	interface Props {
@@ -147,6 +149,10 @@
 	export const formId = `vega-media-metadata-${detailScope}`;
 	let headingEl = $state<HTMLHeadingElement | null>(null);
 
+	let folderDraft = $state<string | null>(null);
+	const canSetFolder = $derived(
+		mediaFoldersState(ctx.model.types.map((type) => type.schema)) === 'ready'
+	);
 	let altDraft = $state('');
 	let titleDraft = $state('');
 	let tagsDraft = $state<string[]>([]);
@@ -194,6 +200,7 @@
 	// "abrir" es `item` pasando de `null` a un valor.
 	$effect(() => {
 		if (!item) return;
+		folderDraft = item.folder ?? null;
 		altDraft = item.alt;
 		titleDraft = item.title;
 		tagsDraft = item.tags;
@@ -205,7 +212,8 @@
 
 	const dirty = $derived(
 		item !== null &&
-			(altDraft !== item.alt ||
+			((canSetFolder && folderDraft !== (item.folder ?? null)) ||
+				altDraft !== item.alt ||
 				titleDraft !== item.title ||
 				!tagsEqual(tagsDraft, item.tags) ||
 				(canSetFocal && !mediaFocalEquals(focalDraft, item.focal)))
@@ -236,7 +244,11 @@
 	const isImage = $derived(item !== null && classifyMediaAssetType(item.fileName) === 'image');
 	/** Sigue al borrador, no al valor guardado (ver cabecera). */
 	const altDraftMissing = $derived(
-		item !== null && mediaMissingAlt({ alt: altDraft, fileName: item.fileName })
+		item !== null &&
+			mediaMissingAlt({
+				alt: altDraft,
+				fileName: item.fileName
+			})
 	);
 
 	// ————— Punto focal (ver cabecera) —————
@@ -365,6 +377,7 @@
 	 *  devuelve un objeto plano nuevo, mismo motivo que `[...tagsDraft]`. */
 	function metadataInput(): Record<string, FieldInputValue> {
 		return {
+			...(canSetFolder ? { folder: folderDraft } : {}),
 			alt: altDraft,
 			title: titleDraft,
 			tags: [...tagsDraft],
@@ -695,6 +708,15 @@
 						{/if}
 					</div>
 
+					<div class="vega-media-detail-field">
+						<MediaFolderSelect
+							value={folderDraft}
+							onChange={(value) => {
+								folderDraft = value === 'none' ? null : value;
+							}}
+							disabled={editingDisabled}
+						/>
+					</div>
 					<div class="vega-media-detail-field">
 						<label for="vega-media-detail-title">{ctx.t('media.detail.titleLabel')}</label>
 						<input

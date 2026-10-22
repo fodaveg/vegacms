@@ -45,6 +45,7 @@ interface MediaUploadFileOptions {
 	shrink: ShrinkFn | null;
 	/** Texto alternativo que se guarda en la ficha (`alt`). Vacío o ausente = sin texto. */
 	alt?: string;
+	folder?: string | null;
 }
 
 type MediaUploadFileResult =
@@ -53,8 +54,10 @@ type MediaUploadFileResult =
 
 /** Mensaje legible de un `VegaError` de `create()`: el de validación del propio campo `file`
  *  (`fieldErrors.file`) si lo trae, si no el `message` general del error. */
-export function mediaUploadErrorMessage(err: VegaError): string {
-	return err.fieldErrors?.[MEDIA_FILE_FIELD]?.message ?? err.message;
+export function mediaUploadErrorMessage(err: VegaError, folderMessage?: string): string {
+	return err.fieldErrors?.folder
+		? (folderMessage ?? err.fieldErrors.folder.message)
+		: (err.fieldErrors?.[MEDIA_FILE_FIELD]?.message ?? err.message);
 }
 
 /**
@@ -89,6 +92,7 @@ export async function uploadMediaFile(
 	if (rejection !== null) return { kind: 'rejected', reason: rejection, shrink };
 
 	const input: RecordInput = { [MEDIA_FILE_FIELD]: toUpload };
+	if (options.folder) input.folder = options.folder;
 	const alt = options.alt?.trim() ?? '';
 	if (alt !== '') input.alt = alt;
 

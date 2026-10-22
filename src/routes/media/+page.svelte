@@ -102,7 +102,8 @@
 		MEDIA_PER_PAGE,
 		MEDIA_SEARCH_DEBOUNCE_MS,
 		mediaPageToParams,
-		parseMediaPage
+		parseMediaPage,
+		parseMediaFolder
 	} from '$lib/media/media-query';
 	import { createMediaListState } from '$lib/media/media-list-state.svelte';
 	import { findMediaFileFieldSchema, mediaSchemaAdmitsVideo } from '$lib/media/media-upload';
@@ -114,6 +115,13 @@
 	import MediaSelectionBar from '$lib/media/MediaSelectionBar.svelte';
 	import MediaDeleteConfirm from '$lib/media/MediaDeleteConfirm.svelte';
 	import Pagination from '$lib/list/Pagination.svelte';
+	import MediaFolders from '$lib/media/MediaFolders.svelte';
+	import {
+		ensureMediaFolders,
+		mediaFoldersState,
+		moveSelectedMedia,
+		type MediaFolder
+	} from '$lib/media/media-folders';
 
 	const ctx = getVegaContext();
 
@@ -210,11 +218,14 @@
 
 	// ————— Biblioteca anterior a un campo nuevo (ver cabecera) —————
 
+	const foldersState = $derived(mediaFoldersState(types));
 	const missingMediaFields = $derived(
 		collectionState === 'present' ? missingMediaCollectionFields(types) : []
 	);
 	const canCompleteMedia = $derived(
-		missingMediaFields.length > 0 && ctx.port.capabilities.schemaFieldBootstrap
+		(missingMediaFields.length > 0 || foldersState === 'missing') &&
+			foldersState !== 'incompatible' &&
+			ctx.port.capabilities.schemaFieldBootstrap
 	);
 	/** La `vega_media` DESCUBIERTA tiene `focal`: sin él, la ficha no ofrece el punto focal. */
 	const mediaHasFocal = $derived(
@@ -225,10 +236,12 @@
 	let completingMedia = $state(false);
 
 	async function handleCompleteMedia(): Promise<void> {
-		if (completingMedia || missingMediaFields.length === 0) return;
+		if (completingMedia || !canCompleteMedia) return;
 		completingMedia = true;
 		try {
 			await completeMediaCollection(ctx.port, missingMediaFields);
+			await ensureMediaFolders(ctx.port);
+			await ctx.reloadModel();
 			types = await ctx.port.listContentTypes();
 			ctx.feedback.toast(ctx.t('media.fields.added'), { kind: 'success' });
 		} catch (err) {
@@ -244,6 +257,58 @@
 
 	// ————— Grid de vega_media (Fase 6b) —————
 
+	let folders = $state<MediaFolder[]>([]);
+	const requestedFolder = $derived(parseMediaFolder(page.url.searchParams));
+	const activeFolder = $derived(
+		foldersState === 'ready' &&
+			(requestedFolder === 'none' || folders.some((f) => f.id === requestedFolder))
+			? requestedFolder
+			: null
+	);
+	const folderNames = $derived(Object.fromEntries(folders.map((f) => [f.id, f.name])));
+	function selectFolder(folder: string | null) {
+		selectedIds.clear();
+		const qs = mediaPageToParams(1, folder).toString();
+		void goto(`${mediaRoute()}${qs ? `?${qs}` : ''}`);
+	}
+	function foldersChanged(next: MediaFolder[]) {
+		folders = next;
+		if (
+			requestedFolder &&
+			requestedFolder !== 'none' &&
+			!next.some((folder) => folder.id === requestedFolder)
+		) {
+			ctx.feedback.toast(ctx.t('media.folders.disappeared'), { kind: 'info' });
+			selectFolder(null);
+		}
+	}
+
+	let moveDialog = $state<HTMLDialogElement>();
+	let moveFoldersRef = $state<ReturnType<typeof MediaFolders>>();
+	let moving = $state(false),
+		moveTarget = $state<string | null>('none');
+	async function moveSelection() {
+		if (moving) return;
+		moving = true;
+		const result = await moveSelectedMedia(
+			ctx.port,
+			selectedItems.map((i) => i.id),
+			moveTarget === 'none' ? null : moveTarget,
+			(id) => selectedIds.delete(id)
+		);
+		moving = false;
+		moveDialog?.close();
+		ctx.feedback.toast(ctx.t('media.folders.moved', { count: result.moved }), {
+			kind: result.failure ? 'info' : 'success'
+		});
+		if (result.failure)
+			ctx.feedback.reportError(
+				result.failure instanceof VegaError
+					? result.failure
+					: VegaError.backend(ctx.t('media.folders.moveError'), result.failure)
+			);
+		mediaListState.reload();
+	}
 	const mediaPage = $derived(parseMediaPage(page.url.searchParams));
 	const mediaListState = createMediaListState();
 
@@ -253,11 +318,28 @@
 
 	$effect(() => {
 		if (!routerReady || collectionState !== 'present') return;
-		void mediaListState.load(ctx, mediaPage, appliedSearch);
+		void mediaListState.load(ctx, mediaPage, appliedSearch, activeFolder);
 	});
 
 	const mediaStatus = $derived(mediaListState.status);
 	const mediaReadyPage = $derived(mediaStatus.kind === 'ready' ? mediaStatus.page : null);
+	/** Un borrado remoto vacía el filtro; se distingue de una carpeta vacía todavía existente. */
+	async function verifyEmptyFolder(folder: string) {
+		try {
+			await ctx.port.get('vega_media_folders', folder);
+		} catch (cause) {
+			if (cause instanceof VegaError && cause.kind === 'not-found' && activeFolder === folder) {
+				folders = folders.filter((item) => item.id !== folder);
+				ctx.feedback.toast(ctx.t('media.folders.disappeared'), { kind: 'info' });
+				selectFolder(null);
+			}
+		}
+	}
+	$effect(() => {
+		const folder = activeFolder;
+		if (mediaReadyPage?.totalItems === 0 && folder && folder !== 'none')
+			void verifyEmptyFolder(folder);
+	});
 	const mediaItems = $derived<MediaItemView[]>(
 		mediaReadyPage ? mediaReadyPage.items.map(toMediaItemView) : []
 	);
@@ -267,7 +349,10 @@
 	// «Vacía» de verdad solo SIN búsqueda: con un término aplicado, 0 resultados es «nada coincide»
 	// (rama `empty-filter` del marcado), nunca «la biblioteca está vacía».
 	const mediaIsEmpty = $derived(
-		mediaReadyPage !== null && mediaReadyPage.totalItems === 0 && appliedSearch.trim() === ''
+		mediaReadyPage !== null &&
+			mediaReadyPage.totalItems === 0 &&
+			appliedSearch.trim() === '' &&
+			activeFolder === null
 	);
 
 	// ————— Toolbar: buscador (servidor) + chips de tipo (cliente, sobre la página) —————
@@ -293,7 +378,9 @@
 		{ value: 'document', key: 'media.filter.documents' }
 	]);
 
-	const hasActiveFilters = $derived(appliedSearch.trim() !== '' || typeFilter !== 'all');
+	const hasActiveFilters = $derived(
+		appliedSearch.trim() !== '' || typeFilter !== 'all' || activeFolder !== null
+	);
 
 	/** Lo que de verdad se pinta: la página cargada (ya filtrada por el servidor si hay búsqueda)
 	 *  tras el chip de tipo activo (cliente, ver cabecera). Sin chip es exactamente `mediaItems`. */
@@ -326,6 +413,7 @@
 		searchTerm = '';
 		typeFilter = 'all';
 		applySearch('');
+		if (activeFolder) selectFolder(null);
 	}
 
 	// ————— Selección + acciones de lote —————
@@ -438,7 +526,7 @@
 	function goToMediaPage(target: number): void {
 		if (!routerReady) return;
 		selectedIds.clear();
-		const qs = mediaPageToParams(target).toString();
+		const qs = mediaPageToParams(target, activeFolder).toString();
 		void goto(`${mediaRoute()}${qs ? `?${qs}` : ''}`);
 	}
 
@@ -574,7 +662,10 @@
 				<div class="notice notice-fields" data-media-missing-fields>
 					<p>
 						{ctx.t('media.fields.missingBody', {
-							fields: missingMediaFields.map((field) => field.name).join(', ')
+							fields: [
+								...missingMediaFields.map((field) => field.name),
+								...(foldersState === 'missing' ? ['vega_media_folders', 'folder'] : [])
+							].join(', ')
 						})}
 					</p>
 					<div class="actions">
@@ -587,36 +678,49 @@
 
 			<!-- Toolbar (mockup `.toolbar`): buscador (servidor, con debounce) + chips de tipo
 			     (cliente, sobre la página cargada). Ver cabecera. -->
-			<div class="vega-media-toolbar">
-				<label class="vega-media-search">
-					<Icon id="search" size={14} />
-					<input
-						type="search"
-						value={searchTerm}
-						oninput={handleSearchInput}
-						placeholder={ctx.t('media.picker.searchPlaceholder')}
-						aria-label={ctx.t('media.picker.searchLabel')}
-					/>
-				</label>
-				<span
-					class="vega-media-type-chips"
-					role="group"
-					aria-label={ctx.t('media.filter.groupLabel')}
-				>
-					{#each typeFilters as filter (filter.value)}
-						<button
-							type="button"
-							class="vega-media-type-chip"
-							aria-pressed={typeFilter === filter.value}
-							onclick={() => (typeFilter = filter.value)}
+			{#if foldersState === 'incompatible'}<p role="alert">
+					{ctx.t('media.folders.incompatible')}
+				</p>{/if}
+			<div class:vega-media-browser={foldersState === 'ready'}>
+				{#if foldersState === 'ready'}<aside>
+						<MediaFolders
+							manage
+							value={activeFolder}
+							onChange={selectFolder}
+							onLoaded={foldersChanged}
+						/>
+					</aside>{/if}
+				<section class="vega-media-content">
+					<div class="vega-media-toolbar">
+						<label class="vega-media-search">
+							<Icon id="search" size={14} />
+							<input
+								type="search"
+								value={searchTerm}
+								oninput={handleSearchInput}
+								placeholder={ctx.t('media.picker.searchPlaceholder')}
+								aria-label={ctx.t('media.picker.searchLabel')}
+							/>
+						</label>
+						<span
+							class="vega-media-type-chips"
+							role="group"
+							aria-label={ctx.t('media.filter.groupLabel')}
 						>
-							{ctx.t(filter.key)}
-						</button>
-					{/each}
-				</span>
-			</div>
+							{#each typeFilters as filter (filter.value)}
+								<button
+									type="button"
+									class="vega-media-type-chip"
+									aria-pressed={typeFilter === filter.value}
+									onclick={() => (typeFilter = filter.value)}
+								>
+									{ctx.t(filter.key)}
+								</button>
+							{/each}
+						</span>
+					</div>
 
-			<!-- Zona de subida (Fase 6c): visible en 'present' siempre que haya permiso de creación,
+					<!-- Zona de subida (Fase 6c): visible en 'present' siempre que haya permiso de creación,
 			     independiente del estado del grid de abajo (loading/error/vacío/listo) — también la CTA
 			     real del caso "biblioteca vacía" (ver cabecera del script). `mediaPermissions.create`
 			     (fix de code-review): mismo guard que el botón "Subir archivos" de la cabecera — sin él,
@@ -624,76 +728,112 @@
 			     moría en un 403 del backend. Se OCULTA entera (no "visible deshabilitada"): mismo
 			     criterio que el resto de acciones denegadas del lote (botón "Nueva" y asa de reorder de
 			     `/c/[type]`, fix #3 de este mismo code-review) — sin permiso, la afordancia no se ofrece. -->
-			{#if mediaFileSchema && mediaPermissions.create}
-				<MediaUpload
-					bind:this={uploadRef}
-					schema={mediaFileSchema}
-					onUploaded={handleMediaUploaded}
-				/>
-			{/if}
-
-			{#if mediaStatus.kind === 'loading'}
-				<p data-media-grid-state="loading" aria-live="polite">{ctx.t('common.loading')}</p>
-			{:else if mediaStatus.kind === 'error'}
-				<!-- Error EN CONTEXTO (nunca tumba el marco de /media, L-P4.4-alike): "Reintentar"
-				     repite la ÚLTIMA carga vía `mediaListState.retry()`. -->
-				<div class="vega-media-grid-error" data-media-grid-state="error" role="alert">
-					<p>{ctx.t('list.error.body', { message: mediaStatus.error.message })}</p>
-					<button type="button" onclick={() => mediaListState.retry()}>
-						{ctx.t('common.retry')}
-					</button>
-				</div>
-			{:else if mediaIsEmpty}
-				<div class="vega-media-empty" data-media-grid-state="empty">
-					<h2>{ctx.t('media.empty.title')}</h2>
-					<p>{ctx.t('media.empty.body')}</p>
-				</div>
-			{:else}
-				<div data-media-grid-state="ready">
-					{#if visibleItems.length > 0}
-						<MediaGrid
-							items={visibleItems}
-							onSelect={openDetail}
-							{isSelected}
-							onToggleSelect={toggleSelect}
+					{#if mediaFileSchema && mediaPermissions.create}
+						<MediaUpload
+							bind:this={uploadRef}
+							schema={mediaFileSchema}
+							folder={activeFolder === 'none' ? null : activeFolder}
+							onUploaded={handleMediaUploaded}
 						/>
-					{:else if hasActiveFilters && mediaReadyPage && (mediaItems.length > 0 || mediaReadyPage.totalItems === 0)}
-						<!-- 0 resultados CON filtros activos (búsqueda sin coincidencias, o chip de tipo que
+					{/if}
+
+					{#if mediaStatus.kind === 'loading'}
+						<p data-media-grid-state="loading" aria-live="polite">{ctx.t('common.loading')}</p>
+					{:else if mediaStatus.kind === 'error'}
+						<!-- Error EN CONTEXTO (nunca tumba el marco de /media, L-P4.4-alike): "Reintentar"
+				     repite la ÚLTIMA carga vía `mediaListState.retry()`. -->
+						<div class="vega-media-grid-error" data-media-grid-state="error" role="alert">
+							<p>{ctx.t('list.error.body', { message: mediaStatus.error.message })}</p>
+							<button type="button" onclick={() => mediaListState.retry()}>
+								{ctx.t('common.retry')}
+							</button>
+						</div>
+					{:else if mediaIsEmpty}
+						<div class="vega-media-empty" data-media-grid-state="empty">
+							<h2>{ctx.t('media.empty.title')}</h2>
+							<p>{ctx.t('media.empty.body')}</p>
+						</div>
+					{:else}
+						<div data-media-grid-state="ready">
+							{#if visibleItems.length > 0}
+								<MediaGrid
+									items={visibleItems}
+									folderNames={activeFolder === null || appliedSearch.trim()
+										? folderNames
+										: undefined}
+									onSelect={openDetail}
+									{isSelected}
+									onToggleSelect={toggleSelect}
+								/>
+							{:else if hasActiveFilters && mediaReadyPage && (mediaItems.length > 0 || mediaReadyPage.totalItems === 0)}
+								<!-- 0 resultados CON filtros activos (búsqueda sin coincidencias, o chip de tipo que
 						     deja la página vacía): nunca se confunde con la biblioteca vacía de verdad (esa
 						     rama es `mediaIsEmpty`, arriba) — mismo criterio que `empty-search` en
 						     `/c/[type]` (L-P4.12). -->
-						<div class="vega-media-empty" data-media-grid-state="empty-filter">
-							<p>
-								{mediaItems.length === 0
-									? ctx.t('media.search.empty')
-									: ctx.t('media.filter.empty')}
-							</p>
-							<button type="button" onclick={clearFilters}>{ctx.t('media.filter.clear')}</button>
+								<div class="vega-media-empty" data-media-grid-state="empty-filter">
+									<p>
+										{mediaItems.length === 0
+											? ctx.t('media.search.empty')
+											: ctx.t('media.filter.empty')}
+									</p>
+									<button type="button" onclick={clearFilters}>{ctx.t('media.filter.clear')}</button
+									>
+								</div>
+							{/if}
+							{#if mediaReadyPage && mediaReadyPage.totalPages > 1}
+								<Pagination
+									page={mediaReadyPage.page}
+									totalPages={mediaReadyPage.totalPages}
+									totalItems={mediaReadyPage.totalItems}
+									perPage={MEDIA_PER_PAGE}
+									onPrev={() => goToMediaPage(mediaReadyPage.page - 1)}
+									onNext={() => goToMediaPage(mediaReadyPage.page + 1)}
+								/>
+							{/if}
+							{#if selectedItems.length > 0}
+								<MediaSelectionBar
+									count={selectedItems.length}
+									busy={bulkDeleting || moving}
+									onMove={foldersState === 'ready' && mediaPermissions.update
+										? () => {
+												void moveFoldersRef?.refresh();
+												moveDialog?.showModal();
+											}
+										: undefined}
+									onCopy={() => void copySelectedUrls()}
+									onDelete={requestBulkDelete}
+								/>
+							{/if}
 						</div>
 					{/if}
-					{#if mediaReadyPage && mediaReadyPage.totalPages > 1}
-						<Pagination
-							page={mediaReadyPage.page}
-							totalPages={mediaReadyPage.totalPages}
-							totalItems={mediaReadyPage.totalItems}
-							perPage={MEDIA_PER_PAGE}
-							onPrev={() => goToMediaPage(mediaReadyPage.page - 1)}
-							onNext={() => goToMediaPage(mediaReadyPage.page + 1)}
-						/>
-					{/if}
-					{#if selectedItems.length > 0}
-						<MediaSelectionBar
-							count={selectedItems.length}
-							busy={bulkDeleting}
-							onCopy={() => void copySelectedUrls()}
-							onDelete={requestBulkDelete}
-						/>
-					{/if}
-				</div>
-			{/if}
+				</section>
+			</div>
 		</div>
 	{/if}
 </div>
+
+<dialog
+	bind:this={moveDialog}
+	oncancel={(event) => {
+		if (moving) event.preventDefault();
+	}}
+	aria-labelledby="media-move-title"
+>
+	<h2 id="media-move-title">{ctx.t('media.folders.move')}</h2>
+	{#if foldersState === 'ready'}<MediaFolders
+			bind:this={moveFoldersRef}
+			value={moveTarget}
+			includeAll={false}
+			onChange={(value) => {
+				moveTarget = value;
+			}}
+			disabled={moving}
+		/>{/if}<button type="button" disabled={moving} onclick={() => moveDialog?.close()}
+		>{ctx.t('common.cancel')}</button
+	><button type="button" disabled={moving} onclick={() => void moveSelection()}
+		>{ctx.t('media.folders.moveConfirm')}</button
+	>
+</dialog>
 
 <MediaDetail
 	item={selectedItem}
@@ -725,6 +865,32 @@
 />
 
 <style>
+	.vega-media-browser {
+		display: grid;
+		grid-template-columns: 200px minmax(0, 1fr);
+		gap: var(--vega-space-gutter);
+	}
+	.vega-media-content {
+		min-width: 0;
+	}
+	dialog button {
+		min-height: 44px;
+		padding: 8px;
+		margin: 4px;
+	}
+	dialog {
+		background: var(--surface);
+		color: var(--ink);
+		border: 1px solid var(--line);
+		border-radius: var(--r);
+		padding: 24px;
+		max-width: calc(100vw - 32px);
+	}
+	@media (max-width: 640px) {
+		.vega-media-browser {
+			grid-template-columns: 1fr;
+		}
+	}
 	.vega-media-page {
 		display: flex;
 		flex-direction: column;

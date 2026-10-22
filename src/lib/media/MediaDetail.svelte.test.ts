@@ -68,9 +68,51 @@ interface Rendered {
 	onClose: ReturnType<typeof vi.fn>;
 }
 
-function render(item: MediaItemView, extra: { canSetFocal?: boolean } = {}): Rendered {
+function render(
+	item: MediaItemView,
+	extra: { canSetFocal?: boolean } = {},
+	withFolders = false
+): Rendered {
 	const port = fakePort();
 	const onClose = vi.fn();
+	const context = fakeCtx(port);
+	if (withFolders) {
+		context.model.types = [
+			{
+				schema: {
+					name: 'vega_media_folders',
+					fields: [
+						{ name: 'name', type: 'text', required: true, unique: true, maxLength: 80 },
+						{ name: 'created', type: 'date', readonly: true }
+					]
+				}
+			},
+			{
+				schema: {
+					name: 'vega_media',
+					fields: [
+						{
+							name: 'folder',
+							type: 'relation',
+							target: 'vega_media_folders',
+							multiple: false,
+							cascadeDelete: false
+						}
+					]
+				}
+			}
+		] as unknown as typeof context.model.types;
+		vi.mocked(port.list).mockResolvedValue({
+			page: 1,
+			perPage: 200,
+			totalItems: 2,
+			totalPages: 1,
+			items: [
+				{ id: 'f1', type: 'vega_media_folders', values: { name: 'Primera' } },
+				{ id: 'f2', type: 'vega_media_folders', values: { name: 'Segunda' } }
+			]
+		});
+	}
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(MediaDetail, {
@@ -83,7 +125,7 @@ function render(item: MediaItemView, extra: { canSetFocal?: boolean } = {}): Ren
 			fallbackFocusEl: null,
 			...extra
 		},
-		context: new Map([[VEGA_CONTEXT_KEY, fakeCtx(port)]])
+		context: new Map([[VEGA_CONTEXT_KEY, context]])
 	});
 	mounted = { target, instance };
 	flushSync();
@@ -356,4 +398,26 @@ describe('MediaDetail — asociación accesible y acciones fuera del scroll', ()
 		expect(save.form).toBe(target.querySelector('form'));
 		expect(target.querySelector('.vega-media-detail-body')?.contains(save)).toBe(false);
 	});
+});
+
+test('la ficha guarda carpeta y metadatos en la misma actualización', async () => {
+	const { target, port } = render(asset({ folder: 'f1' }), {}, true);
+	await vi.waitFor(() => expect(target.querySelector('select option[value="f2"]')).not.toBeNull());
+	const select = target.querySelector('select')!;
+	select.value = 'f2';
+	select.dispatchEvent(new Event('change', { bubbles: true }));
+	const title = target.querySelector<HTMLInputElement>('#vega-media-detail-title')!;
+	title.value = 'Título nuevo';
+	title.dispatchEvent(new Event('input', { bubbles: true }));
+	flushSync();
+	target
+		.querySelector('form')!
+		.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+	await vi.waitFor(() =>
+		expect(port.update).toHaveBeenCalledWith(
+			'vega_media',
+			'm1',
+			expect.objectContaining({ folder: 'f2', title: 'Título nuevo' })
+		)
+	);
 });

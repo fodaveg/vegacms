@@ -61,6 +61,9 @@
 		type MediaAssetType
 	} from '$lib/media/media-card';
 	import { resolveMediaGridSrc } from '$lib/media/media-thumb';
+	import MediaFolderSelect from '$lib/media/MediaFolderSelect.svelte';
+	import { mediaFoldersState } from '$lib/media/media-folders';
+	import { mediaPickerState } from '$lib/media/media-picker-state.svelte';
 	import { selectThumbSpec } from '$lib/backend/thumb-select';
 	import type { FileRef } from '$lib/backend/types';
 	import {
@@ -285,7 +288,23 @@
 			degradedLoading = true;
 		}
 		try {
-			const result = await ctx.port.list(target.name, buildDegradedListQuery(page, baseFilter));
+			const query = buildDegradedListQuery(page, baseFilter);
+			const folder =
+				mediaMode && mediaFoldersState(ctx.model.types.map((type) => type.schema)) === 'ready'
+					? mediaPickerState.folder
+					: null;
+			if (folder) {
+				const condition = {
+					kind: 'cond' as const,
+					field: 'folder',
+					op: folder === 'none' ? ('empty' as const) : ('eq' as const),
+					value: folder === 'none' ? null : folder
+				};
+				query.filter = query.filter
+					? { kind: 'group', combinator: 'and', nodes: [query.filter, condition] }
+					: condition;
+			}
+			const result = await ctx.port.list(target.name, query);
 			if (destroyed || !sequencer.isLatest(seq)) return;
 			degradedItems = mediaMode
 				? result.items.map(toMediaCandidate)
@@ -566,6 +585,15 @@
 	</ul>
 
 	{#if degraded}
+		{#if isMediaTarget}<MediaFolderSelect
+				value={mediaPickerState.folder}
+				includeAll
+				onChange={(value) => {
+					mediaPickerState.folder = value;
+					void loadDegradedPage(1);
+				}}
+				disabled={inert}
+			/>{/if}
 		<p class="vega-relation-degraded-note">
 			{isMediaTarget ? ctx.t('form.relation.media.note') : ctx.t('form.relation.degradedNote')}
 		</p>

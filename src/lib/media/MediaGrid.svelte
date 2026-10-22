@@ -88,6 +88,7 @@
 
 	interface Props {
 		items: MediaItemView[];
+		folderNames?: Record<string, string>;
 		/** Activación primaria de la celda: elegir (picker) o abrir el detalle (`/media`). */
 		onSelect: (item: MediaItemView) => void;
 		/** `true` si `item` está seleccionado. `undefined` = ninguna celda se marca. */
@@ -99,7 +100,7 @@
 		isInspected?: (item: MediaItemView) => boolean;
 	}
 
-	let { items, onSelect, isSelected, onToggleSelect, isInspected }: Props = $props();
+	let { items, onSelect, isSelected, onToggleSelect, isInspected, folderNames }: Props = $props();
 
 	const ctx = getVegaContext();
 
@@ -239,6 +240,11 @@
 				</span>
 				<span class="vega-media-meta">
 					<span class="vega-media-name">{label}</span>
+					{#if folderNames}<span class="vega-media-sub"
+							>{item.folder
+								? (folderNames[item.folder] ?? ctx.t('media.folders.none'))
+								: ctx.t('media.folders.none')}</span
+						>{/if}
 					<span class="vega-media-sub">{subtitle}</span>
 				</span>
 			</button>

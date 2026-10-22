@@ -65,12 +65,13 @@
 		/** El campo `file` de `vega_media` YA resuelto (`findMediaFileFieldSchema`, esquema
 		 *  DESCUBIERTO en runtime, D-P6.3) — este componente nunca lo busca por su cuenta. */
 		schema: MediaFileFieldSchema;
+		folder?: string | null;
 		/** Se llama tras CADA subida individual con éxito (no solo al final del lote): el llamador
 		 *  refresca el grid (`mediaListState.reload()`). */
 		onUploaded: () => void;
 	}
 
-	let { schema, onUploaded }: Props = $props();
+	let { schema, onUploaded, folder = null }: Props = $props();
 
 	const ctx = getVegaContext();
 	const uploadState = createMediaUploadState();
@@ -143,7 +144,7 @@
 	function handleFiles(files: File[]): void {
 		if (uploadState.running || files.length === 0) return;
 		batchFiles = files;
-		void uploadState.start(ctx, schema, files, onUploaded, reportSummary, { keepOriginal });
+		void uploadState.start(ctx, schema, files, onUploaded, reportSummary, { keepOriginal, folder });
 	}
 
 	function handleInputChange(event: Event): void {

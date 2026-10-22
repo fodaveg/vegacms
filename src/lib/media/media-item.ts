@@ -25,6 +25,7 @@ type MediaFileKind = 'image' | 'other';
  *  `FieldValue`/`JsonValue` crudo fuera de este módulo). */
 export interface MediaItemView {
 	id: RecordId;
+	folder?: string | null;
 	/** `null` solo por defensa: `file` es `required` en el esquema (D-P6.1), así que un registro
 	 *  real siempre lo trae — pero el mapeo no debe reventar si algún día no fuera así. */
 	fileRef: FileRef | null;
@@ -74,6 +75,10 @@ export function toMediaItemView(record: VegaRecord): MediaItemView {
 
 	return {
 		id: record.id,
+		folder:
+			typeof record.values.folder === 'string' && record.values.folder
+				? record.values.folder
+				: null,
 		fileRef,
 		fileName: fileRef ?? '',
 		kind: fileRef ? classifyMediaFile(fileRef) : 'other',

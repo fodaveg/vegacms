@@ -22,7 +22,14 @@ import { SITE_SEED_OPTIONAL_MODULES } from '$lib/backend/site-seeding-modules';
 export type Translate = (key: string, params?: Record<string, string | number>) => string;
 
 /** Colecciones visibles que comprueba el preflight (sin `vega_editors`, que no se puede leer). */
-const SITE_BASE_COLLECTIONS = ['pages', 'vega_media', 'blocks', 'redirects', 'vega'] as const;
+const SITE_BASE_COLLECTIONS = [
+	'pages',
+	'vega_media_folders',
+	'vega_media',
+	'blocks',
+	'redirects',
+	'vega'
+] as const;
 
 /**
  * Los módulos que la tarjeta ofrece añadir, debajo de la base: los opcionales del registro, en su

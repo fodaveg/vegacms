@@ -21,6 +21,7 @@ interface MediaPickRequest {
 }
 
 let request = $state<MediaPickRequest | null>(null);
+let folder = $state<string | null>(null);
 
 /**
  * Abre el picker con `opts` y devuelve una promesa que se resuelve cuando `<MediaPicker>` llama a
@@ -49,6 +50,12 @@ function settle(result: MediaPickResult[] | null): void {
 /** Superficie que consumen `+layout.svelte` (escribe, vía `open`, publicado en `ctx.mediaPicker`) y
  *  `MediaPicker.svelte` (lee `request`, escribe vía `settle`). */
 export const mediaPickerState = {
+	get folder() {
+		return folder;
+	},
+	set folder(value: string | null) {
+		folder = value;
+	},
 	get request(): MediaPickRequest | null {
 		return request;
 	},

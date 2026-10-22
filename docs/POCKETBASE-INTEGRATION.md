@@ -1733,3 +1733,41 @@ El aviso y la caducidad dependen del servidor, no del manifiesto: consulte **Avi
 los formularios** en [CONFIG.md](CONFIG.md). `VEGA_FORMS_RETENTION_DAYS`, entero positivo optativo,
 borra también revisiones antiguas de esas bandejas sin crear copias nuevas. Sin hook o sin plazo
 válido, no hay retención automática. No se migra el `messages` propio de otros sitios.
+
+### Carpetas planas de la biblioteca
+
+La base del sitio crea `vega_media_folders` antes de `vega_media` y añade a esta última la relación
+opcional `folder`, simple y sin cascada. Las carpetas son organización interna: sus cinco reglas
+admiten editores de `vega_editors`; no tienen manifiesto, jerarquía ni permisos por carpeta. El campo
+`name` es obligatorio, único (distingue mayúsculas) y tiene un máximo de 80 caracteres. Un medio sin
+carpeta conserva `folder = null`; borrar una carpeta conserva sus medios y sus archivos.
+
+En una biblioteca anterior, un superuser puede usar **Añadir campos** en Medios. Vega añade la
+colección y la relación por llamadas separadas, conserva campos, ids, archivos, metadatos y reglas
+existentes y publica de nuevo el snapshot para los editores. Una forma incompatible se avisa sin
+mutarla. La detección `ready/missing/incompatible` comprueba la forma del esquema, no reescribe ni
+adopta reglas existentes. El preflight de Base del sitio incluye ambas piezas. El bootstrap
+canónico `ensureMediaCollection` y su JSON manual siguen creando únicamente `vega_media`, sin
+`folder`; `ensureMediaFolders` es la ampliación aditiva independiente.
+
+Medios conserva el filtro en `?folder=<id>` o `?folder=none`; sin parámetro muestra Todos. La búsqueda
+por alt/título se combina con la carpeta en el servidor. Los selectores de fichero y de relación a
+medios recuerdan su carpeta durante la página, sin guardarla en el navegador. Las subidas dentro de
+una carpeta incluyen la relación en el mismo `create`; si la carpeta desaparece, el error conserva
+los bytes pendientes para reintentar. La copia directa de un fichero a la biblioteca queda sin
+carpeta. La ficha guarda carpeta y metadatos juntos. El movimiento de una selección actualiza de uno
+en uno, se detiene en el primer fallo, anuncia el recuento real y conserva seleccionados los
+pendientes. Las actualizaciones atraviesan el puerto decorado y conservan las revisiones.
+
+Antes de borrar una carpeta se consulta `totalItems` con `perPage: 1`, sin descargar los medios ni
+calcular contadores laterales. Los nombres se cargan completos por cursor (incluidas más de 200
+carpetas). Una carpeta inexistente vuelve a Todos con aviso; un error de carga permite seguir usando
+Todos y reintentar. La colección interna de carpetas no se expone públicamente: una expansión de
+medio puede transportar su id de carpeta, pero la regla de lectura impide expandir la carpeta sin
+sesión editora. No cambia el contrato de los consumidores públicos.
+
+La lámina previa está en `design/mockups/2026-10-22-media-folders/lamina.html`. Las pruebas focales
+cubren actualización aditiva, esquema y snapshot editor, permisos reales, unicidad, filtros y borrado
+sin pérdida. La sonda separada crea 2000 medios en una carpeta y verifica que, tras borrarla, todos
+siguen existiendo sin relación. Las medidas son evidencia de esa sonda, no un timeout de rendimiento
+que pueda ponerse rojo por carga.

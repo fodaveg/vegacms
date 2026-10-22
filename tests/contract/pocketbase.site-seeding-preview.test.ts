@@ -105,7 +105,14 @@ describe.skipIf(!AVAILABLE)('previewSiteSeed contra PocketBase real', () => {
 	test('desde limpio: el plan crea las cinco colecciones visibles, el manifiesto y «Inicio»', async () => {
 		const plan = await expectPlanMatchesSeed();
 
-		expect(plan.createdCollections).toEqual(['vega_media', 'pages', 'blocks', 'redirects', 'vega']);
+		expect(plan.createdCollections).toEqual([
+			'vega_media_folders',
+			'vega_media',
+			'pages',
+			'blocks',
+			'redirects',
+			'vega'
+		]);
 		expect(plan.manifest).toBe('create');
 		expect(plan.pageMissing).toBe(true);
 	});
@@ -125,7 +132,7 @@ describe.skipIf(!AVAILABLE)('previewSiteSeed contra PocketBase real', () => {
 
 		const plan = await expectPlanMatchesSeed();
 
-		expect(plan.createdCollections).toEqual(['redirects']);
+		expect(plan.createdCollections).toEqual(['vega_media_folders', 'redirects']);
 		expect(plan.manifest).toBe('upgrade');
 		expect(plan.addedFields.pages).toEqual(
 			expect.arrayContaining(['publishAt', 'description', 'socialImage', 'noindex'])

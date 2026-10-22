@@ -31,6 +31,8 @@ interface MediaListQueryOptions {
 	/** Término de búsqueda SERVER-SIDE por `alt`/`title` (Fase P6·6e, ver cabecera). En blanco o
 	 *  ausente ⇒ sin filtro (mismo criterio que `buildTitleSearchQuery` de P5, `relation-search.ts`). */
 	search?: string;
+	/** null=Todos, none=Sin carpeta, otro valor=id de carpeta. */
+	folder?: string | null;
 }
 
 /** `contains` sobre `alt` O `title` (OR): cualquiera de los dos metadatos coincidiendo basta. */
@@ -49,8 +51,24 @@ function buildMediaSearchFilter(term: string): FilterNode {
  *  filtro de `opts.search` si viene no-vacío (Fase P6·6e, ver cabecera). */
 export function buildMediaListQuery(page: number, opts?: MediaListQueryOptions): Query {
 	const search = opts?.search?.trim();
+	const nodes: FilterNode[] = [];
+	if (search) nodes.push(buildMediaSearchFilter(search));
+	if (opts?.folder)
+		nodes.push({
+			kind: 'cond',
+			field: 'folder',
+			op: opts.folder === 'none' ? 'empty' : 'eq',
+			value: opts.folder === 'none' ? null : opts.folder
+		});
 	return {
-		...(search ? { filter: buildMediaSearchFilter(search) } : {}),
+		...(nodes.length
+			? {
+					filter:
+						nodes.length === 1
+							? nodes[0]
+							: { kind: 'group' as const, combinator: 'and' as const, nodes }
+				}
+			: {}),
 		sort: [{ field: 'created', dir: 'desc' }],
 		page,
 		perPage: MEDIA_PER_PAGE
@@ -72,8 +90,15 @@ export function parseMediaPage(params: URLSearchParams): number {
  * transporte de un solo uso, nunca `$state`, así que el módulo puro es el sitio correcto (mismo
  * motivo que `query-state.ts` en vez de construirlo en `/c/[type]/+page.svelte`).
  */
-export function mediaPageToParams(page: number): URLSearchParams {
+export function mediaPageToParams(page: number, folder?: string | null): URLSearchParams {
 	const params = new URLSearchParams();
 	if (page !== 1) params.set('page', String(page));
+	if (folder) params.set('folder', folder);
 	return params;
+}
+
+/** URL tolerante: los ids desconocidos se resuelven contra la lista cargada antes de consultar. */
+export function parseMediaFolder(params: URLSearchParams): string | null {
+	const value = params.get('folder');
+	return value === 'none' || (value && /^[A-Za-z0-9_-]{1,100}$/.test(value)) ? value : null;
 }

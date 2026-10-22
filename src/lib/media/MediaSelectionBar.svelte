@@ -29,9 +29,10 @@
 		onDelete: () => void;
 		/** `true` mientras un borrado del lote está en vuelo: deshabilita ambas acciones. */
 		busy?: boolean;
+		onMove?: () => void;
 	}
 
-	let { count, onCopy, onDelete, busy = false }: Props = $props();
+	let { count, onCopy, onDelete, busy = false, onMove }: Props = $props();
 
 	const ctx = getVegaContext();
 </script>
@@ -42,6 +43,9 @@
 		{count === 1 ? ctx.t('media.selection.labelOne') : ctx.t('media.selection.labelMany')}
 	</span>
 	<span class="vega-media-selection-spacer"></span>
+	{#if onMove}<button type="button" disabled={busy} onclick={onMove}
+			>{ctx.t('media.folders.move')}</button
+		>{/if}
 	<button type="button" class="vega-media-selection-copy" disabled={busy} onclick={onCopy}>
 		{ctx.t('media.selection.copy')}
 	</button>
@@ -52,6 +56,7 @@
 
 <style>
 	.vega-media-selection {
+		flex-wrap: wrap;
 		position: sticky;
 		bottom: 12px;
 		display: flex;
@@ -82,7 +87,7 @@
 	.vega-media-selection-copy {
 		display: inline-flex;
 		align-items: center;
-		height: 34px;
+		min-height: 44px;
 		padding: 0 0.9rem;
 		border: 1px solid var(--line);
 		border-radius: var(--r);

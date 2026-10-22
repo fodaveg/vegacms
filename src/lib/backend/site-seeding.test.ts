@@ -142,7 +142,15 @@ describe('seedSiteProject', () => {
 		const port = await authedMemory();
 
 		await expect(seedSiteProject(port)).resolves.toMatchObject({
-			createdCollections: ['vega_editors', 'vega_media', 'pages', 'blocks', 'redirects', 'vega'],
+			createdCollections: [
+				'vega_editors',
+				'vega_media_folders',
+				'vega_media',
+				'pages',
+				'blocks',
+				'redirects',
+				'vega'
+			],
 			createdRecords: ['manifest', 'page:/']
 		});
 
@@ -365,12 +373,12 @@ describe('seedSiteProject', () => {
 		const result = await seedSiteProject(port);
 
 		expect(result).toEqual({
-			createdCollections: ['redirects'],
+			createdCollections: ['vega_media_folders', 'redirects'],
 			// `vega_editors` gana `created` (autodate) y `vega_media` gana `focal`: ninguno de los dos
 			// lo creaba el sembrado anterior.
 			addedFields: {
 				vega_editors: ['created'],
-				vega_media: ['focal'],
+				vega_media: ['focal', 'folder'],
 				pages: ['publishAt', 'description', 'socialImage', 'noindex', 'created', 'updated'],
 				blocks: ['created', 'updated']
 			},
@@ -423,10 +431,10 @@ describe('seedSiteProject', () => {
 		const result = await seedSiteProject(port);
 
 		expect(result).toEqual({
-			createdCollections: [],
+			createdCollections: ['vega_media_folders'],
 			addedFields: {
 				vega_editors: ['created'],
-				vega_media: ['focal'],
+				vega_media: ['focal', 'folder'],
 				pages: ['publishAt', 'created', 'updated'],
 				blocks: ['created', 'updated'],
 				redirects: ['created', 'updated']
@@ -694,7 +702,7 @@ describe('seedSiteProject', () => {
 
 		const result = await seedSiteProject(port);
 
-		expect(result.createdCollections).toEqual(['redirects']);
+		expect(result.createdCollections).toEqual(['vega_media_folders', 'redirects']);
 		expect(result.upgradedRecords).toEqual(['manifest']);
 		expect((await port.get('vega', manifestRecord.id)).values.manifest).toEqual({
 			...(starterManifest as Record<string, unknown>),
@@ -1054,6 +1062,7 @@ describe('seedSiteProject', () => {
 			expect(findSiteSeedModule('no-existe')).toBeUndefined();
 			expect(SITE_SEED_BASE_MODULE.id).toBe('base');
 			expect(SITE_SEED_BASE_MODULE.collections.map((spec) => spec.name)).toEqual([
+				'vega_media_folders',
 				'vega_media',
 				'pages',
 				'blocks',
@@ -1236,6 +1245,7 @@ describe('seedSiteProject', () => {
 			const preview = await previewSiteSeed(port, { modules: [NOTES_MODULE] });
 			if (preview.status !== 'ready') throw new Error('se esperaba un plan');
 			expect(preview.plan.createdCollections).toEqual([
+				'vega_media_folders',
 				'vega_media',
 				'pages',
 				'blocks',
@@ -1244,7 +1254,7 @@ describe('seedSiteProject', () => {
 				'notes'
 			]);
 			expect(preview.modules.map((module) => [module.id, module.createdCollections])).toEqual([
-				['base', ['vega_media', 'pages', 'blocks', 'redirects', 'vega']],
+				['base', ['vega_media_folders', 'vega_media', 'pages', 'blocks', 'redirects', 'vega']],
 				['notas', ['notes']]
 			]);
 			expect(preview.modules[1]!.manifestEntries).toEqual([
@@ -1256,6 +1266,7 @@ describe('seedSiteProject', () => {
 
 			expect(result.createdCollections).toEqual([
 				'vega_editors',
+				'vega_media_folders',
 				'vega_media',
 				'pages',
 				'blocks',
@@ -1313,7 +1324,13 @@ describe('seedSiteProject', () => {
 			await expect(
 				seedSiteProject(port, {
 					modules: [
-						{ id: 'otro', collections: [SITE_SEED_BASE_MODULE.collections[1]!], manifest: {} }
+						{
+							id: 'otro',
+							collections: [
+								SITE_SEED_BASE_MODULE.collections.find((spec) => spec.name === 'pages')!
+							],
+							manifest: {}
+						}
 					]
 				})
 			).rejects.toThrow(

@@ -5,6 +5,7 @@
 import { mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { VEGA_CONTEXT_KEY, type VegaAppContext } from '$lib/app-context';
+import { VegaError } from '$lib/backend/errors';
 import type { BackendPort, ContentType, Page, VegaRecord } from '$lib/backend';
 import type { Query } from '$lib/backend/query';
 import { buildMediaListQuery, MEDIA_SEARCH_DEBOUNCE_MS } from './media-query';
@@ -54,7 +55,11 @@ type ListFn = (type: string, query: Query) => Promise<Page<VegaRecord>>;
 
 let mounted: { target: HTMLElement; instance: Record<string, never> } | null = null;
 
-function mountPage(list: ListFn, types: ContentType[] = [mediaType(['image/png'])]) {
+function mountPage(
+	list: ListFn,
+	types: ContentType[] = [mediaType(['image/png'])],
+	schemaBootstrap = false
+) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const ctx = {
@@ -62,7 +67,7 @@ function mountPage(list: ListFn, types: ContentType[] = [mediaType(['image/png']
 		locale: 'es',
 		model: { types: [], revisions: { enabled: false } },
 		port: {
-			capabilities: { schemaBootstrap: false, thumbs: false },
+			capabilities: { schemaBootstrap, schemaFieldBootstrap: schemaBootstrap, thumbs: false },
 			listContentTypes: vi.fn(async () => types),
 			list: vi.fn(list),
 			fileUrl: vi.fn(() => null)
@@ -213,4 +218,65 @@ describe('/media: página fuera de rango', () => {
 
 		expect(goto).not.toHaveBeenCalled();
 	});
+});
+
+describe('/media: capacidad de carpetas', () => {
+	test('editor con biblioteca anterior mantiene grid sin columna ni ampliación de esquema', async () => {
+		const { target } = mountPage(async () => listedPage([]));
+		await settle();
+		expect(target.querySelector('[data-media-folders]')).toBeNull();
+		expect(target.querySelector('[data-media-missing-fields]')).toBeNull();
+	});
+	test('superuser con biblioteca anterior puede completar colección y relación', async () => {
+		const { target } = mountPage(async () => listedPage([]), [mediaType(['image/png'])], true);
+		await settle();
+		expect(target.querySelector('[data-media-missing-fields]')?.textContent).toContain(
+			'media.fields.missingBody'
+		);
+		expect(target.querySelector('[data-media-missing-fields] button')).not.toBeNull();
+	});
+	test('una relación incompatible avisa sin ofrecer completar ni selector', async () => {
+		const type = mediaType(['image/png']);
+		type.fields.push({
+			name: 'folder',
+			type: 'relation',
+			target: 'vega_media_folders',
+			multiple: true,
+			cascadeDelete: false
+		} as unknown as (typeof type.fields)[number]);
+		const { target } = mountPage(async () => listedPage([]), [type], true);
+		await settle();
+		expect(target.textContent).toContain('media.folders.incompatible');
+		expect(target.querySelector('[data-media-missing-fields]')).toBeNull();
+		expect(target.querySelector('[data-media-folders]')).toBeNull();
+	});
+});
+
+test('una carpeta borrada remotamente vuelve a Todos una sola vez al refrescar vacío', async () => {
+	const media = mediaType(['image/png']);
+	media.fields.push({
+		name: 'folder',
+		type: 'relation',
+		target: 'vega_media_folders',
+		multiple: false,
+		cascadeDelete: false
+	} as unknown as (typeof media.fields)[number]);
+	const folderType = {
+		name: 'vega_media_folders',
+		fields: [
+			{ name: 'name', type: 'text', required: true, unique: true, maxLength: 80 },
+			{ name: 'created', type: 'date', readonly: true }
+		]
+	} as unknown as ContentType;
+	search.value = '?folder=lost';
+	const { ctx } = mountPage(
+		async (type) =>
+			type === 'vega_media_folders'
+				? listedPage([{ id: 'lost', type, values: { name: 'Desaparece' } }])
+				: listedPage([]),
+		[media, folderType]
+	);
+	ctx.port.get = vi.fn().mockRejectedValue(VegaError.notFound());
+	await vi.waitFor(() => expect(goto).toHaveBeenCalledExactlyOnceWith('/media'));
+	expect(ctx.feedback.toast).toHaveBeenCalledTimes(1);
 });

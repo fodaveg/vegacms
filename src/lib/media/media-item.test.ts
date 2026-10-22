@@ -60,6 +60,7 @@ describe('toMediaItemView', () => {
 		);
 		expect(view).toEqual({
 			id: 'm1',
+			folder: null,
 			fileRef: 'foto.png',
 			fileName: 'foto.png',
 			kind: 'image',
