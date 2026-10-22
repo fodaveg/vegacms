@@ -1309,6 +1309,7 @@ async function constrainFieldPatterns(
 interface ComparableFieldShape {
 	type: string;
 	target: string | null;
+	cascadeDelete: boolean;
 	multiple: boolean;
 	required: boolean;
 	unique: boolean;
@@ -1324,6 +1325,8 @@ export function expectedFieldShape(field: CollectionFieldSpec): ComparableFieldS
 		// `editor` es el nombre PocketBase; el puerto lo proyecta como `richtext`.
 		type: field.type === 'editor' ? 'richtext' : field.type,
 		target: field.type === 'relation' ? field.target : null,
+		// Omitido y false conservan el registro; true cambia el efecto de borrar el destino.
+		cascadeDelete: field.type === 'relation' ? (field.cascadeDelete ?? false) : false,
 		multiple:
 			field.type === 'relation' || field.type === 'select' || field.type === 'file'
 				? (field.multiple ?? false)
@@ -1346,6 +1349,8 @@ export function actualFieldShape(field: Field): ComparableFieldShape {
 		// vocabulario actual y permite recuperar el tipo físico sin abrir una inspección raw.
 		type: field.type === 'date' && field.readonly ? 'autodate' : field.type,
 		target: field.type === 'relation' ? field.target : null,
+		// Omitido y false conservan el registro; true cambia el efecto de borrar el destino.
+		cascadeDelete: field.type === 'relation' ? (field.cascadeDelete ?? false) : false,
 		multiple:
 			field.type === 'relation' || field.type === 'select' || field.type === 'file'
 				? field.multiple
@@ -1369,6 +1374,7 @@ export function sameShape(left: ComparableFieldShape, right: ComparableFieldShap
 	return (
 		left.type === right.type &&
 		left.target === right.target &&
+		left.cascadeDelete === right.cascadeDelete &&
 		left.multiple === right.multiple &&
 		left.required === right.required &&
 		left.unique === right.unique &&
