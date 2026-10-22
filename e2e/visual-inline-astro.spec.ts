@@ -1358,42 +1358,48 @@ test.describe('the selection ring follows the block while a paragraph is typed (
 		return { top: frameBox.y + box.top * zoom, bottom: frameBox.y + box.bottom * zoom };
 	}
 
-	// Vega's half: the ring is scaled with the canvas and follows every `layout` the site sends.
-	// A site whose body does not change size when a block grows (fodaveg: `body { min-height:
-	// 100dvh }` on a page shorter than the frame) gets no `layout` from @vega/astro e43cda0 when
-	// the hint space is applied, and its ring stays short: that is the bridge's to fix (it should
-	// post a `layout` when it applies and restores the inline layout properties).
-	for (const zoom of ['50', '75', '100'] as const)
-		test(`at ${zoom} %`, async ({ page }) => {
-			await page.setViewportSize({ width: 1440, height: 900 });
-			await openWithMarkdownBody(page);
-			await page.locator('.vega-visual-zoom-trigger').click();
-			await page
-				.getByRole('menuitemradio', { name: zoom === '100' ? /^Ajustar/ : `${zoom} %` })
-				.click();
-			const frame = frameOf(page);
-			const paragraph = frame
-				.locator('[data-vega-block-id="seccion_2"] [data-vega-source-range]')
-				.first();
-			await expect(paragraph).toHaveAttribute('title', 'Doble clic para editar');
-			const ring = page.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_2"]');
-			const aligned = async () => {
-				const block = await blockOnScreen(page, 'seccion_2');
-				const box = (await ring.boundingBox())!;
-				return Math.max(Math.abs(box.y - block.top), Math.abs(box.y + box.height - block.bottom));
-			};
-			await expect.poll(aligned).toBeLessThanOrEqual(1);
-			const before = await blockOnScreen(page, 'seccion_2');
-			await paragraph.dblclick();
-			await expect(paragraph).toHaveAttribute('contenteditable', 'plaintext-only');
-			// The hint space pushes what follows down: first the block is taller…
-			await expect
-				.poll(async () => (await blockOnScreen(page, 'seccion_2')).bottom)
-				.toBeGreaterThan(before.bottom + 1);
-			// …and then the ring has followed it (only a `layout` from the site can say so).
-			await expect.poll(aligned).toBeLessThanOrEqual(1);
-			await page.keyboard.press('Escape');
-			await expect(paragraph).not.toHaveAttribute('contenteditable');
-			await expect.poll(aligned).toBeLessThanOrEqual(1);
-		});
+	for (const tallBody of [false, true])
+		for (const zoom of ['50', '75', '100'] as const)
+			test(`at ${zoom} %${tallBody ? ', body at least the viewport tall (fodaveg)' : ''}`, async ({
+				page
+			}) => {
+				await page.setViewportSize({ width: 1440, height: 900 });
+				await openWithMarkdownBody(page);
+				await page.locator('.vega-visual-zoom-trigger').click();
+				await page
+					.getByRole('menuitemradio', { name: zoom === '100' ? /^Ajustar/ : `${zoom} %` })
+					.click();
+				const frame = frameOf(page);
+				const paragraph = frame
+					.locator('[data-vega-block-id="seccion_2"] [data-vega-source-range]')
+					.first();
+				await expect(paragraph).toHaveAttribute('title', 'Doble clic para editar');
+				// fodaveg's `body { min-height: 100dvh }`: below a page shorter than the viewport the
+				// body never grows, whatever the block does.
+				if (tallBody)
+					await frame.locator('head').evaluate((head) => {
+						const style = head.ownerDocument.createElement('style');
+						style.textContent = 'body { min-height: 300vh; }';
+						head.append(style);
+					});
+				const ring = page.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_2"]');
+				const aligned = async () => {
+					const block = await blockOnScreen(page, 'seccion_2');
+					const box = (await ring.boundingBox())!;
+					return Math.max(Math.abs(box.y - block.top), Math.abs(box.y + box.height - block.bottom));
+				};
+				await expect.poll(aligned).toBeLessThanOrEqual(1);
+				const before = await blockOnScreen(page, 'seccion_2');
+				await paragraph.dblclick();
+				await expect(paragraph).toHaveAttribute('contenteditable', 'plaintext-only');
+				// The hint space pushes what follows down: first the block is taller…
+				await expect
+					.poll(async () => (await blockOnScreen(page, 'seccion_2')).bottom)
+					.toBeGreaterThan(before.bottom + 1);
+				// …and then the ring has followed it (only a `layout` from the site can say so).
+				await expect.poll(aligned).toBeLessThanOrEqual(1);
+				await page.keyboard.press('Escape');
+				await expect(paragraph).not.toHaveAttribute('contenteditable');
+				await expect.poll(aligned).toBeLessThanOrEqual(1);
+			});
 });
