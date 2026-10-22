@@ -14,6 +14,7 @@ import {
 import type { JsonValue } from '$lib/backend/types';
 import { ensureLocaleLoaded, t } from '$lib/i18n';
 import SiteBaseCard from './SiteBaseCard.svelte';
+import { resolveContentModel } from '$lib/model/resolve';
 
 const es = (key: string, params?: Record<string, string | number>) => t('es', key, params);
 
@@ -43,7 +44,15 @@ function mountCard(port: BackendPort, onChanged = vi.fn(), translate: VegaAppCon
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const feedback = { toast: vi.fn(), reportError: vi.fn() };
-	const ctx = { t: translate, port, feedback } as unknown as VegaAppContext;
+	// La tarjeta monta también la lista de bandejas: contexto protegido completo en lo
+	// que consume esa sección, aunque estas pruebas no descubren contenido del sitio.
+	const ctx = {
+		t: translate,
+		port,
+		feedback,
+		model: resolveContentModel({ types: [], manifestRaw: null }),
+		session: port.currentSession()!
+	} as unknown as VegaAppContext;
 	const instance = mount(SiteBaseCard, {
 		target,
 		props: { onChanged },

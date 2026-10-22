@@ -16,6 +16,7 @@ function mountPage(schemaBootstrap: boolean) {
 	const ctx = {
 		t: (key: string) => key,
 		locale: 'es',
+		session: { token: 'test-settings-session' },
 		model: { warnings: [], types: [], blockTypes: [] },
 		port: {
 			capabilities: { schemaBootstrap, strongAuth: false },
@@ -90,6 +91,6 @@ describe('/settings: secciones por rol', () => {
 			Array.from(mounted.target.querySelectorAll<HTMLElement>('[data-site-module]')).map(
 				(row) => row.dataset.siteModule
 			)
-		).toEqual(['blog', 'contacto']);
+		).toEqual(['blog', 'contacto', 'menus', 'datos-del-sitio']);
 	});
 });
