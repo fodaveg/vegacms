@@ -15,6 +15,7 @@ import type { JsonValue } from '$lib/backend/types';
 import { ensureLocaleLoaded, t } from '$lib/i18n';
 import SiteBaseCard from './SiteBaseCard.svelte';
 import { resolveContentModel } from '$lib/model/resolve';
+import { ensureMediaFolders } from '$lib/media/media-folders';
 
 const es = (key: string, params?: Record<string, string | number>) => t('es', key, params);
 
@@ -22,6 +23,13 @@ async function authedMemory(): Promise<MemoryBackendPort> {
 	const port = createMemoryBackend();
 	await port.login({ email: 'admin@vega.test', password: 'test-password' });
 	return port;
+}
+
+/** Conserva el fixture histórico intacto y añade la colección interna actual para probar
+ * una actualización de CAMPOS, sin ninguna colección base ausente. */
+async function seedForUpdate(port: BackendPort): Promise<void> {
+	await seedLikePrevious0ace139(port);
+	await ensureMediaFolders(port);
 }
 
 async function settle(): Promise<void> {
@@ -138,14 +146,14 @@ describe('SiteBaseCard', () => {
 		const port = await authedMemory();
 		await seedLikePrevious1bda988(port);
 		const types = await port.listContentTypes();
-		// 1bda988 ya tiene todo menos `redirects`.
+		// El fixture histórico no trae redirects ni la nueva colección de carpetas.
 		expect(types.some((type) => type.name === 'redirects')).toBe(false);
 		mounted = mountCard(port);
 		await settle();
 
 		const section = mounted.target.querySelector('section')!;
 		expect(section.dataset.siteState).toBe('unprepared');
-		expect(section.textContent).toContain('Faltan 1 de las 5 colecciones');
+		expect(section.textContent).toContain('Faltan 2 de las 6 colecciones');
 		expect(section.textContent).toContain('Redirecciones');
 	});
 
@@ -166,7 +174,7 @@ describe('SiteBaseCard', () => {
 
 	test('A3: con actualización, «Actualizar el sitio» y la frase de lo que cambia', async () => {
 		const port = await authedMemory();
-		await seedLikePrevious0ace139(port);
+		await seedForUpdate(port);
 		mounted = mountCard(port);
 		await settle();
 
@@ -255,7 +263,15 @@ describe('SiteBaseCard', () => {
 		const open = dialog(mounted.target)!;
 		expect(open.textContent).toContain('Preparar el sitio');
 		expect(open.textContent).toContain('Esto es lo que Vega va a crear en tu PocketBase');
-		for (const name of ['pages', 'vega_media', 'blocks', 'redirects', 'vega', 'vega_editors']) {
+		for (const name of [
+			'pages',
+			'vega_media_folders',
+			'vega_media',
+			'blocks',
+			'redirects',
+			'vega',
+			'vega_editors'
+		]) {
 			expect(open.textContent).toContain(name);
 		}
 		expect(open.textContent).toContain('Si ya existe, se deja como está');
@@ -302,7 +318,7 @@ describe('SiteBaseCard', () => {
 
 	test('D2: una entrada borrada a propósito sale en la lista (va a volver), y lo que no se puede añadir, en «No se añade»', async () => {
 		const port = await authedMemory();
-		await seedLikePrevious0ace139(port);
+		await seedForUpdate(port);
 		const record = (await port.list('vega', { perPage: 1 })).items[0]!;
 		const edited = handEditedManifest() as {
 			collections: { pages: { fieldGroups: unknown } };
@@ -350,7 +366,7 @@ describe('SiteBaseCard', () => {
 
 	test('D2 puro: sin colecciones ausentes el diálogo es «Actualizar el sitio» con el resto al día', async () => {
 		const port = await authedMemory();
-		await seedLikePrevious0ace139(port);
+		await seedForUpdate(port);
 		mounted = mountCard(port);
 		await settle();
 
@@ -362,7 +378,7 @@ describe('SiteBaseCard', () => {
 		expect(open.textContent).toContain('Se añade');
 		expect(open.textContent).toContain('Se añade al modelo de contenido');
 		expect(open.textContent).not.toContain('Se sustituye');
-		expect(open.textContent).toContain('ya está al día');
+		expect(open.textContent).toContain('Carpetas de medios y la página «Inicio» ya están al día.');
 		expect(open.textContent).not.toContain('Se crea');
 	});
 
@@ -410,7 +426,7 @@ describe('SiteBaseCard', () => {
 		const section = mounted.target.querySelector('section')!;
 		expect(section.dataset.siteState).toBe('current');
 		expect(section.textContent).toContain(
-			'Hecho: 6 colecciones, el modelo de contenido y la página «Inicio»'
+			'Hecho: 7 colecciones, el modelo de contenido y la página «Inicio»'
 		);
 		expect(section.querySelector('a')!.textContent).toBe('Editores');
 		expect(mounted.feedback.toast).toHaveBeenCalledWith('Sitio preparado.', { kind: 'success' });
@@ -601,7 +617,9 @@ describe('SiteBaseCard', () => {
 			expect(blog.dataset.moduleState).toBe('absent');
 			expect(blog.querySelector('b')!.textContent).toBe('Blog');
 			expect(blog.textContent).toContain('No añadido');
-			expect(blog.textContent).toContain('Entradas con etiquetas, portada, fecha y SEO.');
+			expect(blog.textContent).toContain(
+				'Entradas con autores, categorías, etiquetas, portada, fecha y SEO.'
+			);
 			expect(blog.querySelector('[data-module-note]')).toBeNull();
 			expect(contact.dataset.moduleState).toBe('absent');
 			expect(contact.querySelector('b')!.textContent).toBe('Formulario de contacto');
@@ -633,11 +651,18 @@ describe('SiteBaseCard', () => {
 				'No se borra ni se cambia ningún campo, regla, registro o entrada que ya exista'
 			);
 			expect(open.textContent).not.toContain('Nada de lo que ya existe se modifica');
-			expect(groupTitles(open, 'Se crea')).toEqual(['Etiquetas', 'Entradas']);
+			expect(groupTitles(open, 'Se crea')).toEqual([
+				'Etiquetas',
+				'Autores',
+				'Categorías',
+				'Entradas'
+			]);
 			expect(open.textContent).toContain('tags');
 			expect(open.textContent).toContain('posts');
 			expect(groupTitles(open, 'Se añade al modelo de contenido')).toEqual([
 				'Colección «Entradas»',
+				'Colección «Autores»',
+				'Colección «Categorías»',
 				'Colección «Etiquetas»'
 			]);
 			expect(open.textContent).toContain('collections.posts');
@@ -684,12 +709,12 @@ describe('SiteBaseCard', () => {
 			await until(() => dialog(mounted!.target) === null);
 			await settle();
 
-			// Solo se pidió el módulo: sus dos colecciones, y ninguna del otro.
+			// Solo se pidió Blog: sus cuatro colecciones y ninguna de Contacto.
 			expect(seed.mock.calls.flatMap(([specs]) => specs.map((spec) => spec.name))).toEqual(
-				expect.arrayContaining(['tags', 'posts'])
+				expect.arrayContaining(['tags', 'authors', 'categories', 'posts'])
 			);
 			const names = (await port.listContentTypes()).map((type) => type.name);
-			expect(names).toEqual(expect.arrayContaining(['tags', 'posts']));
+			expect(names).toEqual(expect.arrayContaining(['tags', 'authors', 'categories', 'posts']));
 			expect(names).not.toContain('messages');
 			const blog = moduleRow(mounted.target, 'blog');
 			expect(blog.dataset.moduleState).toBe('added');
@@ -701,7 +726,7 @@ describe('SiteBaseCard', () => {
 			const section = mounted.target.querySelector('section')!;
 			expect(section.dataset.siteState).toBe('current');
 			expect(section.textContent).toContain(
-				'Hecho: 2 colecciones y las entradas nuevas del modelo de contenido.'
+				'Hecho: 4 colecciones y las entradas nuevas del modelo de contenido.'
 			);
 			// El «siguiente paso» (dar acceso a editores) es de preparar el sitio, no de un módulo.
 			expect(section.querySelector('a')).toBeNull();
@@ -927,7 +952,7 @@ describe('SiteBaseCard', () => {
 			mounted.target.remove();
 
 			const port = await authedMemory();
-			await seedLikePrevious0ace139(port);
+			await seedForUpdate(port);
 			mounted = mountCard(port);
 			await settle();
 
