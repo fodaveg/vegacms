@@ -210,21 +210,22 @@ const formLink = (page: Page, name = 'Volver al formulario') =>
 
 /** Ancho de la caja de CONTENIDO del lienzo con el que se maqueta el sitio, redondeado hacia abajo:
  *  el viewport del sitio en «Escritorio» con «Ajustar» (spec del 22 oct 2026, parte F;
- *  `viewport.ts#frameWidthFor` y `#layoutCanvasWidth`). */
+ *  `viewport.ts#frameWidthFor`). Con el inspector cerrado es todo el lienzo. */
 const canvasLayoutWidth = (page: Page) =>
 	page.locator('.vega-visual-canvas').evaluate((el) => {
 		const style = getComputedStyle(el);
 		const inset = ['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth']
 			.map((key) => parseFloat(style[key as 'paddingLeft']))
 			.reduce((sum, value) => sum + value, 0);
-		// Con el inspector cerrado su columna se reserva (`viewport.ts#layoutCanvasWidth`): su
-		// ancho de la rejilla más 12 px de manilla y huecos. Abrirlo al seleccionar no remaqueta.
-		const grid = el.closest('.vega-visual-grid')!;
-		const reserve = grid.classList.contains('vega-visual-grid--inspector')
-			? 0
-			: parseFloat(getComputedStyle(grid).getPropertyValue('--vega-visual-inspector-w')) + 12;
-		return Math.floor(Math.max(0, el.getBoundingClientRect().width - inset - reserve));
+		return Math.floor(Math.max(0, el.getBoundingClientRect().width - inset));
 	});
+
+/** Abre el inspector con su botón «Editar bloque» (decisión de David, 22 oct 2026: un clic en el
+ *  sitio solo selecciona; con el inspector cerrado no lo abre). Necesita un bloque seleccionado. */
+async function openInspector(page: Page): Promise<void> {
+	await page.getByRole('button', { name: 'Editar bloque', exact: true }).click();
+	await expect(visibleInspectorBody(page)).toBeVisible();
+}
 
 /** Tamaño de pantalla de la barra (lámina, `.segm`): un botón por preset, `aria-pressed` el vigente.
  *  Sustituye al antiguo `<select>` «Vista» (`mobile`/`tablet`/`desktop`). */
@@ -382,7 +383,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		const iframe = page.locator('iframe.vega-visual-frame');
 		const frame = (await (await iframe.elementHandle())!.contentFrame())!;
 		await frame.locator('[data-vega-block-id="seccion_2"]').click();
-		await expect(visibleInspectorBody(page)).toBeVisible();
+		await openInspector(page);
 		const inspectorClose = page.getByRole('button', { name: 'Cerrar inspector', exact: true });
 		const inspectorOpen = page.getByRole('button', { name: 'Editar bloque', exact: true });
 		/** Estructura abierta o cerrada: columna por encima de 1180 px, cajón hasta 1180 px
@@ -458,17 +459,6 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 				});
 			}
 		}
-		// Abrir o cerrar el inspector (lo abre la selección, el primer clic de un doble clic) no
-		// cambia el viewport del sitio: su columna se reserva (gate del 22 oct 2026).
-		const siteOf = (width: number, panels: string) =>
-			(
-				evidence.find(
-					(e) =>
-						(e as { width: number }).width === width && (e as { panels: string }).panels === panels
-				) as { site: { innerWidth: number } }
-			).site.innerWidth;
-		for (const width of [1440, 1280, 1024])
-			expect(siteOf(width, 'sin-inspector'), `${width}`).toBe(siteOf(width, 'ambos'));
 		const evidencePath = testInfo.outputPath('geometria-escritorio-100.json');
 		writeFileSync(evidencePath, JSON.stringify(evidence, null, 2));
 		await testInfo.attach('geometria-escritorio-100.json', {
@@ -674,7 +664,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		});
 	}
 
-	test('un clic DENTRO del segundo bloque en el marco abre ESE bloque en el inspector, no el primero', async ({
+	test('un clic DENTRO del segundo bloque en el marco lo selecciona; con el inspector abierto enseña ESE bloque, no el primero', async ({
 		page
 	}) => {
 		const site = createVisualSite({ collection: 'paginas', id: 'pagina_1', blocks: SECCIONES });
@@ -682,7 +672,17 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 		await waitConnected(page, 3);
 		await openStructure(page);
 
+		// Con el inspector cerrado, un clic en el sitio solo selecciona (decisión de David, 22 oct
+		// 2026): el inspector se abre con su botón, sobre el bloque seleccionado.
 		const frame = page.frameLocator('iframe.vega-visual-frame');
+		await frame.locator('[data-vega-block-id="seccion_1"]').click();
+		await expect(
+			page.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_1"]')
+		).toHaveClass(/vega-visual-overlay-box--selected/);
+		await expect(page.locator('.vega-visual-grid--inspector')).toHaveCount(0);
+		await openInspector(page);
+		await expect(visibleInspectorBody(page)).toHaveAttribute('aria-label', SECCIONES[0].text);
+		// Con el inspector abierto, un clic en el segundo bloque lo enseña a él.
 		await frame.locator('[data-vega-block-id="seccion_2"]').click();
 
 		await expect(page.locator('[data-vega-tree-row="seccion_2"]')).toHaveClass(
@@ -736,6 +736,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 
 		const frame = page.frameLocator('iframe.vega-visual-frame');
 		await frame.locator('[data-vega-block-id="seccion_1"]').click();
+		await openInspector(page);
 		await expect(headingInput(page)).toHaveValue(SECCIONES[0].text);
 
 		// Marca el nodo del iframe ANTES del guardado: si Vega lo remonta (recarga entera), el
@@ -777,6 +778,7 @@ test.describe('editor visual — protocolo vega-visual-1 contra un sitio cross-o
 
 		const frame = page.frameLocator('iframe.vega-visual-frame');
 		await frame.locator('[data-vega-block-id="seccion_2"]').click();
+		await openInspector(page);
 
 		const iframe = page.locator('iframe.vega-visual-frame');
 		await iframe.evaluate((el) => el.setAttribute('data-e2e-marker', 'antes-de-guardar'));
@@ -1204,6 +1206,7 @@ test.describe('editor visual — publicar y despublicar desde la cabecera', () =
 		// Un borrador en la ficha de la primera sección, SIN guardar.
 		const frame = page.frameLocator('iframe.vega-visual-frame');
 		await frame.locator('[data-vega-block-id="seccion_1"]').click();
+		await openInspector(page);
 		await headingInput(page).fill('Cambio que aún no se ha guardado');
 
 		const group = statusGroup(page);
@@ -1417,6 +1420,7 @@ test.describe('editor visual — modo «solo textos» por debajo de 900 px', () 
 			.frameLocator('iframe.vega-visual-frame')
 			.locator('[data-vega-block-id="seccion_1"]')
 			.click();
+		await openInspector(page);
 		// El inspector aparece con la ficha del bloque seleccionado, nombrada por su título (la
 		// región del panel se llama «Inspector»: con el título de la ficha dentro, repetirlo daría
 		// dos regiones con el mismo nombre).

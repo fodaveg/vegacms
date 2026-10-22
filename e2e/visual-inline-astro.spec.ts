@@ -216,6 +216,21 @@ async function startEditing(page: Page, block: string, name: string) {
 	return node;
 }
 
+/** Opens the inspector with its own button («Editar bloque»): a click in the site only selects
+ *  (David, 22 Oct 2026, «Clic no abre inspector»). Needs a selected block. */
+async function openInspector(page: Page): Promise<void> {
+	await page.getByRole('button', { name: 'Editar bloque', exact: true }).click();
+	await expect(inspector(page)).toBeVisible();
+}
+
+/** Selects `block` with one click on its heading (one click is a plain `select`, never typing) and
+ *  opens its card. */
+async function openInspectorFor(page: Page, block: string): Promise<void> {
+	await field(frameOf(page), block, 'heading').click();
+	await openInspector(page);
+	await expect(inspector(page)).toHaveAttribute('data-block-id', block);
+}
+
 /** Computed colour of a Vega token in the CMS document (what Vega sends as `appearance`). */
 const cmsColour = (page: Page, token: string) =>
 	page.evaluate((name) => {
@@ -432,6 +447,76 @@ test.describe('actual Astro inline bridge', () => {
 		await expect.poll(scale).toBe(1);
 	});
 
+	test('a double click edits the text under the cursor and moves nothing, inspector closed or open', async ({
+		page
+	}) => {
+		// David, 22 Oct 2026 («Clic no abre inspector»): the first click of a double click is a
+		// selection; with the inspector closed it no longer opens it (that narrowed the canvas and
+		// re-laid the site out between the two clicks) nor scrolls the site. A paced double click
+		// at a point of the text must edit THAT text with nothing moving, in both states.
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await openEditor(page);
+		const frame = frameOf(page);
+		const frameEl = page.locator('.vega-visual-frame');
+		const grid = page.locator('.vega-visual-grid--inspector');
+		const siteWidth = () => frame.locator('body').evaluate(() => innerWidth);
+		/** The node's box in screen coordinates (frame offset and canvas zoom applied). */
+		const onScreen = async (node: ReturnType<typeof field>) => {
+			const frameBox = (await frameEl.boundingBox())!;
+			const zoom = await frameEl.evaluate(
+				(el) => el.getBoundingClientRect().width / (el as HTMLIFrameElement).offsetWidth
+			);
+			const r = await node.evaluate((el) => {
+				const b = el.getBoundingClientRect();
+				return { x: b.x, y: b.y, width: b.width, height: b.height };
+			});
+			return {
+				x: frameBox.x + r.x * zoom,
+				y: frameBox.y + r.y * zoom,
+				width: r.width * zoom,
+				height: r.height * zoom
+			};
+		};
+		const editAt = async (node: ReturnType<typeof field>) => {
+			const before = await onScreen(node);
+			const width = await siteWidth();
+			const scrollY = await frame.locator('body').evaluate(() => window.scrollY);
+			await page.mouse.dblclick(before.x + 12, before.y + before.height / 2, { delay: 60 });
+			await expect(node).toHaveAttribute('contenteditable', 'plaintext-only');
+			// Nothing moved: same viewport, same scroll, same place on screen.
+			expect(await siteWidth()).toBe(width);
+			expect(await frame.locator('body').evaluate(() => window.scrollY)).toBe(scrollY);
+			const after = await onScreen(node);
+			expect(Math.abs(after.x - before.x)).toBeLessThan(1);
+			expect(Math.abs(after.y - before.y)).toBeLessThan(1);
+		};
+
+		// Inspector closed: the site has the whole canvas; the double click selects and edits.
+		await expect(grid).toHaveCount(0);
+		const heading = field(frame, 'seccion_2', 'heading');
+		await editAt(heading);
+		await expect(grid).toHaveCount(0);
+		await expect(
+			page.locator('.vega-visual-overlay-box[data-vega-block-id="seccion_2"]')
+		).toHaveClass(/vega-visual-overlay-box--selected/);
+		await page.keyboard.press('Escape');
+		await expect(heading).not.toHaveAttribute('contenteditable');
+
+		// Its button opens it on that block (the site is laid out once, at the narrower canvas).
+		const wide = await siteWidth();
+		await page.getByRole('button', { name: 'Editar bloque', exact: true }).click();
+		await expect(grid).toHaveCount(1);
+		await expect.poll(siteWidth).toBeLessThan(wide);
+		await expect(inspectorControl(page, 'heading')).toBeVisible();
+
+		// Inspector open: the same, and the field typed in the page is the one in the inspector.
+		const text = field(frame, 'seccion_2', 'texto');
+		await editAt(text);
+		await expect(inspector(page).locator('[data-field="texto"]')).toContainText('en la página');
+		await page.keyboard.press('Escape');
+		await expect(text).not.toHaveAttribute('contenteditable');
+	});
+
 	test('pasting HTML from the system clipboard inserts plain text', async ({ page, context }) => {
 		await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: CMS });
 		await openEditor(page);
@@ -489,6 +574,8 @@ test.describe('actual Astro inline bridge', () => {
 		page
 	}) => {
 		await openEditor(page);
+		// The card's Save is clicked mid-composition: its card is open first (its own button).
+		await openInspectorFor(page, 'seccion_1');
 		const cdp = await page.context().newCDPSession(page);
 		const heading = await startEditing(page, 'seccion_1', 'heading');
 		await page.keyboard.type(' ');
@@ -508,6 +595,7 @@ test.describe('actual Astro inline bridge', () => {
 		page
 	}) => {
 		const site = await openEditor(page);
+		await openInspectorFor(page, 'seccion_2');
 		const heading = await startEditing(page, 'seccion_2', 'heading');
 		await page.keyboard.type(' (guardado)');
 		await page.keyboard.press('Enter');
@@ -524,8 +612,10 @@ test.describe('actual Astro inline bridge', () => {
 		// Reopen the editor: a new frame load, a new token, the saved text on the page.
 		await page.goBack();
 		await expect(heading).toHaveText('Tu contenido, en tu servidor (guardado)');
-		// And the form behind the canvas reads it from the backend, not from the double.
+		// And the form behind the canvas reads it from the backend, not from the double. The editor
+		// was reopened, so its card opens again with its own button.
 		await heading.click();
+		await openInspector(page);
 		await expect(inspectorControl(page, 'heading')).toHaveValue(
 			'Tu contenido, en tu servidor (guardado)'
 		);
@@ -573,6 +663,7 @@ test.describe('actual Astro inline bridge', () => {
 		page
 	}) => {
 		await openEditor(page);
+		await openInspectorFor(page, 'seccion_2');
 		const heading = await startEditing(page, 'seccion_2', 'heading');
 		await page.keyboard.type(' A');
 		const control = inspectorControl(page, 'heading');
@@ -735,6 +826,8 @@ test.describe('page fields, Markdown paragraphs and the edit hint (spec of 22 Oc
 		const paragraph = frame.locator('[data-vega-block-id="seccion_2"] [data-vega-source-range]');
 		await expect(paragraph).toHaveAttribute('title', 'Doble clic para editar');
 		await paragraph.click();
+		// The click selects; the card opens with its own button (David, 22 Oct 2026).
+		await openInspector(page);
 		await expect(inspector(page)).toHaveAttribute('data-block-id', 'seccion_2');
 		// The page keeps showing the old text: every refresh is held at the site.
 		const release = site.holdTokens();
@@ -797,6 +890,8 @@ async function lineBreakCases(page: Page): Promise<void> {
 			const site = await openEditor(page);
 			const node = field(frameOf(page), 'seccion_2', 'texto');
 			await node.click();
+			// The click selects; the card (where each case's text is typed) opens with its button.
+			await openInspector(page);
 			const control = inspectorControl(page, 'texto');
 			for (const [label, initial, caret, actions, expected] of LINE_BREAK_CASES) {
 				await test.step(label, async () => {

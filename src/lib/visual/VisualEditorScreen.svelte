@@ -351,7 +351,6 @@
 	import {
 		frameWidthFor,
 		frozenZoomFactor,
-		layoutCanvasWidth,
 		resolveZoomFactor,
 		SCREEN_PRESETS,
 		stageHeightFor,
@@ -958,13 +957,17 @@
 		bridgeClient?.finishInline();
 		pageOpen = false;
 		selectedBlockId = blockId;
-		inspectorVisible = true;
 		bridgeClient?.highlight(blockId);
-		// Solo si la selección vino de fuera del sitio (árbol, aviso, revisión): un clic en la página
-		// ya tiene el bloque a la vista, y desplazarlo movería lo que hay bajo el cursor entre los
-		// dos clics de un doble clic (gate del 22 oct 2026: con escritorio al 100 % la sección
-		// pulsada no siempre cabe entera y el sitio se desplazaba 35 px antes de editar).
-		if (!fromPage) bridgeClient?.scrollTo(blockId);
+		// Un clic DENTRO del sitio solo selecciona (decisión de David, 22 oct 2026: «Clic no abre
+		// inspector»): con el inspector cerrado, abrirlo estrecharía el lienzo y, con escritorio al
+		// ancho del lienzo, el sitio se volvería a maquetar entre los dos clics de un doble clic;
+		// desplazarlo hasta el bloque movería también lo que hay bajo el cursor (la sección pulsada
+		// no siempre cabe entera). Con el inspector ya abierto, enseña ese bloque. Lo abre su botón
+		// («Editar bloque») y cualquier selección desde fuera del sitio: árbol, aviso, revisión.
+		if (!fromPage) {
+			inspectorVisible = true;
+			bridgeClient?.scrollTo(blockId);
+		}
 		announceSelection(blockId);
 	}
 
@@ -1207,11 +1210,10 @@
 		return () => observer.disconnect();
 	});
 
-	/** Ancho del lienzo con el que se maqueta el sitio: reserva la columna del inspector aunque esté
-	 *  cerrado, para que abrirlo al seleccionar no vuelva a maquetar el sitio (`viewport.ts`). */
-	const layoutWidth = $derived(
-		layoutCanvasWidth(canvasSize.width, inspectorVisible, columnWidths.inspector)
-	);
+	/** Ancho del lienzo con el que se maqueta el sitio: el medido, todo el que deja libre lo que esté
+	 *  abierto. Un clic en el sitio no abre el inspector (`handleBlockSelect`), así que seleccionar
+	 *  no lo cambia; abrir o cerrar un panel a mitad de una edición en línea, tampoco (congelado). */
+	const layoutWidth = $derived(canvasSize.width);
 	/** Ancho de LAYOUT del iframe que pide el lienzo ahora (390/834, o el del lienzo en escritorio). */
 	const liveFrameWidth = $derived(frameWidthFor(screenPreset, layoutWidth, zoomPreference));
 	/** Ancho congelado mientras hay una edición en línea (`startInline` → fin de la sesión): el
@@ -1236,11 +1238,12 @@
 	);
 	/** Alto propio del escenario, para que al escalarlo llene el lienzo exacto (ver `viewport.ts`). */
 	const stageHeightPx = $derived(stageHeightFor(canvasSize.height, zoomFactor));
-	/** Borde izquierdo de la hoja: centrada en el ancho de maquetación cuando cabe (escritorio lo
-	 *  llena, así que queda pegada al margen de los «+», `STAGE_GUTTER`); abrir o cerrar el
-	 *  inspector no la mueve, porque ese ancho ya lo descuenta. */
+	/** Borde izquierdo de la hoja: en escritorio, siempre pegada al margen de los «+»
+	 *  (`STAGE_GUTTER`): lo llena, y con el ancho congelado de una edición en línea no se desplaza
+	 *  aunque el lienzo se ensanche. Móvil y tableta, centrados cuando caben. */
 	const stageLeft = $derived(
-		STAGE_GUTTER + Math.max(0, (layoutWidth - frameWidth * zoomFactor) / 2)
+		STAGE_GUTTER +
+			(screenPreset === 'desktop' ? 0 : Math.max(0, (layoutWidth - frameWidth * zoomFactor) / 2))
 	);
 	/** Ancho en pantalla de la franja: el de la hoja, sin salirse del escenario. */
 	const chromeWidth = $derived(

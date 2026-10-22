@@ -441,11 +441,14 @@ needs to know it is being scaled.
 The mobile and tablet presets set the iframe's CSS viewport to a fixed 390px and 834px,
 centred in the canvas. The desktop preset sets it to the available canvas width (rounded
 down), so the site renders at 100% with the layout of that width; below the site's own
-desktop breakpoint the site shows its narrower layout. The inspector's column counts as taken
-even while the inspector is closed: selecting a block opens it, and the first click of a
-double click is a selection, so a site that took that space would be laid out again between
-the two clicks. The sheet sits at the left edge and the inspector opens into the reserved
-space without moving anything. A new viewport preference defaults to
+desktop breakpoint the site shows its narrower layout. With the inspector closed the site takes
+the whole canvas. A click inside the site only selects the block (ring and strip): it does
+not open the inspector and does not ask the site to scroll, because the first click of a
+double click is that click, and either would move the text under the cursor before the
+second one. With the inspector already open, a click shows that block in it. The inspector
+opens from its own button and from selections made outside the site (the structure tree, the
+pending notice, the review, the page entry, a page field typed in place). The desktop sheet
+sits at the left edge of the canvas. A new viewport preference defaults to
 desktop with fit zoom; valid saved preferences remain in effect. Fit keeps desktop at 100%
 and scales mobile or tablet down only when their fixed width does not fit, never above 100%.
 A manual zoom level scales iframe and overlay together; on desktop the CSS viewport becomes

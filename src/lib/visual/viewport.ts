@@ -113,27 +113,6 @@ export function resolveZoomFactor(
 	return Math.min(1, Math.max(MIN_ZOOM_FACTOR, ratio));
 }
 
-/** Lo que ocupa la columna del inspector además de su ancho: la manilla (8 px) y los dos huecos de
- *  2 px de la rejilla (`.vega-visual-grid--inspector` en `VisualEditorScreen.svelte`). */
-export const INSPECTOR_TRACK_EXTRA = 12;
-
-/**
- * Ancho del lienzo con el que se maqueta el sitio (gate del 22 oct 2026 sobre la spec F): el medido,
- * menos la columna del inspector cuando está cerrado. El primer clic de un doble clic SELECCIONA, y
- * seleccionar abre el inspector: si el sitio tomara el ancho que deja libre el inspector cerrado,
- * ese clic lo estrecharía en 352 px (1440 px de ventana) y el sitio se volvería a maquetar entre
- * los dos clics, con lo que el segundo caería en otro texto. Reservando la columna, abrir o cerrar
- * el inspector no mueve nada: la hoja va pegada a la izquierda y el inspector ocupa el hueco.
- */
-export function layoutCanvasWidth(
-	measuredCanvasWidth: number,
-	inspectorOpen: boolean,
-	inspectorWidth: number
-): number {
-	if (inspectorOpen || !(measuredCanvasWidth > 0)) return measuredCanvasWidth;
-	return Math.max(0, measuredCanvasWidth - inspectorWidth - INSPECTOR_TRACK_EXTRA);
-}
-
 /**
  * Factor mientras el ancho del iframe está CONGELADO (una edición en línea en curso: el sitio no
  * se vuelve a maquetar a mitad de escribir aunque cambie el lienzo, se plieguen paneles o se

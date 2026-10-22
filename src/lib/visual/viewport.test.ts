@@ -11,8 +11,6 @@ import {
 	DESKTOP_WIDTH,
 	frameWidthFor,
 	frozenZoomFactor,
-	INSPECTOR_TRACK_EXTRA,
-	layoutCanvasWidth,
 	MOBILE_WIDTH,
 	resolveZoomFactor,
 	sanitizeViewportPreference,
@@ -92,23 +90,6 @@ describe('resolveZoomFactor', () => {
 	test('"ajustar" sin nada medido todavía (frameWidth 0, o el lienzo a 0/NaN): cae a 1, no a Infinity', () => {
 		expect(resolveZoomFactor('fit', 500, 0)).toBe(1);
 		expect(resolveZoomFactor('fit', Number.NaN, 834)).toBe(1);
-	});
-});
-
-describe('layoutCanvasWidth', () => {
-	test('inspector abierto: el lienzo medido tal cual', () => {
-		expect(layoutCanvasWidth(709, true, 340)).toBe(709);
-	});
-
-	test('inspector cerrado: se reserva su columna (ancho + manilla y huecos)', () => {
-		expect(INSPECTOR_TRACK_EXTRA).toBe(12);
-		// Medido a 1440 px: 1061 con el inspector cerrado, 709 abierto.
-		expect(layoutCanvasWidth(1061, false, 340)).toBe(709);
-	});
-
-	test('sin medida o sin sitio: nunca negativo', () => {
-		expect(layoutCanvasWidth(0, false, 340)).toBe(0);
-		expect(layoutCanvasWidth(200, false, 340)).toBe(0);
 	});
 });
 
