@@ -487,10 +487,29 @@
 	}
 
 	const EMPTY_ERRORS: FieldErrorsView = { byField: {}, record: null };
-	/** Referencia al `<form>` (R7): la usa el atajo ⌘S para reenviar por `requestSubmit()`, el
-	 *  mismo camino que un click real en "Guardar" — ver cabecera del módulo. Variable PLANA (no
-	 *  `$state`): solo se LEE dentro del handler de teclado, nunca en el template/`$derived`. */
-	let formEl: HTMLFormElement | undefined;
+	/** Referencia del atajo de guardar y de la medición del espacio disponible para laterales. */
+	let formEl = $state<HTMLFormElement>();
+	let editTopHeight = $state(58);
+	let editorScrollportHeight = $state(0);
+
+	// La barra puede ocupar varias filas. Raíl y aside usan su alto real, también tras
+	// cambiar ancho/estado; medir ambos nodos evita asumir el tamaño del chrome del shell.
+	$effect(() => {
+		const bar = formEl?.querySelector<HTMLElement>(':scope > .vega-edit-top');
+		const main = formEl?.closest<HTMLElement>('.vega-main');
+		if (!bar || !main) return;
+		const measure = () => {
+			const height = bar.getBoundingClientRect().height;
+			if (height > 0) editTopHeight = height;
+			if (main.clientHeight > 0) editorScrollportHeight = main.clientHeight;
+		};
+		measure();
+		if (typeof ResizeObserver === 'undefined') return;
+		const observer = new ResizeObserver(measure);
+		observer.observe(bar);
+		observer.observe(main);
+		return () => observer.disconnect();
+	});
 
 	// Semilla inicial (`untrack`, mismo patrón que `ListToolbar.svelte`/`ManifestEditor.svelte`):
 	// un `$state` poblado a partir de una prop reactiva solo captura su valor INICIAL — es justo
@@ -2067,6 +2086,10 @@
      el guardado sin enseñar nada. -->
 <form
 	class="vega-record-form"
+	style:--vega-edit-top-height={`${editTopHeight}px`}
+	style:--vega-editor-scrollport-height={editorScrollportHeight > 0
+		? `${editorScrollportHeight}px`
+		: undefined}
 	class:vega-record-form--relation={modal}
 	bind:this={formEl}
 	novalidate
@@ -2805,7 +2828,8 @@
 	.vega-record-form {
 		display: flex;
 		flex-direction: column;
-		margin: calc(-1 * var(--sp-6)) calc(-1 * var(--sp-6)) calc(-1 * var(--sp-12));
+		margin: calc(-1 * var(--vega-main-padding-top, var(--sp-6))) calc(-1 * var(--sp-6))
+			calc(-1 * var(--sp-12));
 		/* Casos límite de contenido real (F5-g): sin esto, el formulario es un flex-item cuyo
 		   `min-width` por defecto es el de su contenido — un label/valor kilométrico (una sola
 		   palabra sin espacios) podría forzar overflow horizontal de la página entera. */
@@ -2815,6 +2839,7 @@
 	@media (max-width: 768px) {
 		.vega-record-form {
 			margin: calc(-1 * var(--sp-4));
+			margin-top: calc(-1 * var(--vega-main-padding-top, var(--sp-4)));
 		}
 	}
 
@@ -2854,11 +2879,11 @@
 		flex-direction: column;
 		gap: var(--vega-space-gutter);
 		position: sticky;
-		/* Mismo offset (y mismo motivo) que `.vega-rail` en `EditorRail.svelte`: el scroll es el de
-		   `.vega-main`, así que solo hay que descontar el alto de la barra pegajosa del editor. */
-		/* `- 1.75rem`: la barra se pega al borde de `.vega-main` (ver `EditTopBar`), el aside sube lo
-		   mismo para conservar su hueco con ella. */
-		top: calc(58px - 1.75rem);
+		/* Misma posición que el raíl: bajo la barra completa y con el aire de la rejilla. */
+		top: calc(
+			var(--vega-edit-top-height, 58px) + var(--vega-space-gutter) * 1.25 -
+				var(--vega-main-padding-top, var(--sp-6))
+		);
 		min-width: 0;
 	}
 

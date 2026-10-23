@@ -69,13 +69,10 @@
 		   sigue no trae padding propio. A sangre lo pone la rejilla del editor (ver `--bleed`). */
 		margin-bottom: 1.5rem;
 		position: sticky;
-		/* Ver cabecera (por qué NO `var(--topbar-h)`): el scroll es el de `.vega-main`. `sticky` mide
-		   `top` desde el borde del CONTENIDO de `.vega-main`, que arranca 1.75rem (su `padding-top`,
-		   `AppShell.svelte`) por debajo del borde del scroll: con `top: 0` la barra se quedaba 28 px
-		   por debajo y el contenido que scrollea asomaba POR ENCIMA de ella. `-1.75rem` la pega al
-		   borde (en el modo a sangre, además, ya sube con margen negativo sobre ese padding; `RecordForm`
-		   y `EditorRail` descuentan lo mismo en su propio `top`). */
-		top: -1.75rem;
+		/* El scrollport descuenta su padding superior real, compartido por AppShell.
+		   Un offset fijo de 28px desplazaba la barra al hacer scroll: 4px en escritorio
+		   (padding24) y12px en móvil (padding16), en ambos consumidores. */
+		top: calc(-1 * var(--vega-main-padding-top, var(--sp-6)));
 		/* Ver cabecera: MISMO token que `.vega-main` (región de contenido que scrollea detrás). */
 		background: var(--paper);
 		/* Por encima de las tarjetas pegajosas del editor (raíl/aside), que no llevan z-index

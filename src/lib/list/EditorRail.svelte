@@ -332,18 +332,21 @@
 		box-shadow: var(--shadow-card);
 		overflow: hidden;
 		position: sticky;
-		/* El scroll vive en `.vega-main` (AppShell), que arranca JUSTO bajo la topbar — por eso el
-		   offset es solo el alto de la barra pegajosa del editor (el mockup, cuyo scroll es el del
-		   documento, suma además `var(--topbar-h)`). */
-		/* `calc(… - 1.75rem)`: la barra del editor se pega ahora al borde de `.vega-main` (`top:
-		   -1.75rem`, ver `EditTopBar`), así que el raíl sube lo mismo para conservar su hueco. */
-		top: calc(58px - 1.75rem);
+		/* Mismo offset que el aside: alto REAL de la barra (puede ocupar varias filas),
+		   separación de la rejilla y padding superior del scrollport. */
+		top: calc(
+			var(--vega-edit-top-height, 58px) + var(--vega-space-gutter) * 1.25 -
+				var(--vega-main-padding-top, var(--sp-6))
+		);
 		display: flex;
 		flex-direction: column;
 		/* Casos límite de contenido real (eje 5): una colección con la página entera (30 registros)
 		   haría una tarjeta más alta que la ventana, y lo pegajoso dejaría de funcionar. Se acota a
 		   la altura visible y scrollea por dentro. */
-		max-height: calc(100dvh - var(--topbar-h) - 5rem);
+		max-height: calc(
+			var(--vega-editor-scrollport-height, calc(100dvh - var(--topbar-h) - 2 * var(--sp-3))) -
+				var(--vega-edit-top-height, 58px) - var(--vega-space-gutter) * 2.5
+		);
 	}
 
 	.vega-rail-head {

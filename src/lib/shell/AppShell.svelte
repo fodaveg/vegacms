@@ -293,6 +293,7 @@
 	}
 
 	.vega-main {
+		--vega-main-padding-top: var(--sp-6);
 		flex: 1;
 		min-width: 0;
 		/* El área de contenido es el "papel" (`--paper`) sobre el que FLOTAN las tarjetas
@@ -301,7 +302,7 @@
 		   atmósfera radial MUY tenue de la marca, `background-attachment: fixed` (no se desplaza
 		   con el scroll interno de `.vega-main`). En paletas planas (brasa) el motor resuelve
 		   `--halo` a `none` y queda el `--paper` liso de siempre, degradado limpio. */
-		padding: var(--sp-6) var(--sp-6) var(--sp-12);
+		padding: var(--vega-main-padding-top) var(--sp-6) var(--sp-12);
 		/* Contenedor de los hijos `position:absolute` (los `.vega-visually-hidden`, popovers…): sin
 		   esto su bloque contenedor es el documento y los que caen al fondo del contenido (a miles de
 		   px dentro del scroll de `.vega-main`) estiran el documento (`scrollHeight` 1308 sobre 844 en
@@ -317,6 +318,7 @@
 			padding: 0;
 		}
 		.vega-main {
+			--vega-main-padding-top: var(--sp-4);
 			padding: var(--sp-4);
 		}
 		/* Inicio móvil (lámina `.content`): 20/16/40 bajo la barra superpuesta. */

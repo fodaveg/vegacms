@@ -2659,7 +2659,40 @@ for (const publish of [false, true]) {
 	});
 }
 
-test('ronda 4 del QA de fodaveg: la barra del formulario no cambia de alto con cambios, guardado ni avisos entre 1024 y 1440 px', async ({
+/** Espera la transición CSS real de la sidebar al cambiar breakpoint; no usa demoras fijas. */
+async function resizeGeometryViewport(page: Page, width: number) {
+	await page.setViewportSize({ width, height: 900 });
+	await page.locator('#vega-sidebar').evaluate((sidebar) => {
+		sidebar.getBoundingClientRect();
+		return Promise.all(sidebar.getAnimations().map((animation) => animation.finished));
+	});
+	if (width <= 768) await expect(page.locator('#vega-sidebar')).not.toBeInViewport();
+}
+
+async function stickyGeometry(page: Page) {
+	return page.evaluate(() => {
+		const box = (selector: string) => {
+			const node = document.querySelector<HTMLElement>(selector);
+			if (!node) return null;
+			const rect = node.getBoundingClientRect();
+			return {
+				top: rect.top,
+				bottom: rect.bottom,
+				height: rect.height,
+				width: rect.width,
+				position: getComputedStyle(node).position
+			};
+		};
+		return {
+			main: box('.vega-main')!,
+			bar: box('.vega-edit-top')!,
+			aside: box('.vega-editor-aside'),
+			rail: box('.vega-rail')
+		};
+	});
+}
+
+test('ronda 4 del QA de fodaveg: la barra del formulario no cambia de alto con cambios, guardado ni avisos entre 390 y 1440 px', async ({
 	page
 }, testInfo) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
@@ -2670,7 +2703,7 @@ test('ronda 4 del QA de fodaveg: la barra del formulario no cambia de alto con c
 	// Con la barra lateral de la app ABIERTA, como la midió el QA (ronda 5, `r4-form.json`: a 1024 px,
 	// 2 filas en limpio y 3 con «Cambios sin guardar» o con el error de un campo vacío).
 	await expect(page.getByRole('navigation', { name: 'Navegación principal' })).toBeVisible();
-	const widths = [1024, 1180, 1280, 1440];
+	const widths = [390, 768, 1024, 1180, 1280, 1440];
 	/** Alto de la barra y dónde cae cada pieza: un estado no puede mover nada de sitio (ni «Guardar»
 	 *  a otra fila ni el resto un píxel), así que a ningún ancho cambia el alto. */
 	const placement = (page: Page) =>
@@ -2684,24 +2717,29 @@ test('ronda 4 del QA de fodaveg: la barra del formulario no cambia de alto con c
 		);
 	const clean: Record<number, { height: number; placement: string[] }> = {};
 	for (const width of widths) {
-		await page.setViewportSize({ width, height: 900 });
+		await resizeGeometryViewport(page, width);
 		const layout = await barLayout(page, '.vega-edit-top');
 		expect(layout.outside, `limpia a ${width}`).toEqual([]);
 		clean[width] = { height: layout.height, placement: await placement(page) };
-		if (width === 1024)
-			await page.screenshot({ path: testInfo.outputPath('formulario-limpio-1024.png') });
+		await page.locator('.vega-main').evaluate((main) => {
+			main.scrollTop = 200;
+		});
+		expect(await placement(page), `scroll limpio a ${width}`).toEqual(clean[width].placement);
+
+		if (width === 1024 || width === 390)
+			await page.screenshot({ path: testInfo.outputPath(`formulario-limpio-${width}.png`) });
 	}
 	const sameAsClean = async (state: string) => {
 		for (const width of widths) {
-			await page.setViewportSize({ width, height: 900 });
+			await resizeGeometryViewport(page, width);
 			const layout = await barLayout(page, '.vega-edit-top');
 			expect(layout, `${state} a ${width}`).toMatchObject({
 				height: clean[width].height,
 				outside: []
 			});
 			expect(await placement(page), `${state} a ${width}`).toEqual(clean[width].placement);
-			if (width === 1024)
-				await page.screenshot({ path: testInfo.outputPath(`formulario-${state}-1024.png`) });
+			if (width === 1024 || width === 390)
+				await page.screenshot({ path: testInfo.outputPath(`formulario-${state}-${width}.png`) });
 		}
 	};
 	// Cambios sin guardar en un campo de la página.
@@ -2738,6 +2776,102 @@ test('ronda 4 del QA de fodaveg: la barra del formulario no cambia de alto con c
 	await expect(notice).toBeVisible();
 	await expect(notice).toHaveAttribute('title', /^Sin guardar: /);
 	await sameAsClean('aviso');
+});
+
+test('geometría compartida: el raíl queda bajo la barra completa y cabe en el scrollport', async ({
+	page
+}, info) => {
+	await loginAsDemo(page, { seedShowcase: true });
+	await page.goto('/c/entradas/entrada_1');
+	await expect(page.locator('.vega-rail')).toBeVisible();
+	for (const width of [1280, 1440, 1630]) {
+		await resizeGeometryViewport(page, width);
+		await page.locator('.vega-main').evaluate((main) => {
+			main.scrollTop = 300;
+		});
+		await expect
+			.poll(async () => {
+				const g = await stickyGeometry(page);
+				return {
+					anchored: Math.round(g.bar.top) === Math.round(g.main.top),
+					railBelow: g.rail!.top >= g.bar.bottom,
+					railFits: g.rail!.bottom <= g.main.bottom
+				};
+			})
+			.toEqual({ anchored: true, railBelow: true, railFits: true });
+		console.info('EDITOR_STICKY_GEOMETRY', width, JSON.stringify(await stickyGeometry(page)));
+		await page.screenshot({ path: info.outputPath(`rail-scroll-${width}.png`) });
+	}
+});
+
+test('geometría compartida: aside corto bajo la barra y móvil conserva el flujo', async ({
+	page
+}, info) => {
+	await loginAsDemo(page);
+	await page.goto('/c/posts/post_1');
+	await expect(page.locator('.vega-editor-aside')).toBeVisible();
+	for (const width of [390, 768, 1024, 1440]) {
+		await resizeGeometryViewport(page, width);
+		await page.locator('.vega-main').evaluate((main) => {
+			main.scrollTop = 200;
+		});
+		await expect
+			.poll(async () => {
+				const g = await stickyGeometry(page);
+				return {
+					anchored: Math.round(g.bar.top) === Math.round(g.main.top),
+					asideCorrect: width <= 900 ? g.aside!.position === 'static' : g.aside!.top >= g.bar.bottom
+				};
+			})
+			.toEqual({ anchored: true, asideCorrect: true });
+		console.info('ASIDE_STICKY_GEOMETRY', width, JSON.stringify(await stickyGeometry(page)));
+		await page.screenshot({ path: info.outputPath(`aside-scroll-${width}.png`) });
+	}
+});
+
+test('geometría compartida: manifiesto limpio, borrador, error y aviso respetan el borde visible', async ({
+	page
+}, info) => {
+	await loginAsDemo(page);
+	await page.goto('/settings');
+	const textarea = page.locator('#manifest-editor-textarea');
+	await expect(textarea).toBeVisible();
+	const original = await textarea.inputValue();
+	for (const width of [390, 768, 1024, 1440]) {
+		await resizeGeometryViewport(page, width);
+		let barHeight = 0;
+		for (const state of ['limpio', 'borrador', 'error', 'aviso']) {
+			await textarea.fill(
+				state === 'error'
+					? '{'
+					: state === 'aviso'
+						? JSON.stringify({
+								schemaVersion: 1,
+								collections: { posts: { titleField: 'missing' } }
+							})
+						: state === 'borrador'
+							? original + '\n'
+							: original
+			);
+			if (state === 'error' || state === 'aviso') {
+				await page.getByRole('button', { name: 'Validar (dry-run)', exact: true }).click();
+				await expect(
+					page.locator(state === 'error' ? '.warnitem-err' : '.warnitem-warn').first()
+				).toBeVisible();
+			}
+			await page.locator('.vega-edit-top').evaluate((bar) => {
+				const main = bar.closest<HTMLElement>('.vega-main')!;
+				main.scrollTop += bar.getBoundingClientRect().top - main.getBoundingClientRect().top + 80;
+			});
+			const g = await stickyGeometry(page);
+			expect(Math.round(g.bar.top), `${state} a ${width}`).toBe(Math.round(g.main.top));
+			if (state === 'limpio') barHeight = g.bar.height;
+			expect(g.bar.height, `${state} a ${width}`).toBe(barHeight);
+			expect((await barLayout(page, '.vega-edit-top')).outside).toEqual([]);
+			console.info('MANIFEST_STICKY_GEOMETRY', width, state, JSON.stringify(g));
+		}
+		await page.screenshot({ path: info.outputPath(`manifest-aviso-${width}.png`) });
+	}
 });
 
 test('UX11: índice de secciones conserva borrador/error y el formulario respeta cancelar o guardar', async ({
