@@ -9,7 +9,7 @@
  * renders. Input (keyboard, IME through CDP, paste through the system clipboard) is real browser
  * input into the real bridge inside a cross-origin iframe.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { webkit, type CDPSession, type FrameLocator, type Page } from '@playwright/test';
 import { expect, loginAsDemo, preparePage, test } from './fixtures';
@@ -1000,17 +1000,31 @@ async function lineBreakCases(page: Page): Promise<void> {
 
 /** Fails the first `count` downloads of the app chunk whose source contains `marker`. */
 async function failChunk(page: Page, marker: string, count = 1): Promise<() => number> {
+	// Resolve the one lazy module from the build under test. Fetching and fulfilling every JS
+	// request here leaves unrelated preloads in flight after recovery. Removing the handlers in
+	// teardown can continue those routes before the pending fetch tries to fulfill them again.
+	const assets = new URL('../build/_app/immutable/', import.meta.url);
+	const matches = ['nodes', 'chunks'].flatMap((directory) =>
+		readdirSync(new URL(`${directory}/`, assets))
+			.filter((name) => name.endsWith('.js'))
+			.filter((name) =>
+				readFileSync(new URL(`${directory}/${name}`, assets), 'utf8').includes(marker)
+			)
+			.map((name) => `/_app/immutable/${directory}/${name}`)
+	);
+	expect(matches, `one built module must contain ${marker}`).toHaveLength(1);
 	let failed = 0;
-	await page.route(/\/_app\/immutable\/(nodes|chunks)\/.*\.js$/, async (route) => {
-		const response = await route.fetch();
-		const body = await response.text();
-		if (body.includes(marker) && failed < count) {
-			failed++;
-			await route.abort('failed');
-			return;
+	await page.route(
+		(url) => url.origin === CMS && url.pathname.endsWith(matches[0]),
+		async (route) => {
+			if (failed < count) {
+				failed++;
+				await route.abort('failed');
+				return;
+			}
+			await route.continue();
 		}
-		await route.fulfill({ response, body });
-	});
+	);
 	return () => failed;
 }
 
