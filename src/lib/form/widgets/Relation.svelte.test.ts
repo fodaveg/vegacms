@@ -19,6 +19,8 @@ import type { ResolvedContentType, ResolvedField } from '$lib/model/types';
 import type { WidgetProps } from './types';
 import { es } from '$lib/i18n/es';
 
+vi.mock('$app/navigation', () => ({ beforeNavigate: vi.fn() }));
+
 const MEDIA_ID_A = 'media0000000001';
 const MEDIA_ID_B = 'media0000000002';
 const MEDIA_ID_PDF = 'media0000000003';
@@ -1083,4 +1085,229 @@ test('dos selectores de medios comparten carpeta y recargan candidatos sin conse
 		second.target.remove();
 		mediaPickerState.folder = null;
 	}
+});
+
+describe('Relation — thumbField relación simple a Medios', () => {
+	const linkedType = (titleField: string | null = 'title') =>
+		resolvedType('artworks', titleField, [
+			...ARTICLES_TYPE.schema.fields,
+			relationField('vega_media', { name: 'media' }).schema,
+			{ ...ARTICLES_TYPE.schema.fields[0]!, name: 'alt' }
+		]);
+	const linkedField = {
+		...relationField('artworks', { name: 'works', multiple: true }),
+		relationPicker: { thumbField: 'media', filter: null }
+	};
+	const art = (id: string, media = MEDIA_ID_A) =>
+		record(id, 'artworks', { title: `Obra ${id}`, alt: 'Alt de la obra', media });
+
+	test('elegidos existentes y búsqueda comparten medio, título y alt son de la obra', async () => {
+		const list = vi.fn(async (type: string) =>
+			page(
+				type === 'vega_media'
+					? [
+							mediaRecord(MEDIA_ID_A, 'linked.png', {
+								title: 'Título del medio',
+								alt: 'Alt del medio'
+							})
+						]
+					: [art('a'), art('b')]
+			)
+		);
+		const view = mountRelation({
+			field: linkedField,
+			types: [linkedType(), MEDIA_TYPE],
+			value: ['a'],
+			list
+		});
+		try {
+			await vi.waitFor(() =>
+				expect(view.target.querySelector('.vega-relation-chip img')?.getAttribute('alt')).toBe(
+					'Alt de la obra'
+				)
+			);
+			const input = view.target.querySelector<HTMLInputElement>('input[type="search"]')!;
+			input.value = 'Obra';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await vi.waitFor(() => expect(candidateButtons(view.target)).toHaveLength(2));
+			expect(candidateButtons(view.target)[0]?.textContent).toBe('Obra a');
+			expect(list.mock.calls.filter(([type]) => type === 'vega_media')).toHaveLength(2);
+			expect(view.ctx.port.fileUrl).toHaveBeenCalledWith(
+				{ type: 'vega_media', id: MEDIA_ID_A },
+				'file',
+				'linked.png',
+				expect.anything()
+			);
+			candidateButtons(view.target)[1]!.click();
+			await tick();
+			expect(view.onChange).toHaveBeenCalledWith(['a', 'b']);
+		} finally {
+			await unmount(view.instance);
+			view.target.remove();
+		}
+	});
+
+	test('nueva búsqueda relee un fichero reemplazado y actualiza también el chip elegido', async () => {
+		let file = 'before.png';
+		const list = vi.fn(async (type: string) =>
+			page(type === 'vega_media' ? [mediaRecord(MEDIA_ID_A, file)] : [art('a'), art('b')])
+		);
+		const view = mountRelation({
+			field: linkedField,
+			types: [linkedType(), MEDIA_TYPE],
+			value: ['a'],
+			list
+		});
+		try {
+			await vi.waitFor(() =>
+				expect(view.target.querySelector('.vega-relation-chip img')?.getAttribute('src')).toContain(
+					'before.png'
+				)
+			);
+			file = 'after.png';
+			const input = view.target.querySelector<HTMLInputElement>('input[type="search"]')!;
+			input.value = 'Obra';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await vi.waitFor(() => expect(candidateButtons(view.target)).toHaveLength(2));
+			expect(view.target.querySelector('.vega-relation-chip img')?.getAttribute('src')).toContain(
+				'after.png'
+			);
+			expect(
+				[...view.target.querySelectorAll('img')].every((img) =>
+					img.getAttribute('src')?.includes('after.png')
+				)
+			).toBe(true);
+			expect(list.mock.calls.filter(([type]) => type === 'vega_media')).toHaveLength(2);
+		} finally {
+			await unmount(view.instance);
+			view.target.remove();
+		}
+	});
+
+	test('listado degradado también hidrata miniaturas; PDF conserva candidato sin img', async () => {
+		const view = mountRelation({
+			field: linkedField,
+			types: [linkedType(null), MEDIA_TYPE],
+			list: vi.fn(async (type: string) =>
+				page(
+					type === 'vega_media'
+						? [mediaRecord(MEDIA_ID_A, 'linked.png'), mediaRecord(MEDIA_ID_B, 'document.pdf')]
+						: [art('a'), art('b', MEDIA_ID_B)]
+				)
+			)
+		});
+		try {
+			await vi.waitFor(() => expect(candidateButtons(view.target)).toHaveLength(2));
+			expect(candidateButtons(view.target)[0]?.querySelector('img')?.getAttribute('alt')).toBe(
+				'Alt de la obra'
+			);
+			expect(candidateButtons(view.target)[1]?.querySelector('img')).toBeNull();
+		} finally {
+			await unmount(view.instance);
+			view.target.remove();
+		}
+	});
+
+	test('respuesta vieja de medios no repinta búsqueda nueva ni escribe tras unmount', async () => {
+		let release!: (value: Page<VegaRecord>) => void;
+		const list = vi.fn(async (type: string, query: Query = {}) => {
+			if (type === 'vega_media')
+				return new Promise<Page<VegaRecord>>((resolve) => {
+					release = resolve;
+				});
+			const term = query.filter?.kind === 'cond' ? query.filter.value : '';
+			return page(term === 'first' ? [art('old')] : [art('new', '')]);
+		});
+		const view = mountRelation({ field: linkedField, types: [linkedType(), MEDIA_TYPE], list });
+		try {
+			const input = view.target.querySelector<HTMLInputElement>('input[type="search"]')!;
+			input.value = 'first';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+			input.value = 'second';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await vi.waitFor(() =>
+				expect(candidateButtons(view.target)[0]?.textContent).toBe('Obra new')
+			);
+			release(page([mediaRecord(MEDIA_ID_A, 'old.png')]));
+			await settle();
+			expect(candidateButtons(view.target)[0]?.textContent).toBe('Obra new');
+			expect(view.target.querySelector('img')).toBeNull();
+		} finally {
+			await unmount(view.instance);
+			view.target.remove();
+		}
+	});
+
+	test('alta inline hidrata el medio confirmado sin volver a consultar la obra', async () => {
+		const list = vi.fn(async (type: string) =>
+			page(type === 'vega_media' ? [mediaRecord(MEDIA_ID_A, 'created.png')] : [])
+		);
+		const view = mountRelation({ field: linkedField, types: [linkedType(), MEDIA_TYPE], list });
+		const create = vi.fn(async () => art('created'));
+		view.ctx.port.create = create;
+		try {
+			view.target.querySelector<HTMLButtonElement>('.vega-relation-create')!.click();
+			await vi.waitFor(() =>
+				expect(document.querySelector('[data-relation-create]')).not.toBeNull()
+			);
+			const save = [
+				...document.querySelectorAll<HTMLButtonElement>('[data-relation-create] button')
+			].find((button) => button.textContent?.trim() === 'Crear y seleccionar')!;
+			save.click();
+			await vi.waitFor(() => expect(view.onChange).toHaveBeenCalledWith(['created']));
+			view.props.value = ['created'];
+			await vi.waitFor(() =>
+				expect(view.target.querySelector('.vega-relation-chip img')?.getAttribute('src')).toContain(
+					'created.png'
+				)
+			);
+			expect(view.target.querySelector('.vega-relation-chip')?.textContent).toContain(
+				'Obra created'
+			);
+			expect(list.mock.calls.filter(([type]) => type === 'artworks')).toHaveLength(0);
+			expect(create).toHaveBeenCalledTimes(1);
+		} finally {
+			await unmount(view.instance);
+			view.target.remove();
+		}
+	});
+
+	test('desmontar con medios en vuelo descarta la respuesta pendiente', async () => {
+		let release!: (value: Page<VegaRecord>) => void;
+		const list = vi.fn(async (type: string) =>
+			type === 'vega_media'
+				? new Promise<Page<VegaRecord>>((resolve) => {
+						release = resolve;
+					})
+				: page([art('a')])
+		);
+		const view = mountRelation({ field: linkedField, types: [linkedType(null), MEDIA_TYPE], list });
+		await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+		await unmount(view.instance);
+		release(page([mediaRecord(MEDIA_ID_A, 'late.png')]));
+		await settle();
+		expect(view.target.childElementCount).toBe(0);
+		expect(view.ctx.port.fileUrl).not.toHaveBeenCalled();
+		view.target.remove();
+	});
+
+	test('chip de medio directo reutiliza el registro de candidato sin otra consulta', async () => {
+		const list = vi.fn(async () => page([mediaRecord(MEDIA_ID_A, 'direct.png')]));
+		const view = mountRelation({ field: relationField('vega_media'), types: [MEDIA_TYPE], list });
+		try {
+			await vi.waitFor(() => expect(candidateButtons(view.target)).toHaveLength(1));
+			candidateButtons(view.target)[0]!.click();
+			view.props.value = MEDIA_ID_A;
+			await tick();
+			expect(view.target.querySelector('.vega-relation-chip img')?.getAttribute('src')).toContain(
+				'direct.png'
+			);
+			expect(list).toHaveBeenCalledTimes(1);
+			expect(view.ctx.port.get).not.toHaveBeenCalled();
+		} finally {
+			await unmount(view.instance);
+			view.target.remove();
+		}
+	});
 });

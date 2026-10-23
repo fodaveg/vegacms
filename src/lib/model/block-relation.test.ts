@@ -25,7 +25,7 @@ function relationOf(manifest: JsonValue, types: ContentType[] = []) {
 	};
 }
 
-function fileField(name: string): Field {
+function fileField(name: string): Extract<Field, { type: 'file' }> {
 	return {
 		name,
 		type: 'file',
@@ -232,5 +232,49 @@ describe('buildRelationFilter', () => {
 				{ kind: 'cond', field: 'rank', op: 'eq', value: 2 }
 			]
 		});
+	});
+});
+
+describe('thumbField mediante una relación simple a Medios', () => {
+	const link = (target = 'vega_media', multiple = false): Field => ({
+		...textField('media'),
+		type: 'relation',
+		target,
+		multiple
+	});
+	const resolve = (
+		fields: Field[],
+		mediaFields: Field[] = [fileField('file')],
+		thumbField = 'media'
+	) =>
+		relationOf(
+			manifestWith({ widget: 'relation', relation: { collection: 'artworks', thumbField } }),
+			[
+				{ name: 'artworks', readonly: false, fields },
+				{ name: 'vega_media', readonly: false, fields: mediaFields }
+			]
+		);
+	it('acepta el nombre de columna simple, sin cambiar el vocabulario del manifiesto', () => {
+		const out = resolve([link()]);
+		expect(out.relation?.thumbField).toBe('media');
+		expect(out.warnings).toEqual([]);
+	});
+	it('rechaza múltiples, otros destinos, file múltiple, ausencia de file y rutas', () => {
+		for (const out of [
+			resolve([link('vega_media', true)]),
+			resolve([link('artworks')]),
+			resolve([link()], [{ ...fileField('file'), multiple: true }]),
+			resolve([link()], []),
+			resolve([link()], [fileField('file')], 'media.file'),
+			resolve([fileField('media.file')], [], 'media.file')
+		]) {
+			expect(out.relation?.thumbField).toBeNull();
+			expect(out.warnings.some((warning) => warning.code === 'manifest-invalid-key')).toBe(true);
+		}
+	});
+	it('mantiene el file múltiple anterior como thumbField directo', () => {
+		expect(
+			resolve([{ ...fileField('image'), multiple: true }], [], 'image').relation?.thumbField
+		).toBe('image');
 	});
 });

@@ -29,8 +29,8 @@
 	 * - **Relación de bloque** (`field.relationPicker`, lo rellena `BlockEditor`): `filter` (AST ya
 	 *   compilado) se une con AND a la query del listado y de la búsqueda, pero NO a la resolución
 	 *   de los ya elegidos (uno que deja de cumplir el filtro se sigue mostrando). `thumbField`
-	 *   (campo `file` del destino) pinta miniatura en candidatos y elegidos; si el destino no tiene
-	 *   ese campo `file`, se ignora sin miniatura.
+	 *   (campo `file` o relación simple a Medios con `file` simple) pinta miniatura en candidatos y
+	 *   elegidos; una columna incompatible se ignora sin miniatura.
 	 * - **`maxSelect` (múltiple)**: al alcanzarlo, los candidatos NO seleccionados se deshabilitan
 	 *   (`toggleRelationSelection`, afordancia UX — la validación dura ya la hace F5-c/backend).
 	 */
@@ -65,12 +65,17 @@
 	import { mediaFoldersState } from '$lib/media/media-folders';
 	import { mediaPickerState } from '$lib/media/media-picker-state.svelte';
 	import { isRasterMediaImage } from '$lib/media/media-image';
-	import { selectThumbSpec } from '$lib/backend/thumb-select';
-	import type { FileRef } from '$lib/backend/types';
+	import { relationThumbSource } from '$lib/model/relation-thumb';
+	import {
+		MediaThumbnailRecords,
+		mediaRecordThumbnail,
+		recordThumbnails,
+		recordThumbnailSrc,
+		type RecordThumbnail
+	} from '$lib/media/record-thumbnail';
 	import {
 		buildDegradedListQuery,
 		buildTitleSearchQuery,
-		candidatesFromPage,
 		chunkIds,
 		fetchRecordsByIds,
 		idsNeedingTitles,
@@ -78,7 +83,6 @@
 		RELATION_SEARCH_PER_PAGE,
 		RelationSearchSequencer,
 		supportsTitleSearch,
-		thumbRefOf,
 		titleOf,
 		toggleRelationSelection,
 		withCachedTitle,
@@ -126,13 +130,23 @@
 			? mediaPickerState.folder
 			: null
 	);
-	const thumbSchema = $derived.by(() => {
-		const name = field.relationPicker?.thumbField;
-		if (!name || isMediaTarget || !target) return null;
-		const candidate = target.schema.fields.find((f) => f.name === name);
-		return candidate?.type === 'file' ? candidate : null;
-	});
-	const thumbField = $derived(thumbSchema?.name ?? null);
+	const thumbSource = $derived(
+		target && !isMediaTarget
+			? relationThumbSource(
+					field.relationPicker?.thumbField,
+					target.schema.fields,
+					ctx.model.types.map((type) => type.schema)
+				)
+			: null
+	);
+	const thumbField = $derived(thumbSource?.field.name ?? null);
+	const mediaFile = $derived(
+		target?.schema.fields.find((f) => f.name === 'file' && f.type === 'file')
+	);
+	const thumbnailRecords = new MediaThumbnailRecords(ctx.port);
+	// Solo los seleccionados: permite refrescar sus medios junto con la página de candidatos.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
+	const selectedRecords = new Map<RecordId, VegaRecord>();
 	const offerCreation = $derived(!inert && creationAllowed && canCreateRelationTarget(target));
 
 	const selectedIds = $derived<RecordId[]>(
@@ -208,6 +222,8 @@
 	onMount(() => {
 		return () => {
 			destroyed = true;
+			thumbnailRecords.clear();
+			selectedRecords.clear();
 			if (debounceTimer !== null) clearTimeout(debounceTimer);
 		};
 	});
@@ -229,7 +245,9 @@
 				buildTitleSearchQuery(titleField, term, baseFilter)
 			);
 			if (destroyed || !sequencer.isLatest(seq)) return; // stale: se descarta sin pintar
-			candidates = candidatesFromPage(page, titleField, thumbField);
+			const items = await hydratedCandidates(page.items, titleField, seq);
+			if (destroyed || !sequencer.isLatest(seq)) return;
+			candidates = items;
 		} catch (err) {
 			if (destroyed || !sequencer.isLatest(seq)) return;
 			candidates = [];
@@ -253,6 +271,48 @@
 		scheduleSearch(raw);
 	}
 
+	/** Refresca candidatos y chips en el mismo lote, sin retener ficheros de una página anterior. */
+	async function hydratedCandidates(
+		records: VegaRecord[],
+		labelField: string | null,
+		seq: number
+	): Promise<RelationCandidate[]> {
+		thumbnailRecords.refresh();
+		// Snapshot local de esta petición; no participa en la reactividad del componente.
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
+		const all = new Map(
+			selectedIds.flatMap((id) => {
+				const record = selectedRecords.get(id);
+				return record ? [[id, record] as const] : [];
+			})
+		);
+		for (const record of records) all.set(record.id, record);
+		const thumbnails = await recordThumbnails([...all.values()], thumbSource, thumbnailRecords);
+		if (destroyed || !sequencer.isLatest(seq)) return [];
+		let next = titleCache;
+		for (const id of selectedIds) {
+			const record = all.get(id);
+			if (!record) continue;
+			selectedRecords.set(id, record);
+			next = withCachedTitle(next, id, {
+				status: 'ok',
+				title: titleOf(record, titleField),
+				thumbnail: thumbnails.get(id) ?? null
+			});
+		}
+		titleCache = next;
+		return records.map((record) => ({
+			id: record.id,
+			record,
+			title: titleOf(record, labelField),
+			thumbnail: thumbnails.get(record.id) ?? null
+		}));
+	}
+
+	function directThumbnail(record: VegaRecord): RecordThumbnail | null {
+		return mediaFile?.type === 'file' ? mediaRecordThumbnail(record, mediaFile) : null;
+	}
+
 	function toMediaCandidate(record: VegaRecord): MediaRelationCandidate {
 		const media = toMediaItemView(record);
 		let src: string | null = null;
@@ -263,7 +323,9 @@
 		}
 		return {
 			id: record.id,
+			record,
 			title: mediaDisplayName(media) || record.id,
+			thumbnail: directThumbnail(record),
 			media,
 			src,
 			badge: mediaExtensionBadge(media.fileName),
@@ -310,11 +372,24 @@
 			}
 			const result = await ctx.port.list(target.name, query);
 			if (destroyed || !sequencer.isLatest(seq)) return;
-			degradedItems = mediaMode
+			const items = mediaMode
 				? result.items
 						.map(toMediaCandidate)
 						.filter((candidate) => !imagesOnly || isRasterMediaImage(candidate.media.fileRef))
-				: candidatesFromPage(result, null, thumbField);
+				: await hydratedCandidates(result.items, null, seq);
+			if (destroyed || !sequencer.isLatest(seq)) return;
+			if (mediaMode) {
+				for (const item of items) {
+					if (!selectedIds.includes(item.id)) continue;
+					if (item.record) selectedRecords.set(item.id, item.record);
+					titleCache = withCachedTitle(titleCache, item.id, {
+						status: 'ok',
+						title: item.title,
+						thumbnail: item.thumbnail ?? null
+					});
+				}
+			}
+			degradedItems = items;
 			degradedPage = result.page;
 			degradedTotalPages = result.totalPages;
 			degradedTotalItems = result.totalItems;
@@ -364,9 +439,15 @@
 		// por OTRO lote resolviendo) volvería a ver estos ids como "sin caché, sin pending".
 		for (const id of ids) pendingTitleFetches.add(id);
 		// Destino media: `file`, `title` y `alt` salen del registro entero; el resto, solo el título.
-		const projectedFields = [titleField, thumbField].filter(
-			(name): name is string => name !== null
-		);
+		const projectedFields = [
+			titleField,
+			thumbField,
+			...(thumbSource
+				? ['alt', 'title'].filter((name) =>
+						target.schema.fields.some((field) => field.name === name)
+					)
+				: [])
+		].filter((name): name is string => name !== null);
 		const projection = isMediaTarget || projectedFields.length === 0 ? undefined : projectedFields;
 		await Promise.all(
 			chunkIds(ids).map(async (chunk) => {
@@ -377,7 +458,17 @@
 						chunk,
 						projection
 					);
-					if (destroyed) return;
+					if (destroyed || target?.name !== targetName) return;
+					for (const id of chunk) {
+						const record = records.get(id);
+						if (record && selectedIds.includes(id)) selectedRecords.set(id, record);
+					}
+					const thumbnails = await recordThumbnails(
+						[...records.values()],
+						thumbSource,
+						thumbnailRecords
+					);
+					if (destroyed || target?.name !== targetName) return;
 					let next = titleCache;
 					for (const id of chunk) {
 						const record = records.get(id);
@@ -387,7 +478,7 @@
 								title: isMediaTarget
 									? mediaDisplayName(toMediaItemView(record)) || record.id
 									: titleOf(record, titleField),
-								...(thumbField !== null ? { thumbRef: thumbRefOf(record, thumbField) } : {})
+								thumbnail: isMediaTarget ? directThumbnail(record) : (thumbnails.get(id) ?? null)
 							});
 						} else if (notFound.has(id)) {
 							next = withCachedTitle(next, id, { status: 'not-found' });
@@ -411,6 +502,9 @@
 	// `pendingTitleFetches` descarta tanto los ya cacheados como los que ya están en curso, así que
 	// SÍ evita re-pedirlos (antes de este fix, sí se re-pedían: ver `pendingTitleFetches` arriba).
 	$effect(() => {
+		for (const id of selectedRecords.keys()) {
+			if (!selectedIds.includes(id)) selectedRecords.delete(id);
+		}
 		const need = idsNeedingTitles(selectedIds, titleCache, pendingTitleFetches);
 		if (need.length > 0) void resolveTitles(need);
 	});
@@ -429,6 +523,7 @@
 		)
 			return;
 		const { id, title } = candidate;
+		if (candidate.record) selectedRecords.set(id, candidate.record);
 		if (multiple) {
 			if (limitReached && !selectedIds.includes(id)) return;
 			onChange(toggleRelationSelection(selectedIds, id, schema?.maxSelect));
@@ -438,7 +533,7 @@
 		titleCache = withCachedTitle(titleCache, id, {
 			status: 'ok',
 			title,
-			...(candidate.thumbRef !== undefined ? { thumbRef: candidate.thumbRef } : {})
+			thumbnail: candidate.thumbnail ?? null
 		});
 	}
 
@@ -470,10 +565,20 @@
 		);
 		if (destroyed || inert || !target || target.name !== record.type || selection === null)
 			return false;
+		selectedRecords.set(record.id, record);
 		titleCache = withCachedTitle(titleCache, record.id, {
 			status: 'ok',
 			title: titleOf(record, titleField),
-			...(thumbField !== null ? { thumbRef: thumbRefOf(record, thumbField) } : {})
+			thumbnail: isMediaTarget ? directThumbnail(record) : null
+		});
+		const createdTarget = target.name;
+		void recordThumbnails([record], thumbSource, thumbnailRecords).then((thumbnails) => {
+			if (destroyed || target?.name !== createdTarget) return;
+			titleCache = withCachedTitle(titleCache, record.id, {
+				status: 'ok',
+				title: titleOf(record, titleField),
+				thumbnail: isMediaTarget ? directThumbnail(record) : (thumbnails.get(record.id) ?? null)
+			});
 		});
 		onChange(multiple ? selection : record.id);
 		searchTerm = '';
@@ -496,18 +601,9 @@
 		onChange(multiple ? selectedIds.filter((x) => x !== id) : null);
 	}
 
-	/** URL de la miniatura de `ref` (campo `thumbField` del destino) o `null` sin miniatura posible. */
-	function thumbSrcFor(id: RecordId, ref: FileRef | null | undefined): string | null {
-		if (!target || !thumbSchema || !ref) return null;
-		try {
-			const opts = ctx.port.capabilities.thumbs
-				? { thumb: selectThumbSpec({ width: 120, height: 120, fit: 'crop' }, thumbSchema.thumbs) }
-				: undefined;
-			return ctx.port.fileUrl({ type: target.name, id }, thumbSchema.name, ref, opts);
-		} catch {
-			// Una FileRef huérfana no puede tumbar el widget: se pinta sin miniatura.
-			return null;
-		}
+	/** URL del fichero propietario resuelto; el modo sin thumbs conserva la imagen completa. */
+	function thumbSrcFor(thumbnail: RecordThumbnail | null | undefined): string | null {
+		return recordThumbnailSrc(ctx.port, thumbnail, { width: 120, height: 120, fit: 'crop' });
 	}
 
 	/** Mueve el elegido `id` una posición y devuelve el foco al botón de esa dirección (o al
@@ -550,11 +646,11 @@
 	<ul class="vega-relation-selected">
 		{#each selectedIds as id (id)}
 			{@const cached = titleCache[id]}
-			{@const chipThumb = thumbSrcFor(id, cached?.status === 'ok' ? cached.thumbRef : null)}
+			{@const chipThumb = thumbSrcFor(cached?.status === 'ok' ? cached.thumbnail : null)}
 			{@const position = selectedIds.indexOf(id)}
 			<li class="vega-relation-chip" tabindex="-1" data-created-id={id}>
 				{#if chipThumb}
-					{@render thumb(chipThumb)}
+					{@render thumb(chipThumb, cached?.status === 'ok' ? cached.thumbnail?.alt : '')}
 				{/if}
 				<span>{titleFor(cached, id)}</span>
 				{#if cached?.status === 'not-found'}
@@ -675,8 +771,9 @@
 								disabled={inert || (limitReached && !isSelected)}
 								onclick={() => selectCandidate(candidate)}
 							>
-								{#if thumbSrcFor(candidate.id, candidate.thumbRef)}{@render thumb(
-										thumbSrcFor(candidate.id, candidate.thumbRef)!
+								{#if thumbSrcFor(candidate.thumbnail)}{@render thumb(
+										thumbSrcFor(candidate.thumbnail)!,
+										candidate.thumbnail?.alt
 									)}{/if}{candidate.title}
 							</button>
 						</li>
@@ -738,8 +835,9 @@
 							disabled={inert || (limitReached && !isSelected)}
 							onclick={() => selectCandidate(candidate)}
 						>
-							{#if thumbSrcFor(candidate.id, candidate.thumbRef)}{@render thumb(
-									thumbSrcFor(candidate.id, candidate.thumbRef)!
+							{#if thumbSrcFor(candidate.thumbnail)}{@render thumb(
+									thumbSrcFor(candidate.thumbnail)!,
+									candidate.thumbnail?.alt
 								)}{/if}{candidate.title}
 						</button>
 					</li>
@@ -778,8 +876,8 @@
 	{/if}
 </div>
 
-{#snippet thumb(src: string)}
-	<img class="vega-relation-thumb" {src} alt="" loading="lazy" />
+{#snippet thumb(src: string, alt = '')}
+	<img class="vega-relation-thumb" {src} {alt} loading="lazy" />
 {/snippet}
 
 <style>

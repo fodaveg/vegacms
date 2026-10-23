@@ -525,13 +525,13 @@ export type BlockRelationFilter = Record<string, string | number | boolean>;
 /**
  * Destino declarado de un campo de bloque `relation` (`blockTypes.<t>.fields[].relation`).
  * `collection` es la colección destino (cualquiera, no solo `vega_media`); `multiple` decide la
- * cardinalidad de la columna física y el orden lo elige el editor. `thumbField` (campo `file` del
- * destino) y `filter` solo afectan al SELECTOR: nunca al esquema físico.
+ * cardinalidad de la columna física y el orden lo elige el editor. `thumbField` (campo `file` o
+ * relación simple a Medios con `file` simple) y `filter` solo afectan al SELECTOR, no al esquema.
  */
 export interface ResolvedBlockRelation {
 	collection: string;
 	multiple: boolean;
-	/** Campo `file` del destino del que sale la miniatura; `null` si no se declaró o no es válido. */
+	/** Columna `file` o relación simple a Medios con `file` simple; `null` si no es válida. */
 	thumbField: string | null;
 	/** Filtro del listado y la búsqueda del selector; `null` si no se declaró. */
 	filter: BlockRelationFilter | null;

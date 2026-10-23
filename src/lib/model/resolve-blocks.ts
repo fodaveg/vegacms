@@ -11,6 +11,7 @@ import type {
 	WidgetId
 } from './types';
 import { BLOCK_FIELD_WIDGET_IDS } from './types';
+import { relationThumbSource } from './relation-thumb';
 import { resolveBlockFieldDefault } from './block-field-schema';
 import {
 	asJsonObject,
@@ -425,8 +426,8 @@ function resolveBlockField(
  * existir: si no, `manifest-invalid-key` en `/blockTypes/<t>/fields/<name>/relation/collection`; la
  * declaración se CONSERVA (el diagnóstico de columnas sigue igual) pero la reconciliación no
  * propone una migración hacia ella (`generateBlockReconciliationMigration`). (2) `thumbField` debe
- * existir en el destino y ser `file`: si no, aviso y SOLO ese `thumbField` pasa a `null` (selector
- * sin miniatura); con destino ausente se anula en silencio, porque ya avisó el punto (1). Muta los
+ * existir en el destino y ser `file` o relación simple a Medios con `file` simple: si no, aviso y
+ * SOLO ese `thumbField` pasa a `null` (selector sin miniatura); con destino ausente se anula en silencio, porque ya avisó el punto (1). Muta los
  * campos ya resueltos: se llama una vez desde `resolveContentModel`, antes de publicar el modelo.
  */
 export function validateBlockRelationThumbs(
@@ -451,11 +452,10 @@ export function validateBlockRelationThumbs(
 				continue;
 			}
 			if (relation.thumbField === null) continue;
-			const thumb = target.fields.find((f) => f.name === relation.thumbField);
-			if (thumb?.type === 'file') continue;
+			if (relationThumbSource(relation.thumbField, target.fields, types)) continue;
 			warnings.push({
 				code: 'manifest-invalid-key',
-				message: `thumbField "${relation.thumbField}" de blockTypes.${blockType.name}.${field.name} no es un campo file de "${relation.collection}"; el selector se muestra sin miniatura.`,
+				message: `thumbField "${relation.thumbField}" de blockTypes.${blockType.name}.${field.name} no es un campo file ni una relación simple a vega_media con file simple de "${relation.collection}"; el selector se muestra sin miniatura.`,
 				blockType: blockType.name,
 				path: `/blockTypes/${blockType.name}`
 			});

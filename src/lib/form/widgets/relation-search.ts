@@ -38,6 +38,7 @@ import { VegaError } from '$lib/backend/errors';
 import type { FilterNode, Query } from '$lib/backend/query';
 import { allowedFilterOps } from '$lib/backend/query';
 import type { BlockRelationFilter, ResolvedContentType } from '$lib/model/types';
+import type { RecordThumbnail } from '$lib/media/record-thumbnail';
 import { toggleValue } from './select-value';
 
 // ————— Anti-carrera —————
@@ -189,8 +190,8 @@ interface FetchedRecords {
  * `list` no devuelve, un `get` por id con concurrencia acotada. Hace falta porque `list` aplica la
  * `ListRule` de la colección destino y `get` su `ViewRule`, y PocketBase permite que difieran (p.
  * ej. `vega_media`: `list` solo para editores, `view` pública): un id ausente del `list` NO prueba
- * que no exista. Solo un 404 del `get` lo declara `notFound`. Si el propio `list` lanza, el error
- * se propaga (el llamador deja el lote sin caché).
+ * que no exista. Solo un 404 del `get` lo declara `notFound`. Si `list` responde `forbidden`,
+ * también prueba `get`; los demás errores del listado se propagan (el lote queda sin caché).
  */
 export async function fetchRecordsByIds(
 	port: Pick<BackendPort, 'list' | 'get'>,
@@ -199,7 +200,14 @@ export async function fetchRecordsByIds(
 	projection?: string[],
 	concurrency: number = RELATION_GET_FALLBACK_CONCURRENCY
 ): Promise<FetchedRecords> {
-	const page = await port.list(collection, buildTitlesByIdsQuery(ids, projection));
+	let page: Page<VegaRecord>;
+	try {
+		page = await port.list(collection, buildTitlesByIdsQuery(ids, projection));
+	} catch (error) {
+		if (!(error instanceof VegaError) || error.kind !== 'forbidden') throw error;
+		// Una lista privada no implica que ViewRule impida consultar los ids conocidos.
+		page = { items: [], page: 1, perPage: ids.length, totalItems: 0, totalPages: 0 };
+	}
 	const records = new Map<RecordId, VegaRecord>(page.items.map((record) => [record.id, record]));
 	const notFound = new Set<RecordId>();
 	const errors: unknown[] = [];
@@ -224,12 +232,15 @@ export async function fetchRecordsByIds(
 
 export interface RelationCandidate {
 	id: RecordId;
+	/** Registro ya leído: permite refrescar el medio de un chip sin consultar otra vez la obra. */
+	record?: VegaRecord;
 	/** Título legible (valor de `titleField`), o el propio id si no hay `titleField` (modo
 	 *  degradado) o el valor está vacío. */
 	title: string;
 	/** Fichero del que sale la miniatura (`thumbField` de una relación de bloque); ausente/`null` si
 	 *  no hay `thumbField` o el registro no tiene fichero. */
 	thumbRef?: FileRef | null;
+	thumbnail?: RecordThumbnail | null;
 }
 
 /** Título de `record` para `titleField` (`null` ⇒ modo degradado, representa por id; un valor
@@ -273,7 +284,8 @@ export function candidatesFromPage(
  *  id no vuelve en el listado (registro borrado entre tanto) — el shell lo pinta con una
  *  marca de "no encontrado" en vez de reventar. */
 export type TitleCacheEntry =
-	{ status: 'ok'; title: string; thumbRef?: FileRef | null } | { status: 'not-found' };
+	| { status: 'ok'; title: string; thumbRef?: FileRef | null; thumbnail?: RecordThumbnail | null }
+	| { status: 'not-found' };
 
 /** Caché por id, INMUTABLE (mismo criterio que `toggleValue`): nunca se muta, `withCachedTitle`
  *  siempre devuelve una copia. */

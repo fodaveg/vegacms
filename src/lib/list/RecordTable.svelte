@@ -167,6 +167,14 @@
 	 *   `reorder-dnd.test.ts`) decide `'before'`/`'after'` según el sentido del arrastre. Puramente
 	 *   presentacional: no toca `onReorder` ni la persistencia, que siguen exactamente igual.
 	 */
+	import { untrack } from 'svelte';
+	import { relationThumbSource } from '$lib/model/relation-thumb';
+	import {
+		MediaThumbnailRecords,
+		recordThumbnails,
+		recordThumbnailSrc,
+		type RecordThumbnail
+	} from '$lib/media/record-thumbnail';
 	import { getVegaContext } from '$lib/app-context';
 	import { recordRoute, visualRoute } from '$lib/nav/routes';
 	import { resolveVisualGate } from '$lib/visual/visual-gate';
@@ -236,6 +244,41 @@
 	}: Props = $props();
 
 	const ctx = getVegaContext();
+	const thumbnailRecords = new MediaThumbnailRecords(ctx.port);
+	let mediaThumbnails = $state.raw(new Map<string, RecordThumbnail>());
+
+	/** Una recarga reemplaza el snapshot: también vuelve a leer un file sustituido en Medios. */
+	$effect(() => {
+		const rows = records;
+		const mediaColumns = columns.filter(
+			({ field }) =>
+				field.mediaKind === 'image' &&
+				field.schema.type === 'relation' &&
+				!field.schema.multiple &&
+				field.schema.target === 'vega_media'
+		);
+		const types = mediaColumns.length ? ctx.model.types.map((type) => type.schema) : [];
+		let cancelled = false;
+		untrack(() => {
+			thumbnailRecords.clear();
+			mediaThumbnails = new Map();
+			void Promise.all(
+				mediaColumns.map(async ({ field }) => {
+					const source = relationThumbSource(field.name, contentType.schema.fields, types);
+					const thumbnails = await recordThumbnails(rows, source, thumbnailRecords);
+					return [...thumbnails].map(
+						([id, thumbnail]) => [`${id}:${field.name}`, thumbnail] as const
+					);
+				})
+			).then((groups) => {
+				if (!cancelled) mediaThumbnails = new Map(groups.flat());
+			});
+		});
+		return () => {
+			cancelled = true;
+			thumbnailRecords.clear();
+		};
+	});
 
 	/** El mismo gate que protege la ruta visual decide el destino del listado. Se calcula por
 	 * colección y puerto, sin depender del registro ni cargar el editor en este bundle. */
@@ -682,7 +725,26 @@
 			{/each}
 		</span>
 	{:else if descriptor.kind === 'relation'}
-		<span>{descriptor.count}</span>
+		{@const thumbnail = mediaThumbnails.get(`${record.id}:${column.field.name}`)}
+		{@const src = ctx.port.capabilities?.thumbs
+			? recordThumbnailSrc(ctx.port, thumbnail, THUMB_SPEC)
+			: null}
+		{#if thumbnail && src}
+			<span class="vega-file-thumbs"
+				><img
+					{src}
+					alt={thumbnail.alt}
+					width="28"
+					height="28"
+					loading="lazy"
+					decoding="async"
+				/></span
+			>
+		{:else if thumbnail}
+			<span class="vega-file-names" title={thumbnail.ref}>{thumbnail.ref}</span>
+		{:else}
+			<span>{descriptor.count}</span>
+		{/if}
 	{:else if descriptor.kind === 'file'}
 		{#if ctx.port.capabilities.thumbs}
 			{@const declaredThumbs =

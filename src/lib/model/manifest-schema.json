@@ -308,7 +308,7 @@
 										"collection": { "type": "string", "minLength": 1 },
 										"multiple": { "type": "boolean", "default": false },
 										"thumbField": {
-											"description": "Campo file de la colección destino del que sale la miniatura del selector y de los elegidos.",
+											"description": "Columna file o relación simple a vega_media con file simple, de la que sale la miniatura del selector y de los elegidos. Solo nombre de columna, sin rutas ni relaciones encadenadas.",
 											"type": "string",
 											"minLength": 1
 										},

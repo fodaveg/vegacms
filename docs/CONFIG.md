@@ -385,9 +385,13 @@ clave opcional `relation` (solo válida con `widget: "relation"`):
   Si la columna ya existe con otro destino, el diagnóstico de Ajustes la marca incompatible.
 - `multiple` (booleano, por defecto `false`): cardinalidad de la columna. Con `relation` declarado
   manda este valor, no el nombre del campo.
-- `thumbField` (texto, opcional): campo `file` del destino del que sale la miniatura en el selector
-  y en los elegidos. Si no existe o no es `file`, hay un aviso `manifest-invalid-key` y el selector
-  funciona sin miniatura.
+- `thumbField` (texto, opcional): nombre de una columna del destino, `file` (contrato anterior)
+  o relación simple a `vega_media`, cuya columna `file` también debe ser simple. Por ejemplo,
+  `"thumbField": "media"` en un selector de obras con `artworks.media → vega_media`. La miniatura
+  usa el fichero y propietario del medio; el título y texto alternativo siguen siendo los de la
+  obra. No admite rutas como `media.file`, relaciones múltiples, otros destinos ni cadenas de
+  relaciones. Una columna inválida emite `manifest-invalid-key` y el selector funciona sin
+  miniatura. Los PDF y otros medios que no sean imágenes raster se muestran sin imagen.
 - `filter` (objeto, opcional): igualdades `campo: valor` (texto, número o booleano), unidas con AND.
   Se aplica al listado y la búsqueda del selector, no a los ya elegidos: uno que deje de cumplir el
   filtro se sigue mostrando. No acepta cadenas de filtro de PocketBase. Un valor no escalar descarta
