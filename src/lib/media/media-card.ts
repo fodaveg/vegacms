@@ -21,7 +21,7 @@
 
 import type { Locale } from '$lib/i18n';
 import type { MediaItemView } from './media-item';
-import type { MediaAssetMetrics } from './media-metrics';
+import { mediaImageDimensions, type MediaAssetMetrics } from './media-metrics';
 
 /** Tipo de asset a efectos de UI (icono de la miniatura + chips de la toolbar). */
 export type MediaAssetType = 'image' | 'video' | 'document';
@@ -146,7 +146,7 @@ export function formatFileSize(bytes: number, locale: Locale): string {
  * Degradación en CASCADA, según lo que se haya podido medir del fichero real (`metrics`, ver
  * `media-metrics.ts` — llegan de forma asíncrona y cada una por su lado):
  * 1. dimensiones + tamaño → "2880×1800 · 1,2 MB", exactamente el mockup;
- * 2. solo dimensiones (la miniatura cargó, el `HEAD` no dijo nada) → "2880×1800";
+ * 2. solo dimensiones originales (guardadas o medidas sin thumb; `HEAD` no dijo nada) → "2880×1800";
  * 3. solo tamaño (pdf, vídeo: sin bitmap que medir) → "1,2 MB";
  * 4. nada medido todavía (o nunca) → el dato que SÍ trae el registro, que además nunca está vacío,
  *    para que la tarjeta no cambie de alto cuando lleguen las medidas:
@@ -162,14 +162,15 @@ export function formatFileSize(bytes: number, locale: Locale): string {
  * igual, pegadas al signo `×`.
  */
 export function mediaCardSubtitle(
-	item: Pick<MediaItemView, 'title' | 'alt' | 'fileName' | 'created'>,
+	item: Pick<MediaItemView, 'title' | 'alt' | 'fileName' | 'created' | 'width' | 'height'>,
 	locale: Locale,
 	metrics?: MediaAssetMetrics | null
 ): string {
 	const parts: string[] = [];
-	if (metrics?.width !== undefined && metrics.height !== undefined) {
-		parts.push(`${metrics.width}×${metrics.height}`);
-	}
+	const dimensions =
+		mediaImageDimensions(item.width, item.height) ??
+		mediaImageDimensions(metrics?.width, metrics?.height);
+	if (dimensions) parts.push(`${dimensions.width}×${dimensions.height}`);
 	if (metrics?.bytes !== undefined) {
 		const size = formatFileSize(metrics.bytes, locale);
 		if (size !== '') parts.push(size);

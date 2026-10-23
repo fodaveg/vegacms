@@ -235,6 +235,58 @@ describe('findReferences — vía URL (solo vega_media)', () => {
 		});
 	});
 
+	test('Mensajes busca sus textos visibles y excluye notifyState oculto del OR', async () => {
+		const messages = type('messages', [
+			textField('message'),
+			{ ...textField('notifyState'), hidden: true }
+		]);
+		const list = vi.fn().mockResolvedValue(page([], 0));
+		const report = await findReferences(
+			[messages],
+			{ collection: 'vega_media', id: 'm1', fileRef: 'foto.png' },
+			list
+		);
+		expect(list).toHaveBeenCalledWith('messages', {
+			filter: { kind: 'cond', field: 'message', op: 'contains', value: 'foto.png' },
+			perPage: 5
+		});
+		expect(report).toEqual({ groups: [], partial: false });
+	});
+
+	test('colección sin campos visibles que puedan referenciar no genera peticiones', async () => {
+		const hidden = type('internal_notes', [
+			{ ...textField('internalText'), hidden: true },
+			{ ...relationField('asset', 'vega_media', false), hidden: true },
+			jsonField('metadata')
+		]);
+		const list = vi.fn();
+		expect(
+			await findReferences(
+				[hidden],
+				{ collection: 'vega_media', id: 'm1', fileRef: 'foto.png' },
+				list
+			)
+		).toEqual({ groups: [], partial: false });
+		expect(list).not.toHaveBeenCalled();
+	});
+
+	test('un error real consultando campos visibles sigue marcado como incompleto', async () => {
+		const messages = type('messages', [
+			textField('message'),
+			{ ...textField('notifyState'), hidden: true }
+		]);
+		const list = vi.fn().mockRejectedValue(VegaError.forbidden());
+		const report = await findReferences(
+			[messages],
+			{ collection: 'vega_media', id: 'm1', fileRef: 'foto.png' },
+			list
+		);
+		expect(report.partial).toBe(true);
+		expect(report.groups[0].matches).toEqual([
+			{ via: 'url', status: 'degraded', fields: ['message'], reason: 'forbidden' }
+		]);
+	});
+
 	test('sin fileRef, la vía URL se omite entera (nunca se consulta)', async () => {
 		const posts = type('posts', [textField('body')]);
 		const list = vi.fn();

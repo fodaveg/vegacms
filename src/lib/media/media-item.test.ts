@@ -72,6 +72,30 @@ describe('toMediaItemView', () => {
 		});
 	});
 
+	test('conserva dimensiones originales enteras y positivas del servidor', () => {
+		expect(toMediaItemView(record({ file: 'a.png', width: 1600, height: 1112 }))).toMatchObject({
+			width: 1600,
+			height: 1112
+		});
+	});
+
+	test.each([
+		[0, 1112],
+		[1600, -1],
+		[1600, null],
+		['1600', 1112],
+		[1.5, 1112],
+		[Infinity, 1112],
+		[1600, NaN]
+	])(
+		'descarta el par inválido %s×%s sin confundirlo con dimensiones originales',
+		(width, height) => {
+			const view = toMediaItemView(record({ file: 'a.png', width, height }));
+			expect(view.width).toBeUndefined();
+			expect(view.height).toBeUndefined();
+		}
+	);
+
 	test('una biblioteca sin el campo "focal" (anterior al campo) lee el centro: null', () => {
 		expect(toMediaItemView(record({ file: 'a.png' })).focal).toBeNull();
 	});

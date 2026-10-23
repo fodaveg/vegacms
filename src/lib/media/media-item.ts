@@ -13,6 +13,7 @@
  */
 
 import type { FieldValue, FileRef, RecordId, VegaRecord } from '$lib/backend/types';
+import { mediaImageDimensions } from './media-metrics';
 import { normalizeMediaFocal, type MediaFocalPoint } from './media-focal';
 
 /** Nombre del único campo `file` de `vega_media` (D-P6.1). Constante única para no repetir el
@@ -39,6 +40,9 @@ export interface MediaItemView {
 	/** ISO 8601 UTC del campo `created` (autodate), o `null` si el registro no lo trae todavía
 	 *  (defensivo: en la práctica el backend siempre lo rellena al crear). */
 	created: string | null;
+	/** Dimensiones del ORIGINAL persistidas por el servidor; ausentes en otros backends. */
+	width?: number;
+	height?: number;
 	/** Punto focal (`media-focal.ts`): `null` = centro, que es también lo que lee un registro de
 	 *  una biblioteca sin el campo `focal` todavía. */
 	focal: MediaFocalPoint | null;
@@ -72,9 +76,11 @@ export function toMediaItemView(record: VegaRecord): MediaItemView {
 	const altRaw = record.values.alt;
 	const titleRaw = record.values.title;
 	const createdRaw = record.values.created;
+	const dimensions = mediaImageDimensions(record.values.width, record.values.height);
 
 	return {
 		id: record.id,
+		...(dimensions ?? {}),
 		folder:
 			typeof record.values.folder === 'string' && record.values.folder
 				? record.values.folder

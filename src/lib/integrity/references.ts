@@ -31,6 +31,8 @@
  * colecciones reservadas (`vega`/`vega_*`, incluida `vega_media` como ORIGEN) nunca se consultan;
  * (b) la vía `'url'` entera se omite si el destino no es `vega_media` o no hay `fileRef`; (c) una
  * colección sin ningún campo candidato para una vía ni siquiera genera la query de esa vía.
+ * Los campos ocultos del esquema no son candidatos: PocketBase impide filtrarlos a editores,
+ * aunque el snapshot los describa. Incluir uno en un OR haría fallar también los campos visibles.
  *
  * **Honestidad por colección** (fallo caro que evita este lote): cada query corre de forma
  * independiente (`Promise.allSettled`); una colección que falla (`forbidden`, `network`…) queda
@@ -181,7 +183,7 @@ function collectCandidates(
 
 		const relationFields = type.fields.filter(
 			(field): field is RelationField =>
-				field.type === 'relation' && field.target === target.collection
+				!field.hidden && field.type === 'relation' && field.target === target.collection
 		);
 		if (relationFields.length > 0) {
 			candidates.push({
@@ -194,7 +196,7 @@ function collectCandidates(
 		}
 
 		if (wantsUrlVia) {
-			const textFields = type.fields.filter(isTextLikeField);
+			const textFields = type.fields.filter((field) => !field.hidden && isTextLikeField(field));
 			if (textFields.length > 0) {
 				candidates.push({
 					collection: type.name,

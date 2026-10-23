@@ -1,12 +1,10 @@
 /**
- * Medidas REALES de un asset de `vega_media` para el subtítulo de su tarjeta (mockup
- * `aquelarre-medios.html`, «2880×1800 · 1,2 MB»): el registro no guarda ni dimensiones ni tamaño
- * (§4.4: el puerto solo expone la `FileRef`, que es el nombre del binario), así que ambos datos se
- * obtienen del propio fichero, sin tocar el esquema de la colección:
+ * Medidas REALES de un asset de `vega_media` para el subtítulo de su tarjeta. Los servidores
+ * pueden persistir las dimensiones originales en `width`/`height`: se validan como pareja y
+ * prevalecen sobre cualquier medición del cliente (`media-item.ts`, `media-card.ts`).
  *
- * - **Dimensiones**: las pone el `<img>` que la miniatura ya carga de todos modos
- *   (`naturalWidth`/`naturalHeight` en su evento `load`) — coste cero y exactas. Eso vive en
- *   `MediaGrid.svelte`, que es quien tiene el elemento; aquí solo se define su forma.
+ * - **Dimensiones de respaldo**: solo se mide el `<img>` si el puerto sirve el original
+ *   (`capabilities.thumbs: false`). Las medidas de un thumb recortado nunca describen el original.
  * - **Tamaño**: `HEAD` a la URL del fichero y `Content-Length` de la respuesta — nunca se descarga
  *   el cuerpo. La URL la construye SIEMPRE `resolveMediaFileUrl` (`media-thumb.ts`), el mismo
  *   camino que la miniatura: es el único que sabe de tokens/rutas de cada adaptador.
@@ -25,12 +23,27 @@
  */
 
 /** Medidas conocidas de UN asset. Todo opcional: llegan por caminos distintos y en momentos
- *  distintos (las dimensiones al pintar la miniatura, el tamaño al responder el `HEAD`), y
+ *  distintos (las dimensiones al pintar el original, el tamaño al responder el `HEAD`), y
  *  cualquiera de las dos puede no llegar nunca. */
 export interface MediaAssetMetrics {
 	width?: number;
 	height?: number;
 	bytes?: number;
+}
+
+/** Pareja válida de píxeles originales: sin coerciones ni dimensiones parciales. */
+export function mediaImageDimensions(
+	width: unknown,
+	height: unknown
+): { width: number; height: number } | null {
+	return typeof width === 'number' &&
+		Number.isSafeInteger(width) &&
+		width > 0 &&
+		typeof height === 'number' &&
+		Number.isSafeInteger(height) &&
+		height > 0
+		? { width, height }
+		: null;
 }
 
 /** Opciones de `fetchAssetByteSize`. */

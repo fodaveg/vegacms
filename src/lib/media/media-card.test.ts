@@ -161,6 +161,16 @@ describe('formatFileSize (base 1024, etiquetas cortas)', () => {
 describe('mediaCardSubtitle con medidas reales (cascada del mockup)', () => {
 	const ITEM = { title: 'Foto de portada', alt: '', fileName: 'portada.jpg', created: null };
 
+	test('dimensiones originales declaradas ganan a una medida de imagen distinta', () => {
+		expect(
+			mediaCardSubtitle({ ...ITEM, width: 1600, height: 1112 }, 'es', {
+				width: 300,
+				height: 300,
+				bytes: 4096
+			})
+		).toBe('1600×1112 · 4 KB');
+	});
+
 	test('dimensiones + tamaño → "W×H · TAMAÑO"', () => {
 		expect(mediaCardSubtitle(ITEM, 'es', { width: 2880, height: 1800, bytes: 1258291 })).toBe(
 			'2880×1800 · 1,2 MB'

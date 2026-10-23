@@ -11,10 +11,10 @@
 	 * nombre (una línea con elipsis) y subtítulo en `--mono` con las medidas REALES del fichero
 	 * ("2880×1800 · 1,2 MB", ver más abajo y `media-card.ts` para la cascada de degradación).
 	 *
-	 * **Medidas del fichero (`assetMetrics`)**: el registro de `vega_media` no las guarda (§4.4), así
-	 * que se miden aquí, sin coste para el render:
-	 * - las DIMENSIONES salen del `<img>` que la miniatura ya carga (`naturalWidth`/`naturalHeight`
-	 *   en su `load`), así que no hay ni una petición extra;
+	 * **Medidas del fichero (`assetMetrics`)**:
+	 * - las DIMENSIONES originales guardadas en el servidor ganan; si no existen, se miden del
+	 *   `<img>` solo cuando `capabilities.thumbs: false` garantiza que está cargando el original.
+	 *   Un thumb recortado de 300×300 nunca se presenta como tamaño del fichero original;
 	 * - el TAMAÑO, de un `HEAD` a la URL del fichero (`fetchAssetByteSize`) — cuerpo nunca
 	 *   descargado, y en `memory` (demo/showcase) ni eso: el data-URI ya dice cuánto pesa.
 	 *
@@ -129,13 +129,9 @@
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const pendingSizes = new Set<string>();
 
-	/** El `<img>` de la miniatura ya cargó: sus dimensiones NATURALES son las del original (el
-	 *  adaptador puede haber servido un thumb recortado, en cuyo caso `capabilities.thumbs` es
-	 *  `true` y lo que se mide es el thumb — asumido: es la imagen que el usuario está viendo).
-	 *  `target` llega como `Element` genérico (así tipa Svelte el `currentTarget` de `onload`); el
-	 *  emisor es SIEMPRE el `<img>` de este mismo marcado, mismo cast acotado que
-	 *  `event.currentTarget as HTMLInputElement` en `MediaUpload`. */
+	/** Solo un bitmap ORIGINAL aporta dimensiones de respaldo; el thumb no es el fichero. */
 	function handleImageLoad(id: string, target: EventTarget & Element): void {
+		if (ctx.port.capabilities.thumbs) return;
 		const img = target as HTMLImageElement;
 		if (img.naturalWidth <= 0 || img.naturalHeight <= 0) return;
 		assetMetrics.set(id, {
