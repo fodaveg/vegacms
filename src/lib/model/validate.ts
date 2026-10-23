@@ -76,6 +76,7 @@ const COLLECTION_ALLOWED_KEYS = [
 ] as const;
 const LOCALIZED_FIELD_ALLOWED_KEYS = ['label', 'fields'] as const;
 const FIELD_ALLOWED_KEYS = [
+	'mediaKind',
 	'label',
 	'help',
 	'placeholder',
@@ -1081,6 +1082,8 @@ function validateField(
 	}
 	if ('listable' in value)
 		checkBoolean(value.listable, `${base}/listable`, errors, `listable de ${label}`);
+	if ('mediaKind' in value)
+		checkEnum(value.mediaKind, ['image'], `${base}/mediaKind`, errors, `mediaKind de ${label}`);
 }
 
 // ————— Vocabulario de tipos de bloque (blockTypes, RAÍZ, `#4cfd4f7f`) —————

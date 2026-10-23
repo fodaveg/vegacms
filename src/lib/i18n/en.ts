@@ -3,6 +3,7 @@
  * doc there for the scope rule (chrome only, never content, never `ModelWarning.message`).
  */
 export const en: Record<keyof typeof import('./es').es, string> = {
+	'form.relation.media.emptyImages': 'No images available on this page.',
 	'media.upload.retryCurrentFolder': 'Retry in the current folder',
 	'media.upload.retryUnfiled': 'Retry unfiled',
 	'media.upload.resumeCurrentFolder': 'Resume pending uploads in the current folder',

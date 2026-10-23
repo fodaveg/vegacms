@@ -43,6 +43,16 @@
 	);
 	let error = $state('');
 	let module = $state.raw<SiteSeedModule>();
+	const resolvedModule = $derived(
+		module
+			? {
+					...module,
+					collections: module.collections.map((spec) =>
+						resolveProjectEditorCollection(spec, ctx.port)
+					)
+				}
+			: undefined
+	);
 	let preview = $state.raw<SiteSeedModulesPreview>();
 	let migration = $state.raw<GeneratedMigration>();
 	let rulesConfirmed = $state(false);
@@ -78,7 +88,7 @@
 				: null;
 			module = buildFormInbox(input, manifest);
 			existed = schemas.some((type) => type.name === module!.collections[0].name);
-			preview = await previewSiteSeed(ctx.port, { modules: [module] });
+			preview = await previewSiteSeed(ctx.port, { modules: [resolvedModule!] });
 			if (preview.status === 'blocked') {
 				phase = 'blocked';
 				return;
@@ -91,22 +101,23 @@
 		}
 	}
 	async function create(): Promise<void> {
-		if (!module || phase !== 'plan' || (differences.length && !rulesConfirmed)) return;
+		if (!resolvedModule || phase !== 'plan' || (differences.length && !rulesConfirmed)) return;
+		const appliedModule = resolvedModule;
 		phase = 'writing';
 		try {
 			await seedSiteProject(ctx.port, {
-				modules: [module],
-				confirmRuleDifferences: rulesConfirmed ? [module.id] : []
+				modules: [appliedModule],
+				confirmRuleDifferences: rulesConfirmed ? [appliedModule.id] : []
 			});
 			migration = generateSchemaMigration({
 				kind: 'create',
-				specs: module.collections.map((spec) => resolveProjectEditorCollection(spec, ctx.port))
+				specs: [...appliedModule.collections]
 			});
 			phase = 'done';
 			try {
 				resultRate = inboxRateLimit(
 					(await ctx.port.serverSettings?.get())?.rateLimits,
-					module.collections[0].name
+					appliedModule.collections[0].name
 				);
 			} catch {
 				resultRate = undefined;
@@ -261,7 +272,7 @@
 					{ctx.t('forms.willAdd', { name: entry })}
 				</li>{/each}
 		</ul>
-		<pre>{JSON.stringify(module.collections[0], null, 2)}</pre>
+		<pre>{JSON.stringify(resolvedModule?.collections[0], null, 2)}</pre>
 		{#if differences.length}<h3>{ctx.t('forms.ruleDifferences')}</h3>
 			{#each differences as difference (`${difference.collection}.${difference.rule}`)}<p>
 					<code>{difference.collection}.{difference.rule}</code>: {JSON.stringify(
@@ -311,6 +322,9 @@
 		margin-top: 0.75rem;
 		font-size: 0.85rem;
 	}
+	fieldset > label:not(.check) {
+		margin-bottom: var(--sp-2);
+	}
 	fieldset {
 		margin: 1rem 0;
 		border: 1px solid var(--line);
@@ -330,6 +344,8 @@
 	.check input {
 		min-width: 20px;
 		min-height: 20px;
+		margin: 0;
+		accent-color: var(--accent);
 	}
 	pre {
 		white-space: pre-wrap;

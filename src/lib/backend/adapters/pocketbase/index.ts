@@ -638,6 +638,22 @@ export function createPocketBaseBackend({
 		editorPasswordReset,
 		manifestKey: normalizedManifestKey,
 		editorAuthCollection: projectEditor,
+		async listActivityActors() {
+			if (!CAPABILITIES.administration) throw VegaError.forbidden();
+			return guarded(async () => {
+				const collection = await pb.collections.getOne(projectEditor);
+				if (collection.type !== 'auth')
+					throw VegaError.backend('La colección editorial no es de autenticación.');
+				const records = await pb
+					.collection(projectEditor)
+					.getFullList({ batch: 200, fields: 'id,email' });
+				return records.map((record) => ({
+					id: record.id,
+					collection: projectEditor,
+					email: String(record.email ?? '')
+				}));
+			});
+		},
 		async assertEditorAuthCollection() {
 			return guarded(async () => {
 				if (!CAPABILITIES.schemaBootstrap) {

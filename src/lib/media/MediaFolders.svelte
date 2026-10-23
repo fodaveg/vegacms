@@ -4,6 +4,7 @@
 	import ActionMenu from '$lib/list/ActionMenu.svelte';
 	import { getVegaContext } from '$lib/app-context';
 	import { VegaError } from '$lib/backend';
+	import { permissionsFor } from '$lib/backend/access';
 	import { loadMediaFolders, normalizeMediaFolderName, type MediaFolder } from './media-folders';
 	let {
 		value = null,
@@ -21,6 +22,14 @@
 		disabled?: boolean;
 	} = $props();
 	const ctx = getVegaContext();
+	const folderType = $derived(
+		ctx.model?.types.find((type) => type.name === 'vega_media_folders')?.schema
+	);
+	const permissions = $derived(
+		folderType
+			? permissionsFor(folderType, ctx.port.capabilities)
+			: { list: true, view: true, create: false, update: false, delete: false }
+	);
 	let folders = $state<MediaFolder[]>([]);
 	let loading = $state(true),
 		busy = $state(false),
@@ -57,7 +66,7 @@
 	});
 	async function saveName(event: SubmitEvent) {
 		event.preventDefault();
-		if (busy) return;
+		if (busy || disabled || !(editing ? permissions.update : permissions.create)) return;
 		busy = true;
 		nameError = '';
 		try {
@@ -83,6 +92,7 @@
 		}
 	}
 	async function requestDelete(folder: MediaFolder) {
+		if (disabled || busy || !permissions.delete) return;
 		deleting = folder;
 		count = null;
 		error = '';
@@ -105,7 +115,7 @@
 		deleting = null;
 	}
 	async function deleteFolder() {
-		if (!deleting || count === null || busy) return;
+		if (!deleting || count === null || busy || disabled || !permissions.delete) return;
 		busy = true;
 		try {
 			await ctx.port.delete('vega_media_folders', deleting.id);
@@ -145,11 +155,13 @@
 		<nav aria-label={ctx.t('media.folders.label')}>
 			<button
 				type="button"
+				disabled={disabled || loading || busy}
 				aria-current={value === null ? 'true' : undefined}
 				onclick={() => onChange(null)}>{ctx.t('media.folders.all')}</button
 			>
 			<button
 				type="button"
+				disabled={disabled || loading || busy}
 				aria-current={value === 'none' ? 'true' : undefined}
 				onclick={() => onChange('none')}>{ctx.t('media.folders.none')}</button
 			>
@@ -157,70 +169,85 @@
 				<div class="folder">
 					<button
 						type="button"
+						disabled={disabled || loading || busy}
 						aria-current={value === folder.id ? 'true' : undefined}
 						onclick={() => onChange(folder.id)}>{folder.name}</button
 					>
-					<ActionMenu
-						id={`${scope}-actions-${folder.id}`}
-						label={ctx.t('media.folders.actions', { name: folder.name })}
-						variant="icon"
-						anchor="viewport"
-						items={[
-							{
-								id: 'rename',
-								label: ctx.t('media.folders.rename'),
-								onSelect: () => {
-									editing = folder.id;
-									name = folder.name;
-									nameError = '';
-								}
-							},
-							{
-								id: 'delete',
-								label: ctx.t('media.folders.delete'),
-								tone: 'danger',
-								onSelect: () => {
-									void requestDelete(folder);
-								}
-							}
-						]}
-					/>
+					{#if !disabled && !loading && !busy && (permissions.update || permissions.delete)}<ActionMenu
+							id={`${scope}-actions-${folder.id}`}
+							label={ctx.t('media.folders.actions', { name: folder.name })}
+							variant="icon"
+							anchor="viewport"
+							items={[
+								...(permissions.update
+									? [
+											{
+												id: 'rename',
+												label: ctx.t('media.folders.rename'),
+												onSelect: () => {
+													editing = folder.id;
+													name = folder.name;
+													nameError = '';
+												}
+											}
+										]
+									: []),
+								...(permissions.delete
+									? [
+											{
+												id: 'delete',
+												label: ctx.t('media.folders.delete'),
+												tone: 'danger' as const,
+												onSelect: () => {
+													void requestDelete(folder);
+												}
+											}
+										]
+									: [])
+							]}
+						/>{/if}
 				</div>
 			{/each}
 		</nav>
 		{@const selectedFolder = folders.find((folder) => folder.id === value)}
 		{#if selectedFolder}<div class="mobile-actions">
-				<button
-					type="button"
-					onclick={() => {
-						editing = selectedFolder.id;
-						name = selectedFolder.name;
-						nameError = '';
-					}}>{ctx.t('media.folders.rename')}</button
-				><button type="button" onclick={() => void requestDelete(selectedFolder)}
-					>{ctx.t('media.folders.delete')}</button
-				>
+				{#if permissions.update}<button
+						type="button"
+						disabled={disabled || busy}
+						onclick={() => {
+							editing = selectedFolder.id;
+							name = selectedFolder.name;
+							nameError = '';
+						}}>{ctx.t('media.folders.rename')}</button
+					>{/if}{#if permissions.delete}<button
+						type="button"
+						disabled={disabled || busy}
+						onclick={() => void requestDelete(selectedFolder)}
+						>{ctx.t('media.folders.delete')}</button
+					>{/if}
 			</div>{/if}
 
-		{#if editing === undefined}<button
+		{#if editing === undefined && permissions.create}<button
 				class="new-folder"
 				type="button"
+				disabled={disabled || busy || loading}
 				onclick={() => {
 					editing = null;
 					name = '';
 					nameError = '';
 				}}>{ctx.t('media.folders.new')}</button
 			>
-		{:else}<form onsubmit={saveName}>
+		{:else if editing !== undefined}<form onsubmit={saveName}>
 				<label for={`${scope}-name`}>{ctx.t('media.folders.name')}</label><input
 					id={`${scope}-name`}
 					bind:value={name}
 					maxlength="80"
 					required
-					disabled={busy}
+					disabled={busy || disabled || !(editing ? permissions.update : permissions.create)}
 					aria-invalid={nameError ? 'true' : undefined}
-				/>{#if nameError}<p role="alert">{nameError}</p>{/if}<button disabled={busy} type="submit"
-					>{ctx.t('editor.save')}</button
+				/>{#if nameError}<p role="alert">{nameError}</p>{/if}<button
+					disabled={busy || disabled || !(editing ? permissions.update : permissions.create)}
+					type="submit">{ctx.t('editor.save')}</button
 				><button
 					type="button"
 					disabled={busy}

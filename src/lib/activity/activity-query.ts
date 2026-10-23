@@ -4,6 +4,8 @@ import type { ActivityEntry } from './activity-collection';
 
 export interface ActivityFilters {
 	actor: string;
+	/** Directory identity includes its auth collection; absent preserves legacy callers. */
+	actorCollection?: string;
 	collection: string;
 	action: string;
 	from: string;
@@ -29,6 +31,8 @@ export function activityQuery(filters: ActivityFilters, cursor?: ActivityCursor)
 	});
 	if (filters.actor)
 		nodes.push(eq(filters.actor === '_superusers' ? 'actorCollection' : 'actorId', filters.actor));
+	if (filters.actor && filters.actor !== '_superusers' && filters.actorCollection)
+		nodes.push(eq('actorCollection', filters.actorCollection));
 	if (filters.collection) nodes.push(eq('collection', filters.collection));
 	if (['create', 'update', 'delete'].includes(filters.action))
 		nodes.push(eq('action', filters.action));

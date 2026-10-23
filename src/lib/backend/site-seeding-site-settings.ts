@@ -64,6 +64,7 @@ const SITE_SETTINGS_MANIFEST: JsonValue = {
 					group: 'SEO'
 				},
 				socialImage: {
+					mediaKind: 'image',
 					label: 'Imagen para redes por defecto',
 					help: 'Aparece al compartir una página que no tiene imagen propia. Mejor apaisada, de unos 1200 × 630 px.',
 					group: 'SEO'

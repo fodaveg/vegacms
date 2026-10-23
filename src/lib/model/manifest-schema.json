@@ -224,6 +224,7 @@
 							"properties": {
 								"label": { "type": "string", "minLength": 1, "maxLength": 60 },
 								"help": { "type": "string", "maxLength": 300 },
+								"mediaKind": { "const": "image" },
 								"placeholder": { "type": "string", "maxLength": 120 },
 								"order": { "type": "integer", "minimum": 0 },
 								"group": { "type": "string", "minLength": 1 },

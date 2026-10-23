@@ -245,7 +245,7 @@ const BLOG_MANIFEST: JsonValue = {
 					help: 'Unas líneas sobre el autor. Se publican junto a sus entradas.',
 					widget: 'textarea'
 				},
-				avatar: { label: 'Foto' },
+				avatar: { label: 'Foto', mediaKind: 'image' },
 				url: { label: 'Web' }
 			}
 		},

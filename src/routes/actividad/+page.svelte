@@ -2,7 +2,7 @@
 	/** Actividad solo para administración, leída por el puerto con cursor y epoch de sesión. */
 	import { untrack } from 'svelte';
 	import { getVegaContext } from '$lib/app-context';
-	import { VegaError, type EditorAccount } from '$lib/backend';
+	import { VegaError } from '$lib/backend';
 	import SuperuserGate from '$lib/admin/SuperuserGate.svelte';
 	import ActivityList from '$lib/activity/ActivityList.svelte';
 	import {
@@ -25,7 +25,7 @@
 	let status = $state<'loading' | 'ready' | 'error'>('loading');
 	let entries = $state<ActivityEntry[]>([]);
 	let targets = $state<Record<string, ActivityTarget>>({});
-	let editors = $state<EditorAccount[]>([]);
+	let editors = $state<{ id: string; collection: string; email: string }[]>([]);
 	let filters = $state<ActivityFilters>({ ...EMPTY_ACTIVITY_FILTERS });
 	// El cursor pertenece a la consulta aplicada, no al borrador de los controles.
 	let appliedFilters = $state<ActivityFilters>({ ...EMPTY_ACTIVITY_FILTERS });
@@ -42,6 +42,10 @@
 		const token = ctx.session.token;
 		const stale = () => epoch !== run || token !== ctx.session.token;
 		const currentFilters = { ...(append ? appliedFilters : filters) };
+		if (!append && currentFilters.actor && currentFilters.actor !== '_superusers')
+			currentFilters.actorCollection = editors.find(
+				(editor) => editor.id === currentFilters.actor
+			)?.collection;
 		if (!append) appliedFilters = currentFilters;
 		const currentCursor = append ? cursor : undefined;
 		if (append) loadingMore = true;
@@ -88,10 +92,17 @@
 		untrack(() => {
 			void load();
 		});
-		void port
-			.administration!.listEditors()
-			.then((directory) => {
-				if (ctx.session.token === token) editors = directory.editors;
+		const directory = port.listActivityActors
+			? port.listActivityActors()
+			: port.administration!.listEditors().then((value) =>
+					value.editors.map((editor) => ({
+						...editor,
+						collection: port.editorAuthCollection ?? 'vega_editors'
+					}))
+				);
+		void directory
+			.then((people) => {
+				if (ctx.session.token === token) editors = people;
 			})
 			.catch((error: unknown) => {
 				if (error instanceof VegaError && error.kind === 'auth-expired')
@@ -140,7 +151,8 @@
 					>{ctx.t('activity.person')}<select bind:value={filters.actor}
 						><option value="">{ctx.t('activity.allPeople')}</option><option value="_superusers"
 							>{ctx.t('activity.superusers')}</option
-						>{#each editors as editor (editor.id)}<option value={editor.id}>{editor.email}</option
+						>{#each editors as editor (editor.id)}<option value={editor.id}
+								>{editor.email || editor.id}</option
 							>{/each}</select
 					></label
 				>

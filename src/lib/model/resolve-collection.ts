@@ -820,6 +820,23 @@ function resolveField(
 		warnings
 	);
 	const listable = listableOverride ?? (hidden ? false : defaultListable(field));
+	let mediaKind: 'image' | undefined;
+	if (fieldRaw && 'mediaKind' in fieldRaw) {
+		if (
+			fieldRaw.mediaKind === 'image' &&
+			field.type === 'relation' &&
+			!field.multiple &&
+			field.target === 'vega_media'
+		)
+			mediaKind = 'image';
+		else
+			warnings.push(
+				manifestInvalidKey(
+					`${base}/mediaKind`,
+					'mediaKind solo admite image en una relación simple a vega_media; se ignora.'
+				)
+			);
+	}
 
 	return {
 		schema: field,
@@ -831,6 +848,7 @@ function resolveField(
 		group,
 		widget,
 		subtype,
-		listable
+		listable,
+		...(mediaKind ? { mediaKind } : {})
 	};
 }

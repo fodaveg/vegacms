@@ -64,6 +64,7 @@
 	import MediaFolderSelect from '$lib/media/MediaFolderSelect.svelte';
 	import { mediaFoldersState } from '$lib/media/media-folders';
 	import { mediaPickerState } from '$lib/media/media-picker-state.svelte';
+	import { isRasterMediaImage } from '$lib/media/media-image';
 	import { selectThumbSpec } from '$lib/backend/thumb-select';
 	import type { FileRef } from '$lib/backend/types';
 	import {
@@ -107,6 +108,7 @@
 	const multiple = $derived(schema?.multiple ?? false);
 	// ÚNICA discriminación por destino: a partir de aquí el resto del widget consume este booleano.
 	const isMediaTarget = $derived(schema?.target === VEGA_MEDIA_COLLECTION.name);
+	const imagesOnly = $derived(isMediaTarget && !multiple && field.mediaKind === 'image');
 
 	// Destino resuelto vía `ctx.model` (D-P5.9): el widget NUNCA conoce PocketBase, solo el
 	// `ContentModel` ya resuelto por P2 y el `BackendPort` de P1.
@@ -309,7 +311,9 @@
 			const result = await ctx.port.list(target.name, query);
 			if (destroyed || !sequencer.isLatest(seq)) return;
 			degradedItems = mediaMode
-				? result.items.map(toMediaCandidate)
+				? result.items
+						.map(toMediaCandidate)
+						.filter((candidate) => !imagesOnly || isRasterMediaImage(candidate.media.fileRef))
 				: candidatesFromPage(result, null, thumbField);
 			degradedPage = result.page;
 			degradedTotalPages = result.totalPages;
@@ -340,7 +344,7 @@
 	// padre ajusta su filtro base; un resultado de la carpeta anterior nunca se presenta como nuevo.
 	$effect(() => {
 		if (!degraded || !target) return;
-		const key = JSON.stringify([target.name, baseFilter, mediaFolderFilter]);
+		const key = JSON.stringify([target.name, baseFilter, mediaFolderFilter, imagesOnly]);
 		if (degradedLoadedFor === key) return;
 		degradedLoadedFor = key;
 		untrack(() => {
@@ -417,8 +421,13 @@
 	 *  parpadeaba mostrando el id crudo hasta que resolvía). Cachear también en el caso de
 	 *  DESELECCIONAR es inofensivo: la caché es un mapa global por id, no depende de si `id` sigue
 	 *  seleccionado ahora mismo. */
-	function selectCandidate(candidate: RelationCandidate): void {
+	function selectCandidate(candidate: DisplayCandidate): void {
 		if (inert) return;
+		if (
+			imagesOnly &&
+			(!isMediaCandidate(candidate) || !isRasterMediaImage(candidate.media.fileRef))
+		)
+			return;
 		const { id, title } = candidate;
 		if (multiple) {
 			if (limitReached && !selectedIds.includes(id)) return;
@@ -618,7 +627,9 @@
 						</button>
 					</li>
 				{:else if degradedItems.length === 0}
-					<li class="vega-relation-status">{ctx.t('form.relation.media.empty')}</li>
+					<li class="vega-relation-status">
+						{ctx.t(imagesOnly ? 'form.relation.media.emptyImages' : 'form.relation.media.empty')}
+					</li>
 				{:else}
 					{#each degradedItems as candidate (candidate.id)}
 						{@const isSelected = selectedIds.includes(candidate.id)}

@@ -1430,3 +1430,16 @@ They never copy values into records or change the public site's bilingual fallba
 Invalid declarations warn and disable only this optional presentation. Absent declarations retain
 the previous behavior. Strict writers accept only a nonempty field name; older strict writers
 require upgrading before saving this additive decoration.
+
+### Image-only library relations (additive manifest v1)
+
+`collections.<name>.fields.<field>.mediaKind: "image"` restricts candidate selection for a single
+relation to `vega_media` to PNG, JPEG, WebP, GIF and AVIF, inferred from file extensions because
+stored media MIME is not exposed by the backend port. SVG, BMP, PDF and unknown extensions are
+excluded. Invalid declarations warn and disable only this decoration; an undecorated relation
+retains the generic library selector. Filtering is per backend page and pagination remains
+available when that page contains no matching images. Existing incompatible relations remain
+visible and can be removed or replaced; the selector never deletes or rewrites their value.
+This is an editorial affordance, not server-side MIME validation. Public consumers still validate
+the referenced file and degrade safely. Media relation widgets do not expose a file upload path.
+The first-party Authors avatar and Site Settings social image declare this restriction.

@@ -245,6 +245,65 @@ function candidateButtons(target: HTMLElement): HTMLButtonElement[] {
 	return Array.from(target.querySelectorAll<HTMLButtonElement>('.vega-relation-candidate'));
 }
 
+test('image-only relation excludes PDF/SVG/BMP, keeps pagination and allows clearing an existing PDF', async () => {
+	const field = { ...relationField('vega_media'), mediaKind: 'image' as const };
+	const image = mediaRecord(MEDIA_ID_A, 'photo.avif');
+	const pdf = mediaRecord(MEDIA_ID_PDF, 'document.pdf');
+	const mounted = mountRelation({
+		field,
+		types: [MEDIA_TYPE],
+		value: MEDIA_ID_PDF,
+		list: vi.fn(async () =>
+			page([pdf, mediaRecord('svg', 'vector.svg'), mediaRecord('bmp', 'image.bmp'), image], {
+				totalPages: 2,
+				totalItems: 24
+			})
+		),
+		get: vi.fn(async () => pdf)
+	});
+	try {
+		await settle();
+		expect(candidateButtons(mounted.target).map((b) => b.textContent)).toEqual([
+			expect.stringContaining('photo.avif')
+		]);
+		expect(mounted.onChange).not.toHaveBeenCalled();
+		expect(mounted.target.querySelector('.vega-relation-chip')?.textContent).toContain(
+			'document.pdf'
+		);
+		const remove = mounted.target.querySelector<HTMLButtonElement>('.vega-relation-chip button');
+		remove!.click();
+		expect(mounted.onChange).toHaveBeenCalledWith(null);
+		candidateButtons(mounted.target)[0].click();
+		expect(mounted.onChange).toHaveBeenLastCalledWith(MEDIA_ID_A);
+	} finally {
+		await unmount(mounted.instance);
+		mounted.target.remove();
+	}
+});
+
+test('an image-only page containing only PDFs remains paginated instead of hiding later images', async () => {
+	const mounted = mountRelation({
+		field: { ...relationField('vega_media'), mediaKind: 'image' },
+		types: [MEDIA_TYPE],
+		list: vi.fn(async () =>
+			page([mediaRecord(MEDIA_ID_PDF, 'document.pdf')], { totalPages: 2, totalItems: 24 })
+		)
+	});
+	try {
+		await settle();
+		expect(candidateButtons(mounted.target)).toHaveLength(0);
+		expect(mounted.target.textContent).toContain('No hay imágenes disponibles en esta página.');
+		expect(
+			mounted.target.querySelector<HTMLButtonElement>(
+				`button[aria-label="${t('list.pagination.next')}"]`
+			)?.disabled
+		).toBe(false);
+	} finally {
+		await unmount(mounted.instance);
+		mounted.target.remove();
+	}
+});
+
 describe('Relation.svelte con destino vega_media', () => {
 	let mounted: MountedRelation | null = null;
 

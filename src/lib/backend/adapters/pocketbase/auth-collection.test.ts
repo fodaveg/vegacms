@@ -96,6 +96,56 @@ afterEach(() => {
 });
 
 describe('modo superuser (default, sin authCollection) — camino previo INTACTO', () => {
+	test.each(['users', 'vega_editors'])(
+		'Activity reads only id/email from %s without enabling host account mutation',
+		async (collection) => {
+			const { pathnames, urls } = stubFetchRoutes({
+				'/api/collections/_superusers/auth-with-password': () =>
+					jsonResponse({
+						token: fakeJwt({ exp: futureExp() }),
+						record: { id: 'su1', email: 'admin@example.com', collectionName: '_superusers' }
+					}),
+				[`/api/collections/${collection}`]: () =>
+					jsonResponse({ name: collection, type: 'auth', fields: [] }),
+				[`/api/collections/${collection}/records`]: () =>
+					jsonResponse({
+						page: 1,
+						perPage: 200,
+						totalPages: 1,
+						totalItems: 1,
+						items: [{ id: 'person', email: 'person@example.test', privateField: 'not exposed' }]
+					})
+			});
+			const port = createPocketBaseBackend({
+				url: BASE_URL,
+				...(collection === 'users' ? { editorAuthCollection: collection } : {})
+			});
+			await port.login({ email: 'admin@example.com', password: 'x' });
+			expect(await port.listActivityActors!()).toEqual([
+				{ id: 'person', email: 'person@example.test', collection }
+			]);
+			expect(pathnames).toEqual([
+				'/api/collections/_superusers/auth-with-password',
+				`/api/collections/${collection}`,
+				`/api/collections/${collection}/records`
+			]);
+			expect(new URL(urls.at(-1)!).searchParams.get('fields')).toBe('id,email');
+			expect(
+				vi
+					.mocked(fetch)
+					.mock.calls.slice(1)
+					.every(([, options]) => options?.method === 'GET')
+			).toBe(true);
+		}
+	);
+
+	test('Activity directory rejects editor clients before any request', async () => {
+		const { pathnames } = stubFetchRoutes({});
+		const port = createPocketBaseBackend({ url: BASE_URL, authCollection: 'users' });
+		await expect(port.listActivityActors!()).rejects.toMatchObject({ kind: 'forbidden' });
+		expect(pathnames).toEqual([]);
+		expect(port.administration).toBeUndefined();
+	});
 	test('discovery users survives a superuser login; custom auth validation only reads its schema', async () => {
 		const { pathnames } = stubFetchRoutes({
 			'/api/collections/_superusers/auth-with-password': () =>

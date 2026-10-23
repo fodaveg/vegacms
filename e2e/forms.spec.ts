@@ -61,6 +61,13 @@ test('nombres reservados se rechazan y móvil conserva controles dentro del view
 	await dialog.getByLabel('Título del formulario', { exact: true }).fill('Encuesta');
 	await dialog.getByLabel('Nombre singular', { exact: true }).fill('Encuesta');
 	await dialog.getByLabel('Nombre del campo', { exact: true }).fill('website');
+	const focused = dialog.getByLabel('Nombre del campo', { exact: true });
+	const spacing = await focused.evaluate((node) => {
+		const label = document.querySelector(`label[for="${node.id}"]`)!;
+		return node.getBoundingClientRect().top - label.getBoundingClientRect().bottom;
+	});
+	// The 2px outline plus 2px offset must not paint over the label.
+	expect(spacing).toBeGreaterThanOrEqual(4);
 	const metrics = await dialog.locator('input:not([type=checkbox]),select').evaluateAll((nodes) => {
 		const canvas = document.createElement('canvas');
 		canvas.width = canvas.height = 1;

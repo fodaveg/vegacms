@@ -1685,6 +1685,11 @@ con madre requiere que la madre ya exista; si no, se corrige el enlace después.
 
 ## Registro interno de actividad
 
+El directorio de Persona usa la auth editorial descubierta del proyecto mediante una lectura
+exclusiva del superusuario (`listActivityActors`, sólo id y correo). No publica esa auth como
+contenido ni habilita las operaciones de cuentas de `AdministrationPort` sobre ella; la gestión
+legacy de cuentas sigue limitada a `vega_editors`. Los filtros incluyen colección auth e id.
+
 El hook JS de la imagen oficial crea `vega_activity` desde `onBootstrap` después de `e.next()`.
 Este guardado del modelo no genera una migración automática de la API; el contrato real verifica
 el arranque con `--automigrate` activo y un directorio de migraciones que rechaza escritura.
@@ -1706,7 +1711,8 @@ para privacidad, cobertura, instalación y límites exactos.
 ## Formularios y bandejas
 
 **Ajustes → Base del sitio → Nuevo formulario** permite al superusuario crear una bandeja cuando
-la base está al día. Cada formulario es una colección base con columnas reales: texto corto
+la base está al día. Vista previa, sembrado y migración exportada usan la misma spec resuelta a la
+auth editorial del proyecto. Cada formulario es una colección base con columnas reales: texto corto
 (máximo 200), texto largo (5000), correo, URL, número, sí/no, opciones simples o múltiples y fecha.
 El asistente reutiliza el editor de campos, el preflight y el sembrado aditivo; una colección con
 otra forma bloquea la operación. Una forma compatible existente se adopta y exige confirmar las

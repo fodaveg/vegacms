@@ -28,6 +28,7 @@ async function render(
 		openRules?: boolean;
 		copied?: boolean;
 		many?: boolean;
+		customDirectory?: boolean;
 	} = {}
 ) {
 	let types = options.missing
@@ -56,6 +57,11 @@ async function render(
 		}
 	});
 	const listSpy = vi.spyOn(port, 'list');
+	const legacyDirectory = vi.spyOn(port.administration!, 'listEditors');
+	if (options.customDirectory)
+		port.listActivityActors = vi.fn(async () => [
+			{ id: 'host-person', collection: 'users', email: 'host@example.test' }
+		]);
 	const session = await port.login({ email: 'demo@vega.dev', password: 'vega-demo' });
 	if (options.copied) {
 		await port.ensureCollections([VEGA_REVISIONS_COLLECTION]);
@@ -93,8 +99,23 @@ async function render(
 		await Promise.resolve();
 		await tick();
 	}
-	return { port, ctx, listSpy };
+	return { port, ctx, listSpy, legacyDirectory };
 }
+test('custom host directory populates Persona and filters by collection plus id', async () => {
+	const { listSpy, legacyDirectory } = await render({ customDirectory: true });
+	const select = target.querySelector('select')!;
+	expect(select.textContent).toContain('host@example.test');
+	expect(legacyDirectory).not.toHaveBeenCalled();
+	select.value = 'host-person';
+	select.dispatchEvent(new Event('change', { bubbles: true }));
+	target
+		.querySelector('form')!
+		.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+	await tick();
+	const query = listSpy.mock.calls.filter(([type]) => type === 'vega_activity').at(-1)![1];
+	expect(JSON.stringify(query?.filter)).toContain('users');
+	expect(JSON.stringify(query?.filter)).toContain('host-person');
+});
 test('puerta para editor, sin consultas de actividad', async () => {
 	const { listSpy } = await render({ editor: true });
 	expect(target.textContent).toContain('Solo para superusuarios');

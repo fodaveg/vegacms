@@ -8,6 +8,7 @@
  * una clave que falta en un idioma y no en el otro es un bug de este fichero, no de `t()`.
  */
 export const es = {
+	'form.relation.media.emptyImages': 'No hay imágenes disponibles en esta página.',
 	'media.upload.retryCurrentFolder': 'Reintentar en la carpeta actual',
 	'media.upload.retryUnfiled': 'Reintentar sin carpeta',
 	'media.upload.resumeCurrentFolder': 'Reanudar pendientes en la carpeta actual',

@@ -206,6 +206,8 @@ export interface ServerSettingsPort {
 }
 
 export interface BackendPort {
+	/** SU-only, read-only directory for Activity. Never grants account administration on host auth. */
+	listActivityActors?(): Promise<{ id: string; collection: string; email: string }[]>;
 	// ——— Identidad del adaptador ———
 	readonly capabilities: Capabilities;
 	/** Presente solo cuando `capabilities.strongAuth === true`. */

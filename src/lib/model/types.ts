@@ -609,6 +609,8 @@ export interface ResolvedField {
 	 * el `field` que el widget ya recibe. El formulario también lo rellena para la madre de una colección con tree.
 	 */
 	relationPicker?: { thumbField: string | null; filter: FilterNode | null };
+	/** Opt-in raster image candidates for a single relation to vega_media. */
+	mediaKind?: 'image';
 }
 
 // ————— Vistas fusionadas (mergedViews, L7a) —————
