@@ -13,11 +13,22 @@ RUN pnpm build
 FROM alpine:3.23@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40
 
 ARG PB_VERSION=0.39.9
-ARG PB_SHA256=4c5a1aced62ebf658bfbcfeaa944c4bfa88b173dd9d598d3cab55ea63587b36b
+# SHA256 por arquitectura, de `checksums.txt` de la release v${PB_VERSION}. Duplican los de
+# `scripts/download-pocketbase.mjs` (`PB_CHECKSUMS`, linux_amd64 / linux_arm64): al subir de
+# versión hay que actualizar los dos sitios y `compose.yml`.
+ARG PB_SHA256_AMD64=4c5a1aced62ebf658bfbcfeaa944c4bfa88b173dd9d598d3cab55ea63587b36b
+ARG PB_SHA256_ARM64=fd4138f29182288cbe6e9982e9f29b11df5f8e689c4f6a8f6cdf7aadd29d95a1
+# Lo rellena buildx con la arquitectura de destino (amd64, arm64).
+ARG TARGETARCH
 
-RUN apk add --no-cache ca-certificates unzip wget \
+RUN case "${TARGETARCH}" in \
+		amd64) PB_SHA256="${PB_SHA256_AMD64}" ;; \
+		arm64) PB_SHA256="${PB_SHA256_ARM64}" ;; \
+		*) echo "Arquitectura no soportada: '${TARGETARCH}' (solo amd64 y arm64)" >&2; exit 1 ;; \
+	esac \
+	&& apk add --no-cache ca-certificates unzip wget \
 	&& wget --quiet \
-		"https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip" \
+		"https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_${TARGETARCH}.zip" \
 		--output-document /tmp/pocketbase.zip \
 	&& echo "${PB_SHA256}  /tmp/pocketbase.zip" | sha256sum -c \
 	&& mkdir -p /pb/pb_data /pb/pb_public \
