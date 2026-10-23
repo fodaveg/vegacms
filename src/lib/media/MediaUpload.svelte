@@ -514,6 +514,10 @@
 		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
+	/* Un details cerrado no debe conservar cajas de sus controles sobre la rejilla. */
+	.vega-media-upload-options:not([open]) .vega-media-shrink {
+		display: none;
+	}
 	.vega-media-upload-options[open] .vega-media-shrink {
 		padding: var(--sp-2) 0 var(--sp-3);
 	}

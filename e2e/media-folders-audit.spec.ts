@@ -167,9 +167,18 @@ test('biblioteca: navegación exclusiva por tamaño, opción del original y esta
 	await options.locator('summary').click();
 	await options.getByRole('checkbox', { name: 'Subir el original', exact: true }).check();
 	await expect(options.getByRole('checkbox')).toBeChecked();
+	await options.locator('summary').click();
+	await expect(options.getByRole('checkbox')).toBeHidden();
+	expect(
+		await options
+			.locator('[data-media-keep-original]')
+			.evaluate((node) => node.getBoundingClientRect().height)
+	).toBe(0);
+	await options.locator('summary').click();
+	await expect(options.getByRole('checkbox')).toBeChecked();
 	await page.locator('[data-media-upload] input[type="file"]').setInputFiles(file('original.pdf'));
 	await expect(page.locator('[data-media-item]')).toHaveCount(1);
-	await expect(page.locator('.vega-media-meta')).toHaveText('1 archivo');
+	await expect(page.locator('.vega-media-head .vega-media-meta')).toHaveText('1 archivo');
 	await expect(page.locator('[data-media-upload-item]')).toHaveAttribute(
 		'data-media-upload-status',
 		'done'
