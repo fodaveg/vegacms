@@ -1416,3 +1416,17 @@ checks cycles, missing parents and the entire moved branch against the depth lim
 blocks saving. This is client validation, including contextual creation and conflict overwrite;
 it is not a server integrity guarantee. Imports, direct API clients and concurrent opposite moves
 can bypass it, so public consumers must handle malformed trees without hanging.
+
+### Related titles in embedded blocks (additive manifest v1)
+
+`collections.<name>.blocks.titleFallbackField` optionally names a single relation in the child
+collection, distinct from `parentField`, with a known target collection. When the child's own
+`titleField` is empty, its row uses the related record's resolved `titleField` for presentation.
+For example, menus can declare `titleFallbackField: "page"` without filling in `menu_items.label`.
+An explicit title always wins. Empty relations keep the existing untitled/type fallback; an
+unreadable or untitled related record is represented by its id, as in relation selectors.
+Related titles use the existing backend relation reads in batches and respect their read rules.
+They never copy values into records or change the public site's bilingual fallback policy.
+Invalid declarations warn and disable only this optional presentation. Absent declarations retain
+the previous behavior. Strict writers accept only a nonempty field name; older strict writers
+require upgrading before saving this additive decoration.

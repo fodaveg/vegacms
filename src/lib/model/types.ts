@@ -428,6 +428,9 @@ export interface ResolvedSocialCardConfig {
  * (`blocks-heterogeneous-invalid`), nunca invalidan `collection`/`parentField`/`orderField`.
  */
 export interface ResolvedBlocksConfig {
+	/** Relación simple de la hija cuyo título se muestra si el título propio está vacío.
+	 * Solo presentación; no copia títulos ni modifica registros. Ausente conserva el fallback histórico. */
+	titleFallbackField?: string;
 	/** Nombre de la colección hija en el backend (= `ResolvedContentType.name` de los bloques). */
 	collection: string;
 	/** Campo `relation` (no-múltiple) de la colección hija que apunta de vuelta a este tipo. El

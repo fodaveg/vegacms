@@ -114,6 +114,92 @@ test.describe('Menús y Datos del sitio', () => {
 		});
 	});
 
+	test('siete páginas con texto heredado: títulos distintos y lienzo sin desbordamiento', async ({
+		page
+	}, info) => {
+		await addModule(page, 'menus');
+		const authResponse = await page.request.post(
+			`${pb.url}/api/collections/_superusers/auth-with-password`,
+			{
+				data: { identity: pb.adminEmail, password: pb.adminPassword }
+			}
+		);
+		expect(authResponse.ok()).toBe(true);
+		const { token } = await authResponse.json();
+		const headers = { Authorization: token };
+		const menusResponse = await page.request.get(
+			`${pb.url}/api/collections/menus/records?filter=key%3D%22principal%22`,
+			{ headers }
+		);
+		const menu = (await menusResponse.json()).items[0];
+		const titles = ['Inicio', 'Desarrollo', 'Arte', 'Música', 'Sobre mí', 'Blog', 'Contacto'];
+		for (const [order, title] of titles.entries()) {
+			const createdPage = await page.request.post(`${pb.url}/api/collections/pages/records`, {
+				headers,
+				data: { title, path: `/menu-proof-${order}`, status: 'published' }
+			});
+			expect(createdPage.ok()).toBe(true);
+			const related = await createdPage.json();
+			const createdItem = await page.request.post(`${pb.url}/api/collections/menu_items/records`, {
+				headers,
+				data: { menu: menu.id, page: related.id, order, label: '' }
+			});
+			expect(createdItem.ok()).toBe(true);
+		}
+		await page.setViewportSize({ width: 1630, height: 894 });
+		await page.goto(`/c/menus/${menu.id}`);
+		await expect(page.locator('.vega-block-row')).toHaveCount(7);
+		for (const size of [
+			{ width: 1630, height: 894 },
+			{ width: 390, height: 844 }
+		]) {
+			await page.setViewportSize(size);
+			const close = page.getByRole('button', { name: 'Cerrar navegación', exact: true });
+			if (await close.count()) await close.click();
+			if (size.width <= 768) await expect(page.locator('#vega-sidebar')).not.toBeInViewport();
+			const geometry = await page.evaluate(() => {
+				const main = document.querySelector('.vega-main')!;
+				const form = document.querySelector('.vega-record-form')!;
+				return {
+					viewport: innerWidth,
+					document: document.documentElement.scrollWidth,
+					mainWidth: main.clientWidth,
+					mainScroll: main.scrollWidth,
+					padding: getComputedStyle(main).padding,
+					margin: getComputedStyle(form).margin
+				};
+			});
+			console.info('menu_geometry', JSON.stringify(geometry));
+			await info.attach(`geometry-${size.width}`, {
+				body: JSON.stringify(geometry),
+				contentType: 'application/json'
+			});
+			expect(geometry.mainScroll, JSON.stringify(geometry)).toBeLessThanOrEqual(geometry.mainWidth);
+			expect(geometry.document).toBeLessThanOrEqual(geometry.viewport);
+			await expect(page.locator('.vega-block-title')).toHaveText(titles);
+			await page.screenshot({
+				path: info.outputPath(`menu-seven-${size.width}.png`),
+				fullPage: true
+			});
+		}
+		await page.locator('.vega-block-toggle').first().click();
+		const first = page.locator('.vega-block-row').first();
+		await expect(first.locator('[data-field="label"] input')).toHaveValue('');
+		await first.locator('[data-field="label"] input').fill('Portada');
+		await expect(first.locator('.vega-block-title')).toHaveText('Portada');
+		await expect(first.locator('.vega-block-dirty')).toHaveCount(1);
+		await first.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(first.locator('.vega-block-dirty')).toHaveCount(0);
+		await page.reload();
+		await expect(page.locator('.vega-block-title').first()).toHaveText('Portada');
+		const persisted = await page.request.get(
+			`${pb.url}/api/collections/menu_items/records?fields=id,label`,
+			{ headers }
+		);
+		const items = (await persisted.json()).items;
+		expect(items.filter((item: { label: string }) => item.label === '')).toHaveLength(6);
+	});
+
 	test('Datos del sitio: abre singleton desde sidebar, guarda descripción y la conserva tras recarga', async ({
 		page
 	}, info) => {

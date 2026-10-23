@@ -64,7 +64,7 @@
  */
 import { untrack } from 'svelte';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-import type { RecordId, VegaRecord } from '$lib/backend/types';
+import type { FieldValue, RecordId, VegaRecord } from '$lib/backend/types';
 import type { PreviewDraftRecord } from '$lib/backend/preview-client';
 import type {
 	ResolvedBlockType,
@@ -73,6 +73,7 @@ import type {
 } from '$lib/model/types';
 import { VegaError } from '$lib/backend/errors';
 import type { VegaAppContext } from '$lib/app-context';
+import { chunkIds, fetchRecordsByIds, titleOf } from './widgets/relation-search';
 import { describeCell } from '$lib/list/cell';
 import { normalizeListError, RequestSequencer, resolveTitleCellText } from '$lib/list/list-load';
 import { computeReorder } from '$lib/list/reorder';
@@ -247,6 +248,79 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 	 *  `$effect` de más abajo emita tanto al cambiar un campo como al cambiar la estructura. */
 	const draftOverrides = new SvelteMap<string, PreviewDraftRecord>();
 
+	const titleFallback = childType?.schema.fields.find(
+		(field) => field.name === blocksConfig?.titleFallbackField && field.type === 'relation'
+	);
+	const titleTarget =
+		titleFallback?.type === 'relation'
+			? ctx.model.types.find((type) => type.name === titleFallback.target)
+			: undefined;
+	const relatedTitles = new SvelteMap<string, string>();
+	const pendingTitles = new SvelteSet<string>();
+
+	/** Los títulos siguen el borrador, pero siguen siendo presentación: no llegan a onSubmit. */
+	function titleValues(record: VegaRecord) {
+		return titleFallback ? (draftOverrides.get(record.id)?.fields ?? record.values) : record.values;
+	}
+
+	/** Mismo descriptor que el título histórico, también para valores heredados del backend. */
+	function ownBlockTitle(record: VegaRecord): string {
+		const field = childType?.fields.find((field) => field.name === childType.titleField);
+		if (!field) return '';
+		const value = titleValues(record)[field.name] ?? null;
+		return resolveTitleCellText(describeCell(field, value as FieldValue, ctx.locale), '');
+	}
+
+	async function loadRelatedTitles(ids: string[], view: ViewIdentity): Promise<void> {
+		for (const batch of chunkIds(ids)) {
+			try {
+				const fetched = await fetchRecordsByIds(
+					ctx.port,
+					titleTarget!.name,
+					batch,
+					titleTarget!.titleField ? [titleTarget!.titleField] : undefined
+				);
+				if (!isCurrentView(view)) return;
+				for (const id of batch) {
+					const related = fetched.records.get(id);
+					relatedTitles.set(id, related ? titleOf(related, titleTarget!.titleField) : id);
+				}
+				for (const error of fetched.errors) {
+					const normalized = normalizeListError(error);
+					if (normalized.kind === 'auth-expired') ctx.feedback.reportError(normalized);
+				}
+			} catch (error) {
+				if (!isCurrentView(view)) return;
+				// Una relación no legible no oculta la fila ni la confunde con las demás.
+				for (const id of batch) relatedTitles.set(id, id);
+				const normalized = normalizeListError(error);
+				if (normalized.kind === 'auth-expired') ctx.feedback.reportError(normalized);
+			} finally {
+				if (isCurrentView(view)) for (const id of batch) pendingTitles.delete(id);
+			}
+		}
+	}
+
+	$effect(() => {
+		if (!titleFallback || !titleTarget) return;
+		const ids = new SvelteSet<string>();
+		for (const record of records) {
+			const values = titleValues(record);
+			const id = values[titleFallback.name];
+			if (
+				!ownBlockTitle(record).trim() &&
+				typeof id === 'string' &&
+				id &&
+				!relatedTitles.has(id) &&
+				!pendingTitles.has(id)
+			)
+				ids.add(id);
+		}
+		if (ids.size === 0) return;
+		for (const id of ids) pendingTitles.add(id);
+		void loadRelatedTitles([...ids], captureViewIdentity());
+	});
+
 	function currentDraftRecords(): PreviewDraftRecord[] {
 		return records.map((record) => {
 			const override = draftOverrides.get(record.id);
@@ -340,6 +414,8 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 		dirtyIds.clear();
 		savingIds.clear();
 		draftOverrides.clear();
+		relatedTitles.clear();
+		pendingTitles.clear();
 		pendingDelete = null;
 		onDirtyChange(false);
 		if (key !== null && childType) void load(childType.name, parentId!);
@@ -366,12 +442,24 @@ export function createBlocksState(options: BlocksStateOptions): BlocksState {
 	function blockTitle(record: VegaRecord): string {
 		const typeLabel = blockTypeOf(record)?.label ?? null;
 		const fallback = typeLabel ?? ctx.t('list.untitled');
-		if (!childType || childType.titleField === null) return fallback;
+		if (!childType) return fallback;
 		if (typeLabel !== null && childType.titleField === typeField) return typeLabel;
 		const field = childType.fields.find((f) => f.name === childType.titleField);
-		if (!field) return fallback;
-		const descriptor = describeCell(field, record.values[field.name] ?? null, ctx.locale);
-		return resolveTitleCellText(descriptor, fallback);
+		if (!titleFallback) {
+			return field
+				? resolveTitleCellText(
+						describeCell(field, record.values[field.name] ?? null, ctx.locale),
+						fallback
+					)
+				: fallback;
+		}
+		const values = titleValues(record);
+		const ownTitle = ownBlockTitle(record);
+		if (ownTitle.trim()) return ownTitle;
+		const relatedId = titleFallback ? values[titleFallback.name] : null;
+		return typeof relatedId === 'string' && relatedId
+			? (relatedTitles.get(relatedId) ?? relatedId)
+			: fallback;
 	}
 
 	/** Ver la interfaz (D3): reasigna `announce` con el string NUEVO recibido, sin comparar contra

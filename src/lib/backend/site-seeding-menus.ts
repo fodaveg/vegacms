@@ -88,7 +88,12 @@ const MENUS_MANIFEST: JsonValue = {
 					help: 'La usa el código del sitio para encontrar este menú. Solo la puede cambiar un superusuario.'
 				}
 			},
-			blocks: { collection: 'menu_items', parentField: 'menu', orderField: 'order' }
+			blocks: {
+				collection: 'menu_items',
+				parentField: 'menu',
+				orderField: 'order',
+				titleFallbackField: 'page'
+			}
 		},
 		menu_items: {
 			label: 'Elementos de menú',

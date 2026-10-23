@@ -183,7 +183,8 @@
 							"parentField": { "type": "string", "minLength": 1 },
 							"orderField": { "type": "string", "minLength": 1 },
 							"typeField": { "type": "string", "minLength": 1 },
-							"dataField": { "type": "string", "minLength": 1 }
+							"dataField": { "type": "string", "minLength": 1 },
+							"titleFallbackField": { "type": "string", "minLength": 1 }
 						}
 					},
 					"page": {

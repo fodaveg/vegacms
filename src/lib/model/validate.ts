@@ -99,7 +99,7 @@ const BLOCKS_REQUIRED_KEYS = ['collection', 'parentField', 'orderField'] as cons
  *  diferencia de las de arriba, cada una degrada SOLA (`resolveBlockTypeFields`, `resolve.ts`) —
  *  aquí solo se valida la FORMA (texto no vacío), el contenido (¿campo text/json real de la
  *  colección hija? ¿las dos a la vez?) es de `resolveContentModel`. */
-const BLOCKS_OPTIONAL_KEYS = ['typeField', 'dataField'] as const;
+const BLOCKS_OPTIONAL_KEYS = ['typeField', 'dataField', 'titleFallbackField'] as const;
 const BLOCKS_ALLOWED_KEYS = [...BLOCKS_REQUIRED_KEYS, ...BLOCKS_OPTIONAL_KEYS] as const;
 /** Claves OBLIGATORIAS de `collections.<c>.page` (modelo de páginas, tarea p1 `1dc63001`): a
  *  diferencia de `blocks`, aquí solo `pathField` es obligatorio — sin ruta pública no hay página

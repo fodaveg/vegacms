@@ -91,10 +91,32 @@ export function resolveBlocks(
 	// `blocks` entero.
 	const { typeField, dataField } = resolveBlockTypeFields(type.name, raw, child, warnings);
 
+	// Esta presentación opcional nunca invalida los bloques que ya se pueden editar.
+	let titleFallbackField: string | undefined;
+	if (raw.titleFallbackFieldRaw !== undefined) {
+		const candidate = child.fields.find((field) => field.name === raw.titleFallbackFieldRaw);
+		if (
+			candidate?.type === 'relation' &&
+			!candidate.multiple &&
+			candidate.name !== raw.parentField &&
+			typesByName.has(candidate.target)
+		) {
+			titleFallbackField = candidate.name;
+		} else {
+			warnings.push(
+				manifestInvalidKey(
+					`/collections/${type.name}/blocks/titleFallbackField`,
+					'titleFallbackField debe ser una relación simple de la hija, distinta de parentField y con destino conocido; se ignora.'
+				)
+			);
+		}
+	}
+
 	return {
 		collection: raw.collection,
 		parentField: raw.parentField,
 		orderField: raw.orderField,
+		...(titleFallbackField ? { titleFallbackField } : {}),
 		typeField,
 		dataField
 	};

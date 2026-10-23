@@ -190,6 +190,7 @@ export function readPreviewUrlTemplate(raw: JsonValue): string | undefined {
  *  campo es una relación? ¿el orden es numérico?) lo valida `resolveBlocks`, que es quien conoce
  *  el esquema de la colección hija. */
 export interface RawBlocksDeclaration {
+	titleFallbackFieldRaw?: JsonValue;
 	collection: string;
 	parentField: string;
 	orderField: string;
@@ -229,6 +230,7 @@ export function readBlocksDeclaration(raw: JsonValue): RawBlocksDeclaration | un
 		collection,
 		parentField,
 		orderField,
+		...('titleFallbackField' in obj ? { titleFallbackFieldRaw: obj.titleFallbackField } : {}),
 		typeFieldRaw: 'typeField' in obj ? obj.typeField : undefined,
 		dataFieldRaw: 'dataField' in obj ? obj.dataField : undefined
 	};

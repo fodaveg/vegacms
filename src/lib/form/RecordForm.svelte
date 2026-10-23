@@ -2799,20 +2799,23 @@
 		margin: 0;
 		font-size: 0.95rem;
 	}
-	/* El editor va A SANGRE (mockup final, ver cabecera): `.vega-main` (AppShell) pinta el papel
-	   con `padding: 1.75rem 2rem 2.5rem` para TODAS las rutas, y aquí se cancela con márgenes
-	   negativos para que la hairline de la barra pegajosa y el fondo lleguen de borde a borde —
-	   igual que en el mockup, donde el lienzo del editor no tiene padding y quien lo repone es la
-	   propia rejilla (`.vega-editor-grid`). Es el ÚNICO punto del repo que replica ese valor: si
-	   cambia en `AppShell.svelte`, hay que cambiarlo aquí. */
+	/* El editor llega al borde de `.vega-main`: cancela exactamente su padding con los
+	   mismos tokens y breakpoint de AppShell, también en móvil. Restar los antiguos 2rem
+	   a un padding de 24px ensanchaba el scroll interno aunque el documento no desbordara. */
 	.vega-record-form {
 		display: flex;
 		flex-direction: column;
-		margin: -1.75rem -2rem -2.5rem;
+		margin: calc(-1 * var(--sp-6)) calc(-1 * var(--sp-6)) calc(-1 * var(--sp-12));
 		/* Casos límite de contenido real (F5-g): sin esto, el formulario es un flex-item cuyo
 		   `min-width` por defecto es el de su contenido — un label/valor kilométrico (una sola
 		   palabra sin espacios) podría forzar overflow horizontal de la página entera. */
 		min-width: 0;
+	}
+
+	@media (max-width: 768px) {
+		.vega-record-form {
+			margin: calc(-1 * var(--sp-4));
+		}
 	}
 
 	/* Rejilla maestro-detalle (mockup `.detail-grid`): raíl | tarjetas | aside. `align-items:
