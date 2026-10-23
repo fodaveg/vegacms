@@ -1240,6 +1240,8 @@ describe('Relation — thumbField relación simple a Medios', () => {
 	});
 
 	test('alta inline hidrata el medio confirmado sin volver a consultar la obra', async () => {
+		// La carga fría del editor es una precondición, no parte de la espera del DOM.
+		await import('../RelationCreateDialog.svelte');
 		const list = vi.fn(async (type: string) =>
 			page(type === 'vega_media' ? [mediaRecord(MEDIA_ID_A, 'created.png')] : [])
 		);
@@ -1247,10 +1249,12 @@ describe('Relation — thumbField relación simple a Medios', () => {
 		const create = vi.fn(async () => art('created'));
 		view.ctx.port.create = create;
 		try {
+			await tick();
 			view.target.querySelector<HTMLButtonElement>('.vega-relation-create')!.click();
-			await vi.waitFor(() =>
-				expect(document.querySelector('[data-relation-create]')).not.toBeNull()
-			);
+			// Espera el import que disparó el click y después el montaje real de Svelte.
+			await vi.dynamicImportSettled();
+			await tick();
+			expect(document.querySelector('[data-relation-create]')).not.toBeNull();
 			const save = [
 				...document.querySelectorAll<HTMLButtonElement>('[data-relation-create] button')
 			].find((button) => button.textContent?.trim() === 'Crear y seleccionar')!;
