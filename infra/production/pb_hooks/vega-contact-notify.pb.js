@@ -45,10 +45,16 @@
 //   VEGA_CONTACT_NOTIFY_MAX             avisos como mucho por ventana (por defecto 5).
 //   VEGA_CONTACT_NOTIFY_WINDOW_MINUTES  tamaño de la ventana en minutos (por defecto 60).
 //   VEGA_FORMS_RETENTION_DAYS           entero positivo, opt-in; purga diaria de envíos/revisiones.
+//   VEGA_FORMS_EXCLUDE_COLLECTIONS      nombres CSV literales; no marca, avisa ni purga esas bandejas.
 //
 // LANDMINE de la JSVM de PocketBase: cada callback corre en un runtime aislado y NO ve las
 // variables ni funciones del ámbito del fichero; constantes y helpers van DENTRO del callback.
 onRecordCreateRequest((e) => {
+	const excluded = String($os.getenv('VEGA_FORMS_EXCLUDE_COLLECTIONS') || '')
+		.split(',')
+		.map((name) => name.trim())
+		.filter((name) => /^[a-zA-Z][a-zA-Z0-9_]*$/.test(name));
+	if (excluded.includes(e.record.collection().name)) return e.next();
 	const recipients = String($os.getenv('VEGA_CONTACT_NOTIFY_TO') || '')
 		.split(',')
 		.some((address) => address.trim().length > 0);
@@ -116,11 +122,16 @@ cronAdd('vega-contact-notify', '* * * * *', () => {
 		.map((address) => address.trim())
 		.filter((address) => address.length > 0);
 	if (recipients.length === 0) return; // sitio sin aviso configurado
+	const excluded = String($os.getenv('VEGA_FORMS_EXCLUDE_COLLECTIONS') || '')
+		.split(',')
+		.map((name) => name.trim())
+		.filter((name) => /^[a-zA-Z][a-zA-Z0-9_]*$/.test(name));
 
 	const collections = $app.findAllCollections().filter((collection) => {
 		const notify = collection.fields.getByName('notifyState');
 		const created = collection.fields.getByName('created');
 		return (
+			!excluded.includes(collection.name) &&
 			collection.type === 'base' &&
 			notify &&
 			notify.type() === 'text' &&
@@ -323,6 +334,10 @@ cronAdd('vega-contact-notify', '* * * * *', () => {
 
 // Retención opt-in: sin valor entero positivo no se borra nada. Sin copias nuevas del cliente.
 cronAdd('vega-forms-retention', '45 3 * * *', () => {
+	const excluded = String($os.getenv('VEGA_FORMS_EXCLUDE_COLLECTIONS') || '')
+		.split(',')
+		.map((name) => name.trim())
+		.filter((name) => /^[a-zA-Z][a-zA-Z0-9_]*$/.test(name));
 	const raw = String($os.getenv('VEGA_FORMS_RETENTION_DAYS') || '').trim();
 	const days = Number(raw);
 	if (!/^[0-9]+$/.test(raw) || !Number.isSafeInteger(days) || days <= 0) return;
@@ -331,6 +346,7 @@ cronAdd('vega-forms-retention', '45 3 * * *', () => {
 	const cutoff = new Date(cutoffMs).toISOString().replace('T', ' ');
 	let count = 0;
 	for (const collection of $app.findAllCollections()) {
+		if (excluded.includes(collection.name)) continue;
 		const notify = collection.fields.getByName('notifyState');
 		const created = collection.fields.getByName('created');
 		if (

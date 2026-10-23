@@ -4,6 +4,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
 import { seedSiteProject } from '$lib/backend/site-seeding';
+import { SITE_SEED_CONTACT_MODULE } from '$lib/backend/site-seeding-contact';
 import { buildFormInbox } from '$lib/forms/form-inbox';
 import { enableInboxRateLimit } from '$lib/forms/form-rate-limits';
 import { newFieldDraft } from '$lib/model/editor/field-draft';
@@ -31,7 +32,7 @@ async function api(method: string, route: string, body?: object, auth = token) {
 	const raw = await response.text();
 	return { status: response.status, body: raw ? JSON.parse(raw) : {} };
 }
-async function start(retention = '', max = '5') {
+async function start(retention = '', max = '5', excluded = '') {
 	instance = createPocketBaseInstanceDir();
 	await createPocketBaseSuperuser(instance.dataDir);
 	sink = await startSmtpSink();
@@ -40,7 +41,8 @@ async function start(retention = '', max = '5') {
 		env: {
 			VEGA_CONTACT_NOTIFY_TO: 'team@vega.test',
 			VEGA_FORMS_RETENTION_DAYS: retention,
-			VEGA_CONTACT_NOTIFY_MAX: max
+			VEGA_CONTACT_NOTIFY_MAX: max,
+			VEGA_FORMS_EXCLUDE_COLLECTIONS: excluded
 		}
 	});
 	const port = createPocketBaseBackend({ url: server.url });
@@ -250,3 +252,58 @@ test.each(['', '0', '-1', '1.5', 'no'])(
 		expect((await port.list('vega_revisions')).items).toHaveLength(2);
 	}
 );
+
+test('excluded messages is never marked, notified or purged; another inbox still works', async () => {
+	const port = await start('7', '5', ' messages , *, inscrip* , invalid-name ');
+	await seedSiteProject(port, { modules: [SITE_SEED_CONTACT_MODULE] });
+	const contact = await api(
+		'POST',
+		'collections/messages/records',
+		{
+			name: 'Own contact policy',
+			email: 'contact@vega.test',
+			message: 'Keep contact'
+		},
+		''
+	);
+	expect(contact.status).toBe(200);
+	const contactRoute = `collections/messages/records/${contact.body.id}`;
+	expect((await api('GET', contactRoute)).body.notifyState).toBe('');
+	// A pending row left by the collection's own handler must also be ignored by the cron.
+	expect((await api('PATCH', contactRoute, { notifyState: 'pending' })).status).toBe(200);
+	const other = await api('POST', 'collections/inscripciones/records', body, '');
+	expect(other.status).toBe(200);
+	await api('POST', 'crons/vega-contact-notify');
+	await expect
+		.poll(
+			async () =>
+				(await api('GET', `collections/inscripciones/records/${other.body.id}`)).body.notifyState
+		)
+		.toBe('sent');
+	expect(sink.messages).toHaveLength(1);
+	expect(sink.messages[0]).toContain('Inscripciones');
+	expect((await api('GET', contactRoute)).body.notifyState).toBe('pending');
+	await port.ensureCollections([
+		{
+			name: 'vega_revisions',
+			fields: [
+				{ name: 'collection', type: 'text' },
+				{ name: 'created', type: 'autodate' }
+			]
+		}
+	]);
+	for (const collection of ['messages', 'inscripciones'])
+		await port.create('vega_revisions', { collection });
+	const db = new DatabaseSync(path.join(instance.dataDir, 'data.db'));
+	db.exec(
+		"UPDATE messages SET created='2000-01-01 00:00:00.000Z'; UPDATE inscripciones SET created='2000-01-01 00:00:00.000Z'; UPDATE vega_revisions SET created='2000-01-01 00:00:00.000Z'"
+	);
+	db.close();
+	await api('POST', 'crons/vega-forms-retention');
+	await expect
+		.poll(async () => (await port.list('vega_revisions')).items.map((row) => row.values.collection))
+		.toEqual(['messages']);
+	expect((await port.list('inscripciones')).items).toHaveLength(0);
+	expect((await port.list('messages')).items).toHaveLength(1);
+	expect((await api('GET', contactRoute)).body.notifyState).toBe('pending');
+});

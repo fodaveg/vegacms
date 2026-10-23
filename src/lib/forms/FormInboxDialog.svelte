@@ -9,6 +9,7 @@
 		type DraftFieldType
 	} from '$lib/model/editor/field-draft';
 	import { generateSchemaMigration, type GeneratedMigration } from '$lib/backend/migration';
+	import { resolveProjectEditorCollection } from '$lib/backend/project-editor';
 	import {
 		previewSiteSeed,
 		seedSiteProject,
@@ -97,7 +98,10 @@
 				modules: [module],
 				confirmRuleDifferences: rulesConfirmed ? [module.id] : []
 			});
-			migration = generateSchemaMigration({ kind: 'create', specs: [...module.collections] });
+			migration = generateSchemaMigration({
+				kind: 'create',
+				specs: module.collections.map((spec) => resolveProjectEditorCollection(spec, ctx.port))
+			});
 			phase = 'done';
 			try {
 				resultRate = inboxRateLimit(

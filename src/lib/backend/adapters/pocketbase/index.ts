@@ -66,6 +66,7 @@ import { createPocketBaseStrongAuth } from './strong-auth';
 import { deferredAdministration, deferredPasswordReset } from '../../administration';
 import { deferredServerSettings } from '../../server-settings';
 import { asRaw } from './raw';
+import { projectEditorAuthCollection } from '../../project-editor';
 
 /** Colección de auth por defecto (v1, D1): superuser real de PB, sin restricciones de esquema. */
 const DEFAULT_AUTH_COLLECTION = '_superusers';
@@ -124,6 +125,8 @@ interface PocketBaseBackendOptions {
 	 * `schemaBootstrap` pasan a `false` (ver `computeCapabilities`).
 	 */
 	authCollection?: string;
+	/** Discovery/config editor identity, retained even when login is overridden to _superusers. */
+	editorAuthCollection?: string;
 	/** Base de las rutas de auth fuerte (p. ej. `/api/vega-auth` o `/api/fodaveg`). */
 	authApiBasePath?: string | null;
 	/** Clave estable del registro `vega` que contiene manifiesto y snapshot. */
@@ -149,6 +152,7 @@ interface PocketBaseBackendOptions {
 export function createPocketBaseBackend({
 	url,
 	authCollection = DEFAULT_AUTH_COLLECTION,
+	editorAuthCollection,
 	authApiBasePath = null,
 	manifestKey = VEGA_PROJECT_KEY,
 	buildApiUrl = null,
@@ -158,6 +162,11 @@ export function createPocketBaseBackend({
 	renderedBlockTypes = null
 }: PocketBaseBackendOptions): BackendPort {
 	const pb = new PocketBase(url);
+	const projectEditor = projectEditorAuthCollection({
+		editorAuthCollection:
+			editorAuthCollection ??
+			(authCollection !== DEFAULT_AUTH_COLLECTION ? authCollection : undefined)
+	});
 	// LANDMINE (ver README): el SDK cancela peticiones "duplicadas" en vuelo por defecto. La
 	// política de cancelación es de los consumidores (P3/P4), no del transporte (§4.6).
 	pb.autoCancellation(false);
@@ -628,6 +637,18 @@ export function createPocketBaseBackend({
 		serverSettings,
 		editorPasswordReset,
 		manifestKey: normalizedManifestKey,
+		editorAuthCollection: projectEditor,
+		async assertEditorAuthCollection() {
+			return guarded(async () => {
+				if (!CAPABILITIES.schemaBootstrap) {
+					throw VegaError.backend('Solo un superusuario puede comprobar el esquema editorial.');
+				}
+				const collection = await pb.collections.getOne(projectEditor);
+				if (collection.type !== 'auth') {
+					throw VegaError.backend('La colección editorial del proyecto no es de autenticación.');
+				}
+			});
+		},
 		buildApiUrl,
 		previewApiUrl,
 		previewVisualEditing,

@@ -218,6 +218,10 @@ export interface BackendPort {
 	readonly editorPasswordReset?: EditorPasswordResetPort;
 	/** Identidad del registro de manifiesto publicada por el backend; ausente = `default`. */
 	readonly manifestKey?: string;
+	/** Project editor identity, independent of the current login collection; absent = vega_editors. */
+	readonly editorAuthCollection?: string;
+	/** Read-only check that the configured custom editor collection exists and is an auth collection. */
+	assertEditorAuthCollection?(): Promise<void>;
 	/**
 	 * Base ABSOLUTA (`https://…/api/vega-build`) del disparador de build/despliegue (lote
 	 * "publicación", fase A), ya resuelta contra la URL del backend — ausente/`null` = este

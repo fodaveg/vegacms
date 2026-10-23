@@ -5,8 +5,13 @@ import type { ContentType, VegaRecord } from '$lib/backend/types';
 import { VegaError } from '$lib/backend/errors';
 import { fetchAllPages } from '$lib/transfer/paginate';
 import { VEGA_MEDIA_EDITOR_ACCESS_RULE } from './media-collection';
+import {
+	assertProjectEditorAuth,
+	resolveProjectEditorCollection
+} from '$lib/backend/project-editor';
 
 export const VEGA_MEDIA_FOLDERS_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'vega_media_folders',
 	listRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
 	viewRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
@@ -56,12 +61,15 @@ export function mediaFoldersState(types: readonly ContentType[]): MediaFoldersSt
 
 /** Completa por adición y llamadas separadas; nunca cambia reglas ni campos existentes. */
 export async function ensureMediaFolders(port: BackendPort): Promise<void> {
+	await assertProjectEditorAuth(port);
 	const types = await port.listContentTypes();
 	if (mediaFoldersState(types) === 'incompatible')
 		throw VegaError.backend('Las carpetas tienen un esquema incompatible. No se ha modificado.');
 	if (!types.some((type) => type.name === 'vega_media'))
 		throw VegaError.backend('La biblioteca de medios debe existir antes de completarla.');
-	await port.ensureCollections([VEGA_MEDIA_FOLDERS_COLLECTION]);
+	await port.ensureCollections([
+		resolveProjectEditorCollection(VEGA_MEDIA_FOLDERS_COLLECTION, port)
+	]);
 	const present = types.find((type) => type.name === 'vega_media_folders');
 	if (present) {
 		const missing = VEGA_MEDIA_FOLDERS_COLLECTION.fields.filter(

@@ -96,6 +96,12 @@ export function isAbsoluteUrl(value: string): boolean {
  *  propósito, la capa de sesión no puede importar del adaptador concreto (ley L1/P3-L1). */
 const DEFAULT_AUTH_COLLECTION = '_superusers';
 
+/** Project policy precedes the login override: _superusers authenticates, never defines editors. */
+export function resolveEditorAuthCollection(config: VegaConfig | null): string | undefined {
+	const name = config?.authCollection?.trim();
+	return name && name !== DEFAULT_AUTH_COLLECTION ? name : undefined;
+}
+
 /**
  * Resolución PURA de la colección de auth (lote L6a), MISMO patrón de tres niveles que
  * `resolveBackendUrl` — de hecho `config` y `override` son los mismos objetos ya resueltos por

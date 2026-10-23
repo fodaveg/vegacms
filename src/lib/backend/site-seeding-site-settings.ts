@@ -12,6 +12,7 @@ import type { CollectionSpec } from './collections';
 import type { JsonValue } from './types';
 
 const SITE_SETTINGS_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'site_settings',
 	listRule: '',
 	viewRule: '',

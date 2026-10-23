@@ -73,6 +73,12 @@ import {
 	type CommonCollectionRuleKey
 } from './collections';
 import { VegaError } from './errors';
+import {
+	assertProjectEditorAuth,
+	DEFAULT_EDITOR_AUTH_COLLECTION,
+	projectEditorAuthCollection,
+	resolveProjectEditorCollection
+} from './project-editor';
 import type { BackendPort } from './port';
 import {
 	isManifestObject,
@@ -174,6 +180,7 @@ export const SITE_SEED_SEO_FIELDS: readonly CollectionFieldSpec[] = [
 ];
 
 const PAGES_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'pages',
 	listRule: SITE_SEED_PAGES_READ_RULE,
 	viewRule: SITE_SEED_PAGES_READ_RULE,
@@ -216,6 +223,7 @@ export const SITE_SEED_REDIRECT_TO_PATTERN = String.raw`^(/$|/[^/\\\x00-\x20]|ht
  * no tiene sentido en un sitio que se reconstruye al publicar.
  */
 const REDIRECTS_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'redirects',
 	listRule: SITE_SEED_REDIRECTS_READ_RULE,
 	viewRule: SITE_SEED_REDIRECTS_READ_RULE,
@@ -257,6 +265,7 @@ const STARTER_BLOCK_TYPES = resolveContentModel({
 }).blockTypes;
 
 const BLOCKS_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'blocks',
 	listRule: SITE_SEED_BLOCKS_READ_RULE,
 	viewRule: SITE_SEED_BLOCKS_READ_RULE,
@@ -281,6 +290,7 @@ const BLOCKS_COLLECTION: CollectionSpec = {
 };
 
 const PROJECT_MANIFEST_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	...VEGA_COLLECTION,
 	fields: [...VEGA_COLLECTION.fields],
 	listRule: SITE_SEED_MANIFEST_READ_RULE,
@@ -550,7 +560,12 @@ export async function seedSiteProject(
 	};
 
 	await ensureEditorsCollection(port, result);
-	if (options.passwordResetUrl && port.capabilities.administration && port.administration) {
+	if (
+		projectEditorAuthCollection(port) === DEFAULT_EDITOR_AUTH_COLLECTION &&
+		options.passwordResetUrl &&
+		port.capabilities.administration &&
+		port.administration
+	) {
 		result.invitationLink = await port.administration.ensureInvitationLink(
 			options.passwordResetUrl
 		);
@@ -867,6 +882,7 @@ async function inspectSeedPlan(
 	port: BackendPort,
 	extraModules?: readonly SiteSeedModule[]
 ): Promise<SeedPlan> {
+	await assertProjectEditorAuth(port);
 	const modules = resolveSeedModules(extraModules);
 	const types = await port.listContentTypes();
 	const actualByName = new Map(types.map((type) => [type.name, type]));
@@ -874,7 +890,8 @@ async function inspectSeedPlan(
 	const divergences: SiteSeedDivergence[] = [];
 
 	for (const module of modules) {
-		for (const spec of module.collections) {
+		for (const template of module.collections) {
+			const spec = resolveProjectEditorCollection(template, port);
 			const actual = actualByName.get(spec.name);
 			const plan = inspectCollection(spec, actual, divergences);
 			collections.set(spec.name, plan);
@@ -956,7 +973,8 @@ async function inspectRuleDifferences(
 	for (const module of modules) {
 		if (module === SITE_SEED_BASE_MODULE) continue;
 		const found: SiteSeedRuleDifference[] = [];
-		for (const spec of module.collections) {
+		for (const template of module.collections) {
+			const spec = resolveProjectEditorCollection(template, port);
 			const actual = actualRules[spec.name];
 			if (!actual) continue;
 			for (const rule of COMMON_COLLECTION_RULE_KEYS) {
@@ -1265,6 +1283,8 @@ async function ensureOne(
  * del sembrado, no queda nada a medias.
  */
 async function ensureEditorsCollection(port: BackendPort, result: SiteSeedResult): Promise<void> {
+	// Custom auth was checked read-only by the preflight. Its schema/accounts belong to the host.
+	if (projectEditorAuthCollection(port) !== DEFAULT_EDITOR_AUTH_COLLECTION) return;
 	const ensured = await port.ensureCollections([VEGA_EDITORS_COLLECTION]);
 	result.createdCollections.push(...ensured.created);
 	if (ensured.created.length > 0) return;

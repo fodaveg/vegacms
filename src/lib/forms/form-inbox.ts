@@ -68,6 +68,7 @@ export function buildFormInbox(
 	});
 	if (Object.keys(checkCollectionFieldSpecs(fields)).length) throw new Error('forms.invalidFields');
 	const spec: CollectionSpec = {
+		projectEditorRules: true,
 		name,
 		listRule: SITE_SEED_EDITOR_ACCESS_RULE,
 		viewRule: SITE_SEED_EDITOR_ACCESS_RULE,

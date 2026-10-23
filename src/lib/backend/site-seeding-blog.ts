@@ -37,6 +37,7 @@ import { VEGA_MEDIA_COLLECTION } from '$lib/media/media-collection';
 export const SITE_SEED_TAGS_READ_RULE = '';
 
 const TAGS_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'tags',
 	listRule: SITE_SEED_TAGS_READ_RULE,
 	viewRule: SITE_SEED_TAGS_READ_RULE,
@@ -52,6 +53,7 @@ const TAGS_COLLECTION: CollectionSpec = {
 
 /** Firmas públicas; nunca reutiliza las cuentas privadas de vega_editors. */
 const AUTHORS_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'authors',
 	listRule: SITE_SEED_TAGS_READ_RULE,
 	viewRule: SITE_SEED_TAGS_READ_RULE,
@@ -76,6 +78,7 @@ const AUTHORS_COLLECTION: CollectionSpec = {
 
 /** Estructura editorial del blog; borrar una madre conserva sus hijas como raíces. */
 const CATEGORIES_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'categories',
 	listRule: SITE_SEED_TAGS_READ_RULE,
 	viewRule: SITE_SEED_TAGS_READ_RULE,
@@ -99,6 +102,7 @@ const CATEGORIES_COLLECTION: CollectionSpec = {
 };
 
 const POSTS_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'posts',
 	listRule: SITE_SEED_PAGES_READ_RULE,
 	viewRule: SITE_SEED_PAGES_READ_RULE,

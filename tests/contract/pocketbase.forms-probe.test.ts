@@ -2,6 +2,11 @@
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { createPocketBaseBackend } from '$lib/backend/adapters/pocketbase';
+import { previewSiteSeed, seedSiteProject } from '$lib/backend/site-seeding';
+import { SITE_SEED_OPTIONAL_MODULES } from '$lib/backend/site-seeding-modules';
+import { buildFormInbox } from '$lib/forms/form-inbox';
+import { newFieldDraft } from '$lib/model/editor/field-draft';
 import {
 	ADMIN_EMAIL,
 	ADMIN_PASSWORD,
@@ -119,4 +124,109 @@ test('PATCH rules reemplaza la lista; regla guest limita sexto anónimo y conser
 			(rule: { label: string }) => rule.label === 'users:auth'
 		)
 	).toBe(true);
+});
+
+test('custom users: new forms and modules work without changing auth or redirecting raw rules', async () => {
+	// PocketBase's initial migration already provides users; do not recreate or reconfigure it.
+	const existingUsers = await api('GET', 'collections/users');
+	expect(existingUsers.status).toBe(200);
+	expect(existingUsers.body.type).toBe('auth');
+	expect(
+		(
+			await api('POST', 'collections/users/records', {
+				email: 'custom@vega.test',
+				password: 'test-password-2',
+				passwordConfirm: 'test-password-2'
+			})
+		).status
+	).toBe(200);
+	const authBefore = (await api('GET', 'collections/users')).body;
+	const legacyBefore = (await api('GET', 'collections/vega_editors')).body;
+	const usersToken = (
+		await api(
+			'POST',
+			'collections/users/auth-with-password',
+			{ identity: 'custom@vega.test', password: 'test-password-2' },
+			''
+		)
+	).body.token;
+	const port = createPocketBaseBackend({ url: server.url, editorAuthCollection: 'users' });
+	await port.login({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+	const form = buildFormInbox({
+		name: 'registro_custom_auth',
+		label: 'Registro',
+		singular: '',
+		fields: [
+			{
+				label: 'Nombre',
+				draft: { ...newFieldDraft(), name: 'name', required: true },
+				longText: false
+			}
+		]
+	});
+	const modules = [...SITE_SEED_OPTIONAL_MODULES, form];
+	await seedSiteProject(port, { modules, passwordResetUrl: 'https://example.test/reset' });
+	const preview = await previewSiteSeed(port, { modules });
+	expect(preview.status).toBe('ready');
+	if (preview.status === 'ready') {
+		expect(preview.plan.upToDate).toBe(true);
+		expect(preview.modules.flatMap((module) => module.ruleDifferences)).toEqual([]);
+	}
+	expect((await api('GET', 'collections/users')).body).toEqual(authBefore);
+	expect((await api('GET', 'collections/vega_editors')).body).toEqual(legacyBefore);
+	const made = await api(
+		'POST',
+		'collections/registro_custom_auth/records',
+		{ name: 'Ada', website: '' },
+		''
+	);
+	expect(made.status).toBe(200);
+	const route = `collections/registro_custom_auth/records/${made.body.id}`;
+	expect((await api('GET', route, undefined, usersToken)).status).toBe(200);
+	expect((await api('GET', route, undefined, '')).status).toBe(404);
+	expect((await api('GET', route, undefined, editor)).status).toBe(404);
+	expect((await api('PATCH', route, { read: true }, usersToken)).status).toBe(200);
+	expect(
+		(
+			await api(
+				'POST',
+				'collections/registro_custom_auth/records',
+				{ name: 'Bot', website: 'spam' },
+				''
+			)
+		).status
+	).toBe(400);
+	expect(
+		(await api('POST', 'collections/registro_custom_auth/records', { name: 'Bot', read: true }, ''))
+			.status
+	).toBe(400);
+	expect(
+		(
+			await api(
+				'POST',
+				'collections/vega_media_folders/records',
+				{ name: 'Editor folder' },
+				usersToken
+			)
+		).status
+	).toBe(200);
+	expect(
+		(await api('POST', 'collections/vega_media_folders/records', { name: 'Legacy folder' }, editor))
+			.status
+	).toBe(400);
+	const menu = (await api('GET', 'collections/menus/records')).body.items[0];
+	expect(
+		(await api('PATCH', `collections/menus/records/${menu.id}`, { name: 'Renamed' }, usersToken))
+			.status
+	).toBe(200);
+	expect(
+		(await api('PATCH', `collections/menus/records/${menu.id}`, { key: 'changed' }, usersToken))
+			.status
+	).toBe(404);
+	await port.ensureCollections([
+		{ name: 'literal_rules', fields: [], listRule: '@request.auth.collectionName = "vega_editors"' }
+	]);
+	expect((await api('GET', 'collections/literal_rules')).body.listRule).toBe(
+		'@request.auth.collectionName = "vega_editors"'
+	);
 });

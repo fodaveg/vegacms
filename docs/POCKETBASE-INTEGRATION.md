@@ -1224,6 +1224,16 @@ sean más abiertas o sean más cerradas. Si `pages` ya existe con `listRule: nul
 existe, el preflight aborta con un error claro antes de escribir; alinea las reglas manualmente y
 vuelve a sembrar.
 
+**Identidad editorial del proyecto.** Los módulos, medios, carpetas y el asistente de formularios
+enlazan sus reglas generadas a la colección de editores del discovery/configuración (por ejemplo,
+`users`), aunque quien administra haya entrado mediante un override `_superusers`. Sin destino
+editorial se conserva `vega_editors`. Una auth personalizada debe existir: Vega solo comprueba su
+tipo por lectura, no la crea, no añade campos ni cambia sus reglas, cuentas o invitaciones. Las
+specs genéricas y las reglas explícitas se conservan literales; no se sustituyen cadenas en todo
+`ensureCollections`. Solo las plantillas propias con `projectEditorRules: true` enlazan la
+identidad antes del preflight y de la escritura, manteniendo sus restricciones públicas, de clave
+y de publicación. Las reglas de colecciones existentes siguen sin modificarse.
+
 **Colecciones de un módulo que ya existen** (`tags`, `posts`, `messages` son nombres genéricos). El
 sembrado sigue sin cambiar ninguna de sus reglas, pero ya no las adopta en silencio: el preflight
 las compara con las que declara el módulo y, si difieren, lo dice por colección y por regla, con
@@ -1734,11 +1744,18 @@ los formularios** en [CONFIG.md](CONFIG.md). `VEGA_FORMS_RETENTION_DAYS`, entero
 borra también revisiones antiguas de esas bandejas sin crear copias nuevas. Sin hook o sin plazo
 válido, no hay retención automática. No se migra el `messages` propio de otros sitios.
 
+Si una colección ya tiene avisos o retención propios, `VEGA_FORMS_EXCLUDE_COLLECTIONS=messages`
+la excluye de los tres caminos del hook general: marcado en la petición, cron de avisos y purga
+de envíos/revisiones. Es CSV de nombres literales válidos, con espacios recortados, sin comodines;
+las entradas inválidas se ignoran. Las demás bandejas conservan su funcionamiento. Ausente o vacía
+no excluye ninguna colección; no cambia el plazo de la política propia del sitio.
+
 ### Carpetas planas de la biblioteca
 
 La base del sitio crea `vega_media_folders` antes de `vega_media` y añade a esta última la relación
 opcional `folder`, simple y sin cascada. Las carpetas son organización interna: sus cinco reglas
-admiten editores de `vega_editors`; no tienen manifiesto, jerarquía ni permisos por carpeta. El campo
+admiten editores de la auth del proyecto (`vega_editors` por defecto); no tienen manifiesto,
+jerarquía ni permisos por carpeta. El campo
 `name` es obligatorio, único (distingue mayúsculas) y tiene un máximo de 80 caracteres. Un medio sin
 carpeta conserva `folder = null`; borrar una carpeta conserva sus medios y sus archivos.
 

@@ -18,6 +18,10 @@ import {
 import { computeCollectionState, type CollectionState } from '$lib/backend/collection-state';
 import type { BackendPort } from '$lib/backend/port';
 import type { Capabilities, ContentType } from '$lib/backend/types';
+import {
+	assertProjectEditorAuth,
+	resolveProjectEditorCollection
+} from '$lib/backend/project-editor';
 
 /** Tamaño máximo de fichero (D-P6.1): 10 MiB. */
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -54,6 +58,7 @@ export const VEGA_MEDIA_EDITOR_ACCESS_RULE = '@request.auth.collectionName = "ve
  * (`adapters/pocketbase/files.ts`) los compila a `WxH` plano.
  */
 export const VEGA_MEDIA_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'vega_media',
 	listRule: VEGA_MEDIA_EDITOR_ACCESS_RULE,
 	viewRule: VEGA_MEDIA_VIEW_RULE,
@@ -97,8 +102,9 @@ export function computeMediaCollectionState(
  * que ese invariante quede fijado en un único sitio comprobable por test, no repetido en el
  * `+page.svelte`.
  */
-export function ensureMediaCollection(port: BackendPort): Promise<EnsureResult> {
-	return port.ensureCollections([VEGA_MEDIA_COLLECTION]);
+export async function ensureMediaCollection(port: BackendPort): Promise<EnsureResult> {
+	await assertProjectEditorAuth(port);
+	return port.ensureCollections([resolveProjectEditorCollection(VEGA_MEDIA_COLLECTION, port)]);
 }
 
 /**

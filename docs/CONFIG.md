@@ -53,6 +53,11 @@ Crea `static/vega.config.json` con la siguiente estructura:
   Si el PocketBase expone el contrato v1, este valor se descubre del servidor;
   solo hace falta mantenerlo aquí para servidores legacy o como recuperación.
 
+  Al crear módulos, medios, carpetas o bandejas, Vega usa la colección editorial del proyecto
+  descubierta/configurada. Entrar con un override `_superusers` conserva esa identidad editorial:
+  el override cambia quién administra, no quién podrá editar lo creado. Sin identidad editorial
+  configurada se mantiene el destino histórico `vega_editors`.
+
 - **`authApiBasePath`** (opcional, string, L6): base relativa de la extensión de autenticación
   fuerte instalada en ESE PocketBase, por ejemplo `/api/vega-auth`. Al definirla, Vega activa
   password + TOTP/recuperación, acceso con passkey y la gestión de factores en Ajustes. Ausente o
@@ -689,6 +694,14 @@ Se configura con variables de entorno del proceso de PocketBase (en el `compose.
 | `VEGA_CONTACT_NOTIFY_TO`             | Destinatarios, separados por comas. Sin ella no se avisa a nadie.    | (sin valor) |
 | `VEGA_CONTACT_NOTIFY_MAX`            | Máximo de avisos por ventana. Un valor no entero o `0` se ignora.    | `5`         |
 | `VEGA_CONTACT_NOTIFY_WINDOW_MINUTES` | Tamaño de la ventana en minutos. Un valor no entero o `0` se ignora. | `60`        |
+| `VEGA_FORMS_EXCLUDE_COLLECTIONS`     | Colecciones excluidas del marcado, avisos y retención general.       | (sin valor) |
+
+`VEGA_FORMS_EXCLUDE_COLLECTIONS` acepta nombres literales separados por comas y recorta espacios;
+solo admite letras, dígitos y `_`, empezando por letra. Las entradas inválidas se ignoran: no hay
+comodines ni patrones. Por ejemplo, `messages` conserva un contacto que ya tenga su propio envío y
+política de conservación, mientras las bandejas nuevas siguen usando el hook general. La exclusión
+también conserva sus revisiones: no marca ni cambia `notifyState`, no envía correos y no purga filas
+de esa colección ni sus revisiones. Sin esta variable el comportamiento anterior se mantiene.
 
 - **Sin `VEGA_CONTACT_NOTIFY_TO` los mensajes se guardan y NO se avisa por correo.** El hook no
   falla ni escribe errores en ese caso. La interfaz de Vega no puede saber si el aviso está

@@ -1,5 +1,14 @@
 import { describe, expect, test } from 'vitest';
 import { backendInstallationIdentity, resolveAuthApiBasePath } from './backend-config';
+import { resolveAuthCollection, resolveEditorAuthCollection } from './backend-config';
+
+test('project editor identity survives an independent superuser login override', () => {
+	const config = { authCollection: 'users' };
+	expect(resolveAuthCollection({ config, override: '_superusers' })).toBe('_superusers');
+	expect(resolveEditorAuthCollection(config)).toBe('users');
+	expect(resolveEditorAuthCollection({ authCollection: '_superusers' })).toBeUndefined();
+	expect(resolveEditorAuthCollection(null)).toBeUndefined();
+});
 
 describe('resolveAuthApiBasePath', () => {
 	test('es opt-in y normaliza la barra final', () => {

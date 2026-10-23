@@ -19,6 +19,7 @@ export const SITE_SEED_MENU_ITEMS_READ_RULE = `page = "" || page.status = "publi
 export const SITE_SEED_MENU_URL_PATTERN = String.raw`^(/$|/[^/\\\x00-\x20]|#[^\x00-\x20]|https?://|mailto:[^\x00-\x20])`;
 
 const MENUS_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'menus',
 	listRule: '',
 	viewRule: '',
@@ -40,6 +41,7 @@ const MENUS_COLLECTION: CollectionSpec = {
 };
 
 const MENU_ITEMS_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'menu_items',
 	listRule: SITE_SEED_MENU_ITEMS_READ_RULE,
 	viewRule: SITE_SEED_MENU_ITEMS_READ_RULE,

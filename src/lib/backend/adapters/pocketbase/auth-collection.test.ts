@@ -96,6 +96,43 @@ afterEach(() => {
 });
 
 describe('modo superuser (default, sin authCollection) — camino previo INTACTO', () => {
+	test('discovery users survives a superuser login; custom auth validation only reads its schema', async () => {
+		const { pathnames } = stubFetchRoutes({
+			'/api/collections/_superusers/auth-with-password': () =>
+				jsonResponse({
+					token: fakeJwt({ exp: futureExp() }),
+					record: { id: 'su1', email: 'admin@example.com', collectionName: '_superusers' }
+				}),
+			'/api/collections/users': () => jsonResponse({ name: 'users', type: 'auth', fields: [] })
+		});
+		const port = createPocketBaseBackend({ url: BASE_URL, editorAuthCollection: 'users' });
+		await port.login({ email: 'admin@example.com', password: 'x' });
+		await port.assertEditorAuthCollection!();
+		expect(port.editorAuthCollection).toBe('users');
+		expect(port.capabilities.schemaBootstrap).toBe(true);
+		expect(pathnames).toEqual([
+			'/api/collections/_superusers/auth-with-password',
+			'/api/collections/users'
+		]);
+	});
+
+	test('a base collection cannot be adopted as custom editor auth; _superusers is never an editor target', async () => {
+		stubFetchRoutes({
+			'/api/collections/_superusers/auth-with-password': () =>
+				jsonResponse({
+					token: fakeJwt({ exp: futureExp() }),
+					record: { id: 'su1', email: 'admin@example.com', collectionName: '_superusers' }
+				}),
+			'/api/collections/users': () => jsonResponse({ name: 'users', type: 'base', fields: [] })
+		});
+		const port = createPocketBaseBackend({ url: BASE_URL, editorAuthCollection: 'users' });
+		await port.login({ email: 'admin@example.com', password: 'x' });
+		await expect(port.assertEditorAuthCollection!()).rejects.toMatchObject({ kind: 'backend' });
+		expect(() =>
+			createPocketBaseBackend({ url: BASE_URL, editorAuthCollection: '_superusers' })
+		).toThrow();
+	});
+
 	test('capabilities IDÉNTICAS a antes de L6a', () => {
 		const port = createPocketBaseBackend({ url: BASE_URL });
 		expect(port.capabilities).toEqual({

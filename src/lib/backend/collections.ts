@@ -82,6 +82,8 @@ type CommonCollectionRules = Partial<Record<CommonCollectionRuleKey, CollectionR
 type AuthOnlyCollectionRules = Partial<Record<AuthCollectionRuleKey, CollectionRule>>;
 
 interface CollectionSpecBase {
+	/** Vega-owned rule template: bind only its canonical editor identity to this project. */
+	projectEditorRules?: true;
 	/** Debe empezar por letra y contener solo letras/dígitos/`_` (`isCreatableCollectionName`);
 	 *  si no, `ensureCollections` rechaza con `validation` local, sin tocar red. */
 	name: string;

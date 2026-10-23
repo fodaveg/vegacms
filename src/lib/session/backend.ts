@@ -122,6 +122,7 @@ import {
 	isAbsoluteUrl,
 	resolveAuthApiBasePath,
 	resolveAuthCollection,
+	resolveEditorAuthCollection,
 	resolveBackendUrl,
 	type VegaConfig
 } from './backend-config';
@@ -375,6 +376,7 @@ async function createInstance(): Promise<BackendPort> {
 				createPocketBaseBackend({
 					url,
 					authCollection,
+					editorAuthCollection: resolveEditorAuthCollection(projectConfig),
 					authApiBasePath,
 					manifestKey: projectConfig?.manifestKey,
 					buildApiUrl: resolveBuildApiUrl(url, discovery),

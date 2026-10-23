@@ -58,6 +58,7 @@ const CONTACT_MESSAGE_MAX_LENGTH = 5000;
 const CONTACT_NOTIFY_STATE_FIELD = 'notifyState';
 
 const MESSAGES_COLLECTION: CollectionSpec = {
+	projectEditorRules: true,
 	name: 'messages',
 	listRule: SITE_SEED_EDITOR_ACCESS_RULE,
 	viewRule: SITE_SEED_EDITOR_ACCESS_RULE,
