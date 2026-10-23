@@ -79,6 +79,9 @@ const MENUS_MANIFEST: JsonValue = {
 			subtitleField: 'key',
 			listFields: ['name', 'key'],
 			fields: {
+				// Las fechas automáticas no forman parte del contenido editorial.
+				created: { hidden: true },
+				updated: { hidden: true },
 				name: { label: 'Nombre' },
 				key: {
 					label: 'Clave',
@@ -94,6 +97,9 @@ const MENUS_MANIFEST: JsonValue = {
 			hidden: true,
 			titleField: 'label',
 			fields: {
+				// Las fechas automáticas no forman parte del contenido editorial.
+				created: { hidden: true },
+				updated: { hidden: true },
 				label: {
 					label: 'Texto',
 					help: 'Lo que se lee en el menú. Si eliges una página y lo dejas vacío, se usa el título de la página.'

@@ -13,7 +13,10 @@ test('carpetas: completar, crear, subir dentro, mover ficha y lote, filtrar pick
 	await sidebar.getByLabel('Nombre de carpeta').fill('Viajes');
 	await sidebar.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/folder=/);
-	await expect(sidebar.getByRole('combobox')).toHaveValue(/.+/);
+	await expect(sidebar.getByRole('combobox')).toBeHidden();
+	await expect(
+		sidebar.getByRole('navigation').getByRole('button', { name: 'Viajes', exact: true })
+	).toHaveAttribute('aria-current', 'true');
 	await page.locator('.vega-media-upload input[type="file"]').setInputFiles({
 		name: 'ruta.pdf',
 		mimeType: 'application/pdf',

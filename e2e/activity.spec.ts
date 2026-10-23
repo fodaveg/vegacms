@@ -124,7 +124,15 @@ test('Actividad: contraste medido, foco y controles táctiles', async ({ page })
 	}
 	await page.evaluate(() => {
 		document.documentElement.dataset.mode = 'dark';
+		document.documentElement.style.colorScheme = 'dark';
 	});
+	// La costura runtime aplica también color-scheme: los controles nativos deben seguir el modo.
+	expect(
+		await page
+			.locator('input[type="date"]')
+			.first()
+			.evaluate((node) => getComputedStyle(node).colorScheme)
+	).toBe('dark');
 	const dark = await page.locator('.activity-page').evaluate(measure);
 	for (const pair of dark.ratios)
 		expect(pair.ratio, JSON.stringify(pair)).toBeGreaterThanOrEqual(4.5);

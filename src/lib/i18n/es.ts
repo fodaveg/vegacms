@@ -1621,6 +1621,7 @@ export const es = {
 	// El recuento de la cabecera es el TOTAL de la biblioteca (`totalItems` del listado), nunca el
 	// de la página ni el del filtro. El mockup añade además el peso total en MB: Vega no lo sabe
 	// (§4.4, el puerto no expone el tamaño de un fichero ya almacenado) y no se inventa.
+	'media.meta.file': 'archivo',
 	'media.meta.files': 'archivos',
 	'media.filter.groupLabel': 'Filtrar por tipo',
 	'media.filter.all': 'Todos',
@@ -1669,6 +1670,7 @@ export const es = {
 	'media.upload.summary': '{uploaded} archivo(s) subido(s), {failed} fallido(s).',
 	'media.upload.summaryPending':
 		'{uploaded} archivo(s) subido(s), {failed} fallido(s), {pending} pendiente(s) por la sesión caducada.',
+	'media.upload.options': 'Opciones de subida',
 	'media.upload.keepOriginal': 'Subir el original',
 	'media.upload.shrinkNotice':
 		'Las imágenes grandes se reducen al subirlas. Se pierden los datos de la cámara, incluida la ubicación.',

@@ -48,6 +48,9 @@ const SITE_SETTINGS_MANIFEST: JsonValue = {
 			titleField: 'siteTitle',
 			fieldGroups: [{ name: 'SEO', placement: 'aside' }],
 			fields: {
+				// Las fechas automáticas no forman parte del contenido editorial.
+				created: { hidden: true },
+				updated: { hidden: true },
 				key: { hidden: true },
 				siteTitle: {
 					label: 'Nombre del sitio',

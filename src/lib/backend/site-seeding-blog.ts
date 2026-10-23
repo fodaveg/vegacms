@@ -233,6 +233,9 @@ const BLOG_MANIFEST: JsonValue = {
 			slugField: 'slug',
 			listFields: ['name', 'slug'],
 			fields: {
+				// Las fechas automáticas no forman parte del contenido editorial.
+				created: { hidden: true },
+				updated: { hidden: true },
 				slug: {
 					label: 'Dirección (slug)',
 					help: 'La parte de la dirección del sitio que identifica al autor. Se puede regenerar a partir del nombre.'
@@ -259,6 +262,9 @@ const BLOG_MANIFEST: JsonValue = {
 			tree: { parentField: 'parent', maxDepth: 3 },
 			listFields: ['name', 'slug'],
 			fields: {
+				// Las fechas automáticas no forman parte del contenido editorial.
+				created: { hidden: true },
+				updated: { hidden: true },
 				slug: {
 					label: 'Dirección (slug)',
 					help: 'La parte de la dirección del sitio que identifica la categoría. Se puede regenerar a partir del nombre.'

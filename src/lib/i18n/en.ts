@@ -1534,6 +1534,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	// The header count is the library TOTAL (`totalItems` of the listing), never the page's nor the
 	// filter's. The mockup also shows the total weight in MB: Vega does not know it (§4.4, the port
 	// does not expose the size of an already stored file) and does not make it up.
+	'media.meta.file': 'file',
 	'media.meta.files': 'files',
 	'media.filter.groupLabel': 'Filter by type',
 	'media.filter.all': 'All',
@@ -1581,6 +1582,7 @@ export const en: Record<keyof typeof import('./es').es, string> = {
 	'media.upload.summary': '{uploaded} file(s) uploaded, {failed} failed.',
 	'media.upload.summaryPending':
 		'{uploaded} file(s) uploaded, {failed} failed, {pending} pending because the session expired.',
+	'media.upload.options': 'Upload options',
 	'media.upload.keepOriginal': 'Upload the original',
 	'media.upload.shrinkNotice':
 		'Large images are reduced when uploaded. Camera data, including location, is lost.',

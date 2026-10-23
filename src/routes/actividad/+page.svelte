@@ -109,17 +109,21 @@
 	<SuperuserGate body={ctx.t('activity.gate')} />
 {:else}
 	<section
-		class="activity-page"
+		class="vega-admin-page activity-page"
 		aria-labelledby="activity-heading"
 		data-activity-state={!available ? 'unavailable' : status}
 	>
-		<header>
+		<header class="vega-admin-head">
 			<div>
 				<h1 id="activity-heading" tabindex="-1">{ctx.t('activity.title')}</h1>
-				<p>{ctx.t('activity.intro')}</p>
+				<p class="vega-admin-desc">{ctx.t('activity.intro')}</p>
 			</div>
-			<button type="button" onclick={() => load()} disabled={status === 'loading' || !available}
-				>{ctx.t('activity.refresh')}</button
+			<span class="vega-admin-head-spacer"></span>
+			<button
+				class="vega-admin-btn"
+				type="button"
+				onclick={() => load()}
+				disabled={status === 'loading' || !available}>{ctx.t('activity.refresh')}</button
 			>
 		</header>
 		{#if !available}
@@ -165,7 +169,7 @@
 						min={filters.from || undefined}
 					/></label
 				>
-				<button type="submit">{ctx.t('activity.filter')}</button>
+				<button class="vega-admin-btn" type="submit">{ctx.t('activity.filter')}</button>
 			</form>
 			{#if status === 'loading'}<div class="activity-state" role="status" aria-busy="true">
 					<p>{ctx.t('activity.loading')}</p>
@@ -173,7 +177,9 @@
 				</div>
 			{:else if status === 'error'}<div class="activity-state" role="alert">
 					<h2>{ctx.t('activity.error')}</h2>
-					<button type="button" onclick={() => load()}>{ctx.t('activity.retry')}</button>
+					<button class="vega-admin-btn" type="button" onclick={() => load()}
+						>{ctx.t('activity.retry')}</button
+					>
 				</div>
 			{:else}
 				{#if invalidRows}<p role="status">{ctx.t('activity.invalidRows')}</p>{/if}
@@ -183,7 +189,7 @@
 					</div>
 				{:else}<ActivityList {entries} {targets} />{/if}
 				{#if more}<button
-						class="activity-more"
+						class="vega-admin-btn activity-more"
 						type="button"
 						onclick={() => load(true)}
 						disabled={loadingMore}
@@ -196,24 +202,14 @@
 {/if}
 
 <style>
-	.activity-page {
-		max-width: 1100px;
-		margin: 0 auto;
-		padding: 2rem;
-		color: var(--ink);
+	.vega-admin-head {
+		align-items: center;
 	}
-	header {
+	.vega-admin-head > div {
 		display: flex;
-		align-items: start;
-		justify-content: space-between;
-		gap: 1rem;
-		margin-bottom: 1.5rem;
+		flex-direction: column;
+		gap: var(--sp-2);
 	}
-	h1 {
-		margin: 0 0 0.5rem;
-		font-size: 1.75rem;
-	}
-	header p,
 	.activity-footnote {
 		color: var(--ink-2);
 		margin: 0;
@@ -223,7 +219,7 @@
 		flex-wrap: wrap;
 		gap: 0.75rem;
 		align-items: end;
-		margin-bottom: 1.5rem;
+		margin: 0;
 	}
 	label {
 		display: flex;
@@ -234,10 +230,10 @@
 		min-width: 0;
 	}
 	select,
-	input,
-	button {
-		min-height: 44px;
-		padding: 0.5rem 0.75rem;
+	input {
+		height: 34px;
+		box-sizing: border-box;
+		padding: 0 var(--sp-3);
 		border: 1px solid var(--line);
 		border-radius: var(--r);
 		background: var(--surface);
@@ -265,7 +261,8 @@
 	.activity-state {
 		border: 1px solid var(--line);
 		border-radius: var(--r);
-		padding: 2rem;
+		padding: var(--sp-6);
+		background: var(--paper);
 	}
 	.activity-state h2 {
 		font-size: 1.125rem;
@@ -284,9 +281,17 @@
 		font-size: 0.8rem;
 		margin-top: 1rem;
 	}
+	@media (pointer: coarse) {
+		select,
+		input {
+			min-height: 44px;
+		}
+	}
 	@media (max-width: 600px) {
-		.activity-page {
-			padding: 1rem;
+		select,
+		input,
+		.vega-admin-btn {
+			min-height: 44px;
 		}
 		header {
 			flex-wrap: wrap;

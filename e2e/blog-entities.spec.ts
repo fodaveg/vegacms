@@ -39,6 +39,9 @@ async function createCategory(page: Page, name: string, parent?: string) {
 	if (parent) await selectParent(page, parent);
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/c\/categories\/(?!new$)[^/]+$/);
+	await expect(
+		page.locator('.vega-field-row[data-field="created"], .vega-field-row[data-field="updated"]')
+	).toHaveCount(0);
 	return page.url().split('/').pop()!;
 }
 async function createInline(surface: Page, relation: string, label: string, name: string) {
@@ -53,7 +56,7 @@ async function createInline(surface: Page, relation: string, label: string, name
 
 test('crear dos autores desde una entrada, invertir firma, guardar y reabrir conserva el orden', async ({
 	page
-}) => {
+}, info) => {
 	await seedBlog(page);
 	await openCollection(page, 'posts');
 	await page.getByRole('button', { name: 'Nuevo: Entrada' }).click();
@@ -69,20 +72,43 @@ test('crear dos autores desde una entrada, invertir firma, guardar y reabrir con
 	await page.getByRole('link', { name: 'Una firma compartida', exact: true }).click();
 	await expect(field(page, 'authors').locator('.vega-relation-chip').first()).toContainText('Luis');
 	await expect(field(page, 'authors').locator('.vega-relation-chip').nth(1)).toContainText('Ana');
+	await openCollection(page, 'authors');
+	await page.getByRole('link', { name: 'Ana', exact: true }).click();
+	await expect(page.getByRole('heading', { name: 'Editar «Autor»', exact: true })).toBeVisible();
+	await expect(
+		page.locator('.vega-field-row[data-field="created"], .vega-field-row[data-field="updated"]')
+	).toHaveCount(0);
+	await expect(page.locator('.vega-editor-kv').getByText('Creado', { exact: true })).toBeVisible();
+	await page.screenshot({ path: info.outputPath('autor-sin-foto-desktop.png'), fullPage: true });
+	await page.setViewportSize({ width: 390, height: 844 });
+	if (await page.getByRole('button', { name: 'Cerrar navegación', exact: true }).count())
+		await page.getByRole('button', { name: 'Cerrar navegación', exact: true }).click();
+	await expect(page.locator('#vega-sidebar')).not.toBeInViewport();
+	expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+	await page.screenshot({ path: info.outputPath('autor-sin-foto-mobile.png'), fullPage: true });
 });
 
 test('árbol con madre visible, orden entre hermanas y selector sin propia ni descendientes', async ({
 	page
-}) => {
+}, info) => {
 	await seedBlog(page);
 	await createCategory(page, 'Desarrollo');
 	await createCategory(page, 'Web', 'Desarrollo');
 	await createCategory(page, 'Apple', 'Desarrollo');
+	await createCategory(
+		page,
+		'Herramientas de publicación y mantenimiento de sitios con nombres largos',
+		'Web'
+	);
 	await openCollection(page, 'categories');
 	const web = page
 		.locator('tbody tr')
 		.filter({ has: page.getByRole('link', { name: 'Web', exact: true }) });
 	await expect(web).toContainText('Dentro de Desarrollo');
+	await page.screenshot({
+		path: info.outputPath('categorias-tres-niveles-desktop.png'),
+		fullPage: true
+	});
 	const rootBox = await page.getByRole('link', { name: 'Desarrollo', exact: true }).boundingBox();
 	const childBox = await web.getByRole('link', { name: 'Web', exact: true }).boundingBox();
 	expect(childBox!.x).toBeGreaterThan(rootBox!.x);
@@ -94,14 +120,23 @@ test('árbol con madre visible, orden entre hermanas y selector sin propia ni de
 	await expect(page.locator('tbody tr').first()).toContainText('Desarrollo');
 	await page.getByRole('link', { name: 'Desarrollo', exact: true }).click();
 	const parent = field(page, 'parent');
+	await expect(parent.locator('input[type="search"]')).toBeEnabled();
+	await page.screenshot({ path: info.outputPath('categorias-form-desktop.png'), fullPage: true });
 	await parent.locator('input[type="search"]').fill('Web');
 	await expect(parent).toContainText('Sin resultados');
 	await expect(parent.locator('.vega-relation-candidate')).toHaveCount(0);
 	await page.getByRole('button', { name: 'Categorías', exact: true }).click();
 	await page.setViewportSize({ width: 390, height: 844 });
+	if (await page.getByRole('button', { name: 'Cerrar navegación', exact: true }).count())
+		await page.getByRole('button', { name: 'Cerrar navegación', exact: true }).click();
+	await expect(page.locator('#vega-sidebar')).not.toBeInViewport();
 	await expect(page.locator('#vega-sidebar')).not.toHaveClass(/vega-sidebar-open/);
 	await expect(page.getByRole('link', { name: 'Desarrollo', exact: true })).toBeVisible();
 	await expect(page.locator('.vega-list-card')).toBeVisible();
+	await page.screenshot({
+		path: info.outputPath('categorias-tres-niveles-mobile.png'),
+		fullPage: true
+	});
 	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
 		true
 	);

@@ -366,6 +366,17 @@
 	 *  existe y `file` es `required`, así que siempre está) — `MediaUpload` no se monta sin él, y
 	 *  el chip «Vídeo» tampoco se ofrece sin él. */
 	const mediaFileSchema = $derived(findMediaFileFieldSchema(types));
+	/** Con permiso de subida, el vacío y su acción comparten una sola zona de arrastre. */
+	const mediaEmptyState = $derived(
+		mediaReadyPage?.totalItems === 0 && appliedSearch.trim() === ''
+			? activeFolder === null
+				? 'empty'
+				: 'empty-folder'
+			: null
+	);
+	const emptyUpload = $derived(
+		mediaEmptyState !== null && !!mediaFileSchema && mediaPermissions.create
+	);
 
 	/** Los chips del mockup, en su orden; «Vídeo» solo si el esquema descubierto admite vídeo (ver
 	 *  cabecera). */
@@ -587,7 +598,7 @@
 			     el puerto no expone tamaño ni dimensiones), así que no se inventa. -->
 			<span class="vega-media-meta">
 				<b>{mediaReadyPage.totalItems}</b>
-				{ctx.t('media.meta.files')}
+				{ctx.t(mediaReadyPage.totalItems === 1 ? 'media.meta.file' : 'media.meta.files')}
 			</span>
 		{/if}
 		<span class="vega-media-head-spacer"></span>
@@ -729,12 +740,26 @@
 			     criterio que el resto de acciones denegadas del lote (botón "Nueva" y asa de reorder de
 			     `/c/[type]`, fix #3 de este mismo code-review) — sin permiso, la afordancia no se ofrece. -->
 					{#if mediaFileSchema && mediaPermissions.create}
-						<MediaUpload
-							bind:this={uploadRef}
-							schema={mediaFileSchema}
-							folder={activeFolder === 'none' ? null : activeFolder}
-							onUploaded={handleMediaUploaded}
-						/>
+						<div data-media-grid-state={emptyUpload ? mediaEmptyState : undefined}>
+							<MediaUpload
+								emptyTitle={emptyUpload
+									? ctx.t(
+											activeFolder === null
+												? 'media.empty.title'
+												: activeFolder === 'none'
+													? 'media.folders.emptyUnfiled'
+													: 'media.folders.emptyFolder'
+										)
+									: undefined}
+								emptyBody={emptyUpload && activeFolder === null
+									? ctx.t('media.empty.body')
+									: undefined}
+								bind:this={uploadRef}
+								schema={mediaFileSchema}
+								folder={activeFolder === 'none' ? null : activeFolder}
+								onUploaded={handleMediaUploaded}
+							/>
+						</div>
 					{/if}
 
 					{#if mediaStatus.kind === 'loading'}
@@ -748,6 +773,8 @@
 								{ctx.t('common.retry')}
 							</button>
 						</div>
+					{:else if emptyUpload}
+						<!-- El estado vacío ya está integrado en MediaUpload. -->
 					{:else if mediaReadyPage?.totalItems === 0 && activeFolder !== null && appliedSearch.trim() === ''}
 						<div class="vega-media-empty" data-media-grid-state="empty-folder">
 							<p>
@@ -757,10 +784,6 @@
 										: 'media.folders.emptyFolder'
 								)}
 							</p>
-							{#if mediaPermissions.create}<button
-									type="button"
-									onclick={() => uploadRef?.openFilePicker()}>{ctx.t('media.upload.button')}</button
-								>{/if}
 						</div>
 					{:else if mediaIsEmpty}
 						<div class="vega-media-empty" data-media-grid-state="empty">
@@ -885,11 +908,14 @@
 <style>
 	.vega-media-browser {
 		display: grid;
-		grid-template-columns: 200px minmax(0, 1fr);
+		grid-template-columns: 184px minmax(0, 1fr);
 		gap: var(--vega-space-gutter);
 	}
 	.vega-media-content {
 		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--vega-space-gutter);
 	}
 	dialog button {
 		min-height: 44px;
@@ -1077,10 +1103,13 @@
 	.vega-media-empty {
 		display: flex;
 		flex-direction: column;
-		align-items: flex-start;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		min-height: 220px;
 		gap: 0.75rem;
 		padding: 1.5rem;
-		border: 1px dashed var(--line);
+		border: 1px solid var(--line);
 		border-radius: var(--r);
 		background: var(--paper);
 	}

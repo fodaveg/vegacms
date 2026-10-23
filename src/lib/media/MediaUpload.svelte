@@ -69,12 +69,15 @@
 		 *  DESCUBIERTO en runtime, D-P6.3) — este componente nunca lo busca por su cuenta. */
 		schema: MediaFileFieldSchema;
 		folder?: string | null;
+		/** Integra el vacío de la biblioteca en la propia zona de subida. */
+		emptyTitle?: string;
+		emptyBody?: string;
 		/** Se llama tras CADA subida individual con éxito (no solo al final del lote): el llamador
 		 *  refresca el grid (`mediaListState.reload()`). */
 		onUploaded: () => void;
 	}
 
-	let { schema, onUploaded, folder = null }: Props = $props();
+	let { schema, onUploaded, folder = null, emptyTitle, emptyBody }: Props = $props();
 
 	const ctx = getVegaContext();
 	const uploadState = createMediaUploadState();
@@ -257,13 +260,18 @@
 		type="button"
 		class="vega-media-dropzone"
 		class:vega-media-dropzone--over={dragging}
+		class:vega-media-dropzone--empty={!!emptyTitle}
 		aria-disabled={uploadState.running ? 'true' : undefined}
 		ondragover={handleDragOver}
 		ondragleave={handleDragLeave}
 		ondrop={handleDrop}
 		onclick={openFilePicker}
 	>
-		<Icon id="upload" size={16} />
+		<Icon id="upload" size={emptyTitle ? 28 : 16} />
+		{#if emptyTitle}
+			<span class="vega-media-empty-title">{emptyTitle}</span>
+			{#if emptyBody}<span class="vega-media-empty-body">{emptyBody}</span>{/if}
+		{/if}
 		<span>
 			{ctx.t('media.upload.dropzoneLead')}
 			<strong>{ctx.t('media.upload.dropzoneAction')}</strong>
@@ -277,23 +285,28 @@
 		</span>
 	</button>
 
-	<!-- Reducir al subir (Lote 13): la casilla vale para el lote siguiente, desmarcada por defecto y
-	     sin recordarse entre visitas (estado local, ni `localStorage`). Fuera de la banda de
-	     arrastre: esa desaparece en móvil y la casilla tiene que seguir a la vista. -->
-	<div class="vega-media-shrink">
-		<label class="vega-media-shrink-check">
-			<input
-				type="checkbox"
-				bind:checked={keepOriginal}
-				disabled={uploadState.running}
-				data-media-keep-original
-			/>
-			<span>{ctx.t('media.upload.keepOriginal')}</span>
-		</label>
-		<p class="vega-media-shrink-notice" data-media-shrink-notice>
-			{ctx.t('media.upload.shrinkNotice')}
-		</p>
-	</div>
+	<!-- Opciones del siguiente lote: disponibles antes de elegir o arrastrar archivos, también
+	     en móvil. «Subir el original» empieza desmarcada y no se recuerda entre visitas. -->
+	<details class="vega-media-upload-options">
+		<summary
+			>{ctx.t('media.upload.options')}{#if keepOriginal}
+				· {ctx.t('media.upload.keepOriginal')}{/if}</summary
+		>
+		<div class="vega-media-shrink">
+			<label class="vega-media-shrink-check">
+				<input
+					type="checkbox"
+					bind:checked={keepOriginal}
+					disabled={uploadState.running}
+					data-media-keep-original
+				/>
+				<span>{ctx.t('media.upload.keepOriginal')}</span>
+			</label>
+			<p class="vega-media-shrink-notice" data-media-shrink-notice>
+				{ctx.t('media.upload.shrinkNotice')}
+			</p>
+		</div>
+	</details>
 
 	{#if uploadState.items.length > 0}
 		<!-- Lote en curso: mismas tarjetas que la rejilla, en su propia fila justo encima de ella
@@ -445,6 +458,21 @@
 		cursor: pointer;
 	}
 
+	.vega-media-dropzone--empty {
+		flex-direction: column;
+		min-height: 220px;
+		box-sizing: border-box;
+		padding: var(--sp-8);
+	}
+	.vega-media-empty-title {
+		font-family: var(--display);
+		font-size: var(--fs-17);
+		font-weight: 650;
+		color: var(--ink-hi);
+	}
+	.vega-media-empty-body {
+		max-width: 38rem;
+	}
 	.vega-media-dropzone:hover {
 		border-color: var(--accent-line);
 		color: var(--ink-2);
@@ -472,7 +500,29 @@
 		opacity: 0.6;
 	}
 
-	/* Casilla «Subir el original» y aviso fijo de la reducción. */
+	.vega-media-upload-options {
+		color: var(--ink-2);
+		font-size: var(--fs-13);
+	}
+	.vega-media-upload-options summary {
+		width: fit-content;
+		min-height: 34px;
+		padding: var(--sp-2) 0;
+		cursor: pointer;
+	}
+	.vega-media-upload-options summary:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
+	}
+	.vega-media-upload-options[open] .vega-media-shrink {
+		padding: var(--sp-2) 0 var(--sp-3);
+	}
+	@media (pointer: coarse) {
+		.vega-media-upload-options summary {
+			min-height: 44px;
+		}
+	}
+	/* La opción del lote sigue disponible antes de elegir o arrastrar ficheros. */
 	.vega-media-shrink {
 		display: flex;
 		flex-wrap: wrap;
@@ -683,14 +733,21 @@
 		color: var(--info);
 	}
 
-	/* Móvil (mockup): la banda de arrastre desaparece (no hay "arrastrar" en táctil) — el botón
-	   "Subir archivos" de la cabecera sigue siendo la vía real. Las celdas del lote pasan a dos
-	   columnas, igual que la rejilla. */
+	/* En móvil solo permanece la zona que explica un vacío. La subida también está en la
+	   cabecera; las celdas del lote pasan a dos columnas, igual que la rejilla. */
 	@media (max-width: 560px) {
 		.vega-media-dropzone {
 			display: none;
 		}
 
+		.vega-media-dropzone--empty {
+			display: flex;
+			padding: var(--sp-6);
+		}
+		.vega-media-upload-options summary,
+		.vega-media-shrink-check {
+			min-height: 44px;
+		}
 		.vega-media-upload-grid {
 			grid-template-columns: repeat(2, 1fr);
 		}

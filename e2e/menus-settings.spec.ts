@@ -45,6 +45,16 @@ test.describe('Menús y Datos del sitio', () => {
 		await page.getByRole('link', { name: /^Menús/ }).click();
 		await page.getByRole('link', { name: 'Menú principal', exact: true }).click();
 		await expect(page.getByText('Todavía no hay elementos de menú.')).toBeVisible();
+		await expect(
+			page.locator('.vega-field-row[data-field="created"], .vega-field-row[data-field="updated"]')
+		).toHaveCount(0);
+		await expect(page.getByRole('heading', { name: 'Ficha', exact: true })).toBeVisible();
+		await expect(
+			page.locator('.vega-editor-kv').getByText('Creado', { exact: true })
+		).toBeVisible();
+		await expect(
+			page.locator('.vega-editor-kv').getByText('Actualizado', { exact: true })
+		).toBeVisible();
 		await page.locator('.vega-blocks').scrollIntoViewIfNeeded();
 		await page.screenshot({ path: info.outputPath('menu-vacio.png'), fullPage: true });
 		await expect(page.getByRole('button', { name: 'Editor visual', exact: true })).toHaveCount(0);
@@ -74,6 +84,34 @@ test.describe('Menús y Datos del sitio', () => {
 		).toContainText('Equipo');
 		await page.reload();
 		await expect(page.locator('.vega-block-toggle')).toHaveText([/Equipo/, /Inicio/]);
+		await page.getByRole('button', { name: 'Añadir Elemento', exact: true }).click();
+		const third = page.locator('.vega-block-row').nth(2);
+		await third.getByLabel('Texto', { exact: true }).fill('Contacto');
+		await third.getByLabel('Dirección', { exact: true }).fill('#contacto');
+		await third.getByRole('button', { name: 'Guardar', exact: true }).click();
+		for (const toggle of await page.locator('.vega-block-toggle').all()) {
+			if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
+		}
+		await expect(
+			page.locator('.vega-field-row[data-field="created"], .vega-field-row[data-field="updated"]')
+		).toHaveCount(0);
+		await page.setViewportSize({ width: 1440, height: 2200 });
+		await page.locator('.vega-block-row').first().scrollIntoViewIfNeeded();
+		await page.screenshot({
+			path: info.outputPath('menu-tres-abiertos-desktop.png'),
+			fullPage: true
+		});
+		await page.setViewportSize({ width: 390, height: 844 });
+		if (await page.getByRole('button', { name: 'Cerrar navegación', exact: true }).count())
+			await page.getByRole('button', { name: 'Cerrar navegación', exact: true }).click();
+		await expect(page.locator('#vega-sidebar')).not.toBeInViewport();
+		expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+			true
+		);
+		await page.screenshot({
+			path: info.outputPath('menu-tres-abiertos-mobile.png'),
+			fullPage: true
+		});
 	});
 
 	test('Datos del sitio: abre singleton desde sidebar, guarda descripción y la conserva tras recarga', async ({
@@ -91,6 +129,17 @@ test.describe('Menús y Datos del sitio', () => {
 		await expect(page.getByLabel('Descripción general', { exact: true })).toHaveValue(
 			'Un sitio con datos compartidos.'
 		);
+		await expect(
+			page.locator('.vega-field-row[data-field="created"], .vega-field-row[data-field="updated"]')
+		).toHaveCount(0);
 		await page.screenshot({ path: info.outputPath('datos-del-sitio.png'), fullPage: true });
+		await page.setViewportSize({ width: 390, height: 844 });
+		if (await page.getByRole('button', { name: 'Cerrar navegación', exact: true }).count())
+			await page.getByRole('button', { name: 'Cerrar navegación', exact: true }).click();
+		await expect(page.locator('#vega-sidebar')).not.toBeInViewport();
+		expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+			true
+		);
+		await page.screenshot({ path: info.outputPath('datos-del-sitio-mobile.png'), fullPage: true });
 	});
 });
