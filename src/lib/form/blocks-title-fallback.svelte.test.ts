@@ -70,7 +70,10 @@ afterEach(() => {
 	cleanup = undefined;
 	vi.restoreAllMocks();
 });
-async function setup(denied = false) {
+async function setup({
+	listError,
+	getError
+}: { listError?: VegaError; getError?: VegaError } = {}) {
 	const model = resolveContentModel({ types, manifestRaw: manifest() });
 	const port = createMemoryBackend({
 		contentTypes: types,
@@ -80,9 +83,13 @@ async function setup(denied = false) {
 	await port.login({ email: 'admin@vega.test', password: 'test-pass' });
 	const originalList = port.list.bind(port);
 	const list = vi.spyOn(port, 'list').mockImplementation((collection, query) => {
-		if (denied && collection === 'pages')
-			return Promise.reject(VegaError.forbidden('No permitido'));
+		if (listError && collection === 'pages') return Promise.reject(listError);
 		return originalList(collection, query);
+	});
+	const originalGet = port.get.bind(port);
+	const get = vi.spyOn(port, 'get').mockImplementation((collection, id) => {
+		if (getError && collection === 'pages') return Promise.reject(getError);
+		return originalGet(collection, id);
 	});
 	const update = vi.spyOn(port, 'update');
 	const ctx = {
@@ -107,7 +114,7 @@ async function setup(denied = false) {
 		flushSync();
 		expect(state.records).toHaveLength(4);
 	});
-	return { state, port, list, update };
+	return { state, port, list, get, update };
 }
 
 describe('título relacionado de bloques, solo presentación', () => {
@@ -133,10 +140,32 @@ describe('título relacionado de bloques, solo presentación', () => {
 		expect(state.blockTitle(state.records[0])).toBe('Borrador');
 		expect(update).not.toHaveBeenCalled();
 	});
-	test('sin permiso de lectura conserva una etiqueta estable y no bloquea el editor', async () => {
-		const { state, update } = await setup(true);
+	test('lista privada con lectura permitida resuelve títulos sin escribir la etiqueta', async () => {
+		const { state, get, update } = await setup({ listError: VegaError.forbidden() });
 		await vi.waitFor(() => {
 			flushSync();
+			expect(state.blockTitle(state.records[0])).toBe('Sobre mí');
+		});
+		expect(state.records.map(state.blockTitle)).toEqual([
+			'Sobre mí',
+			'Contacto',
+			'Mi texto',
+			'(sin título)'
+		]);
+		expect(get).toHaveBeenCalledTimes(2);
+		expect(get).toHaveBeenCalledWith('pages', 'about');
+		expect(get).toHaveBeenCalledWith('pages', 'contact');
+		expect(state.failed).toBe(false);
+		expect(update).not.toHaveBeenCalled();
+	});
+	test('sin permiso de lectura conserva una etiqueta estable y no bloquea el editor', async () => {
+		const { state, get, update } = await setup({
+			listError: VegaError.forbidden(),
+			getError: VegaError.forbidden()
+		});
+		await vi.waitFor(() => {
+			flushSync();
+			expect(get).toHaveBeenCalledTimes(2);
 			expect(state.blockTitle(state.records[0])).toBe('about');
 		});
 		expect(state.failed).toBe(false);
@@ -148,6 +177,28 @@ describe('título relacionado de bloques, solo presentación', () => {
 		]);
 		expect(update).not.toHaveBeenCalled();
 	});
+	test.each([
+		['listado caído', VegaError.backend('caído'), undefined, 0],
+		['lectura caída tras lista privada', VegaError.forbidden(), VegaError.backend('caído'), 2]
+	] as const)(
+		'%s mantiene las filas y los ids sin bloquear el editor',
+		async (_label, listError, getError, expectedGets) => {
+			const { state, list, get, update } = await setup({ listError, getError });
+			await vi.waitFor(() => {
+				flushSync();
+				expect(list.mock.calls.filter(([collection]) => collection === 'pages')).toHaveLength(1);
+				expect(get).toHaveBeenCalledTimes(expectedGets);
+			});
+			expect(state.records.map(state.blockTitle)).toEqual([
+				'about',
+				'contact',
+				'Mi texto',
+				'(sin título)'
+			]);
+			expect(state.failed).toBe(false);
+			expect(update).not.toHaveBeenCalled();
+		}
+	);
 	test.each(['menu', 'label', 'multiple', 'unknown', '', 42, null])(
 		'fallback inválido %s degrada solo la presentación',
 		(fallback) => {

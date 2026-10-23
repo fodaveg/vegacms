@@ -304,6 +304,63 @@ describe('fetchRecordsByIds (list por ids + get de los que el list no devuelve)'
 		expect(out.errors).toEqual([boom]);
 	});
 
+	it('list forbidden con get permitido resuelve los ids conocidos por ViewRule', async () => {
+		const list = vi.fn(async () => {
+			throw VegaError.forbidden();
+		});
+		const get = vi.fn(async (_type: string, id: string) => rec(id));
+		const out = await fetchRecordsByIds({ list, get }, 'articles', ['a', 'b'], ['title']);
+		expect([...out.records.keys()]).toEqual(['a', 'b']);
+		expect(out.errors).toEqual([]);
+		expect(out.notFound.size).toBe(0);
+		expect(get).toHaveBeenCalledTimes(2);
+	});
+
+	it('list y get forbidden no filtran títulos ni confunden el permiso con un 404', async () => {
+		const denied = VegaError.forbidden();
+		const list = vi.fn(async () => {
+			throw denied;
+		});
+		const get = vi.fn(async () => {
+			throw denied;
+		});
+		const out = await fetchRecordsByIds({ list, get }, 'articles', ['a', 'b']);
+		expect(out.records.size).toBe(0);
+		expect(out.notFound.size).toBe(0);
+		expect(out.errors).toEqual([denied, denied]);
+		expect(get).toHaveBeenCalledTimes(2);
+	});
+
+	it.each([
+		VegaError.backend('caído'),
+		VegaError.network(),
+		VegaError.authExpired(),
+		new Error('inesperado')
+	])('otro error de list se propaga sin ejecutar get: %s', async (error) => {
+		const list = vi.fn(async () => {
+			throw error;
+		});
+		const get = vi.fn(async (_type: string, id: string) => rec(id));
+		await expect(fetchRecordsByIds({ list, get }, 'articles', ['a'])).rejects.toBe(error);
+		expect(get).not.toHaveBeenCalled();
+	});
+
+	it.each([VegaError.backend('caído'), VegaError.network(), VegaError.authExpired()])(
+		'otro error de get tras list forbidden se reporta sin inventar notFound: %s',
+		async (error) => {
+			const list = vi.fn(async () => {
+				throw VegaError.forbidden();
+			});
+			const get = vi.fn(async () => {
+				throw error;
+			});
+			const out = await fetchRecordsByIds({ list, get }, 'articles', ['a']);
+			expect(out.records.size).toBe(0);
+			expect(out.notFound.size).toBe(0);
+			expect(out.errors).toEqual([error]);
+		}
+	);
+
 	it('sin ids ausentes no hace ningún get', async () => {
 		const list = vi.fn(async () => pageOf([rec('a')]));
 		const get = vi.fn();
